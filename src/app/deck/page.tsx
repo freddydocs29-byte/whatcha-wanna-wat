@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
-import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, type UserPreferences } from "../lib/storage";
+import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, type UserPreferences } from "../lib/storage";
 import { rankMeals, type RankedMeal } from "../lib/scoring";
 
 const SWIPE_THRESHOLD = 100;
@@ -170,10 +170,13 @@ export default function DeckPage() {
     const prefs = getPreferences();
     const savedMeals = getSavedMeals();
     const history = getHistory();
+    const recentlySeen = getRecentlySeenIds();
     const filter = FILTERS.find((f) => f.id === id) ?? null;
     const base = filter ? meals.filter(filter.match) : meals;
     const eligible = base.filter((m) => matchesPreferences(m, prefs));
-    setRankedMeals(rankMeals(eligible, prefs, savedMeals, history, pantryMode));
+    const ranked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined);
+    recordSeenSession(ranked.map((r) => r.meal.id));
+    setRankedMeals(ranked);
     setActiveFilterId(id);
     setCurrentIndex(0);
     setTopPicksMode(false);
@@ -185,10 +188,11 @@ export default function DeckPage() {
     const prefs = getPreferences();
     const savedMeals = getSavedMeals();
     const history = getHistory();
+    const recentlySeen = getRecentlySeenIds();
     const filter = FILTERS.find((f) => f.id === activeFilterId) ?? null;
     const base = filter ? meals.filter(filter.match) : meals;
     const eligible = base.filter((m) => matchesPreferences(m, prefs));
-    const allRanked = rankMeals(eligible, prefs, savedMeals, history, pantryMode);
+    const allRanked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined);
     const topN = Math.max(3, Math.ceil(allRanked.length * 0.35));
     setRankedMeals(allRanked.slice(0, topN));
     setCurrentIndex(0);
@@ -204,10 +208,11 @@ export default function DeckPage() {
       const prefs = getPreferences();
       const savedMeals = getSavedMeals();
       const history = getHistory();
+      const recentlySeen = getRecentlySeenIds();
       const filter = FILTERS.find((f) => f.id === activeFilterId) ?? null;
       const base = filter ? meals.filter(filter.match) : meals;
       const eligible = base.filter((m) => matchesPreferences(m, prefs));
-      setRankedMeals(rankMeals(eligible, prefs, savedMeals, history, next));
+      setRankedMeals(rankMeals(eligible, prefs, savedMeals, history, next, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined));
       setCurrentIndex(0);
       x.set(0);
       setExitX(null);
@@ -229,11 +234,15 @@ export default function DeckPage() {
   }
 
   function handlePass() {
+    if (meal) updateTasteProfile(meal, "pass");
     triggerExit("left", () => setCurrentIndex((i) => i + 1));
   }
 
   function handleSave() {
-    if (meal) saveMeal(meal);
+    if (meal) {
+      saveMeal(meal);
+      updateTasteProfile(meal, "save");
+    }
     x.set(0);
     setCurrentIndex((i) => i + 1);
   }
@@ -241,6 +250,7 @@ export default function DeckPage() {
   function handleChoose() {
     if (!meal) return;
     const chosenMeal = meal;
+    updateTasteProfile(chosenMeal, "choose");
     triggerExit("right", () => {
       addToHistory(chosenMeal);
       router.push(`/locked?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);

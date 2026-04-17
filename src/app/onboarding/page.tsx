@@ -156,20 +156,31 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, scale: 0.88, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-10 flex flex-col items-center text-center"
+            className="relative z-10 flex w-full flex-col items-center text-center"
           >
             <div className="mb-6 text-6xl">🍽️</div>
             <h1 className="text-[44px] font-semibold leading-[1.0] tracking-[-0.06em]">
               You&apos;re all set.
             </h1>
             <p className="mt-4 max-w-[28ch] text-[15px] leading-7 text-white/55">
-              Your picks are saved. Let&apos;s find something worth eating tonight.
+              Your basics are saved. Want to go deeper for sharper picks?
             </p>
+
+            <div className="mt-10 w-full max-w-xs space-y-3">
+              <button
+                onClick={() => router.push("/flavor-profile")}
+                className="w-full rounded-full bg-white px-8 py-4 text-base font-semibold text-black shadow-[0_8px_32px_rgba(255,255,255,0.14)] transition hover:opacity-95 active:scale-[0.98]"
+              >
+                Build full flavor profile
+              </button>
+              <p className="text-[11px] text-white/25">5 quick questions · optional · takes 1 min</p>
+            </div>
+
             <button
               onClick={() => router.replace("/")}
-              className="mt-10 rounded-full bg-white px-8 py-4 text-base font-semibold text-black shadow-[0_8px_32px_rgba(255,255,255,0.14)] transition hover:opacity-95 active:scale-[0.98]"
+              className="mt-6 text-sm text-white/35 underline underline-offset-4 transition hover:text-white/55"
             >
-              Let&apos;s eat
+              Skip for now, let&apos;s eat
             </button>
           </motion.div>
         </div>

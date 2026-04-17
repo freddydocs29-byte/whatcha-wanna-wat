@@ -13,9 +13,31 @@ export type UserPreferences = {
   kidFriendly: boolean | null;
 };
 
+export type TasteProfile = {
+  likedTags: Record<string, number>;      // tag → cumulative positive signal
+  dislikedTags: Record<string, number>;   // tag → cumulative negative signal
+  likedCategories: Record<string, number>; // category → cumulative positive signal
+  interactionCount: number;               // total pass + save + choose events
+};
+
+/**
+ * Optional deeper preference layer set via the Full Flavor Profile flow.
+ * Collected separately from quick onboarding — never required.
+ */
+export type FlavorProfile = {
+  adventurousness: "familiar" | "balanced" | "adventurous";
+  timeAvailable: "quick" | "normal" | "relaxed";
+  energyLevel: "low" | "medium" | "high";
+  budgetSensitivity: "frugal" | "moderate" | "generous";
+  cookingConfidence: "beginner" | "intermediate" | "confident";
+};
+
 const SAVED_KEY = "wwe_saved_meals";
 const HISTORY_KEY = "wwe_history";
 const PREFS_KEY = "wwe_preferences";
+const TASTE_KEY = "wwe_taste_profile";
+const SEEN_KEY = "wwe_seen_sessions";
+const FLAVOR_KEY = "wwe_flavor_profile";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -67,6 +89,84 @@ export function savePreferences(prefs: UserPreferences): void {
 
 export function hasCompletedOnboarding(): boolean {
   return getPreferences() !== null;
+}
+
+export function getTasteProfile(): TasteProfile {
+  return read<TasteProfile>(TASTE_KEY, {
+    likedTags: {},
+    dislikedTags: {},
+    likedCategories: {},
+    interactionCount: 0,
+  });
+}
+
+/**
+ * Update the taste profile after a user interaction.
+ *
+ * Signal weights:
+ *   pass   → +1 to each tag in dislikedTags
+ *   save   → +1 to each tag in likedTags, +1 to the category in likedCategories
+ *   choose → +2 to each tag in likedTags, +2 to the category in likedCategories
+ */
+export function updateTasteProfile(meal: Meal, signal: "pass" | "save" | "choose"): void {
+  if (typeof window === "undefined") return;
+  const profile = getTasteProfile();
+  profile.interactionCount += 1;
+
+  if (signal === "pass") {
+    for (const tag of meal.tags) {
+      profile.dislikedTags[tag] = (profile.dislikedTags[tag] ?? 0) + 1;
+    }
+  } else {
+    const weight = signal === "choose" ? 2 : 1;
+    for (const tag of meal.tags) {
+      profile.likedTags[tag] = (profile.likedTags[tag] ?? 0) + weight;
+    }
+    profile.likedCategories[meal.category] = (profile.likedCategories[meal.category] ?? 0) + weight;
+  }
+
+  localStorage.setItem(TASTE_KEY, JSON.stringify(profile));
+}
+
+export function getFlavorProfile(): FlavorProfile | null {
+  return read<FlavorProfile | null>(FLAVOR_KEY, null);
+}
+
+export function saveFlavorProfile(profile: FlavorProfile): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(FLAVOR_KEY, JSON.stringify(profile));
+}
+
+export function hasFlavorProfile(): boolean {
+  return getFlavorProfile() !== null;
+}
+
+type SeenSession = {
+  mealIds: string[];
+  seenAt: string;
+};
+
+/**
+ * Returns the set of meal IDs that appeared in any deck built during the
+ * last `sessionCount` sessions. Used to apply a "recently seen" penalty
+ * in scoring so meals that keep cycling back get nudged downward.
+ */
+export function getRecentlySeenIds(sessionCount = 2): Set<string> {
+  const sessions = read<SeenSession[]>(SEEN_KEY, []);
+  const ids = new Set<string>();
+  sessions.slice(0, sessionCount).forEach((s) => s.mealIds.forEach((id) => ids.add(id)));
+  return ids;
+}
+
+/**
+ * Record a batch of meal IDs as "seen" in a new deck session.
+ * Keeps only the last 3 sessions so storage stays bounded.
+ */
+export function recordSeenSession(mealIds: string[]): void {
+  if (typeof window === "undefined") return;
+  const sessions = read<SeenSession[]>(SEEN_KEY, []);
+  const entry: SeenSession = { mealIds, seenAt: new Date().toISOString() };
+  localStorage.setItem(SEEN_KEY, JSON.stringify([entry, ...sessions].slice(0, 3)));
 }
 
 function toLocalDateStr(date: Date): string {

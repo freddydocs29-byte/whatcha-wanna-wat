@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
-import { getPreferences, savePreferences, type UserPreferences } from "../lib/storage";
+import { getPreferences, savePreferences, getTasteProfile, getFlavorProfile, type UserPreferences, type TasteProfile, type FlavorProfile } from "../lib/storage";
 
 // ── Option data ───────────────────────────────────────────────────────────────
 
@@ -120,15 +121,236 @@ function RadioCard({
   );
 }
 
+// ── Flavor profile section ────────────────────────────────────────────────
+
+const FLAVOR_LABELS: {
+  key: keyof FlavorProfile;
+  values: Record<string, { label: string; emoji: string }>;
+}[] = [
+  {
+    key: "adventurousness",
+    values: {
+      familiar: { label: "Familiar", emoji: "🏠" },
+      balanced: { label: "Balanced", emoji: "⚖️" },
+      adventurous: { label: "Adventurous", emoji: "🌍" },
+    },
+  },
+  {
+    key: "timeAvailable",
+    values: {
+      quick: { label: "Quick nights", emoji: "⚡" },
+      normal: { label: "Normal time", emoji: "🕐" },
+      relaxed: { label: "Takes its time", emoji: "🍷" },
+    },
+  },
+  {
+    key: "energyLevel",
+    values: {
+      low: { label: "Low energy", emoji: "😴" },
+      medium: { label: "Medium energy", emoji: "😊" },
+      high: { label: "High energy", emoji: "💪" },
+    },
+  },
+  {
+    key: "budgetSensitivity",
+    values: {
+      frugal: { label: "Frugal", emoji: "💰" },
+      moderate: { label: "Moderate budget", emoji: "💳" },
+      generous: { label: "Generous", emoji: "🎁" },
+    },
+  },
+  {
+    key: "cookingConfidence",
+    values: {
+      beginner: { label: "Beginner", emoji: "🌱" },
+      intermediate: { label: "Getting there", emoji: "🔪" },
+      confident: { label: "Confident cook", emoji: "👨‍🍳" },
+    },
+  },
+];
+
+function FlavorProfileSection({
+  flavorProfile,
+  onBuild,
+}: {
+  flavorProfile: FlavorProfile | null;
+  onBuild: () => void;
+}) {
+  return (
+    <section className="mt-8">
+      <SectionLabel>Full flavor profile</SectionLabel>
+      <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm leading-6 text-white/60">
+            {flavorProfile
+              ? "Active and shaping your recommendations."
+              : "Not set yet. Deeper preferences improve recommendation quality."}
+          </p>
+          <span
+            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] ${
+              flavorProfile
+                ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300/70"
+                : "border-white/10 bg-white/[0.05] text-white/30"
+            }`}
+          >
+            {flavorProfile ? "Active" : "Incomplete"}
+          </span>
+        </div>
+
+        {flavorProfile && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {FLAVOR_LABELS.map(({ key, values }) => {
+              const val = flavorProfile[key];
+              const meta = values[val];
+              return (
+                <span
+                  key={key}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-white/55"
+                >
+                  <span>{meta.emoji}</span>
+                  <span>{meta.label}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        <button
+          onClick={onBuild}
+          className={`mt-4 w-full rounded-full border py-3 text-sm transition hover:opacity-80 active:scale-[0.99] ${
+            flavorProfile
+              ? "border-white/10 bg-white/[0.05] text-white/40"
+              : "border-white/15 bg-white/[0.07] font-medium text-white/70"
+          }`}
+        >
+          {flavorProfile ? "Update flavor profile" : "Build your flavor profile"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ── Taste profile section ─────────────────────────────────────────────────────
+
+function buildSummary(profile: TasteProfile): string {
+  const topCategories = Object.entries(profile.likedCategories)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 2)
+    .map(([cat]) => cat.toLowerCase());
+
+  const netDislikedTags = Object.entries(profile.dislikedTags)
+    .filter(([tag, count]) => count > (profile.likedTags[tag] ?? 0))
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 1)
+    .map(([tag]) => tag.toLowerCase());
+
+  let sentence = "";
+  if (topCategories.length >= 2) {
+    sentence = `You tend to reach for ${topCategories[0]} and ${topCategories[1]} meals.`;
+  } else if (topCategories.length === 1) {
+    sentence = `You've been gravitating toward ${topCategories[0]} lately.`;
+  } else {
+    sentence = "Keep swiping — still learning your taste.";
+  }
+
+  if (netDislikedTags.length > 0) {
+    sentence += ` You often pass on ${netDislikedTags[0]} options.`;
+  }
+
+  return sentence;
+}
+
+function TasteProfileSection({ profile }: { profile: TasteProfile }) {
+  const hasData = profile.interactionCount >= 3;
+
+  const topLikedTags = Object.entries(profile.likedTags)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([tag]) => tag);
+
+  const netDislikedTags = Object.entries(profile.dislikedTags)
+    .filter(([tag, count]) => count > (profile.likedTags[tag] ?? 0))
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([tag]) => tag);
+
+  return (
+    <section className="mt-8">
+      <SectionLabel>Your taste profile</SectionLabel>
+
+      <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
+        {/* Header row: summary + decision count */}
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm leading-6 text-white/60">
+            {profile.interactionCount === 0
+              ? "Start swiping to let the app learn your taste."
+              : !hasData
+              ? `${profile.interactionCount} decision${profile.interactionCount === 1 ? "" : "s"} in — still learning.`
+              : buildSummary(profile)}
+          </p>
+          {profile.interactionCount > 0 && (
+            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] tabular-nums text-white/30">
+              {profile.interactionCount}
+            </span>
+          )}
+        </div>
+
+        {/* Liked tags */}
+        {hasData && topLikedTags.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
+              Tends to like
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {topLikedTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1 text-xs text-emerald-300/70"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Net disliked tags */}
+        {hasData && netDislikedTags.length > 0 && (
+          <div className="mt-3">
+            <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
+              Tends to pass on
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {netDislikedTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-rose-400/20 bg-rose-400/[0.06] px-3 py-1 text-xs text-rose-300/55"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
+  const [tasteProfile, setTasteProfile] = useState<TasteProfile | null>(null);
+  const [flavorProfile, setFlavorProfile] = useState<FlavorProfile | null>(null);
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setPrefs(getPreferences());
+    setTasteProfile(getTasteProfile());
+    setFlavorProfile(getFlavorProfile());
   }, []);
 
   function update(partial: Partial<UserPreferences>) {
@@ -202,8 +424,16 @@ export default function ProfilePage() {
             </p>
           </section>
 
+          {/* ── Quick-start preferences ─────────────────────────────────── */}
+          <div className="mt-10 mb-[-4px] flex items-center gap-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/20">
+              Quick preferences
+            </p>
+            <div className="h-px flex-1 bg-white/[0.06]" />
+          </div>
+
           {/* ── What you love ───────────────────────────────────────────── */}
-          <section className="mt-10">
+          <section className="mt-6">
             <SectionLabel>What you love</SectionLabel>
             <div className="flex flex-wrap gap-3">
               {CUISINES.map((c) => (
@@ -295,6 +525,15 @@ export default function ProfilePage() {
               })}
             </div>
           </section>
+
+          {/* ── Full flavor profile ──────────────────────────────────── */}
+          <FlavorProfileSection
+            flavorProfile={flavorProfile}
+            onBuild={() => router.push("/flavor-profile")}
+          />
+
+          {/* ── Your taste profile ───────────────────────────────────── */}
+          {tasteProfile && <TasteProfileSection profile={tasteProfile} />}
 
           <div className="mt-auto pt-10">
             <BottomNav />

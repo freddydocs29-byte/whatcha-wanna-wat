@@ -1,5 +1,5 @@
 import { type Meal } from "../data/meals";
-import { type UserPreferences, type HistoryEntry } from "./storage";
+import { type UserPreferences, type HistoryEntry, type TasteProfile, type FlavorProfile } from "./storage";
 
 const PANTRY_FRIENDLY_TAGS = ["Easy", "Pantry staple", "No-cook option", "Meal-prep friendly"];
 const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
@@ -44,13 +44,26 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  * Score a single meal and return the most relevant reason to surface.
  *
  * Scores (additive):
- *   +3  cuisine match        — meal matches a preferred cuisine from onboarding
- *   +2  saved category       — user saved a meal in the same category
- *   +1  saved tag overlap    — meal shares ≥1 tag with any saved meal
- *   +2  spice match (hot)    — user likes hot food and meal is bold/flavorful
- *   +1  spice match (medium) — user is ok with heat and meal is bold/flavorful
- *   +1  adventurous boost    — no kids at table and meal is bold/fresh/elevated
- *   -3  recent history       — meal was chosen in the last 5 sessions
+ *   +3      cuisine match        — meal matches a preferred cuisine from onboarding
+ *   +2      saved category       — user saved a meal in the same category
+ *   +1      saved tag overlap    — meal shares ≥1 tag with any saved meal
+ *   +2      spice match (hot)    — user likes hot food and meal is bold/flavorful
+ *   +1      spice match (medium) — user is ok with heat and meal is bold/flavorful
+ *   +1      adventurous boost    — no kids at table and meal is bold/fresh/elevated
+ *   -3      recent history       — meal was chosen in the last 5 sessions
+ *   -1.5    recently seen        — meal appeared in a deck in the last 2 sessions (but wasn't chosen)
+ *
+ * Taste profile signals (scale 0→1 over 20 interactions; zero effect early on):
+ *   up to +2  liked tag boost    — meal tags overlap with tags from saved/chosen meals
+ *   up to +1  liked category     — meal's category matches previously liked categories
+ *   up to −1  disliked tag       — meal tags overlap with tags from passed meals
+ *
+ * Full Flavor Profile signals (explicit stated preferences; active when set):
+ *   ±1        adventurousness    — adventurous/familiar preference vs meal category
+ *   +1.5/−0.5 time available     — quick pref boosts ≤20min meals; penalizes slow ones
+ *   +1.5/−0.5 energy level       — low energy boosts easy meals; penalizes high-effort
+ *   +1/−0.5   budget sensitivity — frugal/generous vs pantry vs Elegant/Elevated meals
+ *   +1/−0.5   cooking confidence — beginner/confident vs Easy vs Elevated meals
  *
  * Reason priority (first match wins):
  *   1. Cuisine match
@@ -66,7 +79,10 @@ export function scoreMeal(
   prefs: UserPreferences | null,
   savedMeals: Meal[],
   history: HistoryEntry[],
-  pantryMode = false
+  pantryMode = false,
+  tasteProfile?: TasteProfile,
+  recentlySeen?: Set<string>,
+  flavorProfile?: FlavorProfile
 ): { score: number; reason: string } {
   let score = 0;
   let topReason: string | null = null;
@@ -161,11 +177,121 @@ export function scoreMeal(
     }
   }
 
-  // ── History penalty ───────────────────────────────────────────────────────
+  // ── Taste profile signals (learned behavior) ─────────────────────────────
+  //
+  // Influence scales from 0 → 1 over 20 interactions so onboarding signals
+  // dominate early and learned behavior gradually gains weight.
 
-  const recentIds = new Set(history.slice(0, 5).map((h) => h.meal.id));
-  if (recentIds.has(meal.id)) {
+  if (tasteProfile && tasteProfile.interactionCount > 0) {
+    const behaviorScale = Math.min(1, tasteProfile.interactionCount / 20);
+
+    // Liked tag boost: +1 per matching tag, capped at +2
+    const likedTagMatches = meal.tags.filter(
+      (t) => (tasteProfile.likedTags[t] ?? 0) > 0
+    ).length;
+    score += Math.min(2, likedTagMatches) * behaviorScale;
+
+    // Liked category boost: +1 if this category appeared in saves/chooses
+    if ((tasteProfile.likedCategories[meal.category] ?? 0) > 0) {
+      score += 1 * behaviorScale;
+    }
+
+    // Disliked tag penalty: −1 per matching tag, floored at −1
+    const dislikedTagMatches = meal.tags.filter(
+      (t) => (tasteProfile.dislikedTags[t] ?? 0) > 0
+    ).length;
+    score += Math.max(-1, -dislikedTagMatches) * behaviorScale;
+  }
+
+  // ── Full Flavor Profile signals ───────────────────────────────────────────
+  //
+  // Explicit stated preferences from the optional deeper flow.
+  // Each dimension is an independent modifier; setReason() only fires if no
+  // higher-priority reason has been set yet (time/energy supply fallback context).
+
+  if (flavorProfile) {
+    const cat = meal.category.toLowerCase();
+    const hasTags = (...ts: string[]) => ts.some((t) => meal.tags.includes(t));
+    const mealMinutes = (() => {
+      for (const tag of meal.tags) {
+        const m = tag.match(/^(\d+)\s*min$/i);
+        if (m) return parseInt(m[1]);
+      }
+      return null;
+    })();
+
+    // Adventurousness
+    const isAdventurous = ["bold flavors", "fresh", "elevated", "mediterranean"].some((c) => cat.includes(c));
+    const isFamiliar = ["comfort food", "classic italian", "crowd pleaser", "quick & casual"].some((c) => cat.includes(c));
+
+    if (flavorProfile.adventurousness === "adventurous" && isAdventurous) {
+      score += 1;
+      setReason("A good pick for an adventurous night");
+    } else if (flavorProfile.adventurousness === "familiar") {
+      if (isFamiliar) score += 1;
+      if (isAdventurous) score -= 0.5;
+    }
+
+    // Time available
+    const isVeryQuick = hasTags("No-cook option") || (mealMinutes !== null && mealMinutes <= 20);
+    const isSlow = hasTags("Medium effort") || (mealMinutes !== null && mealMinutes >= 35);
+
+    if (flavorProfile.timeAvailable === "quick") {
+      if (isVeryQuick) {
+        score += 1.5;
+        setReason("Quick, for when time is tight");
+      } else if (isSlow) score -= 0.5;
+    } else if (flavorProfile.timeAvailable === "relaxed") {
+      if (cat.includes("elevated") || hasTags("Elegant", "Medium effort")) score += 1;
+    }
+
+    // Energy level
+    const isLowEffort = hasTags("Easy", "No-cook option", "Pantry staple") ||
+      ["comfort food", "quick & casual"].some((c) => cat.includes(c));
+
+    if (flavorProfile.energyLevel === "low") {
+      if (isLowEffort) {
+        score += 1.5;
+        setReason("Easy enough for a low-energy night");
+      }
+      if (isSlow) score -= 0.5;
+    } else if (flavorProfile.energyLevel === "high") {
+      if (cat.includes("elevated") || hasTags("Medium effort")) score += 1;
+    }
+
+    // Budget sensitivity
+    const isPremium = hasTags("Elegant") || cat.includes("elevated");
+    const isBudgetFriendly = hasTags("Pantry staple") ||
+      ["quick & casual", "classic italian", "comfort food"].some((c) => cat.includes(c));
+
+    if (flavorProfile.budgetSensitivity === "frugal") {
+      if (isBudgetFriendly) score += 1;
+      if (isPremium) score -= 0.5;
+    } else if (flavorProfile.budgetSensitivity === "generous") {
+      if (isPremium) score += 1;
+    }
+
+    // Cooking confidence
+    if (flavorProfile.cookingConfidence === "beginner") {
+      if (hasTags("Easy")) score += 1;
+      if (cat.includes("elevated") || hasTags("Medium effort")) score -= 0.5;
+    } else if (flavorProfile.cookingConfidence === "confident") {
+      if (cat.includes("elevated")) score += 1;
+      if (hasTags("Medium effort")) score += 0.5;
+    }
+  }
+
+  // ── History / seen penalties ──────────────────────────────────────────────
+  //
+  // Chosen meals get a hard -3 to avoid repeating last night's dinner.
+  // Meals that were shown in a deck but not chosen get a softer -1.5 so they
+  // rotate out without being fully blocked.
+
+  const recentChosenIds = new Set(history.slice(0, 5).map((h) => h.meal.id));
+  if (recentChosenIds.has(meal.id)) {
     score -= 3;
+  } else if (recentlySeen?.has(meal.id)) {
+    score -= 1.5;
   }
 
   // ── Pantry mode boost + reason ────────────────────────────────────────────
@@ -189,11 +315,24 @@ export function scoreMeal(
 }
 
 /**
- * Score, sort, and lightly shuffle a list of meals.
- * Returns each meal paired with its personalized reason string.
+ * How many top-scored meals form the candidate pool for shuffling.
+ * Within the pool, strong matches are anchored at the front while
+ * mid-tier matches rotate order each session.
+ */
+const POOL_SIZE = 10;
+
+/**
+ * Score, sort, and present a list of meals with controlled variety.
  *
- * Meals within a 2-point score band are shuffled together so the top of the
- * deck rotates between sessions instead of always showing the same faces.
+ * Algorithm:
+ *   1. Score every meal (personalization + freshness penalties).
+ *   2. Sort descending by score.
+ *   3. Take the top POOL_SIZE meals as the candidate pool.
+ *   4. Split the pool into anchors (score ≥ pool median + 1) and floaters.
+ *      Anchors stay at the front in score order — these are the clear best
+ *      matches. Floaters are shuffled so mid-tier picks rotate each session.
+ *   5. Meals outside the pool are appended in score order (no shuffle).
+ *
  * Call this once when a filter is selected — not on every render.
  */
 export function rankMeals(
@@ -201,38 +340,45 @@ export function rankMeals(
   prefs: UserPreferences | null,
   savedMeals: Meal[],
   history: HistoryEntry[],
-  pantryMode = false
+  pantryMode = false,
+  tasteProfile?: TasteProfile,
+  recentlySeen?: Set<string>,
+  flavorProfile?: FlavorProfile
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
-  // 1. Score every meal and carry the reason
+  // 1. Score every meal
   const scored = meals.map((meal) => {
-    const { score, reason } = scoreMeal(meal, prefs, savedMeals, history, pantryMode);
+    const { score, reason } = scoreMeal(
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile
+    );
     return { meal, score, reason };
   });
 
   // 2. Sort by score descending
   scored.sort((a, b) => b.score - a.score);
 
-  // 3. Shuffle within 2-point bands so top results rotate between sessions
-  const result: RankedMeal[] = [];
-  let i = 0;
+  // 3. Carve out the top-N candidate pool; the rest stays sorted
+  const poolEnd = Math.min(POOL_SIZE, scored.length);
+  const pool = scored.slice(0, poolEnd);
+  const tail = scored.slice(poolEnd);
 
-  while (i < scored.length) {
-    const bandTop = scored[i].score;
-    let j = i + 1;
-    while (j < scored.length && bandTop - scored[j].score < 2) j++;
+  // 4. Anchors = pool meals whose score is at least 1 point above the pool median.
+  //    Everything below that threshold becomes a floater and gets shuffled.
+  const medianScore = pool[Math.floor(pool.length / 2)]?.score ?? 0;
+  const anchorThreshold = medianScore + 1;
+  const anchors = pool.filter((s) => s.score >= anchorThreshold);
+  const floaters = pool.filter((s) => s.score < anchorThreshold);
 
-    // Fisher-Yates shuffle the band [i, j)
-    const band = scored.slice(i, j);
-    for (let k = band.length - 1; k > 0; k--) {
-      const r = Math.floor(Math.random() * (k + 1));
-      [band[k], band[r]] = [band[r], band[k]];
-    }
-
-    result.push(...band.map((s) => ({ meal: s.meal, reason: s.reason })));
-    i = j;
+  // Fisher-Yates shuffle the floaters
+  for (let k = floaters.length - 1; k > 0; k--) {
+    const r = Math.floor(Math.random() * (k + 1));
+    [floaters[k], floaters[r]] = [floaters[r], floaters[k]];
   }
 
-  return result;
+  // 5. Combine: anchors (sorted) → floaters (shuffled) → tail (sorted)
+  return [...anchors, ...floaters, ...tail].map((s) => ({
+    meal: s.meal,
+    reason: s.reason,
+  }));
 }
