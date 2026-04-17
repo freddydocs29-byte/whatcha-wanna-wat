@@ -1,8 +1,12 @@
 "use client";
 
-// ─── TEST ONLY: remove the next 3 lines when done testing the loading screen ───
+// ─── TEST ONLY: remove the next 5 lines when done testing the loading screen ───
 const TEST_LOADING_DELAY = true;
-const _testDelay = new Promise<void>((resolve) => setTimeout(resolve, 2500));
+let _testDelayPromise: Promise<void> | null = null;
+function _getTestDelay() {
+  if (!_testDelayPromise) _testDelayPromise = new Promise<void>((r) => setTimeout(r, 2500));
+  return _testDelayPromise;
+}
 // ────────────────────────────────────────────────────────────────────────────────
 
 import Link from "next/link";
@@ -21,7 +25,7 @@ import SaveLaterButton from "./locked/SaveLaterButton";
 
 export default function Home() {
   // TEST ONLY: suspends component so loading.tsx stays visible — remove with the lines above
-  if (TEST_LOADING_DELAY) use(_testDelay);
+  if (TEST_LOADING_DELAY) use(_getTestDelay());
 
   const router = useRouter();
   const [ready, setReady] = useState(false);
