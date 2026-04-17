@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Meal } from "../data/meals";
-import { HistoryEntry, getHistory, clearHistory, getFavorites, addFavorite, removeFavorite } from "../lib/storage";
+import {
+  HistoryEntry,
+  getHistory,
+  clearHistory,
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  getSavedMeals,
+  saveMeal,
+  removeSavedMeal,
+} from "../lib/storage";
 import BottomNav from "../components/BottomNav";
 
 function StarIcon({ filled }: { filled: boolean }) {
@@ -40,12 +50,14 @@ function formatTime(iso: string): string {
 export default function HistoryPage() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     setEntries(getHistory());
     setFavoriteIds(new Set(getFavorites().map((f) => f.id)));
+    setSavedIds(new Set(getSavedMeals().map((m) => m.id)));
     setLoaded(true);
   }, []);
 
@@ -63,6 +75,33 @@ export default function HistoryPage() {
     }
   }
 
+  function handleSaveToggle(meal: Meal) {
+    if (savedIds.has(meal.id)) {
+      removeSavedMeal(meal.id);
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(meal.id);
+        return next;
+      });
+    } else {
+      saveMeal(meal);
+      setSavedIds((prev) => new Set(prev).add(meal.id));
+    }
+  }
+
+  async function handleShare(mealName: string) {
+    const text = `We eating ${mealName} tonight 🍽️`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: text, text });
+        return;
+      } catch {
+        // user cancelled or share failed
+      }
+    }
+    await navigator.clipboard.writeText(text);
+  }
+
   function handleClear() {
     clearHistory();
     setEntries([]);
@@ -71,7 +110,7 @@ export default function HistoryPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 pt-5">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 safe-top">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute top-52 -left-20 h-56 w-56 rounded-full bg-white/[0.05] blur-3xl" />
@@ -185,6 +224,34 @@ export default function HistoryPage() {
                       {formatTime(entry.chosenAt)}
                     </p>
                   </div>
+                </div>
+
+                {/* Action row */}
+                <div className="mt-4 flex items-center gap-2 border-t border-white/[0.07] pt-4">
+                  <button
+                    onClick={() => handleSaveToggle(entry.meal)}
+                    className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition active:scale-[0.97] ${
+                      savedIds.has(entry.meal.id)
+                        ? "border-white/15 bg-white/10 text-white/70"
+                        : "border-white/[0.08] bg-transparent text-white/35 hover:text-white/60"
+                    }`}
+                  >
+                    {savedIds.has(entry.meal.id) ? "Saved" : "Save for later"}
+                  </button>
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(entry.meal.name + " recipe")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-center text-xs font-medium text-white/35 transition hover:text-white/60 active:scale-[0.97]"
+                  >
+                    Cook it
+                  </a>
+                  <button
+                    onClick={() => handleShare(entry.meal.name)}
+                    className="flex-1 rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-xs font-medium text-white/35 transition hover:text-white/60 active:scale-[0.97]"
+                  >
+                    Share
+                  </button>
                 </div>
               </div>
             ))}

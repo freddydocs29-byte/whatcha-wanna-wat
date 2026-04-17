@@ -287,7 +287,7 @@ export default function DeckPage() {
   // ── Filter picker screen ──────────────────────────────────────────────────
   if (activeFilterId === null) {
     return (
-      <main className="min-h-screen bg-[#080808] px-5 py-6 text-white">
+      <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
           <header className="flex items-center justify-between">
             <p className="text-sm text-white/50">Decision Deck</p>
@@ -342,7 +342,7 @@ export default function DeckPage() {
   // ── Exhausted screen ──────────────────────────────────────────────────────
   if (isExhausted) {
     return (
-      <main className="min-h-screen bg-[#080808] px-5 py-6 text-white">
+      <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
           <header className="flex items-center justify-between">
             <p className="text-sm text-white/50">Decision Deck</p>
@@ -428,7 +428,7 @@ export default function DeckPage() {
 
   // ── Deck screen ───────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#080808] px-5 py-6 text-white">
+    <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
         {/* Ambient pantry glow — warm bloom from top edge */}

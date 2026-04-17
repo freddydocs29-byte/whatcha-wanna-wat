@@ -55,7 +55,7 @@ export default function SavedPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 pt-5">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 safe-top">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />

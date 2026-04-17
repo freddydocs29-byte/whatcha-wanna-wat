@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Safe-area-aware top padding: respects notch/status bar on mobile,
+   falls back to 1.5rem on devices without safe area support. */
+.safe-top {
+  padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
+}
