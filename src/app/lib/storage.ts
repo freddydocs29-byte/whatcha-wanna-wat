@@ -35,6 +35,7 @@ export type FlavorProfile = {
 const SAVED_KEY = "wwe_saved_meals";
 const HISTORY_KEY = "wwe_history";
 const PREFS_KEY = "wwe_preferences";
+const ONBOARDING_KEY = "wwe_onboarding_done";
 const TASTE_KEY = "wwe_taste_profile";
 const SEEN_KEY = "wwe_seen_sessions";
 const FLAVOR_KEY = "wwe_flavor_profile";
@@ -105,8 +106,14 @@ export function savePreferences(prefs: UserPreferences): void {
   localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
 }
 
+export function markOnboardingDone(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ONBOARDING_KEY, "true");
+}
+
 export function hasCompletedOnboarding(): boolean {
-  return getPreferences() !== null;
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(ONBOARDING_KEY) === "true";
 }
 
 export function getTasteProfile(): TasteProfile {

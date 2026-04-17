@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { getFlavorProfile, saveFlavorProfile, type FlavorProfile } from "../lib/storage";
@@ -132,6 +132,8 @@ export default function FlavorProfilePage() {
     }
   }, []);
 
+  const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   function advance() {
     setDirection(1);
     if (step < TOTAL_STEPS) {
@@ -148,46 +150,42 @@ export default function FlavorProfilePage() {
     }
   }
 
+  // Called from RadioCard onSelect — auto-advances after a short delay so
+  // the selection highlight is visible before the step transitions.
+  function scheduleAutoAdvance() {
+    if (pendingRef.current) clearTimeout(pendingRef.current);
+    pendingRef.current = setTimeout(() => {
+      advance();
+      pendingRef.current = null;
+    }, 280);
+  }
+
+  // Called from the Continue button — cancels any pending auto-advance so
+  // advance() is never called twice.
+  function handleContinue() {
+    if (pendingRef.current) {
+      clearTimeout(pendingRef.current);
+      pendingRef.current = null;
+    }
+    advance();
+  }
+
   function goBack() {
+    if (pendingRef.current) {
+      clearTimeout(pendingRef.current);
+      pendingRef.current = null;
+    }
     setDirection(-1);
     setStep((s) => s - 1);
   }
 
-  // Auto-advance every step on selection
-  useEffect(() => {
-    if (step === 1 && adventurousness !== null) {
-      const t = setTimeout(advance, 280);
-      return () => clearTimeout(t);
-    }
-  }, [adventurousness]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (step === 2 && timeAvailable !== null) {
-      const t = setTimeout(advance, 280);
-      return () => clearTimeout(t);
-    }
-  }, [timeAvailable]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (step === 3 && energyLevel !== null) {
-      const t = setTimeout(advance, 280);
-      return () => clearTimeout(t);
-    }
-  }, [energyLevel]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (step === 4 && budgetSensitivity !== null) {
-      const t = setTimeout(advance, 280);
-      return () => clearTimeout(t);
-    }
-  }, [budgetSensitivity]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (step === 5 && cookingConfidence !== null) {
-      const t = setTimeout(advance, 280);
-      return () => clearTimeout(t);
-    }
-  }, [cookingConfidence]); // eslint-disable-line react-hooks/exhaustive-deps
+  function currentStepValue() {
+    if (step === 1) return adventurousness;
+    if (step === 2) return timeAvailable;
+    if (step === 3) return energyLevel;
+    if (step === 4) return budgetSensitivity;
+    return cookingConfidence;
+  }
 
   // ── Done screen ────────────────────────────────────────────────────────────
   if (isDone) {
@@ -313,7 +311,7 @@ export default function FlavorProfilePage() {
                         label={opt.label}
                         desc={opt.desc}
                         selected={adventurousness === opt.value}
-                        onSelect={() => setAdventurousness(opt.value)}
+                        onSelect={() => { setAdventurousness(opt.value); scheduleAutoAdvance(); }}
                       />
                     ))}
                   </div>
@@ -328,7 +326,7 @@ export default function FlavorProfilePage() {
                         label={opt.label}
                         desc={opt.desc}
                         selected={timeAvailable === opt.value}
-                        onSelect={() => setTimeAvailable(opt.value)}
+                        onSelect={() => { setTimeAvailable(opt.value); scheduleAutoAdvance(); }}
                       />
                     ))}
                   </div>
@@ -343,7 +341,7 @@ export default function FlavorProfilePage() {
                         label={opt.label}
                         desc={opt.desc}
                         selected={energyLevel === opt.value}
-                        onSelect={() => setEnergyLevel(opt.value)}
+                        onSelect={() => { setEnergyLevel(opt.value); scheduleAutoAdvance(); }}
                       />
                     ))}
                   </div>
@@ -358,7 +356,7 @@ export default function FlavorProfilePage() {
                         label={opt.label}
                         desc={opt.desc}
                         selected={budgetSensitivity === opt.value}
-                        onSelect={() => setBudgetSensitivity(opt.value)}
+                        onSelect={() => { setBudgetSensitivity(opt.value); scheduleAutoAdvance(); }}
                       />
                     ))}
                   </div>
@@ -373,11 +371,21 @@ export default function FlavorProfilePage() {
                         label={opt.label}
                         desc={opt.desc}
                         selected={cookingConfidence === opt.value}
-                        onSelect={() => setCookingConfidence(opt.value)}
+                        onSelect={() => { setCookingConfidence(opt.value); scheduleAutoAdvance(); }}
                       />
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div className="mt-8">
+                <button
+                  onClick={handleContinue}
+                  disabled={currentStepValue() === null}
+                  className="w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-25"
+                >
+                  {step === TOTAL_STEPS ? "Save profile" : "Continue"}
+                </button>
               </div>
             </motion.div>
           </AnimatePresence>

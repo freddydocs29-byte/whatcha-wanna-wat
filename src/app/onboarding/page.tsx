@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { savePreferences, type UserPreferences } from "../lib/storage";
+import { savePreferences, markOnboardingDone, hasCompletedOnboarding, type UserPreferences } from "../lib/storage";
 
 const TOTAL_STEPS = 5;
 
@@ -86,6 +86,13 @@ export default function OnboardingPage() {
   const [cookOrOrder, setCookOrOrder] = useState<UserPreferences["cookOrOrder"] | null>(null);
   const [kidFriendly, setKidFriendly] = useState<boolean | null>(null);
 
+  // Redirect if onboarding already completed
+  useEffect(() => {
+    if (hasCompletedOnboarding()) {
+      router.replace("/");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function toggleMulti(value: string, current: string[], set: (v: string[]) => void) {
     if (value === "None of these") {
       set(current.includes("None of these") ? [] : ["None of these"]);
@@ -107,6 +114,7 @@ export default function OnboardingPage() {
         cookOrOrder: cookOrOrder!,
         kidFriendly,
       });
+      markOnboardingDone();
       setIsDone(true);
     }
   }
