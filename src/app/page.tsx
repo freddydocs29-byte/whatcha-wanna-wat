@@ -12,6 +12,7 @@ import {
   getStreak,
   HistoryEntry,
 } from "./lib/storage";
+import SaveLaterButton from "./locked/SaveLaterButton";
 
 export default function Home() {
   const router = useRouter();
@@ -105,9 +106,12 @@ export default function Home() {
             {todaysPick ? (
               <>
                 <p className="text-sm text-white/50">You already picked</p>
-                <h2 className="mt-2 text-[28px] font-semibold leading-tight tracking-[-0.04em]">
-                  {todaysPick.meal.name}
-                </h2>
+                <div className="mt-2 flex items-start justify-between gap-3">
+                  <h2 className="text-[28px] font-semibold leading-tight tracking-[-0.04em]">
+                    {todaysPick.meal.name}
+                  </h2>
+                  <SaveLaterButton meal={todaysPick.meal} />
+                </div>
                 <p className="mt-3 max-w-[34ch] text-sm leading-6 text-white/65">
                   {todaysPick.meal.whyItFits}
                 </p>

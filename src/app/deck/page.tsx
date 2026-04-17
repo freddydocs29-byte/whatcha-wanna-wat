@@ -266,7 +266,7 @@ export default function DeckPage() {
         addToHistory(chosenMeal);
         router.push(`/locked?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
       });
-    }, 160);
+    }, 240);
   }
 
   function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
@@ -570,10 +570,10 @@ export default function DeckPage() {
             style={{ x, rotate }}
             animate={
               isExiting
-                ? { x: exitX, opacity: 0, scale: 1 }
+                ? { x: exitX, opacity: 0, scale: 1, filter: "brightness(1) contrast(1)" }
                 : isChoosing
-                ? { scale: 1.03, opacity: 1 }
-                : { scale: 1, opacity: 1 }
+                ? { scale: 1.05, opacity: 1, filter: "brightness(1.08) contrast(1.04)" }
+                : { scale: 1, opacity: 1, filter: "brightness(1) contrast(1)" }
             }
             transition={
               isExiting
@@ -689,10 +689,28 @@ export default function DeckPage() {
                   className="pointer-events-none absolute inset-0 z-30 rounded-[34px]"
                   style={{
                     background:
-                      "radial-gradient(ellipse 80% 70% at 50% 35%, rgba(255,255,255,0.14) 0%, transparent 72%)",
-                    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)",
+                      "radial-gradient(ellipse 80% 70% at 50% 35%, rgba(255,255,255,0.22) 0%, transparent 72%)",
+                    boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,0.18)",
                   }}
                 />
+              )}
+            </AnimatePresence>
+
+            {/* Confirmation text — appears briefly on choose */}
+            <AnimatePresence>
+              {isChoosing && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1, ease: "easeOut" }}
+                  className="pointer-events-none absolute inset-x-0 z-40 flex justify-center"
+                  style={{ top: "40%" }}
+                >
+                  <span className="rounded-full bg-black/40 px-4 py-1.5 text-sm font-medium tracking-[0.05em] text-white backdrop-blur-sm">
+                    Locked in.
+                  </span>
+                </motion.div>
               )}
             </AnimatePresence>
           </motion.section>
