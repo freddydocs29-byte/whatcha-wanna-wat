@@ -2,7 +2,7 @@
 
 // ─── TEST ONLY: remove the next 3 lines when done testing the loading screen ───
 const TEST_LOADING_DELAY = true;
-const _testDelay = new Promise<void>((resolve) => setTimeout(resolve, 1000));
+const _testDelay = new Promise<void>((resolve) => setTimeout(resolve, 2500));
 // ────────────────────────────────────────────────────────────────────────────────
 
 import Link from "next/link";
