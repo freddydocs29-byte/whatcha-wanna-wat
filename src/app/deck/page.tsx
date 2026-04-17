@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
-import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, type UserPreferences } from "../lib/storage";
+import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
 import { rankMeals, type RankedMeal } from "../lib/scoring";
 
 const SWIPE_THRESHOLD = 100;
@@ -108,6 +108,7 @@ const DISLIKED_MEAL_MAP: Record<string, string[]> = {
   "Gluten / Pasta": ["chicken-alfredo", "pasta-pomodoro"],
   Beef: ["burgers"],
   Pork: [],
+  Chicken: ["chicken-alfredo", "butter-chicken", "chicken-stir-fry", "bbq-chicken", "caesar-salad"],
 };
 
 function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean {
@@ -141,8 +142,11 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
   return true;
 }
 
-export default function DeckPage() {
+function DeckContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isChangeMeal = searchParams.get("change") === "1";
+  const [existingMeal, setExistingMeal] = useState<HistoryEntry | null>(null);
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const [rankedMeals, setRankedMeals] = useState<RankedMeal[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -152,6 +156,10 @@ export default function DeckPage() {
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [isChoosing, setIsChoosing] = useState(false);
   const afterExitRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (isChangeMeal) setExistingMeal(getTodaysPick());
+  }, [isChangeMeal]);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15]);
@@ -295,7 +303,9 @@ export default function DeckPage() {
               onClick={() => router.push("/")}
               className="text-sm text-white/35 transition hover:text-white/60"
             >
-              Back
+              {isChangeMeal && existingMeal
+                ? `Keep ${existingMeal.meal.name}`
+                : "Back"}
             </button>
           </header>
 
@@ -350,7 +360,9 @@ export default function DeckPage() {
               onClick={() => router.push("/")}
               className="text-sm text-white/35 transition hover:text-white/60"
             >
-              Back
+              {isChangeMeal && existingMeal
+                ? `Keep ${existingMeal.meal.name}`
+                : "Back"}
             </button>
           </header>
 
@@ -739,7 +751,26 @@ export default function DeckPage() {
             Save
           </button>
         </div>
+
+        {isChangeMeal && existingMeal && (
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => router.push("/")}
+              className="text-sm text-white/35 transition hover:text-white/60"
+            >
+              Keep {existingMeal.meal.name}
+            </button>
+          </div>
+        )}
       </div>
     </main>
+  );
+}
+
+export default function DeckPage() {
+  return (
+    <Suspense>
+      <DeckContent />
+    </Suspense>
   );
 }

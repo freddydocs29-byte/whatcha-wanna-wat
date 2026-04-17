@@ -24,6 +24,7 @@ const DISLIKED_FOODS = [
   { label: "Gluten / Pasta", emoji: "🌾" },
   { label: "Beef", emoji: "🥩" },
   { label: "Pork", emoji: "🐷" },
+  { label: "Chicken", emoji: "🍗" },
   { label: "None of these", emoji: "✓" },
 ];
 

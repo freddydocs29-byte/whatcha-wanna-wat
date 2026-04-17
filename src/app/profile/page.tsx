@@ -24,6 +24,7 @@ const DISLIKED_FOODS = [
   { label: "Gluten / Pasta", emoji: "🌾" },
   { label: "Beef", emoji: "🥩" },
   { label: "Pork", emoji: "🐷" },
+  { label: "Chicken", emoji: "🍗" },
   { label: "None of these", emoji: "✓" },
 ];
 
@@ -424,6 +425,9 @@ export default function ProfilePage() {
             </p>
           </section>
 
+          {/* ── Your taste profile ───────────────────────────────────── */}
+          {tasteProfile && <TasteProfileSection profile={tasteProfile} />}
+
           {/* ── Quick-start preferences ─────────────────────────────────── */}
           <div className="mt-10 mb-[-4px] flex items-center gap-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/20">
@@ -531,9 +535,6 @@ export default function ProfilePage() {
             flavorProfile={flavorProfile}
             onBuild={() => router.push("/flavor-profile")}
           />
-
-          {/* ── Your taste profile ───────────────────────────────────── */}
-          {tasteProfile && <TasteProfileSection profile={tasteProfile} />}
 
           <div className="mt-auto pt-10">
             <BottomNav />

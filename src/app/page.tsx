@@ -133,7 +133,7 @@ export default function Home() {
                     Order it
                   </a>
                   <Link
-                    href="/deck"
+                    href="/deck?change=1"
                     className="rounded-full border border-white/10 bg-transparent px-5 py-4 text-center text-base font-medium text-white/70"
                   >
                     Change it
