@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
-import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, type UserPreferences } from "../lib/storage";
+import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, type UserPreferences } from "../lib/storage";
 import { rankMeals, type RankedMeal } from "../lib/scoring";
 
 const SWIPE_THRESHOLD = 100;
@@ -174,7 +174,7 @@ export default function DeckPage() {
     const filter = FILTERS.find((f) => f.id === id) ?? null;
     const base = filter ? meals.filter(filter.match) : meals;
     const eligible = base.filter((m) => matchesPreferences(m, prefs));
-    const ranked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined);
+    const ranked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined, getFavorites());
     recordSeenSession(ranked.map((r) => r.meal.id));
     setRankedMeals(ranked);
     setActiveFilterId(id);
@@ -192,7 +192,7 @@ export default function DeckPage() {
     const filter = FILTERS.find((f) => f.id === activeFilterId) ?? null;
     const base = filter ? meals.filter(filter.match) : meals;
     const eligible = base.filter((m) => matchesPreferences(m, prefs));
-    const allRanked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined);
+    const allRanked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined, getFavorites());
     const topN = Math.max(3, Math.ceil(allRanked.length * 0.35));
     setRankedMeals(allRanked.slice(0, topN));
     setCurrentIndex(0);
@@ -212,7 +212,7 @@ export default function DeckPage() {
       const filter = FILTERS.find((f) => f.id === activeFilterId) ?? null;
       const base = filter ? meals.filter(filter.match) : meals;
       const eligible = base.filter((m) => matchesPreferences(m, prefs));
-      setRankedMeals(rankMeals(eligible, prefs, savedMeals, history, next, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined));
+      setRankedMeals(rankMeals(eligible, prefs, savedMeals, history, next, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined, getFavorites()));
       setCurrentIndex(0);
       x.set(0);
       setExitX(null);

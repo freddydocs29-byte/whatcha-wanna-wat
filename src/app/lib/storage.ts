@@ -38,6 +38,7 @@ const PREFS_KEY = "wwe_preferences";
 const TASTE_KEY = "wwe_taste_profile";
 const SEEN_KEY = "wwe_seen_sessions";
 const FLAVOR_KEY = "wwe_flavor_profile";
+const FAVORITES_KEY = "wwe_favorites";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -61,6 +62,23 @@ export function saveMeal(meal: Meal): void {
 export function removeSavedMeal(mealId: string): void {
   const updated = getSavedMeals().filter((m) => m.id !== mealId);
   localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+}
+
+export function getFavorites(): Meal[] {
+  return read<Meal[]>(FAVORITES_KEY, []);
+}
+
+export function addFavorite(meal: Meal): void {
+  if (typeof window === "undefined") return;
+  const current = getFavorites();
+  if (current.some((m) => m.id === meal.id)) return;
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...current, meal]));
+}
+
+export function removeFavorite(mealId: string): void {
+  if (typeof window === "undefined") return;
+  const updated = getFavorites().filter((m) => m.id !== mealId);
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
 }
 
 export function getHistory(): HistoryEntry[] {

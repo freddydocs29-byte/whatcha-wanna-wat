@@ -3,26 +3,59 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Meal } from "../data/meals";
-import { getSavedMeals, removeSavedMeal } from "../lib/storage";
+import { getSavedMeals, removeSavedMeal, getFavorites, addFavorite, removeFavorite } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
 
+function StarIcon({ filled }: { filled: boolean }) {
+  return filled ? (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  ) : (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
 export default function SavedPage() {
-  const [meals, setMeals] = useState<Meal[]>([]);
+  const [savedMeals, setSavedMeals] = useState<Meal[]>([]);
+  const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  function refresh() {
+    setSavedMeals(getSavedMeals());
+    setFavoriteMeals(getFavorites());
+  }
+
   useEffect(() => {
-    setMeals(getSavedMeals());
+    refresh();
     setLoaded(true);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Both derived fresh every render from the same state snapshot —
+  // savedForLater is guaranteed to exclude anything in favoriteMeals.
+  const favoriteIds = new Set(favoriteMeals.map((m) => m.id));
+  const savedForLater = savedMeals.filter((m) => !favoriteIds.has(m.id));
+  const isEmpty = loaded && savedMeals.length === 0 && favoriteMeals.length === 0;
+
+  function handleFavoriteToggle(meal: Meal) {
+    if (favoriteIds.has(meal.id)) {
+      removeFavorite(meal.id);
+    } else {
+      addFavorite(meal);
+    }
+    refresh();
+  }
 
   function handleRemove(mealId: string) {
     removeSavedMeal(mealId);
-    setMeals((prev) => prev.filter((m) => m.id !== mealId));
+    refresh();
   }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-6 pt-5">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 pt-5">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
@@ -50,80 +83,165 @@ export default function SavedPage() {
               <br />
               meals
             </h1>
-            {loaded && (
-              <p className="mt-2 text-sm text-white/35">
-                {meals.length === 1 ? "1 saved meal" : `${meals.length} saved meals`}
-              </p>
-            )}
             <p className="mt-3 max-w-[31ch] text-[15px] leading-7 text-white/65">
-              The ones worth going back to. Tap remove if something no longer
-              fits.
+              Star the meals you know you love. Save the rest for later.
             </p>
           </section>
 
-          <section className="mt-8 flex flex-1 flex-col gap-3">
-            {loaded && meals.length === 0 && (
-              <div className="flex flex-1 flex-col items-center justify-center text-center">
-                <div className="mb-5 text-4xl">🍽️</div>
-                <p className="text-base font-semibold tracking-[-0.03em]">
-                  Nothing saved yet
-                </p>
-                <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/50">
-                  Hit Save on the deck when a meal catches your eye.
-                </p>
-                <Link
-                  href="/deck"
-                  className="mt-6 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:opacity-95 active:scale-[0.99]"
-                >
-                  Go to deck
-                </Link>
-              </div>
-            )}
-
-            {meals.map((meal) => (
-              <div
-                key={meal.id}
-                className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.22)] backdrop-blur-md"
+          {isEmpty && (
+            <div className="flex flex-1 flex-col items-center justify-center text-center">
+              <div className="mb-5 text-4xl">🍽️</div>
+              <p className="text-base font-semibold tracking-[-0.03em]">
+                Nothing saved yet
+              </p>
+              <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/50">
+                Hit Save on the deck when a meal catches your eye.
+              </p>
+              <Link
+                href="/deck"
+                className="mt-6 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:opacity-95 active:scale-[0.99]"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <Link
-                    href={`/locked?mealId=${meal.id}`}
-                    className="flex-1 min-w-0"
-                  >
-                    <div className="inline-flex rounded-full border border-white/10 bg-white/10 px-2.5 py-0.5 text-xs text-white/55">
-                      {meal.category}
-                    </div>
-                    <p className="mt-2 text-[18px] font-semibold tracking-[-0.03em]">
-                      {meal.name}
-                    </p>
-                    <p className="mt-1.5 text-sm leading-6 text-white/55">
-                      {meal.whyItFits}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {meal.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-white/[0.07] px-3 py-1 text-xs text-white/50"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </Link>
+                Go to deck
+              </Link>
+            </div>
+          )}
 
-                  <button
-                    onClick={() => handleRemove(meal.id)}
-                    className="mt-1 shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/40 transition hover:text-white/70 active:scale-[0.97]"
-                  >
-                    Remove from list
-                  </button>
+          {loaded && !isEmpty && (
+            <div className="mt-8 flex flex-1 flex-col gap-8">
+
+              {/* ── Favorites ──────────────────────────────────────────── */}
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="text-sm font-semibold tracking-[-0.02em] text-white">
+                    Favorites
+                  </span>
+                  {favoriteMeals.length > 0 && (
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/50">
+                      {favoriteMeals.length}
+                    </span>
+                  )}
                 </div>
-              </div>
-            ))}
-          </section>
+
+                {favoriteMeals.length === 0 ? (
+                  <div className="rounded-[24px] border border-white/[0.06] bg-white/[0.025] px-5 py-6 text-center">
+                    <p className="text-sm text-white/35">
+                      Star a meal below to mark it as a favorite.
+                    </p>
+                    <p className="mt-1 text-xs text-white/25">
+                      Favorites get surfaced first in your deck.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {favoriteMeals.map((meal) => (
+                      <div
+                        key={meal.id}
+                        className="rounded-[28px] border border-white/15 bg-white/[0.07] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <Link href={`/locked?mealId=${meal.id}`} className="flex-1 min-w-0">
+                            <div className="inline-flex rounded-full border border-white/10 bg-white/10 px-2.5 py-0.5 text-xs text-white/55">
+                              {meal.category}
+                            </div>
+                            <p className="mt-2 text-[18px] font-semibold tracking-[-0.03em]">
+                              {meal.name}
+                            </p>
+                            <p className="mt-1.5 text-sm leading-6 text-white/60">
+                              {meal.whyItFits}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {meal.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="rounded-full bg-white/[0.09] px-3 py-1 text-xs text-white/55"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </Link>
+
+                          <button
+                            onClick={() => handleFavoriteToggle(meal)}
+                            className="mt-1 shrink-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-amber-400 transition hover:bg-white/15 active:scale-[0.95]"
+                            aria-label="Remove from favorites"
+                          >
+                            <StarIcon filled />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* ── Saved for Later ─────────────────────────────────────── */}
+              {savedForLater.length > 0 && (
+                <section>
+                  <div className="mb-4 flex items-center gap-2">
+                    <span className="text-sm font-medium tracking-[-0.02em] text-white/50">
+                      Saved for Later
+                    </span>
+                    <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-white/30">
+                      {savedForLater.length}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {savedForLater.map((meal) => (
+                      <div
+                        key={meal.id}
+                        className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-md"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <Link href={`/locked?mealId=${meal.id}`} className="flex-1 min-w-0">
+                            <div className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.07] px-2.5 py-0.5 text-xs text-white/40">
+                              {meal.category}
+                            </div>
+                            <p className="mt-2 text-[17px] font-semibold tracking-[-0.03em] text-white/85">
+                              {meal.name}
+                            </p>
+                            <p className="mt-1.5 text-sm leading-6 text-white/40">
+                              {meal.whyItFits}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {meal.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </Link>
+
+                          <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
+                            <button
+                              onClick={() => handleFavoriteToggle(meal)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95]"
+                              aria-label="Add to favorites"
+                            >
+                              <StarIcon filled={false} />
+                            </button>
+                            <button
+                              onClick={() => handleRemove(meal.id)}
+                              className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-white/30 transition hover:text-white/55 active:scale-[0.97]"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
 
           <div className="mt-auto pt-8">
-            {loaded && meals.length > 0 && (
+            {loaded && !isEmpty && (
               <div className="mb-5 flex justify-center">
                 <Link
                   href="/deck"

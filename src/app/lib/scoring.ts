@@ -82,7 +82,8 @@ export function scoreMeal(
   pantryMode = false,
   tasteProfile?: TasteProfile,
   recentlySeen?: Set<string>,
-  flavorProfile?: FlavorProfile
+  flavorProfile?: FlavorProfile,
+  favorites: Meal[] = []
 ): { score: number; reason: string } {
   let score = 0;
   let topReason: string | null = null;
@@ -123,6 +124,22 @@ export function scoreMeal(
   }
 
   // ── Behavioral signals ────────────────────────────────────────────────────
+
+  // Favorites signals — stronger than saved; checked first so reason priority is higher
+  // +4 for category match, +2 for tag overlap (vs saved's +2 / +1), capped at +5 total
+  if (favorites.length > 0) {
+    let favBoost = 0;
+    if (favorites.some((f) => f.category === meal.category)) {
+      favBoost += 4;
+      setReason("Similar to meals you love");
+    }
+    const favTagSet = new Set(favorites.flatMap((f) => f.tags));
+    if (meal.tags.some((t) => favTagSet.has(t))) {
+      favBoost += 2;
+      setReason("Similar to meals you love");
+    }
+    score += Math.min(5, favBoost);
+  }
 
   // Saved category affinity (+2) — reason priority 2
   if (savedMeals.some((s) => s.category === meal.category)) {
@@ -343,14 +360,15 @@ export function rankMeals(
   pantryMode = false,
   tasteProfile?: TasteProfile,
   recentlySeen?: Set<string>,
-  flavorProfile?: FlavorProfile
+  flavorProfile?: FlavorProfile,
+  favorites: Meal[] = []
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
   // 1. Score every meal
   const scored = meals.map((meal) => {
     const { score, reason } = scoreMeal(
-      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites
     );
     return { meal, score, reason };
   });

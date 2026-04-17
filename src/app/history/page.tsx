@@ -2,8 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { HistoryEntry, getHistory, clearHistory } from "../lib/storage";
+import { Meal } from "../data/meals";
+import { HistoryEntry, getHistory, clearHistory, getFavorites, addFavorite, removeFavorite } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
+
+function StarIcon({ filled }: { filled: boolean }) {
+  return filled ? (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -26,13 +39,29 @@ function formatTime(iso: string): string {
 
 export default function HistoryPage() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     setEntries(getHistory());
+    setFavoriteIds(new Set(getFavorites().map((f) => f.id)));
     setLoaded(true);
   }, []);
+
+  function handleFavoriteToggle(meal: Meal) {
+    if (favoriteIds.has(meal.id)) {
+      removeFavorite(meal.id);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(meal.id);
+        return next;
+      });
+    } else {
+      addFavorite(meal);
+      setFavoriteIds((prev) => new Set(prev).add(meal.id));
+    }
+  }
 
   function handleClear() {
     clearHistory();
@@ -42,7 +71,7 @@ export default function HistoryPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-6 pt-5">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 pt-5">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute top-52 -left-20 h-56 w-56 rounded-full bg-white/[0.05] blur-3xl" />
@@ -64,7 +93,7 @@ export default function HistoryPage() {
 
           <section className="pt-10">
             <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/55 backdrop-blur-md">
-              What you've chosen
+              What you&apos;ve chosen
             </div>
             <h1 className="mt-5 text-[42px] font-semibold leading-[0.98] tracking-[-0.06em]">
               Your food
@@ -72,7 +101,7 @@ export default function HistoryPage() {
               memory
             </h1>
             <p className="mt-4 max-w-[31ch] text-[15px] leading-7 text-white/65">
-              Every meal you've locked in. Patterns start showing up fast.
+              Every meal you&apos;ve locked in. Star the ones you&apos;d want again.
             </p>
           </section>
 
@@ -98,7 +127,7 @@ export default function HistoryPage() {
                   No history yet
                 </p>
                 <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/50">
-                  Choose a meal on the deck and it'll show up here.
+                  Choose a meal on the deck and it&apos;ll show up here.
                 </p>
                 <Link
                   href="/deck"
@@ -137,11 +166,22 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
-                  <div className="mt-1 shrink-0 text-right">
+                  <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
+                    <button
+                      onClick={() => handleFavoriteToggle(entry.meal)}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full border transition active:scale-[0.95] ${
+                        favoriteIds.has(entry.meal.id)
+                          ? "border-white/15 bg-white/10 text-amber-400 hover:bg-white/15"
+                          : "border-white/[0.08] bg-transparent text-white/20 hover:text-white/45"
+                      }`}
+                      aria-label={favoriteIds.has(entry.meal.id) ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <StarIcon filled={favoriteIds.has(entry.meal.id)} />
+                    </button>
                     <p className="text-xs font-medium text-white/50">
                       {formatDate(entry.chosenAt)}
                     </p>
-                    <p className="mt-0.5 text-xs text-white/30">
+                    <p className="text-xs text-white/30">
                       {formatTime(entry.chosenAt)}
                     </p>
                   </div>
