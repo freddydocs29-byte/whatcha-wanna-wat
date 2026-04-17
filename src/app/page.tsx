@@ -1,7 +1,12 @@
 "use client";
 
+// ─── TEST ONLY: remove the next 3 lines when done testing the loading screen ───
+const TEST_LOADING_DELAY = true;
+const _testDelay = new Promise<void>((resolve) => setTimeout(resolve, 1000));
+// ────────────────────────────────────────────────────────────────────────────────
+
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "./components/BottomNav";
 import {
@@ -15,6 +20,9 @@ import {
 import SaveLaterButton from "./locked/SaveLaterButton";
 
 export default function Home() {
+  // TEST ONLY: suspends component so loading.tsx stays visible — remove with the lines above
+  if (TEST_LOADING_DELAY) use(_testDelay);
+
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
