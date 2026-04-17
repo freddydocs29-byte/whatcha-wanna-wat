@@ -346,9 +346,12 @@ export default function DeckPage() {
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
           <header className="flex items-center justify-between">
             <p className="text-sm text-white/50">Decision Deck</p>
-            <p className="text-sm text-white/35">
-              {topPicksMode ? "Top picks done" : "All done"}
-            </p>
+            <button
+              onClick={() => router.push("/")}
+              className="text-sm text-white/35 transition hover:text-white/60"
+            >
+              Back
+            </button>
           </header>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { meals } from "../data/meals";
 import ShareButton from "./ShareButton";
 import LockedReveal from "./LockedReveal";
+import BackButton from "./BackButton";
 
 type Props = {
   searchParams: Promise<{ mealId?: string; pantry?: string }>;
@@ -22,6 +23,11 @@ export default async function LockedPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[#080808] px-5 py-6 text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+        <header className="flex items-center justify-between">
+          <p className="text-sm text-white/50">Decision Deck</p>
+          <BackButton />
+        </header>
+
         <LockedReveal meal={meal} pantryMode={pantryMode} />
 
         <section className="mt-8 rounded-[34px] border border-white/10 bg-gradient-to-b from-white/[0.12] via-white/[0.07] to-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
