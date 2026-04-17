@@ -150,6 +150,7 @@ export default function DeckPage() {
   const [pantryMode, setPantryMode] = useState(false);
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
+  const [isChoosing, setIsChoosing] = useState(false);
   const afterExitRef = useRef<(() => void) | null>(null);
 
   const x = useMotionValue(0);
@@ -248,13 +249,24 @@ export default function DeckPage() {
   }
 
   function handleChoose() {
-    if (!meal) return;
+    if (!meal || isChoosing || isExiting) return;
     const chosenMeal = meal;
     updateTasteProfile(chosenMeal, "choose");
-    triggerExit("right", () => {
-      addToHistory(chosenMeal);
-      router.push(`/locked?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
-    });
+
+    // Haptic feedback: firm tap + soft echo
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate([12, 60, 8]);
+    }
+
+    // Brief flash moment before the exit animation fires
+    setIsChoosing(true);
+    setTimeout(() => {
+      setIsChoosing(false);
+      triggerExit("right", () => {
+        addToHistory(chosenMeal);
+        router.push(`/locked?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
+      });
+    }, 160);
   }
 
   function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
@@ -553,10 +565,20 @@ export default function DeckPage() {
           {/* Current card — draggable, on top */}
           <motion.section
             style={{ x, rotate }}
-            animate={isExiting ? { x: exitX, opacity: 0 } : { opacity: 1 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            animate={
+              isExiting
+                ? { x: exitX, opacity: 0, scale: 1 }
+                : isChoosing
+                ? { scale: 1.03, opacity: 1 }
+                : { scale: 1, opacity: 1 }
+            }
+            transition={
+              isExiting
+                ? { duration: 0.3, ease: "easeOut" }
+                : { duration: 0.12, ease: "easeOut" }
+            }
             onAnimationComplete={onAnimationComplete}
-            drag={isExiting ? false : "x"}
+            drag={isExiting || isChoosing ? false : "x"}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.8}
             onDragEnd={handleDragEnd}
@@ -652,27 +674,45 @@ export default function DeckPage() {
                 </div>
               </div>
             </div>
+
+            {/* Choose glow — flashes briefly when a meal is confirmed */}
+            <AnimatePresence>
+              {isChoosing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1 }}
+                  className="pointer-events-none absolute inset-0 z-30 rounded-[34px]"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse 80% 70% at 50% 35%, rgba(255,255,255,0.14) 0%, transparent 72%)",
+                    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)",
+                  }}
+                />
+              )}
+            </AnimatePresence>
           </motion.section>
         </div>
 
         <div className="mt-6 grid grid-cols-3 gap-3">
           <button
             onClick={handlePass}
-            disabled={isExiting}
+            disabled={isExiting || isChoosing}
             className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-4 text-sm text-white/70 disabled:opacity-40"
           >
             Pass
           </button>
           <button
             onClick={handleChoose}
-            disabled={isExiting}
+            disabled={isExiting || isChoosing}
             className="rounded-full border border-white/10 bg-white px-4 py-4 text-center text-sm font-semibold text-black disabled:opacity-40"
           >
             Choose
           </button>
           <button
             onClick={handleSave}
-            disabled={isExiting}
+            disabled={isExiting || isChoosing}
             className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-4 text-sm text-white/70 disabled:opacity-40"
           >
             Save

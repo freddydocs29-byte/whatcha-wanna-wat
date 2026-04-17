@@ -50,8 +50,8 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  *   +2      spice match (hot)    — user likes hot food and meal is bold/flavorful
  *   +1      spice match (medium) — user is ok with heat and meal is bold/flavorful
  *   +1      adventurous boost    — no kids at table and meal is bold/fresh/elevated
- *   -3      recent history       — meal was chosen in the last 5 sessions
- *   -1.5    recently seen        — meal appeared in a deck in the last 2 sessions (but wasn't chosen)
+ *   -4      recent history       — meal was chosen in the last 8 sessions
+ *   -2.5    recently seen        — meal appeared in a deck in the last 3 sessions (but wasn't chosen)
  *
  * Taste profile signals (scale 0→1 over 20 interactions; zero effect early on):
  *   up to +2  liked tag boost    — meal tags overlap with tags from saved/chosen meals
@@ -300,15 +300,16 @@ export function scoreMeal(
 
   // ── History / seen penalties ──────────────────────────────────────────────
   //
-  // Chosen meals get a hard -3 to avoid repeating last night's dinner.
-  // Meals that were shown in a deck but not chosen get a softer -1.5 so they
-  // rotate out without being fully blocked.
+  // Chosen meals get -4 to strongly suppress recently-eaten meals.
+  // Looking back 8 entries ensures suppression lasts several sessions, not
+  // just the next visit. Meals shown but not chosen get -2.5 so they rotate
+  // out meaningfully — strong enough to break the "same 5 meals" cycle.
 
-  const recentChosenIds = new Set(history.slice(0, 5).map((h) => h.meal.id));
+  const recentChosenIds = new Set(history.slice(0, 8).map((h) => h.meal.id));
   if (recentChosenIds.has(meal.id)) {
-    score -= 3;
+    score -= 4;
   } else if (recentlySeen?.has(meal.id)) {
-    score -= 1.5;
+    score -= 2.5;
   }
 
   // ── Pantry mode boost + reason ────────────────────────────────────────────
@@ -332,23 +333,22 @@ export function scoreMeal(
 }
 
 /**
- * How many top-scored meals form the candidate pool for shuffling.
- * Within the pool, strong matches are anchored at the front while
- * mid-tier matches rotate order each session.
- */
-const POOL_SIZE = 10;
-
-/**
  * Score, sort, and present a list of meals with controlled variety.
  *
  * Algorithm:
  *   1. Score every meal (personalization + freshness penalties).
- *   2. Sort descending by score.
- *   3. Take the top POOL_SIZE meals as the candidate pool.
- *   4. Split the pool into anchors (score ≥ pool median + 1) and floaters.
- *      Anchors stay at the front in score order — these are the clear best
- *      matches. Floaters are shuffled so mid-tier picks rotate each session.
- *   5. Meals outside the pool are appended in score order (no shuffle).
+ *   2. Sort all meals descending by score — no hard pool cap.
+ *   3. Shuffle within 1-point score bands so the deck order feels fresh each
+ *      session without reordering clearly better matches above worse ones.
+ *   4. Spread by cuisine: walk the shuffled list and, whenever the same
+ *      cuisine has appeared twice in the last 4 slots, pull forward the next
+ *      eligible meal from a different cuisine. This prevents 3+ same-cuisine
+ *      meals running back-to-back while keeping the best match in each
+ *      cuisine near the front.
+ *
+ * The result is smart and personal — preferences, favorites, and learned
+ * behavior all drive scores — but the deck surfaces a broader range of
+ * strong options rather than letting the same few dominate every pass.
  *
  * Call this once when a filter is selected — not on every render.
  */
@@ -373,30 +373,105 @@ export function rankMeals(
     return { meal, score, reason };
   });
 
-  // 2. Sort by score descending
+  // 2. Sort by score descending — all meals ranked, no artificial cutoff
   scored.sort((a, b) => b.score - a.score);
 
-  // 3. Carve out the top-N candidate pool; the rest stays sorted
-  const poolEnd = Math.min(POOL_SIZE, scored.length);
-  const pool = scored.slice(0, poolEnd);
-  const tail = scored.slice(poolEnd);
+  // 3. Shuffle within 1-point score bands to vary the deck each session
+  const shuffled = bandShuffle(scored);
 
-  // 4. Anchors = pool meals whose score is at least 1 point above the pool median.
-  //    Everything below that threshold becomes a floater and gets shuffled.
-  const medianScore = pool[Math.floor(pool.length / 2)]?.score ?? 0;
-  const anchorThreshold = medianScore + 1;
-  const anchors = pool.filter((s) => s.score >= anchorThreshold);
-  const floaters = pool.filter((s) => s.score < anchorThreshold);
+  // 4. Spread cuisines so no single cuisine dominates consecutive slots
+  const diversified = spreadByCuisine(shuffled);
 
-  // Fisher-Yates shuffle the floaters
-  for (let k = floaters.length - 1; k > 0; k--) {
-    const r = Math.floor(Math.random() * (k + 1));
-    [floaters[k], floaters[r]] = [floaters[r], floaters[k]];
+  return diversified.map((s) => ({ meal: s.meal, reason: s.reason }));
+}
+
+/**
+ * Within each 1-point score band, randomly reorder meals.
+ * A meal scoring 7.6 will still appear before a meal scoring 5.1,
+ * but two meals both scoring ~7.x may swap positions each session.
+ * This creates session-to-session variety without overriding genuine differences.
+ */
+function bandShuffle<T extends { score: number }>(sorted: T[]): T[] {
+  if (sorted.length === 0) return sorted;
+
+  const BAND_SIZE = 1.0;
+  const result: T[] = [];
+  let i = 0;
+
+  while (i < sorted.length) {
+    const bandTop = sorted[i].score;
+    const bandFloor = bandTop - BAND_SIZE;
+
+    const band: T[] = [];
+    while (i < sorted.length && sorted[i].score > bandFloor) {
+      band.push(sorted[i]);
+      i++;
+    }
+
+    // Fisher-Yates shuffle within this score band
+    for (let k = band.length - 1; k > 0; k--) {
+      const r = Math.floor(Math.random() * (k + 1));
+      [band[k], band[r]] = [band[r], band[k]];
+    }
+
+    result.push(...band);
   }
 
-  // 5. Combine: anchors (sorted) → floaters (shuffled) → tail (sorted)
-  return [...anchors, ...floaters, ...tail].map((s) => ({
-    meal: s.meal,
-    reason: s.reason,
-  }));
+  return result;
+}
+
+/**
+ * Reorders meals so no cuisine appears more than twice in any 4-slot window.
+ *
+ * When the top candidate would violate the window constraint, the function
+ * scans forward for the next highest-scoring meal from an eligible cuisine
+ * and promotes it. This preserves intent — the best Italian meal still
+ * comes before the second-best Italian meal — but breaks up same-cuisine
+ * runs so the deck surfaces broader variety from the full meal pool.
+ *
+ * If every cuisine in the remaining list is window-saturated (edge case with
+ * a very small or same-cuisine pool), falls back to score order.
+ */
+function spreadByCuisine<T extends { meal: Meal }>(sorted: T[]): T[] {
+  if (sorted.length <= 3) return sorted;
+
+  const primaryCuisine = (meal: Meal): string =>
+    MEAL_CUISINES[meal.id]?.[0] ?? "Other";
+
+  const result: T[] = [];
+  const remaining = [...sorted];
+  const recentCuisines: string[] = [];
+
+  const WINDOW = 4;
+  const MAX_SAME = 2;
+
+  while (remaining.length > 0) {
+    let pickedIdx = 0;
+
+    const bestCuisine = primaryCuisine(remaining[0].meal);
+    const recentSameCount = recentCuisines
+      .slice(-WINDOW)
+      .filter((c) => c === bestCuisine).length;
+
+    if (recentSameCount >= MAX_SAME) {
+      // Best candidate would create a same-cuisine run — find the next eligible
+      for (let i = 1; i < remaining.length; i++) {
+        const cuisine = primaryCuisine(remaining[i].meal);
+        const sameCount = recentCuisines
+          .slice(-WINDOW)
+          .filter((c) => c === cuisine).length;
+        if (sameCount < MAX_SAME) {
+          pickedIdx = i;
+          break;
+        }
+      }
+      // If nothing is eligible, pickedIdx stays 0 (score order wins)
+    }
+
+    const [chosen] = remaining.splice(pickedIdx, 1);
+    result.push(chosen);
+    recentCuisines.push(primaryCuisine(chosen.meal));
+  }
+
+  return result;
 }

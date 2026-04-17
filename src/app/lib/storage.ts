@@ -167,9 +167,10 @@ type SeenSession = {
 /**
  * Returns the set of meal IDs that appeared in any deck built during the
  * last `sessionCount` sessions. Used to apply a "recently seen" penalty
- * in scoring so meals that keep cycling back get nudged downward.
+ * in scoring so meals that keep cycling back get suppressed more strongly.
+ * Default covers 3 sessions so suppression lasts across multiple visits.
  */
-export function getRecentlySeenIds(sessionCount = 2): Set<string> {
+export function getRecentlySeenIds(sessionCount = 3): Set<string> {
   const sessions = read<SeenSession[]>(SEEN_KEY, []);
   const ids = new Set<string>();
   sessions.slice(0, sessionCount).forEach((s) => s.mealIds.forEach((id) => ids.add(id)));
@@ -178,13 +179,14 @@ export function getRecentlySeenIds(sessionCount = 2): Set<string> {
 
 /**
  * Record a batch of meal IDs as "seen" in a new deck session.
- * Keeps only the last 3 sessions so storage stays bounded.
+ * Keeps the last 5 sessions so the recency penalty covers enough
+ * history to prevent the same meals from dominating across visits.
  */
 export function recordSeenSession(mealIds: string[]): void {
   if (typeof window === "undefined") return;
   const sessions = read<SeenSession[]>(SEEN_KEY, []);
   const entry: SeenSession = { mealIds, seenAt: new Date().toISOString() };
-  localStorage.setItem(SEEN_KEY, JSON.stringify([entry, ...sessions].slice(0, 3)));
+  localStorage.setItem(SEEN_KEY, JSON.stringify([entry, ...sessions].slice(0, 5)));
 }
 
 function toLocalDateStr(date: Date): string {

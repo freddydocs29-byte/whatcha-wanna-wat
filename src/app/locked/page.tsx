@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { meals } from "../data/meals";
 import ShareButton from "./ShareButton";
-import WhyItWorks from "./WhyItWorks";
+import LockedReveal from "./LockedReveal";
 
 type Props = {
   searchParams: Promise<{ mealId?: string; pantry?: string }>;
@@ -22,23 +22,7 @@ export default async function LockedPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[#080808] px-5 py-6 text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
-        <div className="pt-8">
-          <p className="text-sm text-white/45">Decision locked</p>
-
-          <h1 className="mt-4 text-5xl font-semibold leading-[0.98] tracking-[-0.06em]">
-            We eating
-            <br />
-            {meal.name}
-            <br />
-            tonight.
-          </h1>
-
-          <p className="mt-5 max-w-[30ch] text-[15px] leading-7 text-white/65">
-            {meal.whyItFits}. {meal.description}
-          </p>
-
-          <WhyItWorks meal={meal} pantryMode={pantryMode} />
-        </div>
+        <LockedReveal meal={meal} pantryMode={pantryMode} />
 
         <section className="mt-8 rounded-[34px] border border-white/10 bg-gradient-to-b from-white/[0.12] via-white/[0.07] to-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
           <p className="text-sm text-white/50">Good choice</p>
