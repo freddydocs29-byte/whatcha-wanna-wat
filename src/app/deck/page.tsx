@@ -155,11 +155,17 @@ function DeckContent() {
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [isChoosing, setIsChoosing] = useState(false);
+  const [showSwipeHint, setShowSwipeHint] = useState(true);
   const afterExitRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowSwipeHint(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15]);
@@ -278,6 +284,7 @@ function DeckContent() {
   }
 
   function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
+    setShowSwipeHint(false);
     if (info.offset.x < -SWIPE_THRESHOLD) handlePass();
     else if (info.offset.x > SWIPE_THRESHOLD) handleChoose();
   }
@@ -728,7 +735,23 @@ function DeckContent() {
           </motion.section>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <AnimatePresence>
+          {showSwipeHint && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="mt-4 select-none text-center text-xs"
+            >
+              <span className="text-rose-400/50">← pass</span>
+              <span className="mx-3 text-white/20">·</span>
+              <span className="text-emerald-400/50">choose →</span>
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        <div className="mt-4 grid grid-cols-3 gap-3">
           <button
             onClick={handlePass}
             disabled={isExiting || isChoosing}

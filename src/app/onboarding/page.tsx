@@ -415,10 +415,19 @@ export default function OnboardingPage() {
                   <button
                     onClick={advance}
                     disabled={!canContinue()}
-                    className="w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-25"
+                    className={`w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black transition hover:opacity-95 active:scale-[0.99] disabled:opacity-35 ${
+                      canContinue()
+                        ? "shadow-[0_8px_32px_rgba(255,255,255,0.22)]"
+                        : "shadow-[0_8px_24px_rgba(255,255,255,0.06)]"
+                    }`}
                   >
                     Continue
                   </button>
+                  {!canContinue() && (
+                    <p className="mt-3 text-center text-xs text-white/30">
+                      Select at least one above
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>
