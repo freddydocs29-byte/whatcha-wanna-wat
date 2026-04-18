@@ -91,6 +91,16 @@ export function clearHistory(): void {
   localStorage.removeItem(HISTORY_KEY);
 }
 
+export function clearTodaysPick(): void {
+  if (typeof window === "undefined") return;
+  const today = new Date().toLocaleDateString();
+  const history = getHistory();
+  const filtered = history.filter(
+    (e) => new Date(e.chosenAt).toLocaleDateString() !== today,
+  );
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered));
+}
+
 export function addToHistory(meal: Meal): void {
   const entry: HistoryEntry = { meal, chosenAt: new Date().toISOString() };
   const current = getHistory();

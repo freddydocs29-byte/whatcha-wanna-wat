@@ -10,6 +10,9 @@ import {
   hasCompletedOnboarding,
   getTodaysPick,
   getStreak,
+  clearTodaysPick,
+  saveMeal,
+  addFavorite,
   HistoryEntry,
 } from "./lib/storage";
 import SaveLaterButton from "./locked/SaveLaterButton";
@@ -21,6 +24,10 @@ export default function Home() {
   const [historyCount, setHistoryCount] = useState(0);
   const [todaysPick, setTodaysPick] = useState<HistoryEntry | null>(null);
   const [streak, setStreak] = useState(0);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearStep, setClearStep] = useState<"confirm" | "completed" | "save">(
+    "confirm",
+  );
 
   useEffect(() => {
     if (!hasCompletedOnboarding()) {
@@ -33,6 +40,24 @@ export default function Home() {
     setStreak(getStreak());
     setReady(true);
   }, [router]);
+
+  function openClearModal() {
+    setClearStep("confirm");
+    setShowClearModal(true);
+  }
+
+  function closeClearModal() {
+    setShowClearModal(false);
+    setClearStep("confirm");
+  }
+
+  function handleClearDecision() {
+    clearTodaysPick();
+    setTodaysPick(null);
+    setStreak(getStreak());
+    setShowClearModal(false);
+    setClearStep("confirm");
+  }
 
   if (!ready) return null;
 
@@ -76,8 +101,20 @@ export default function Home() {
                   tonight.
                 </h1>
                 <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-white/65">
-                  Already decided — change it anytime.
+                  Already decided —{" "}
+                  <button
+                    onClick={openClearModal}
+                    className="underline decoration-white/30 underline-offset-2 transition active:text-white/90"
+                  >
+                    change it anytime.
+                  </button>
                 </p>
+                <button
+                  onClick={openClearModal}
+                  className="mt-2 block text-sm text-white/55 transition active:text-white/80"
+                >
+                  ↻ Clear decision
+                </button>
               </>
             ) : (
               <>
@@ -222,6 +259,113 @@ export default function Home() {
           </div>
         </div>
       </div>
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-5 pb-10">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeClearModal}
+          />
+          <div className="relative w-full max-w-md rounded-[28px] border border-white/10 bg-[#111] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+
+            {/* Step 1 — always visible */}
+            <p className="text-lg font-semibold tracking-[-0.03em]">
+              Clear today&apos;s decision?
+            </p>
+            <p className="mt-2 text-sm leading-6 text-white/50">
+              You can always pick something new — this just resets today.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={closeClearModal}
+                className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-3 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+              >
+                Keep it
+              </button>
+              <button
+                onClick={() => setClearStep("completed")}
+                className="flex-1 rounded-full border border-white/15 bg-white/10 py-3 text-sm font-medium text-white transition hover:bg-white/15 active:scale-[0.98]"
+              >
+                Clear
+              </button>
+            </div>
+
+            {/* Step 2 — did you eat it? */}
+            <div
+              className={`grid transition-all duration-300 ease-in-out ${
+                clearStep !== "confirm"
+                  ? "grid-rows-[1fr]"
+                  : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="mt-5 border-t border-white/10 pt-5">
+                  <p className="text-base font-semibold tracking-[-0.02em]">
+                    Did you cook or order this?
+                  </p>
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      onClick={() => setClearStep("save")}
+                      className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-3 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={handleClearDecision}
+                      className="flex-1 rounded-full border border-white/15 bg-white/10 py-3 text-sm font-medium text-white transition hover:bg-white/15 active:scale-[0.98]"
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3 — save for later? */}
+            <div
+              className={`grid transition-all duration-300 ease-in-out ${
+                clearStep === "save"
+                  ? "grid-rows-[1fr]"
+                  : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="mt-5 border-t border-white/10 pt-5">
+                  <p className="text-base font-semibold tracking-[-0.02em]">
+                    Save it for later?
+                  </p>
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (todaysPick) addFavorite(todaysPick.meal);
+                        handleClearDecision();
+                      }}
+                      className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-2.5 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                    >
+                      ⭐ Favorite
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (todaysPick) saveMeal(todaysPick.meal);
+                        handleClearDecision();
+                      }}
+                      className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-2.5 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                    >
+                      🔖 Save
+                    </button>
+                    <button
+                      onClick={handleClearDecision}
+                      className="flex-1 rounded-full border border-white/15 bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15 active:scale-[0.98]"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </main>
   );
 }
