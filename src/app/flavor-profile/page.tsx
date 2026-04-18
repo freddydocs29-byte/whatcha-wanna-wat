@@ -120,6 +120,11 @@ export default function FlavorProfilePage() {
   const [budgetSensitivity, setBudgetSensitivity] = useState<BudgetValue | null>(null);
   const [cookingConfidence, setCookingConfidence] = useState<ConfidenceValue | null>(null);
 
+  // Always reflects the latest state values — read by advance() via setTimeout
+  // to avoid stale closure when auto-advancing on the final step.
+  const latestRef = useRef({ adventurousness, timeAvailable, energyLevel, budgetSensitivity, cookingConfidence });
+  latestRef.current = { adventurousness, timeAvailable, energyLevel, budgetSensitivity, cookingConfidence };
+
   // Pre-populate from saved profile if updating
   useEffect(() => {
     const existing = getFlavorProfile();
@@ -139,12 +144,17 @@ export default function FlavorProfilePage() {
     if (step < TOTAL_STEPS) {
       setStep((s) => s + 1);
     } else {
+      // Read from the ref, not from the closed-over state variables.
+      // The ref is updated synchronously on every render, so by the time
+      // the 280ms auto-advance timer fires, it holds the just-selected value
+      // even though the state update may not have been captured in this closure.
+      const vals = latestRef.current;
       saveFlavorProfile({
-        adventurousness: adventurousness!,
-        timeAvailable: timeAvailable!,
-        energyLevel: energyLevel!,
-        budgetSensitivity: budgetSensitivity!,
-        cookingConfidence: cookingConfidence!,
+        adventurousness: vals.adventurousness!,
+        timeAvailable: vals.timeAvailable!,
+        energyLevel: vals.energyLevel!,
+        budgetSensitivity: vals.budgetSensitivity!,
+        cookingConfidence: vals.cookingConfidence!,
       });
       setIsDone(true);
     }

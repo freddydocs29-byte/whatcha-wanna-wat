@@ -203,6 +203,7 @@ function FlavorProfileSection({
             {FLAVOR_LABELS.map(({ key, values }) => {
               const val = flavorProfile[key];
               const meta = values[val];
+              if (!meta) return null;
               return (
                 <span
                   key={key}
