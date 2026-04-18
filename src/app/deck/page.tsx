@@ -8,6 +8,7 @@ import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getT
 import { rankMeals, type RankedMeal } from "../lib/scoring";
 
 const SWIPE_THRESHOLD = 100;
+const MIN_DECK_SIZE = 15;
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -142,6 +143,65 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
   return true;
 }
 
+/**
+ * Build a ranked deck for the given filter + pantry mode, with a progressive
+ * fallback so the deck never drops below MIN_DECK_SIZE.
+ *
+ * Stage 1 — full filter + all preference hard-filters (ideal path).
+ * Stage 2 — relax the taste filter: use all meals but keep kid-friendly, spice,
+ *           and disliked-foods hard-filters. Adds the best cross-filter matches
+ *           the user still clearly wants.
+ * Stage 3 — relax kid-friendly and spice hard-filters, keep only disliked-foods.
+ *           These are explicit ingredient exclusions the user set; we always honour them.
+ * Stage 4 — add all remaining meals. Safety net for extreme edge cases.
+ *
+ * Meals added in later stages are still scored with the full preference + history
+ * signals so the deck stays relevant — it just stops hard-blocking everything.
+ */
+function buildDeck(filterId: string | null, pantryMode: boolean): RankedMeal[] {
+  const prefs = getPreferences();
+  const savedMeals = getSavedMeals();
+  const history = getHistory();
+  const recentlySeen = getRecentlySeenIds();
+  const tasteProfile = getTasteProfile();
+  const flavorProfile = getFlavorProfile() ?? undefined;
+  const favorites = getFavorites();
+
+  function rank(pool: Meal[]): RankedMeal[] {
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites);
+  }
+
+  // Merge new ranked meals into an existing deck, skipping duplicates.
+  function fill(deck: RankedMeal[], candidates: Meal[]): RankedMeal[] {
+    const seen = new Set(deck.map((r) => r.meal.id));
+    const newMeals = candidates.filter((m) => !seen.has(m.id));
+    if (newMeals.length === 0) return deck;
+    return [...deck, ...rank(newMeals)];
+  }
+
+  const filter = FILTERS.find((f) => f.id === filterId) ?? null;
+  const filterBase = filter ? meals.filter(filter.match) : meals;
+
+  // Stage 1: full filter + full preferences
+  let deck = rank(filterBase.filter((m) => matchesPreferences(m, prefs)));
+  if (deck.length >= MIN_DECK_SIZE) return deck;
+
+  // Stage 2: relax taste filter — all meals still pass through preference hard-filters
+  deck = fill(deck, meals.filter((m) => matchesPreferences(m, prefs)));
+  if (deck.length >= MIN_DECK_SIZE) return deck;
+
+  // Stage 3: relax kid-friendly + spice hard-filters, keep only disliked-food exclusions
+  const dislikedIds = new Set(
+    (prefs?.dislikedFoods ?? []).flatMap((d) => DISLIKED_MEAL_MAP[d] ?? [])
+  );
+  deck = fill(deck, meals.filter((m) => !dislikedIds.has(m.id)));
+  if (deck.length >= MIN_DECK_SIZE) return deck;
+
+  // Stage 4: add all remaining meals (safety net)
+  deck = fill(deck, meals);
+  return deck;
+}
+
 function DeckContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -155,17 +215,20 @@ function DeckContent() {
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [isChoosing, setIsChoosing] = useState(false);
-  const [showSwipeHint, setShowSwipeHint] = useState(true);
+  const [showSwipeHint, setShowSwipeHint] = useState(
+    () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
+  );
   const afterExitRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
 
-  useEffect(() => {
-    const t = setTimeout(() => setShowSwipeHint(false), 3000);
-    return () => clearTimeout(t);
-  }, []);
+  function dismissHint() {
+    if (!showSwipeHint) return;
+    localStorage.setItem("wwe_swipe_hint_seen", "1");
+    setShowSwipeHint(false);
+  }
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15]);
@@ -182,14 +245,7 @@ function DeckContent() {
   const isExiting = exitX !== null;
 
   function selectFilter(id: string) {
-    const prefs = getPreferences();
-    const savedMeals = getSavedMeals();
-    const history = getHistory();
-    const recentlySeen = getRecentlySeenIds();
-    const filter = FILTERS.find((f) => f.id === id) ?? null;
-    const base = filter ? meals.filter(filter.match) : meals;
-    const eligible = base.filter((m) => matchesPreferences(m, prefs));
-    const ranked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined, getFavorites());
+    const ranked = buildDeck(id, pantryMode);
     recordSeenSession(ranked.map((r) => r.meal.id));
     setRankedMeals(ranked);
     setActiveFilterId(id);
@@ -200,14 +256,7 @@ function DeckContent() {
   }
 
   function handleTopPicks() {
-    const prefs = getPreferences();
-    const savedMeals = getSavedMeals();
-    const history = getHistory();
-    const recentlySeen = getRecentlySeenIds();
-    const filter = FILTERS.find((f) => f.id === activeFilterId) ?? null;
-    const base = filter ? meals.filter(filter.match) : meals;
-    const eligible = base.filter((m) => matchesPreferences(m, prefs));
-    const allRanked = rankMeals(eligible, prefs, savedMeals, history, pantryMode, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined, getFavorites());
+    const allRanked = buildDeck(activeFilterId, pantryMode);
     const topN = Math.max(3, Math.ceil(allRanked.length * 0.35));
     setRankedMeals(allRanked.slice(0, topN));
     setCurrentIndex(0);
@@ -220,14 +269,7 @@ function DeckContent() {
     const next = !pantryMode;
     setPantryMode(next);
     if (activeFilterId !== null) {
-      const prefs = getPreferences();
-      const savedMeals = getSavedMeals();
-      const history = getHistory();
-      const recentlySeen = getRecentlySeenIds();
-      const filter = FILTERS.find((f) => f.id === activeFilterId) ?? null;
-      const base = filter ? meals.filter(filter.match) : meals;
-      const eligible = base.filter((m) => matchesPreferences(m, prefs));
-      setRankedMeals(rankMeals(eligible, prefs, savedMeals, history, next, getTasteProfile(), recentlySeen, getFlavorProfile() ?? undefined, getFavorites()));
+      setRankedMeals(buildDeck(activeFilterId, next));
       setCurrentIndex(0);
       x.set(0);
       setExitX(null);
@@ -249,6 +291,7 @@ function DeckContent() {
   }
 
   function handlePass() {
+    dismissHint();
     if (meal) updateTasteProfile(meal, "pass");
     triggerExit("left", () => setCurrentIndex((i) => i + 1));
   }
@@ -264,6 +307,7 @@ function DeckContent() {
 
   function handleChoose() {
     if (!meal || isChoosing || isExiting) return;
+    dismissHint();
     const chosenMeal = meal;
     updateTasteProfile(chosenMeal, "choose");
 
@@ -284,7 +328,7 @@ function DeckContent() {
   }
 
   function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
-    setShowSwipeHint(false);
+    dismissHint();
     if (info.offset.x < -SWIPE_THRESHOLD) handlePass();
     else if (info.offset.x > SWIPE_THRESHOLD) handleChoose();
   }
@@ -648,6 +692,26 @@ function DeckContent() {
                 }}
               />
 
+              {/* Swipe hint — overlaid on card, fades in after a short delay, persists until first interaction */}
+              <AnimatePresence>
+                {showSwipeHint && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.5 } }}
+                    transition={{ duration: 0.6, delay: 0.9 }}
+                    className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
+                    style={{ bottom: "38%" }}
+                  >
+                    <div className="flex items-center gap-2.5 rounded-full bg-black/50 px-4 py-2 backdrop-blur-sm">
+                      <span className="text-xs text-rose-400/75">← Swipe to pass</span>
+                      <span className="text-[10px] text-white/25">·</span>
+                      <span className="text-xs text-emerald-400/75">Swipe to choose →</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Card content */}
               <div className="relative z-10 flex h-full flex-col justify-between p-5">
                 {/* Top: category badge */}
@@ -735,21 +799,6 @@ function DeckContent() {
           </motion.section>
         </div>
 
-        <AnimatePresence>
-          {showSwipeHint && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="mt-4 select-none text-center text-xs"
-            >
-              <span className="text-rose-400/50">← pass</span>
-              <span className="mx-3 text-white/20">·</span>
-              <span className="text-emerald-400/50">choose →</span>
-            </motion.p>
-          )}
-        </AnimatePresence>
 
         <div className="mt-4 grid grid-cols-3 gap-3">
           <button
