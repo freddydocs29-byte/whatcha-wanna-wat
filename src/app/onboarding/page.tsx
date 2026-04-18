@@ -250,7 +250,7 @@ export default function OnboardingPage() {
               animate="center"
               exit="exit"
               transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-1 flex-col"
+              className={`flex flex-1 flex-col${step === 1 || step === 2 ? " pb-28" : ""}`}
             >
               {/* Question */}
               <div className="mt-10">
@@ -409,31 +409,35 @@ export default function OnboardingPage() {
                 )}
               </div>
 
-              {/* Continue button — only shown for multi-select steps */}
-              {(step === 1 || step === 2) && (
-                <div className="mt-8">
-                  <button
-                    onClick={advance}
-                    disabled={!canContinue()}
-                    className={`w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black transition hover:opacity-95 active:scale-[0.99] disabled:opacity-35 ${
-                      canContinue()
-                        ? "shadow-[0_8px_32px_rgba(255,255,255,0.22)]"
-                        : "shadow-[0_8px_24px_rgba(255,255,255,0.06)]"
-                    }`}
-                  >
-                    Continue
-                  </button>
-                  {!canContinue() && (
-                    <p className="mt-3 text-center text-xs text-white/30">
-                      Select at least one above
-                    </p>
-                  )}
-                </div>
-              )}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Sticky Continue button — always visible at bottom for multi-select steps */}
+      {(step === 1 || step === 2) && (
+        <div className="fixed bottom-0 left-0 right-0 z-30">
+          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#080808]" />
+            <button
+              onClick={advance}
+              disabled={!canContinue()}
+              className={`w-full rounded-full bg-white px-5 py-[18px] text-center text-[15px] font-semibold text-black transition hover:opacity-95 active:scale-[0.99] disabled:opacity-30 ${
+                canContinue()
+                  ? "shadow-[0_8px_40px_rgba(255,255,255,0.28)]"
+                  : "shadow-none"
+              }`}
+            >
+              Continue
+            </button>
+            {!canContinue() && (
+              <p className="mt-3 text-center text-xs text-white/30">
+                Select at least one above
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
