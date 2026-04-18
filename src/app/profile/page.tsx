@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
@@ -401,9 +402,12 @@ export default function ProfilePage() {
         <div className="relative z-10 flex min-h-screen flex-col">
           {/* Header */}
           <header className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
-              Whatcha Wanna Eat?
-            </p>
+            <div className="flex items-center gap-2 opacity-90">
+              <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+                Whatcha Wanna Eat?
+              </p>
+            </div>
             <span
               className={`rounded-full border border-white/15 bg-white/[0.07] px-3 py-1 text-xs text-white/55 transition-all duration-300 ${
                 savedVisible ? "opacity-100" : "opacity-0"

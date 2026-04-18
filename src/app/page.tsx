@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -72,7 +73,8 @@ export default function Home() {
 
         <div className="relative z-10 flex min-h-screen flex-col">
           <header className="flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-2 opacity-90">
+              <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
                 Whatcha Wanna Eat?
               </p>
