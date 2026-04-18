@@ -218,16 +218,36 @@ function DeckContent() {
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
   );
+  const [showPantryHint, setShowPantryHint] = useState(
+    () => typeof window !== "undefined" && !localStorage.getItem("wwe_seen_pantry_hint")
+  );
   const afterExitRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
 
+  // Auto-dismiss pantry hint after ~4.5s (1s fade-in delay + 3.5s visible)
+  useEffect(() => {
+    if (!showPantryHint) return;
+    const t = setTimeout(() => {
+      localStorage.setItem("wwe_seen_pantry_hint", "1");
+      setShowPantryHint(false);
+    }, 4500);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function dismissHint() {
     if (!showSwipeHint) return;
     localStorage.setItem("wwe_swipe_hint_seen", "1");
     setShowSwipeHint(false);
+  }
+
+  function dismissPantryHint() {
+    if (!showPantryHint) return;
+    localStorage.setItem("wwe_seen_pantry_hint", "1");
+    setShowPantryHint(false);
   }
 
   const x = useMotionValue(0);
@@ -266,6 +286,7 @@ function DeckContent() {
   }
 
   function togglePantry() {
+    dismissPantryHint();
     const next = !pantryMode;
     setPantryMode(next);
     if (activeFilterId !== null) {
@@ -292,11 +313,13 @@ function DeckContent() {
 
   function handlePass() {
     dismissHint();
+    dismissPantryHint();
     if (meal) updateTasteProfile(meal, "pass");
     triggerExit("left", () => setCurrentIndex((i) => i + 1));
   }
 
   function handleSave() {
+    dismissPantryHint();
     if (meal) {
       saveMeal(meal);
       updateTasteProfile(meal, "save");
@@ -308,6 +331,7 @@ function DeckContent() {
   function handleChoose() {
     if (!meal || isChoosing || isExiting) return;
     dismissHint();
+    dismissPantryHint();
     const chosenMeal = meal;
     updateTasteProfile(chosenMeal, "choose");
 
@@ -329,6 +353,7 @@ function DeckContent() {
 
   function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
     dismissHint();
+    dismissPantryHint();
     if (info.offset.x < -SWIPE_THRESHOLD) handlePass();
     else if (info.offset.x > SWIPE_THRESHOLD) handleChoose();
   }
@@ -521,6 +546,7 @@ function DeckContent() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <div className="relative">
             <motion.button
               onClick={togglePantry}
               animate={
@@ -530,9 +556,25 @@ function DeckContent() {
                         "0 0 20px rgba(251,191,36,0.45), 0 0 8px rgba(251,191,36,0.3)",
                       scale: 1.02,
                     }
+                  : showPantryHint
+                  ? {
+                      boxShadow: [
+                        "0 0 0px rgba(251,191,36,0)",
+                        "0 0 14px rgba(251,191,36,0.4), 0 0 5px rgba(251,191,36,0.2)",
+                        "0 0 0px rgba(251,191,36,0)",
+                      ],
+                      scale: 1,
+                    }
                   : { boxShadow: "none", scale: 1 }
               }
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              transition={
+                showPantryHint && !pantryMode
+                  ? {
+                      boxShadow: { duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 1.2 },
+                      scale: { duration: 0.3, ease: "easeOut" },
+                    }
+                  : { duration: 0.3, ease: "easeOut" }
+              }
               className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors duration-200 ${
                 pantryMode
                   ? "border-amber-400/50 bg-amber-400/[0.1] font-medium text-amber-200"
@@ -569,6 +611,35 @@ function DeckContent() {
               </span>
               Pantry
             </motion.button>
+
+            {/* Pantry hint tooltip — one-time, fades in after 1s, auto-dismisses */}
+            <AnimatePresence>
+              {showPantryHint && !pantryMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4, transition: { duration: 0.3 } }}
+                  transition={{ duration: 0.4, delay: 1 }}
+                  className="pointer-events-none absolute right-0 top-full z-50 mt-2"
+                >
+                  <div className="flex flex-col items-end">
+                    <div
+                      className="mr-3.5 h-0 w-0"
+                      style={{
+                        borderLeft: "5px solid transparent",
+                        borderRight: "5px solid transparent",
+                        borderBottom: "5px solid rgba(255,255,255,0.09)",
+                      }}
+                    />
+                    <div className="whitespace-nowrap rounded-2xl border border-white/[0.09] bg-white/[0.08] px-3 py-1.5 backdrop-blur-sm">
+                      <p className="text-xs text-white/60">Got ingredients? Try Pantry mode</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            </div>
+
             <button
               onClick={resetFilter}
               className="text-xs text-white/35 transition hover:text-white/60"
