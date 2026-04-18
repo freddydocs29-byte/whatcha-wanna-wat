@@ -4,6 +4,7 @@ import ShareButton from "./ShareButton";
 import SaveLaterButton from "./SaveLaterButton";
 import LockedReveal from "./LockedReveal";
 import BackButton from "./BackButton";
+import FirstTimeVisitorCTA from "./FirstTimeVisitorCTA";
 
 type Props = {
   searchParams: Promise<{ mealId?: string; pantry?: string }>;
@@ -80,6 +81,8 @@ export default async function LockedPage({ searchParams }: Props) {
             </Link>
           </div>
         </section>
+
+        <FirstTimeVisitorCTA />
       </div>
     </main>
   );
