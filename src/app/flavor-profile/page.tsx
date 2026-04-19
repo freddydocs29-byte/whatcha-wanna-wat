@@ -285,6 +285,11 @@ export default function FlavorProfilePage() {
             ))}
           </div>
 
+          {/* Context line */}
+          <p className="mt-5 text-xs text-white/30">
+            Your answers help us learn your taste and improve your picks over time.
+          </p>
+
           {/* Animated step content */}
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div

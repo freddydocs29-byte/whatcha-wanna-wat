@@ -90,6 +90,9 @@ export default function SavedPage() {
             <p className="mt-3 max-w-[31ch] text-[15px] leading-7 text-white/65">
               Star the meals you know you love. Save the rest for later.
             </p>
+            <p className="mt-1.5 text-xs text-white/30">
+              Tap a meal to make it your next choice.
+            </p>
           </section>
 
           {isEmpty && (

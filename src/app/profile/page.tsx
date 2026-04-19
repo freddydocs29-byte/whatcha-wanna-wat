@@ -292,8 +292,8 @@ function TasteProfileSection({ profile }: { profile: TasteProfile }) {
               : buildSummary(profile)}
           </p>
           {profile.interactionCount > 0 && (
-            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] tabular-nums text-white/30">
-              {profile.interactionCount}
+            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] text-white/30">
+              Learning from {profile.interactionCount} picks
             </span>
           )}
         </div>

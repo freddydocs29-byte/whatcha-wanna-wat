@@ -91,7 +91,7 @@ export default function HistoryPage() {
   }
 
   async function handleShare(mealName: string) {
-    const text = `We eating ${mealName} tonight 🍽️`;
+    const text = `We're eating ${mealName} tonight 🍽️`;
     if (navigator.share) {
       try {
         await navigator.share({ title: text, text });

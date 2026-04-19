@@ -77,7 +77,7 @@ export default async function LockedPage({ searchParams }: Props) {
               href="/"
               className="rounded-full border border-white/10 bg-transparent px-5 py-4 text-center text-base font-medium text-white/70"
             >
-              Done
+              Back to home
             </Link>
           </div>
         </section>

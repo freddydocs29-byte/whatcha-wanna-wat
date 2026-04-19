@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import BottomNav from "./components/BottomNav";
 import {
   getSavedMeals,
+  getFavorites,
   getHistory,
   hasCompletedOnboarding,
   getTodaysPick,
@@ -35,7 +36,11 @@ export default function Home() {
       router.replace("/onboarding");
       return;
     }
-    setSavedCount(getSavedMeals().length);
+    const saved = getSavedMeals();
+    const favorites = getFavorites();
+    const favoriteIds = new Set(favorites.map((m) => m.id));
+    const savedForLater = saved.filter((m) => !favoriteIds.has(m.id));
+    setSavedCount(favorites.length + savedForLater.length);
     setHistoryCount(getHistory().length);
     setTodaysPick(getTodaysPick());
     setStreak(getStreak());
@@ -207,6 +212,8 @@ export default function Home() {
                   Personalized picks
                   <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
                   Fast decisions
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                  Learns as you go
                 </div>
               </>
             )}

@@ -6,8 +6,8 @@ export default function ShareButton({ mealName }: { mealName: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
-    const title = `We eating ${mealName} tonight`;
-    const text = `We eating ${mealName} tonight 🍽️\nLocked it in on Whatcha Wanna Eat`;
+    const title = `We're eating ${mealName} tonight`;
+    const text = `We're eating ${mealName} tonight 🍽️\nLocked it in on Whatcha Wanna Eat`;
     const url = window.location.href;
 
     if (navigator.share) {
