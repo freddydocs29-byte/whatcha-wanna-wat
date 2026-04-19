@@ -21,17 +21,102 @@ import {
   getRecentlySeenIds,
   getLastDecidePick,
   setLastDecidePick,
+  addToHistory,
   HistoryEntry,
 } from "./lib/storage";
 import { meals } from "./data/meals";
 import { rankMeals } from "./lib/scoring";
 import SaveLaterButton from "./locked/SaveLaterButton";
 
+function deriveInsights(history: HistoryEntry[]): string[] {
+  if (history.length < 3) return [];
+
+  const recent = history.slice(0, Math.min(10, history.length));
+  const insights: string[] = [];
+
+  // 1. Category pattern
+  const catCounts: Record<string, number> = {};
+  recent.forEach(({ meal }) => {
+    catCounts[meal.category] = (catCounts[meal.category] || 0) + 1;
+  });
+  const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
+  const catPhrases: Record<string, string> = {
+    "Comfort food": "Leaning quick and comforting",
+    "Quick & casual": "Keeping things fast and easy",
+    "Healthy": "Keeping things on the lighter side",
+    "Bold flavors": "Going for bold flavors lately",
+    "Elevated": "Going a little fancy lately",
+    "Classic Italian": "On an Italian kick lately",
+    "Mediterranean": "Feeling Mediterranean lately",
+    "Fresh": "Craving something fresh",
+    "Crowd pleaser": "Sticking to crowd pleasers",
+  };
+  if (topCat && topCat[1] >= 2) {
+    insights.push(catPhrases[topCat[0]] ?? `Drawn to ${topCat[0].toLowerCase()}`);
+  }
+
+  // 2. Tag pattern (speed/effort)
+  const tagCounts: Record<string, number> = {};
+  recent.forEach(({ meal }) => {
+    meal.tags.forEach((tag) => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+  const quickCount = ["15 min", "20 min", "25 min"].reduce(
+    (sum, t) => sum + (tagCounts[t] || 0),
+    0,
+  );
+  if ((tagCounts["Easy"] || 0) >= 3 && insights.length < 2) {
+    insights.push("Picking easy meals more often");
+  } else if (quickCount >= 3 && insights.length < 2) {
+    insights.push("Going for quick meals lately");
+  }
+
+  // 3. Protein/ingredient pattern
+  const proteins = ["chicken", "beef", "shrimp", "salmon", "pork", "tofu", "eggs", "tuna"];
+  const proteinCounts: Record<string, number> = {};
+  recent.forEach(({ meal }) => {
+    (meal.ingredients ?? []).forEach((ing) => {
+      const lower = ing.toLowerCase();
+      proteins.forEach((p) => {
+        if (lower.includes(p)) proteinCounts[p] = (proteinCounts[p] || 0) + 1;
+      });
+    });
+  });
+  const topProtein = Object.entries(proteinCounts).sort((a, b) => b[1] - a[1])[0];
+  if (topProtein && topProtein[1] >= 2 && insights.length < 2) {
+    insights.push(`Picking ${topProtein[0]} often`);
+  }
+
+  // 4. Time-of-day pattern
+  if (insights.length < 2) {
+    const buckets: Record<string, number> = { morning: 0, lunch: 0, dinner: 0, late: 0 };
+    recent.forEach(({ chosenAt }) => {
+      const h = new Date(chosenAt).getHours();
+      if (h < 11) buckets.morning++;
+      else if (h < 15) buckets.lunch++;
+      else if (h < 20) buckets.dinner++;
+      else buckets.late++;
+    });
+    const topTime = Object.entries(buckets).sort((a, b) => b[1] - a[1])[0];
+    const timePhrases: Record<string, string> = {
+      morning: "Deciding early — breakfast person?",
+      lunch: "Most active around lunchtime",
+      dinner: "Most active around dinner time",
+      late: "A late-night decider",
+    };
+    if (topTime && topTime[1] >= 3) insights.push(timePhrases[topTime[0]]);
+  }
+
+  return insights.slice(0, 3);
+}
+
 export default function Home() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [historyCount, setHistoryCount] = useState(0);
+  const [insights, setInsights] = useState<string[]>([]);
   const [todaysPick, setTodaysPick] = useState<HistoryEntry | null>(null);
   const [streak, setStreak] = useState(0);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -49,7 +134,9 @@ export default function Home() {
     const favoriteIds = new Set(favorites.map((m) => m.id));
     const savedForLater = saved.filter((m) => !favoriteIds.has(m.id));
     setSavedCount(favorites.length + savedForLater.length);
-    setHistoryCount(getHistory().length);
+    const history = getHistory();
+    setHistoryCount(history.length);
+    setInsights(deriveInsights(history));
     setTodaysPick(getTodaysPick());
     setStreak(getStreak());
     setReady(true);
@@ -92,6 +179,17 @@ export default function Home() {
 
     setLastDecidePick(pick.meal.id);
     router.push(`/locked?mealId=${pick.meal.id}&decided=1`);
+  }
+
+  function recordPickIfNew() {
+    if (!todaysPick) return;
+    const today = new Date().toLocaleDateString();
+    const alreadyToday = getHistory().some(
+      (e) =>
+        e.meal.id === todaysPick.meal.id &&
+        new Date(e.chosenAt).toLocaleDateString() === today,
+    );
+    if (!alreadyToday) addToHistory(todaysPick.meal);
   }
 
   function handleClearDecision() {
@@ -203,6 +301,7 @@ export default function Home() {
                     href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " recipe")}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={recordPickIfNew}
                     className="block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
                   >
                     Cook it
@@ -211,6 +310,7 @@ export default function Home() {
                     href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " near me")}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={recordPickIfNew}
                     className="block rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white"
                   >
                     Order it
@@ -266,49 +366,68 @@ export default function Home() {
 
           <div className="mt-6 border-t border-white/[0.07]" />
 
-          <section className="mt-6 grid gap-4">
+          {/* Compact stats row — always visible, tappable navigation */}
+          <div className="mt-6 grid grid-cols-2 gap-3">
             <Link
               href="/saved"
-              className="rounded-[30px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.22)] backdrop-blur-md transition active:scale-[0.99]"
+              className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-md transition active:scale-[0.98] active:bg-white/[0.07]"
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm text-white/45">Saved meals</p>
-                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/60">
-                  {savedCount} {savedCount === 1 ? "pick" : "picks"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm leading-none">🔖</span>
+                  <p className="text-[13px] font-medium text-white/70">Saved</p>
+                </div>
+                <p className="text-[20px] font-semibold leading-none tracking-[-0.04em]">
+                  {savedCount}
+                </p>
               </div>
-
-              <p className="mt-3 text-[22px] font-semibold tracking-[-0.04em]">
-                Your reliable hits
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-white/60">
-                Keep the meals you already know work when nobody wants to think
-                too hard.
-              </p>
+              <p className="mt-2 text-xs text-white/35">Meals you want to come back to</p>
             </Link>
 
             <Link
               href="/history"
-              className="rounded-[30px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.22)] backdrop-blur-md transition active:scale-[0.99]"
+              className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-md transition active:scale-[0.98] active:bg-white/[0.07]"
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm text-white/45">History</p>
-                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/60">
-                  {historyCount} {historyCount === 1 ? "choice" : "choices"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm leading-none">🕒</span>
+                  <p className="text-[13px] font-medium text-white/70">History</p>
+                </div>
+                <p className="text-[20px] font-semibold leading-none tracking-[-0.04em]">
+                  {historyCount}
+                </p>
               </div>
-
-              <p className="mt-3 text-[22px] font-semibold tracking-[-0.04em]">
-                Your food memory
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-white/60">
-                Past picks help WWE learn your patterns and make better calls
-                over time.
-              </p>
+              <p className="mt-2 text-xs text-white/35">What you&apos;ve been eating lately</p>
             </Link>
-          </section>
+          </div>
+
+          {/* Personal insight card — taps through to Profile */}
+          {insights.length > 0 && (
+            <Link
+              href="/profile"
+              className="mt-3 block rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-md transition active:scale-[0.98] active:bg-white/[0.07]"
+            >
+              <p className="text-[11px] uppercase tracking-widest text-white/35">
+                Lately you&apos;ve been…
+              </p>
+              <ul className="mt-3 space-y-2.5">
+                {insights.map((insight, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-2.5 text-sm text-white/70"
+                  >
+                    <span className="h-1 w-1 shrink-0 rounded-full bg-white/25" />
+                    {insight}
+                  </li>
+                ))}
+              </ul>
+              {historyCount >= 3 && (
+                <p className="mt-4 text-[11px] text-white/25">
+                  Learning from {historyCount} pick{historyCount === 1 ? "" : "s"}
+                </p>
+              )}
+            </Link>
+          )}
 
           <div className="mt-auto pt-8">
             <BottomNav />

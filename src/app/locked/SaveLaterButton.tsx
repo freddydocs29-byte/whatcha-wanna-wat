@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Meal } from "../data/meals";
-import { getSavedMeals, saveMeal, removeSavedMeal } from "../lib/storage";
+import { getSavedMealsEnriched, saveMeal, removeSavedMeal } from "../lib/storage";
 
 function BookmarkIcon({ filled }: { filled: boolean }) {
   return filled ? (
@@ -37,7 +37,7 @@ export default function SaveLaterButton({ meal }: { meal: Meal }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    setSaved(getSavedMeals().some((m) => m.id === meal.id));
+    setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
   }, [meal.id]);
 
   function toggle() {

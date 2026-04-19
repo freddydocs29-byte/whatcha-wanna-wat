@@ -5,6 +5,7 @@ import SaveLaterButton from "./SaveLaterButton";
 import LockedReveal from "./LockedReveal";
 import BackButton from "./BackButton";
 import FirstTimeVisitorCTA from "./FirstTimeVisitorCTA";
+import CookOrderButtons from "./CookOrderButtons";
 
 type Props = {
   searchParams: Promise<{ mealId?: string; pantry?: string; decided?: string }>;
@@ -54,23 +55,7 @@ export default async function LockedPage({ searchParams }: Props) {
           </div>
 
           <div className="mt-6 grid gap-3">
-            <a
-              href={`https://www.google.com/search?q=${recipeQuery}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black"
-            >
-              Cook it
-            </a>
-
-            <a
-              href={`https://www.google.com/search?q=${encodeURIComponent(meal.name + " near me")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white"
-            >
-              Order it
-            </a>
+            <CookOrderButtons meal={meal} recipeQuery={recipeQuery} />
 
             <ShareButton mealName={meal.name} />
 

@@ -8,26 +8,12 @@ import {
   HistoryEntry,
   getHistory,
   clearHistory,
-  getFavorites,
+  getSavedMealsEnriched,
   addFavorite,
   removeFavorite,
-  getSavedMeals,
-  saveMeal,
-  removeSavedMeal,
 } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
 
-function StarIcon({ filled }: { filled: boolean }) {
-  return filled ? (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  ) : (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  );
-}
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -51,14 +37,13 @@ function formatTime(iso: string): string {
 export default function HistoryPage() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     setEntries(getHistory());
-    setFavoriteIds(new Set(getFavorites().map((f) => f.id)));
-    setSavedIds(new Set(getSavedMeals().map((m) => m.id)));
+    const enriched = getSavedMealsEnriched();
+    setFavoriteIds(new Set(enriched.filter((s) => s.isFavorite).map((s) => s.meal.id)));
     setLoaded(true);
   }, []);
 
@@ -73,20 +58,6 @@ export default function HistoryPage() {
     } else {
       addFavorite(meal);
       setFavoriteIds((prev) => new Set(prev).add(meal.id));
-    }
-  }
-
-  function handleSaveToggle(meal: Meal) {
-    if (savedIds.has(meal.id)) {
-      removeSavedMeal(meal.id);
-      setSavedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(meal.id);
-        return next;
-      });
-    } else {
-      saveMeal(meal);
-      setSavedIds((prev) => new Set(prev).add(meal.id));
     }
   }
 
@@ -210,17 +181,6 @@ export default function HistoryPage() {
                   </div>
 
                   <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
-                    <button
-                      onClick={() => handleFavoriteToggle(entry.meal)}
-                      className={`flex h-8 w-8 items-center justify-center rounded-full border transition active:scale-[0.95] ${
-                        favoriteIds.has(entry.meal.id)
-                          ? "border-white/15 bg-white/10 text-amber-400 hover:bg-white/15"
-                          : "border-white/[0.08] bg-transparent text-white/20 hover:text-white/45"
-                      }`}
-                      aria-label={favoriteIds.has(entry.meal.id) ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <StarIcon filled={favoriteIds.has(entry.meal.id)} />
-                    </button>
                     <p className="text-xs font-medium text-white/50">
                       {formatDate(entry.chosenAt)}
                     </p>
@@ -233,14 +193,14 @@ export default function HistoryPage() {
                 {/* Action row */}
                 <div className="mt-4 flex items-center gap-2 border-t border-white/[0.07] pt-4">
                   <button
-                    onClick={() => handleSaveToggle(entry.meal)}
+                    onClick={() => handleFavoriteToggle(entry.meal)}
                     className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition active:scale-[0.97] ${
-                      savedIds.has(entry.meal.id)
-                        ? "border-white/15 bg-white/10 text-white/70"
+                      favoriteIds.has(entry.meal.id)
+                        ? "border-white/15 bg-white/10 text-amber-400"
                         : "border-white/[0.08] bg-transparent text-white/35 hover:text-white/60"
                     }`}
                   >
-                    {savedIds.has(entry.meal.id) ? "Saved" : "Save for later"}
+                    {favoriteIds.has(entry.meal.id) ? "Unfavorite" : "Favorite"}
                   </button>
                   <a
                     href={`https://www.google.com/search?q=${encodeURIComponent(entry.meal.name + " recipe")}`}

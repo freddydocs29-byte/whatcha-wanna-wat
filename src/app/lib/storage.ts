@@ -32,6 +32,13 @@ export type FlavorProfile = {
   cookingConfidence: "beginner" | "intermediate" | "confident";
 };
 
+/** A meal the user has bookmarked, optionally marked as a favorite. */
+export type SavedMeal = {
+  meal: Meal;
+  isFavorite: boolean;
+  savedAt: string; // ISO timestamp
+};
+
 const SAVED_KEY = "wwe_saved_meals";
 const HISTORY_KEY = "wwe_history";
 const PREFS_KEY = "wwe_preferences";
@@ -39,6 +46,7 @@ const ONBOARDING_KEY = "wwe_onboarding_done";
 const TASTE_KEY = "wwe_taste_profile";
 const SEEN_KEY = "wwe_seen_sessions";
 const FLAVOR_KEY = "wwe_flavor_profile";
+// Legacy key — only read during one-time migration, never written again.
 const FAVORITES_KEY = "wwe_favorites";
 const LAST_DECIDE_KEY = "wwe_last_decide_pick";
 
@@ -51,36 +59,125 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
+/**
+ * Returns all saved meals with metadata. Runs a one-time migration on first
+ * call: detects the old Meal[] format (root `id` field) and merges the legacy
+ * FAVORITES_KEY into the unified SavedMeal[] format.
+ */
+export function getSavedMealsEnriched(): SavedMeal[] {
+  if (typeof window === "undefined") return [];
+
+  const raw = read<unknown[]>(SAVED_KEY, []);
+
+  // Detect old Meal[] format: elements have `id` at root, not a `meal` field.
+  const isLegacyFormat =
+    raw.length > 0 &&
+    typeof (raw[0] as Record<string, unknown>).id === "string" &&
+    !("meal" in (raw[0] as Record<string, unknown>));
+
+  if (isLegacyFormat || raw.length === 0) {
+    // Merge old saved + old favorites into new format.
+    const oldSaved = raw as Meal[];
+    const oldFavs = read<Meal[]>(FAVORITES_KEY, []);
+    const favIds = new Set(oldFavs.map((m) => m.id));
+    const savedIds = new Set(oldSaved.map((m) => m.id));
+
+    const enriched: SavedMeal[] = oldSaved.map((meal) => ({
+      meal,
+      isFavorite: favIds.has(meal.id),
+      savedAt: new Date().toISOString(),
+    }));
+
+    // Add any favorites that weren't already in the saved list.
+    for (const meal of oldFavs) {
+      if (!savedIds.has(meal.id)) {
+        enriched.push({ meal, isFavorite: true, savedAt: new Date().toISOString() });
+      }
+    }
+
+    localStorage.setItem(SAVED_KEY, JSON.stringify(enriched));
+    localStorage.removeItem(FAVORITES_KEY);
+    return enriched;
+  }
+
+  return raw as SavedMeal[];
+}
+
+/**
+ * Returns saved-for-later meals only (isFavorite = false).
+ * Used by scoring — keeps favorites as a separate, stronger signal.
+ * Do NOT use this to check whether a meal is bookmarked at all;
+ * use getSavedMealsEnriched() for that.
+ */
 export function getSavedMeals(): Meal[] {
-  return read<Meal[]>(SAVED_KEY, []);
+  return getSavedMealsEnriched()
+    .filter((s) => !s.isFavorite)
+    .map((s) => s.meal);
 }
 
+/** Returns only favorited meals — backwards-compatible with scoring & deck. */
+export function getFavorites(): Meal[] {
+  return getSavedMealsEnriched()
+    .filter((s) => s.isFavorite)
+    .map((s) => s.meal);
+}
+
+/** Adds a meal to the saved collection (isFavorite = false). No-op if already saved. */
 export function saveMeal(meal: Meal): void {
-  const current = getSavedMeals();
-  if (current.some((m) => m.id === meal.id)) return;
-  localStorage.setItem(SAVED_KEY, JSON.stringify([...current, meal]));
+  if (typeof window === "undefined") return;
+  const current = getSavedMealsEnriched();
+  if (current.some((s) => s.meal.id === meal.id)) return;
+  const entry: SavedMeal = { meal, isFavorite: false, savedAt: new Date().toISOString() };
+  localStorage.setItem(SAVED_KEY, JSON.stringify([...current, entry]));
 }
 
+/** Removes a meal from the saved collection entirely. */
 export function removeSavedMeal(mealId: string): void {
-  const updated = getSavedMeals().filter((m) => m.id !== mealId);
+  if (typeof window === "undefined") return;
+  const updated = getSavedMealsEnriched().filter((s) => s.meal.id !== mealId);
   localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
 }
 
-export function getFavorites(): Meal[] {
-  return read<Meal[]>(FAVORITES_KEY, []);
-}
-
+/**
+ * Adds a meal to saved as a favorite. If already saved, marks it as favorite.
+ * Backwards-compatible replacement — callers do not need to change.
+ */
 export function addFavorite(meal: Meal): void {
   if (typeof window === "undefined") return;
-  const current = getFavorites();
-  if (current.some((m) => m.id === meal.id)) return;
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...current, meal]));
+  const current = getSavedMealsEnriched();
+  const existing = current.find((s) => s.meal.id === meal.id);
+  if (existing) {
+    if (!existing.isFavorite) {
+      const updated = current.map((s) =>
+        s.meal.id === meal.id ? { ...s, isFavorite: true } : s,
+      );
+      localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+    }
+  } else {
+    const entry: SavedMeal = { meal, isFavorite: true, savedAt: new Date().toISOString() };
+    localStorage.setItem(SAVED_KEY, JSON.stringify([...current, entry]));
+  }
 }
 
+/**
+ * Unmarks a meal as favorite (keeps it in saved).
+ * Backwards-compatible replacement — callers do not need to change.
+ */
 export function removeFavorite(mealId: string): void {
   if (typeof window === "undefined") return;
-  const updated = getFavorites().filter((m) => m.id !== mealId);
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
+  const updated = getSavedMealsEnriched().map((s) =>
+    s.meal.id === mealId ? { ...s, isFavorite: false } : s,
+  );
+  localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+}
+
+/** Toggles the isFavorite flag on a saved meal. Used by the saved page heart icon. */
+export function toggleSavedFavorite(mealId: string): void {
+  if (typeof window === "undefined") return;
+  const updated = getSavedMealsEnriched().map((s) =>
+    s.meal.id === mealId ? { ...s, isFavorite: !s.isFavorite } : s,
+  );
+  localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
 }
 
 export function getHistory(): HistoryEntry[] {

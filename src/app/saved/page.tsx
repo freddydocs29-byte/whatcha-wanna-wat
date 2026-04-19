@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Meal } from "../data/meals";
-import { getSavedMeals, removeSavedMeal, getFavorites, addFavorite, removeFavorite } from "../lib/storage";
+import { getSavedMealsEnriched, removeSavedMeal, toggleSavedFavorite } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
 
 function StarIcon({ filled }: { filled: boolean }) {
@@ -20,13 +20,14 @@ function StarIcon({ filled }: { filled: boolean }) {
 }
 
 export default function SavedPage() {
-  const [savedMeals, setSavedMeals] = useState<Meal[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
+  const [savedForLater, setSavedForLater] = useState<Meal[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   function refresh() {
-    setSavedMeals(getSavedMeals());
-    setFavoriteMeals(getFavorites());
+    const enriched = getSavedMealsEnriched();
+    setFavoriteMeals(enriched.filter((s) => s.isFavorite).map((s) => s.meal));
+    setSavedForLater(enriched.filter((s) => !s.isFavorite).map((s) => s.meal));
   }
 
   useEffect(() => {
@@ -34,18 +35,8 @@ export default function SavedPage() {
     setLoaded(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Both derived fresh every render from the same state snapshot —
-  // savedForLater is guaranteed to exclude anything in favoriteMeals.
-  const favoriteIds = new Set(favoriteMeals.map((m) => m.id));
-  const savedForLater = savedMeals.filter((m) => !favoriteIds.has(m.id));
-  const isEmpty = loaded && savedMeals.length === 0 && favoriteMeals.length === 0;
-
-  function handleFavoriteToggle(meal: Meal) {
-    if (favoriteIds.has(meal.id)) {
-      removeFavorite(meal.id);
-    } else {
-      addFavorite(meal);
-    }
+  function handleToggleFavorite(meal: Meal) {
+    toggleSavedFavorite(meal.id);
     refresh();
   }
 
@@ -53,6 +44,8 @@ export default function SavedPage() {
     removeSavedMeal(mealId);
     refresh();
   }
+
+  const isEmpty = loaded && favoriteMeals.length === 0 && savedForLater.length === 0;
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
@@ -117,7 +110,7 @@ export default function SavedPage() {
             <div className="mt-8 flex flex-1 flex-col gap-8">
 
               {/* ── Favorites ──────────────────────────────────────────── */}
-              <section>
+              <section id="favorites">
                 <div className="mb-4 flex items-center gap-2">
                   <span className="text-sm font-semibold tracking-[-0.02em] text-white">
                     Favorites
@@ -169,7 +162,7 @@ export default function SavedPage() {
                           </Link>
 
                           <button
-                            onClick={() => handleFavoriteToggle(meal)}
+                            onClick={() => handleToggleFavorite(meal)}
                             className="mt-1 shrink-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-amber-400 transition hover:bg-white/15 active:scale-[0.95]"
                             aria-label="Remove from favorites"
                           >
@@ -184,7 +177,7 @@ export default function SavedPage() {
 
               {/* ── Saved for Later ─────────────────────────────────────── */}
               {savedForLater.length > 0 && (
-                <section>
+                <section id="saved">
                   <div className="mb-4 flex items-center gap-2">
                     <span className="text-sm font-medium tracking-[-0.02em] text-white/50">
                       Saved for Later
@@ -225,7 +218,7 @@ export default function SavedPage() {
 
                           <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
                             <button
-                              onClick={() => handleFavoriteToggle(meal)}
+                              onClick={() => handleToggleFavorite(meal)}
                               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95]"
                               aria-label="Add to favorites"
                             >
