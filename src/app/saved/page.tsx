@@ -64,12 +64,12 @@ export default function SavedPage() {
 
         <div className="relative z-10 flex min-h-screen flex-col">
           <header className="flex items-center justify-between">
-            <div className="flex items-center gap-2 opacity-90">
+            <Link href="/" className="flex items-center gap-2 opacity-90">
               <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
                 Whatcha Wanna Eat?
               </p>
-            </div>
+            </Link>
             <Link
               href="/profile"
               className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/80 backdrop-blur-md transition active:scale-[0.98]"

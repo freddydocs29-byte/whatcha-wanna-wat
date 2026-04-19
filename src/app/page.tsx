@@ -78,12 +78,12 @@ export default function Home() {
 
         <div className="relative z-10 flex min-h-screen flex-col">
           <header className="flex items-center justify-between">
-            <div className="flex items-center gap-2 opacity-90">
+            <Link href="/" className="flex items-center gap-2 opacity-90">
               <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
                 Whatcha Wanna Eat?
               </p>
-            </div>
+            </Link>
 
             <Link
               href="/profile"
@@ -145,6 +145,8 @@ export default function Home() {
               </div>
             )}
           </section>
+
+          <div className="mt-8 border-t border-white/[0.07]" />
 
           <section className="mt-8 rounded-[34px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
             {todaysPick ? (
@@ -218,6 +220,8 @@ export default function Home() {
               </>
             )}
           </section>
+
+          <div className="mt-6 border-t border-white/[0.07]" />
 
           <section className="mt-6 grid gap-4">
             <Link
