@@ -5,6 +5,7 @@ const PANTRY_FRIENDLY_TAGS = ["Easy", "Pantry staple", "No-cook option", "Meal-p
 const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
 
 export type RankedMeal = { meal: Meal; reason: string };
+export type WhoFor = "solo" | "partner" | "family";
 
 /**
  * Maps each meal ID to the cuisine(s) it belongs to.
@@ -160,7 +161,8 @@ export function scoreMeal(
   recentlySeen?: Set<string>,
   flavorProfile?: FlavorProfile,
   favorites: Meal[] = [],
-  selectedIngredients: string[] = []
+  selectedIngredients: string[] = [],
+  context: WhoFor = "solo"
 ): { score: number; reason: string } {
   let score = 0;
   let topReason: string | null = null;
@@ -420,6 +422,36 @@ export function scoreMeal(
     score += Math.min(pantryScore, 6);
   }
 
+  // ── Context adjustments ───────────────────────────────────────────────────
+  //
+  // Small nudges based on who the meal is being decided for.
+  // Intentionally lightweight — these never dominate the existing signals.
+
+  if (context !== "solo") {
+    const boldTerms = ["bold", "flavorful"];
+    const isBold =
+      boldTerms.some((t) => meal.category.toLowerCase().includes(t)) ||
+      meal.tags.some((tag) => boldTerms.some((t) => tag.toLowerCase().includes(t)));
+    const isComfort =
+      meal.category.toLowerCase().includes("comfort") ||
+      meal.tags.some((t) => t.toLowerCase().includes("indulgent"));
+    const isKidFriendly = meal.tags.some((t) =>
+      ["kid", "crowd"].some((k) => t.toLowerCase().includes(k))
+    );
+    const isQuick = meal.tags.some((t) =>
+      ["15 min", "20 min", "25 min", "easy"].some((k) => t.toLowerCase().includes(k))
+    );
+
+    if (context === "partner") {
+      if (isBold) score -= 0.5;
+      if (isComfort) score += 0.5;
+    } else if (context === "family") {
+      if (isKidFriendly) score += 1;
+      if (isQuick) score += 0.5;
+      if (isBold) score -= 0.5;
+    }
+  }
+
   return { score, reason: topReason ?? meal.whyItFits };
 }
 
@@ -453,14 +485,15 @@ export function rankMeals(
   recentlySeen?: Set<string>,
   flavorProfile?: FlavorProfile,
   favorites: Meal[] = [],
-  selectedIngredients: string[] = []
+  selectedIngredients: string[] = [],
+  context: WhoFor = "solo"
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
   // 1. Score every meal
   const scored = meals.map((meal) => {
     const { score, reason } = scoreMeal(
-      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context
     );
     return { meal, score, reason };
   });

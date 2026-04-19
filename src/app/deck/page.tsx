@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, type RankedMeal } from "../lib/scoring";
+import { rankMeals, type RankedMeal, type WhoFor } from "../lib/scoring";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -165,7 +165,7 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
  * Meals added in later stages are still scored with the full preference + history
  * signals so the deck stays relevant — it just stops hard-blocking everything.
  */
-function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredients: string[] = []): RankedMeal[] {
+function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredients: string[] = [], context: WhoFor = "solo"): RankedMeal[] {
   const prefs = getPreferences();
   const savedMeals = getSavedMeals();
   const history = getHistory();
@@ -175,7 +175,7 @@ function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredi
   const favorites = getFavorites();
 
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context);
   }
 
   // Merge new ranked meals into an existing deck, skipping duplicates.
@@ -223,6 +223,7 @@ function DeckContent() {
   const [showIngredientSheet, setShowIngredientSheet] = useState(false);
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
+  const [whoFor, setWhoFor] = useState<WhoFor>("solo");
   const [isChoosing, setIsChoosing] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
@@ -235,11 +236,19 @@ function DeckContent() {
 
   useEffect(() => {
     if (activeFilterId === null) return;
-    setRankedMeals(buildDeck(activeFilterId, pantryMode, selectedIngredients));
+    setRankedMeals(buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor));
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
   }, [selectedIngredients]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (activeFilterId === null) return;
+    setRankedMeals(buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor));
+    setCurrentIndex(0);
+    x.set(0);
+    setExitX(null);
+  }, [whoFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function dismissHint() {
     if (!showSwipeHint) return;
@@ -262,7 +271,7 @@ function DeckContent() {
   const isExiting = exitX !== null;
 
   function selectFilter(id: string) {
-    const ranked = buildDeck(id, pantryMode, selectedIngredients);
+    const ranked = buildDeck(id, pantryMode, selectedIngredients, whoFor);
     recordSeenSession(ranked.map((r) => r.meal.id));
     setRankedMeals(ranked);
     setActiveFilterId(id);
@@ -273,7 +282,7 @@ function DeckContent() {
   }
 
   function handleTopPicks() {
-    const allRanked = buildDeck(activeFilterId, pantryMode, selectedIngredients);
+    const allRanked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor);
     const topN = Math.max(3, Math.ceil(allRanked.length * 0.35));
     setRankedMeals(allRanked.slice(0, topN));
     setCurrentIndex(0);
@@ -296,7 +305,7 @@ function DeckContent() {
     if (!next) setSelectedIngredients([]);
     setPantryMode(next);
     if (activeFilterId !== null) {
-      setRankedMeals(buildDeck(activeFilterId, next, nextIngredients));
+      setRankedMeals(buildDeck(activeFilterId, next, nextIngredients, whoFor));
       setCurrentIndex(0);
       x.set(0);
       setExitX(null);
@@ -397,7 +406,28 @@ function DeckContent() {
             </p>
           </section>
 
-          <div className="mt-8 grid grid-cols-2 gap-3">
+          <div className="mt-8">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/25">
+              Deciding for
+            </p>
+            <div className="flex rounded-2xl border border-white/[0.07] bg-white/[0.03] p-1 gap-0.5">
+              {(["solo", "partner", "family"] as WhoFor[]).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setWhoFor(option)}
+                  className={`flex-1 rounded-xl py-2 text-xs font-medium transition-colors duration-150 ${
+                    whoFor === option
+                      ? "bg-white/[0.1] text-white/80"
+                      : "text-white/30 hover:text-white/50 active:scale-[0.97]"
+                  }`}
+                >
+                  {option === "solo" ? "Just me" : option === "partner" ? "Me + partner" : "Family"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
             {FILTERS.slice(0, -1).map((filter) => (
               <button
                 key={filter.id}
@@ -569,6 +599,23 @@ function DeckContent() {
             Swipe left to pass, right to choose, or use the buttons below.
           </p>
         </section>
+
+        {/* Who are you deciding for toggle */}
+        <div className="mt-4 flex rounded-2xl border border-white/[0.07] bg-white/[0.03] p-1 gap-0.5">
+          {(["solo", "partner", "family"] as WhoFor[]).map((option) => (
+            <button
+              key={option}
+              onClick={() => setWhoFor(option)}
+              className={`flex-1 rounded-xl py-2 text-xs font-medium transition-colors duration-150 ${
+                whoFor === option
+                  ? "bg-white/[0.1] text-white/80"
+                  : "text-white/30 hover:text-white/50 active:scale-[0.97]"
+              }`}
+            >
+              {option === "solo" ? "Just me" : option === "partner" ? "Me + partner" : "Family"}
+            </button>
+          ))}
+        </div>
 
         {/* Pantry bar — always visible, directly above the card */}
         <motion.button
