@@ -103,6 +103,13 @@ const FILTERS: TasteFilter[] = [
   },
 ];
 
+const PANTRY_INGREDIENTS: Record<string, string[]> = {
+  Proteins: ["Chicken", "Ground beef", "Steak", "Shrimp", "Salmon", "Eggs", "Bacon", "Sausage", "Tofu"],
+  Carbs: ["Pasta", "Rice", "Bread", "Tortillas", "Potatoes", "Noodles"],
+  Vegetables: ["Onions", "Garlic", "Bell peppers", "Broccoli", "Spinach", "Mushrooms", "Tomatoes"],
+  Staples: ["Cheese", "Butter", "Beans"],
+};
+
 const DISLIKED_MEAL_MAP: Record<string, string[]> = {
   Seafood: ["sushi-bowl", "grilled-salmon"],
   Dairy: ["chicken-alfredo"],
@@ -212,14 +219,13 @@ function DeckContent() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitX, setExitX] = useState<number | null>(null);
   const [pantryMode, setPantryMode] = useState(false);
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [showIngredientSheet, setShowIngredientSheet] = useState(false);
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [isChoosing, setIsChoosing] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
-  );
-  const [showPantryHint, setShowPantryHint] = useState(
-    () => typeof window !== "undefined" && !localStorage.getItem("wwe_seen_pantry_hint")
   );
   const afterExitRef = useRef<(() => void) | null>(null);
 
@@ -227,27 +233,10 @@ function DeckContent() {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
 
-  // Auto-dismiss pantry hint after ~4.5s (1s fade-in delay + 3.5s visible)
-  useEffect(() => {
-    if (!showPantryHint) return;
-    const t = setTimeout(() => {
-      localStorage.setItem("wwe_seen_pantry_hint", "1");
-      setShowPantryHint(false);
-    }, 4500);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   function dismissHint() {
     if (!showSwipeHint) return;
     localStorage.setItem("wwe_swipe_hint_seen", "1");
     setShowSwipeHint(false);
-  }
-
-  function dismissPantryHint() {
-    if (!showPantryHint) return;
-    localStorage.setItem("wwe_seen_pantry_hint", "1");
-    setShowPantryHint(false);
   }
 
   const x = useMotionValue(0);
@@ -285,9 +274,17 @@ function DeckContent() {
     setExitX(null);
   }
 
+  function toggleIngredient(name: string) {
+    setSelectedIngredients((prev) => {
+      if (prev.includes(name)) return prev.filter((i) => i !== name);
+      if (prev.length >= 5) return prev;
+      return [...prev, name];
+    });
+  }
+
   function togglePantry() {
-    dismissPantryHint();
     const next = !pantryMode;
+    if (!next) setSelectedIngredients([]);
     setPantryMode(next);
     if (activeFilterId !== null) {
       setRankedMeals(buildDeck(activeFilterId, next));
@@ -313,13 +310,11 @@ function DeckContent() {
 
   function handlePass() {
     dismissHint();
-    dismissPantryHint();
     if (meal) updateTasteProfile(meal, "pass");
     triggerExit("left", () => setCurrentIndex((i) => i + 1));
   }
 
   function handleSave() {
-    dismissPantryHint();
     if (meal) {
       saveMeal(meal);
       updateTasteProfile(meal, "save");
@@ -331,7 +326,6 @@ function DeckContent() {
   function handleChoose() {
     if (!meal || isChoosing || isExiting) return;
     dismissHint();
-    dismissPantryHint();
     const chosenMeal = meal;
     updateTasteProfile(chosenMeal, "choose");
 
@@ -353,7 +347,6 @@ function DeckContent() {
 
   function handleDragEnd(_: unknown, info: { offset: { x: number } }) {
     dismissHint();
-    dismissPantryHint();
     if (info.offset.x < -SWIPE_THRESHOLD) handlePass();
     else if (info.offset.x > SWIPE_THRESHOLD) handleChoose();
   }
@@ -546,100 +539,6 @@ function DeckContent() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative">
-            <motion.button
-              onClick={togglePantry}
-              animate={
-                pantryMode
-                  ? {
-                      boxShadow:
-                        "0 0 20px rgba(251,191,36,0.45), 0 0 8px rgba(251,191,36,0.3)",
-                      scale: 1.02,
-                    }
-                  : showPantryHint
-                  ? {
-                      boxShadow: [
-                        "0 0 0px rgba(251,191,36,0)",
-                        "0 0 14px rgba(251,191,36,0.4), 0 0 5px rgba(251,191,36,0.2)",
-                        "0 0 0px rgba(251,191,36,0)",
-                      ],
-                      scale: 1,
-                    }
-                  : { boxShadow: "none", scale: 1 }
-              }
-              transition={
-                showPantryHint && !pantryMode
-                  ? {
-                      boxShadow: { duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 1.2 },
-                      scale: { duration: 0.3, ease: "easeOut" },
-                    }
-                  : { duration: 0.3, ease: "easeOut" }
-              }
-              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors duration-200 ${
-                pantryMode
-                  ? "border-amber-400/50 bg-amber-400/[0.1] font-medium text-amber-200"
-                  : "border-white/[0.07] text-white/[0.2] hover:border-white/[0.12] hover:text-white/35"
-              }`}
-            >
-              <span className="relative flex h-[16px] w-[14px] shrink-0 items-center justify-center">
-                <AnimatePresence initial={false}>
-                  {pantryMode ? (
-                    <motion.span
-                      key="fridge-open"
-                      initial={{ opacity: 0, scale: 0.75 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.75 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute inset-0 flex items-center justify-center"
-                      style={{ filter: "drop-shadow(0 0 5px rgba(251,191,36,0.9))" }}
-                    >
-                      <FridgeOpen />
-                    </motion.span>
-                  ) : (
-                    <motion.span
-                      key="fridge-closed"
-                      initial={{ opacity: 0, scale: 0.75 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.75 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute inset-0 flex items-center justify-center"
-                    >
-                      <FridgeClosed />
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </span>
-              Pantry
-            </motion.button>
-
-            {/* Pantry hint tooltip — one-time, fades in after 1s, auto-dismisses */}
-            <AnimatePresence>
-              {showPantryHint && !pantryMode && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4, transition: { duration: 0.3 } }}
-                  transition={{ duration: 0.4, delay: 1 }}
-                  className="pointer-events-none absolute right-0 top-full z-50 mt-2"
-                >
-                  <div className="flex flex-col items-end">
-                    <div
-                      className="mr-3.5 h-0 w-0"
-                      style={{
-                        borderLeft: "5px solid transparent",
-                        borderRight: "5px solid transparent",
-                        borderBottom: "5px solid rgba(255,255,255,0.09)",
-                      }}
-                    />
-                    <div className="whitespace-nowrap rounded-2xl border border-white/[0.09] bg-white/[0.08] px-3 py-1.5 backdrop-blur-sm">
-                      <p className="text-xs text-white/60">Got ingredients? Try Pantry mode</p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            </div>
-
             <button
               onClick={resetFilter}
               className="text-xs text-white/35 transition hover:text-white/60"
@@ -653,29 +552,6 @@ function DeckContent() {
           </div>
         </header>
 
-        {/* Pantry mode indicator — read-only system state */}
-        <AnimatePresence>
-          {pantryMode && (
-            <motion.div
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="mt-3 flex items-center justify-center gap-2.5 rounded-2xl bg-white/[0.04] px-5 py-2"
-            >
-              <span
-                className="shrink-0 text-amber-300"
-                style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.65))" }}
-              >
-                <FridgeOpen />
-              </span>
-              <p className="text-xs font-medium tracking-[-0.01em] text-white/50">
-                Cooking from your kitchen
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <section className="mt-8">
           <h1 className="text-4xl font-semibold tracking-[-0.05em]">
             What sounds good?
@@ -685,7 +561,49 @@ function DeckContent() {
           </p>
         </section>
 
-        <div className="relative mt-8">
+        {/* Pantry bar — always visible, directly above the card */}
+        <motion.button
+          onClick={() => {
+            if (!pantryMode) togglePantry();
+            setShowIngredientSheet(true);
+          }}
+          animate={
+            pantryMode
+              ? { boxShadow: "0 0 18px rgba(251,191,36,0.12)" }
+              : { boxShadow: "none" }
+          }
+          transition={{ duration: 0.3 }}
+          className={`mt-4 flex w-full items-center justify-between rounded-2xl border px-4 py-2.5 text-left transition-colors duration-200 ${
+            pantryMode
+              ? "border-amber-400/25 bg-amber-400/[0.06] hover:bg-amber-400/[0.1]"
+              : "border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06]"
+          } active:scale-[0.99]`}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300" : "text-white/25"}`}
+              style={pantryMode ? { filter: "drop-shadow(0 0 4px rgba(251,191,36,0.55))" } : undefined}
+            >
+              {pantryMode ? <FridgeOpen /> : <FridgeClosed />}
+            </span>
+            <span className={`text-xs font-medium tracking-[-0.01em] transition-colors duration-200 ${pantryMode ? "text-amber-200/70" : "text-white/30"}`}>
+              Pantry
+            </span>
+            <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/30" : "text-white/20"}`}>—</span>
+            <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/50" : "text-white/25"}`}>
+              {selectedIngredients.length === 0
+                ? "Use what you have"
+                : selectedIngredients.length <= 2
+                ? selectedIngredients.join(", ")
+                : `${selectedIngredients.slice(0, 2).join(", ")} +${selectedIngredients.length - 2}`}
+            </span>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300/40" : "text-white/15"}`}>
+            <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </motion.button>
+
+        <div className="relative mt-4">
           {/* Next card — sits behind, promotes forward when current card exits */}
           {nextMeal && (
             <motion.div
@@ -906,6 +824,102 @@ function DeckContent() {
           </div>
         )}
       </div>
+
+      {/* ── Ingredient sheet backdrop ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {showIngredientSheet && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setShowIngredientSheet(false)}
+            className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Ingredient sheet ──────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showIngredientSheet && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#111111] px-5 pb-10 pt-4"
+          >
+            {/* Drag handle */}
+            <div className="mx-auto mb-5 h-1 w-8 rounded-full bg-white/15" />
+
+            {/* Header */}
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold tracking-[-0.02em] text-white/70">
+                What&apos;s in your kitchen?
+              </h3>
+              {selectedIngredients.length > 0 && (
+                <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                  {selectedIngredients.length}/5
+                </span>
+              )}
+            </div>
+
+            {/* Ingredient chips */}
+            <div className="max-h-[52vh] space-y-4 overflow-y-auto scrollbar-hide">
+              {Object.entries(PANTRY_INGREDIENTS).map(([category, items]) => (
+                <div key={category}>
+                  <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-white/25">
+                    {category}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {items.map((name) => {
+                      const selected = selectedIngredients.includes(name);
+                      const limitReached = !selected && selectedIngredients.length >= 5;
+                      return (
+                        <button
+                          key={name}
+                          onClick={() => toggleIngredient(name)}
+                          disabled={limitReached}
+                          className={`rounded-full border px-3 py-1.5 text-xs transition-colors duration-150 ${
+                            selected
+                              ? "border-amber-400/50 bg-amber-400/[0.15] text-amber-200"
+                              : limitReached
+                              ? "border-white/[0.05] bg-white/[0.03] text-white/20 cursor-not-allowed"
+                              : "border-white/[0.07] bg-white/[0.05] text-white/45 hover:border-white/15 hover:text-white/65 active:scale-[0.96]"
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Done */}
+            <button
+              onClick={() => setShowIngredientSheet(false)}
+              className="mt-5 w-full rounded-full border border-white/[0.07] bg-white/[0.05] py-3 text-sm font-medium text-white/55 transition hover:bg-white/[0.09] active:scale-[0.98]"
+            >
+              Done
+            </button>
+
+            {/* Turn off */}
+            {pantryMode && (
+              <button
+                onClick={() => {
+                  togglePantry();
+                  setShowIngredientSheet(false);
+                }}
+                className="mt-3 w-full py-2 text-xs text-white/25 transition hover:text-white/45"
+              >
+                Turn off Pantry
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

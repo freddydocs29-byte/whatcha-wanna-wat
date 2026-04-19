@@ -30,3 +30,12 @@ body {
 .safe-top {
   padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
 }
+
+/* Hide scrollbar while keeping scroll behaviour */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
