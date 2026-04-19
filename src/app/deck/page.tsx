@@ -502,6 +502,12 @@ function DeckContent() {
                     Change filter
                   </button>
                 </div>
+                <button
+                  onClick={() => router.push("/browse")}
+                  className="mt-4 text-sm text-white/35 underline underline-offset-4 transition hover:text-white/60"
+                >
+                  Browse all meals
+                </button>
               </>
             ) : (
               <>
@@ -535,6 +541,14 @@ function DeckContent() {
                       className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
                     >
                       Change filter
+                    </button>
+                  </div>
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      onClick={() => router.push("/browse")}
+                      className="text-sm text-white/35 underline underline-offset-4 transition hover:text-white/60"
+                    >
+                      Browse all meals
                     </button>
                   </div>
                 </div>
