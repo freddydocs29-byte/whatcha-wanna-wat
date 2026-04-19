@@ -165,7 +165,7 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
  * Meals added in later stages are still scored with the full preference + history
  * signals so the deck stays relevant — it just stops hard-blocking everything.
  */
-function buildDeck(filterId: string | null, pantryMode: boolean): RankedMeal[] {
+function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredients: string[] = []): RankedMeal[] {
   const prefs = getPreferences();
   const savedMeals = getSavedMeals();
   const history = getHistory();
@@ -175,7 +175,7 @@ function buildDeck(filterId: string | null, pantryMode: boolean): RankedMeal[] {
   const favorites = getFavorites();
 
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients);
   }
 
   // Merge new ranked meals into an existing deck, skipping duplicates.
@@ -233,6 +233,14 @@ function DeckContent() {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
 
+  useEffect(() => {
+    if (activeFilterId === null) return;
+    setRankedMeals(buildDeck(activeFilterId, pantryMode, selectedIngredients));
+    setCurrentIndex(0);
+    x.set(0);
+    setExitX(null);
+  }, [selectedIngredients]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function dismissHint() {
     if (!showSwipeHint) return;
     localStorage.setItem("wwe_swipe_hint_seen", "1");
@@ -254,7 +262,7 @@ function DeckContent() {
   const isExiting = exitX !== null;
 
   function selectFilter(id: string) {
-    const ranked = buildDeck(id, pantryMode);
+    const ranked = buildDeck(id, pantryMode, selectedIngredients);
     recordSeenSession(ranked.map((r) => r.meal.id));
     setRankedMeals(ranked);
     setActiveFilterId(id);
@@ -265,7 +273,7 @@ function DeckContent() {
   }
 
   function handleTopPicks() {
-    const allRanked = buildDeck(activeFilterId, pantryMode);
+    const allRanked = buildDeck(activeFilterId, pantryMode, selectedIngredients);
     const topN = Math.max(3, Math.ceil(allRanked.length * 0.35));
     setRankedMeals(allRanked.slice(0, topN));
     setCurrentIndex(0);
@@ -284,10 +292,11 @@ function DeckContent() {
 
   function togglePantry() {
     const next = !pantryMode;
+    const nextIngredients = next ? selectedIngredients : [];
     if (!next) setSelectedIngredients([]);
     setPantryMode(next);
     if (activeFilterId !== null) {
-      setRankedMeals(buildDeck(activeFilterId, next));
+      setRankedMeals(buildDeck(activeFilterId, next, nextIngredients));
       setCurrentIndex(0);
       x.set(0);
       setExitX(null);

@@ -83,7 +83,8 @@ export function scoreMeal(
   tasteProfile?: TasteProfile,
   recentlySeen?: Set<string>,
   flavorProfile?: FlavorProfile,
-  favorites: Meal[] = []
+  favorites: Meal[] = [],
+  selectedIngredients: string[] = []
 ): { score: number; reason: string } {
   let score = 0;
   let topReason: string | null = null;
@@ -329,6 +330,20 @@ export function scoreMeal(
     }
   }
 
+  // ── Ingredient boost ──────────────────────────────────────────────────────
+  if (selectedIngredients.length > 0 && meal.ingredients) {
+    let pantryScore = 0;
+    let matchCount = 0;
+    for (const ing of selectedIngredients) {
+      if (meal.ingredients.includes(ing)) {
+        pantryScore += 2;
+        matchCount++;
+      }
+    }
+    if (matchCount >= 2) pantryScore += 2;
+    score += Math.min(pantryScore, 6);
+  }
+
   return { score, reason: topReason ?? meal.whyItFits };
 }
 
@@ -361,14 +376,15 @@ export function rankMeals(
   tasteProfile?: TasteProfile,
   recentlySeen?: Set<string>,
   flavorProfile?: FlavorProfile,
-  favorites: Meal[] = []
+  favorites: Meal[] = [],
+  selectedIngredients: string[] = []
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
   // 1. Score every meal
   const scored = meals.map((meal) => {
     const { score, reason } = scoreMeal(
-      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients
     );
     return { meal, score, reason };
   });
