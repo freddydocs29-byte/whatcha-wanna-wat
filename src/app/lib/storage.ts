@@ -40,6 +40,7 @@ const TASTE_KEY = "wwe_taste_profile";
 const SEEN_KEY = "wwe_seen_sessions";
 const FLAVOR_KEY = "wwe_flavor_profile";
 const FAVORITES_KEY = "wwe_favorites";
+const LAST_DECIDE_KEY = "wwe_last_decide_pick";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -247,4 +248,15 @@ export function getStreak(): number {
     cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
+}
+
+/** Returns the meal ID last chosen by "Decide for me", or null if never used. */
+export function getLastDecidePick(): string | null {
+  return read<string | null>(LAST_DECIDE_KEY, null);
+}
+
+/** Persists the meal ID chosen by "Decide for me" so the next tap can avoid it. */
+export function setLastDecidePick(mealId: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LAST_DECIDE_KEY, JSON.stringify(mealId));
 }

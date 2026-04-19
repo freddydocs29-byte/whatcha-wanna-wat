@@ -7,13 +7,14 @@ import BackButton from "./BackButton";
 import FirstTimeVisitorCTA from "./FirstTimeVisitorCTA";
 
 type Props = {
-  searchParams: Promise<{ mealId?: string; pantry?: string }>;
+  searchParams: Promise<{ mealId?: string; pantry?: string; decided?: string }>;
 };
 
 export default async function LockedPage({ searchParams }: Props) {
-  const { mealId, pantry } = await searchParams;
+  const { mealId, pantry, decided } = await searchParams;
   const meal = meals.find((m) => m.id === mealId) ?? meals[0];
   const pantryMode = pantry === "1";
+  const pickedForYou = decided === "1";
 
   const isQuickOrEasy = meal.tags.some((t) =>
     ["easy", "15 min", "20 min", "25 min"].some((k) => t.toLowerCase().includes(k))
@@ -30,11 +31,11 @@ export default async function LockedPage({ searchParams }: Props) {
           <BackButton />
         </header>
 
-        <LockedReveal meal={meal} pantryMode={pantryMode} />
+        <LockedReveal meal={meal} pantryMode={pantryMode} pickedForYou={pickedForYou} />
 
         <section className="mt-8 rounded-[34px] border border-white/10 bg-gradient-to-b from-white/[0.12] via-white/[0.07] to-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
           <div className="flex items-start justify-between">
-            <p className="text-sm text-white/50">Good choice</p>
+            <p className="text-sm text-white/50">{pickedForYou ? "Picked for you" : "Good choice"}</p>
             <SaveLaterButton meal={meal} />
           </div>
           <h2 className="mt-2 text-[28px] font-semibold tracking-[-0.04em]">
@@ -72,6 +73,15 @@ export default async function LockedPage({ searchParams }: Props) {
             </a>
 
             <ShareButton mealName={meal.name} />
+
+            {pickedForYou && (
+              <Link
+                href="/deck"
+                className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white/70"
+              >
+                Pick something else
+              </Link>
+            )}
 
             <Link
               href="/"

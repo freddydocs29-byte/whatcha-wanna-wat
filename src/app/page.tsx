@@ -15,8 +15,16 @@ import {
   clearTodaysPick,
   saveMeal,
   addFavorite,
+  getPreferences,
+  getTasteProfile,
+  getFlavorProfile,
+  getRecentlySeenIds,
+  getLastDecidePick,
+  setLastDecidePick,
   HistoryEntry,
 } from "./lib/storage";
+import { meals } from "./data/meals";
+import { rankMeals } from "./lib/scoring";
 import SaveLaterButton from "./locked/SaveLaterButton";
 
 export default function Home() {
@@ -55,6 +63,35 @@ export default function Home() {
   function closeClearModal() {
     setShowClearModal(false);
     setClearStep("confirm");
+  }
+
+  function handleDecideForMe() {
+    const prefs = getPreferences();
+    const saved = getSavedMeals();
+    const favs = getFavorites();
+    const history = getHistory();
+    const tasteProfile = getTasteProfile();
+    const flavorProfile = getFlavorProfile();
+    const recentlySeen = getRecentlySeenIds();
+    const ranked = rankMeals(
+      meals,
+      prefs,
+      saved,
+      history,
+      false,
+      tasteProfile,
+      recentlySeen,
+      flavorProfile ?? undefined,
+      favs,
+    );
+
+    // Take up to 5 strongest candidates and avoid repeating the last instant pick.
+    const lastId = getLastDecidePick();
+    const pool = ranked.slice(0, 5);
+    const pick = (lastId ? pool.find((r) => r.meal.id !== lastId) : null) ?? pool[0] ?? ranked[0];
+
+    setLastDecidePick(pick.meal.id);
+    router.push(`/locked?mealId=${pick.meal.id}&decided=1`);
   }
 
   function handleClearDecision() {
@@ -209,6 +246,12 @@ export default function Home() {
                 >
                   Let&apos;s decide
                 </Link>
+                <button
+                  onClick={handleDecideForMe}
+                  className="mt-3 block w-full rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white transition active:scale-[0.99]"
+                >
+                  ✨ Decide for me
+                </button>
                 <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/45">
                   <span className="h-1.5 w-1.5 rounded-full bg-white/40" />
                   Personalized picks

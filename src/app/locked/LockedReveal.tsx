@@ -7,9 +7,10 @@ import WhyItWorks from "./WhyItWorks";
 type Props = {
   meal: Meal;
   pantryMode: boolean;
+  pickedForYou?: boolean;
 };
 
-export default function LockedReveal({ meal, pantryMode }: Props) {
+export default function LockedReveal({ meal, pantryMode, pickedForYou }: Props) {
   return (
     <div className="pt-8">
       <motion.p
@@ -18,7 +19,7 @@ export default function LockedReveal({ meal, pantryMode }: Props) {
         transition={{ duration: 0.35, ease: "easeOut" }}
         className="text-sm text-white/45"
       >
-        Decision locked
+        {pickedForYou ? "Picked for you" : "Decision locked"}
       </motion.p>
 
       <motion.h1
