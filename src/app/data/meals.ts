@@ -1233,4 +1233,1224 @@ export const meals: Meal[] = [
     image:
       "https://images.unsplash.com/photo-1558030137-a56c1b003f91?auto=format&fit=crop&w=600&h=750&q=80",
   },
+
+  // ── Expansion 100 ──────────────────────────────────────────────────────────
+
+  // Quick & Casual
+  {
+    id: "blt-sandwich",
+    name: "BLT Sandwich",
+    category: "Quick & casual",
+    description:
+      "Crispy bacon, ripe tomatoes, and lettuce stacked on toasted bread. The sandwich that earned its initials.",
+    tags: ["15 min", "Kid-friendly", "Easy"],
+    ingredients: ["Bacon", "Bread", "Tomatoes"],
+    whyItFits: "Classic that never needs an explanation",
+    image:
+      "https://images.unsplash.com/photo-1553979459-d2229ba7433a?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "club-sandwich",
+    name: "Club Sandwich",
+    category: "Quick & casual",
+    description:
+      "Triple-decker with chicken, bacon, and tomato on toasted bread. The diner classic that's somehow still underrated.",
+    tags: ["20 min", "Easy", "Protein-packed"],
+    ingredients: ["Chicken", "Bacon", "Bread", "Tomatoes"],
+    whyItFits: "Stacked, satisfying, and always hits",
+    image:
+      "https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "breakfast-hash",
+    name: "Breakfast Hash",
+    category: "Quick & casual",
+    description:
+      "Crispy potatoes, bacon, and eggs scrambled together in one pan. The breakfast that doubles as dinner.",
+    tags: ["25 min", "Easy", "Kid-friendly"],
+    ingredients: ["Potatoes", "Eggs", "Bacon", "Onions"],
+    whyItFits: "One pan, zero waste, everyone wins",
+    image:
+      "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "waffles",
+    name: "Waffles",
+    category: "Quick & casual",
+    description:
+      "Golden, crispy-edged waffles with maple syrup. The weekend breakfast upgrade from pancakes.",
+    tags: ["20 min", "Kid-friendly", "Crowd pleaser"],
+    ingredients: ["Eggs", "Butter"],
+    whyItFits: "Crispier than pancakes and just as crowd-pleasing",
+    image:
+      "https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "mini-pizzas",
+    name: "English Muffin Pizzas",
+    category: "Quick & casual",
+    description:
+      "Toasted muffins with tomato sauce, mozzarella, and whatever toppings are around. Quick, fun, personal.",
+    tags: ["15 min", "Kid-friendly", "Easy"],
+    ingredients: ["Bread", "Cheese", "Tomatoes"],
+    whyItFits: "Kids build their own, you do nothing",
+    image:
+      "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "cheesesteak",
+    name: "Philly Cheesesteak",
+    category: "Quick & casual",
+    description:
+      "Thin-sliced steak, melted cheese, and sautéed onions in a hoagie roll. The sandwich Philly got right.",
+    tags: ["25 min", "Indulgent", "Easy"],
+    ingredients: ["Steak", "Bread", "Cheese", "Onions"],
+    whyItFits: "All the flavor, none of the travel",
+    image:
+      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "egg-salad-sandwich",
+    name: "Egg Salad Sandwich",
+    category: "Quick & casual",
+    description:
+      "Classic egg salad on toasted bread with a little crunch and celery. The underrated lunch ready in minutes.",
+    tags: ["15 min", "Easy", "Pantry staple"],
+    ingredients: ["Eggs", "Bread", "Onions"],
+    whyItFits: "Pantry ingredients, zero excuses",
+    image:
+      "https://images.unsplash.com/photo-1494548162494-384bba4ab999?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "chicken-salad-wrap",
+    name: "Chicken Salad Wrap",
+    category: "Quick & casual",
+    description:
+      "Creamy chicken salad with celery and herbs wrapped in a flour tortilla. Lunch done efficiently.",
+    tags: ["15 min", "Easy", "Protein-packed"],
+    ingredients: ["Chicken", "Tortillas", "Onions"],
+    whyItFits: "Protein in, effort out",
+    image:
+      "https://images.unsplash.com/photo-1553909489-cd47e0907980?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "bagel-lox",
+    name: "Bagel & Lox",
+    category: "Quick & casual",
+    description:
+      "Cream cheese, smoked salmon, capers, and red onion on a toasted bagel. The breakfast worth getting out of bed for.",
+    tags: ["15 min", "No-cook option", "Light"],
+    ingredients: ["Bread", "Salmon", "Onions", "Cheese"],
+    whyItFits: "No cooking, feels like brunch",
+    image:
+      "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "hash-browns",
+    name: "Hash Browns & Eggs",
+    category: "Quick & casual",
+    description:
+      "Shredded crispy hash browns alongside fried eggs. The diner breakfast without leaving the house.",
+    tags: ["20 min", "Easy", "Kid-friendly"],
+    ingredients: ["Potatoes", "Eggs", "Butter"],
+    whyItFits: "Crispy, simple, done fast",
+    image:
+      "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "miso-rice",
+    name: "Miso Soup & Rice Bowl",
+    category: "Quick & casual",
+    description:
+      "Silky miso broth with tofu and scallions over steamed rice. Simple Japanese comfort in under 20 minutes.",
+    tags: ["15 min", "Easy", "Light"],
+    ingredients: ["Rice", "Mushrooms", "Onions"],
+    whyItFits: "Light, warm, and done before you second-guess it",
+    image:
+      "https://images.unsplash.com/photo-1557126819-f3a53d6f9a7d?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "congee",
+    name: "Savory Rice Congee",
+    category: "Quick & casual",
+    description:
+      "Slow-simmered rice porridge topped with soft egg, ginger, and scallions. Asian comfort in a bowl.",
+    tags: ["25 min", "Easy", "Nutritious"],
+    ingredients: ["Rice", "Garlic", "Onions", "Eggs"],
+    whyItFits: "Gentle, filling, and surprisingly satisfying",
+    image:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "pan-fried-gyoza",
+    name: "Pan-Fried Gyoza",
+    category: "Quick & casual",
+    description:
+      "Crispy-bottomed, steamed-top dumplings filled with seasoned pork and cabbage. The bite-sized crowd pleaser.",
+    tags: ["25 min", "Easy", "Crowd pleaser"],
+    ingredients: ["Ground beef", "Garlic", "Onions"],
+    whyItFits: "Crispy on one side, tender on the other — hard to stop eating",
+    image:
+      "https://images.unsplash.com/photo-1562802378-9f64e2b21cb2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Comfort food
+  {
+    id: "tomato-soup",
+    name: "Creamy Tomato Soup",
+    category: "Comfort food",
+    description:
+      "Rich blended tomato soup with a drizzle of cream and fresh basil. Pairs perfectly with grilled cheese.",
+    tags: ["30 min", "Vegetarian", "Easy"],
+    ingredients: ["Tomatoes", "Butter", "Garlic", "Onions"],
+    whyItFits: "The soup that needs nothing except maybe a grilled cheese",
+    image:
+      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "pot-roast",
+    name: "Sunday Pot Roast",
+    category: "Comfort food",
+    description:
+      "Slow-braised beef with potatoes and root vegetables. The Sunday dinner that fills the house with the right smell.",
+    tags: ["45 min", "Crowd pleaser", "Medium effort"],
+    ingredients: ["Steak", "Potatoes", "Onions", "Garlic"],
+    whyItFits: "Makes the whole house smell right on a Sunday",
+    image:
+      "https://images.unsplash.com/photo-1583835746434-cf1534674b41?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "chicken-dumplings",
+    name: "Chicken & Dumplings",
+    category: "Comfort food",
+    description:
+      "Tender chicken in rich broth with fluffy dumpling pillows on top. Pure Americana comfort.",
+    tags: ["45 min", "Kid-friendly", "Medium effort"],
+    ingredients: ["Chicken", "Onions", "Garlic", "Butter"],
+    whyItFits: "The dumpling pillows land it every time",
+    image:
+      "https://images.unsplash.com/photo-1601972599720-36938d4ecd31?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "biscuits-gravy",
+    name: "Biscuits & Gravy",
+    category: "Comfort food",
+    description:
+      "Flaky buttery biscuits smothered in creamy sausage gravy. Southern breakfast that can become dinner.",
+    tags: ["25 min", "Indulgent", "Easy"],
+    ingredients: ["Sausage", "Butter", "Onions"],
+    whyItFits: "Indulgent in the best possible way",
+    image:
+      "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "beef-vegetable-soup",
+    name: "Beef & Vegetable Soup",
+    category: "Comfort food",
+    description:
+      "Chunks of beef with mushrooms, carrots, and celery in a deeply savory broth. Stick-to-your-ribs soup.",
+    tags: ["45 min", "Nutritious", "Medium effort"],
+    ingredients: ["Steak", "Onions", "Garlic", "Mushrooms"],
+    whyItFits: "Gets better the longer you let it simmer",
+    image:
+      "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "tuna-noodle",
+    name: "Tuna Noodle Casserole",
+    category: "Comfort food",
+    description:
+      "Egg noodles, tuna, cream of mushroom, and cheddar baked to a crispy top. Retro comfort at its finest.",
+    tags: ["35 min", "Meal-prep friendly", "Easy"],
+    ingredients: ["Noodles", "Mushrooms", "Cheese", "Onions"],
+    whyItFits: "Makes a lot, reheats perfectly, no apologies needed",
+    image:
+      "https://images.unsplash.com/photo-1476124369491-e7addf5db371?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "stuffed-cabbage",
+    name: "Stuffed Cabbage Rolls",
+    category: "Comfort food",
+    description:
+      "Ground beef and rice rolls slow-simmered in a sweet tomato sauce. Eastern European comfort at its best.",
+    tags: ["45 min", "Crowd pleaser", "Medium effort"],
+    ingredients: ["Ground beef", "Rice", "Tomatoes", "Onions"],
+    whyItFits: "Slow-cooked and deeply satisfying",
+    image:
+      "https://images.unsplash.com/photo-1583847268964-9d5f6e35d048?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "corn-chowder",
+    name: "Corn Chowder",
+    category: "Comfort food",
+    description:
+      "Creamy chowder thick with sweet corn, potato, and bacon. The bowl that says it's okay to stop today.",
+    tags: ["30 min", "Indulgent", "Easy"],
+    ingredients: ["Potatoes", "Bacon", "Onions", "Butter"],
+    whyItFits: "Thick and sweet and exactly what a cold night calls for",
+    image:
+      "https://images.unsplash.com/photo-1547592579-9f20d5a5a5f3?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "sausage-pasta",
+    name: "Sausage & Tomato Pasta",
+    category: "Comfort food",
+    description:
+      "Italian sausage, crushed tomatoes, and pasta in one pan. Fast weeknight dinner with actual depth.",
+    tags: ["25 min", "Easy", "Crowd pleaser"],
+    ingredients: ["Sausage", "Pasta", "Tomatoes", "Garlic"],
+    whyItFits: "Sausage does all the heavy lifting",
+    image:
+      "https://images.unsplash.com/photo-1598866593549-d8e0d60a3d37?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "broccoli-cheddar-soup",
+    name: "Broccoli Cheddar Soup",
+    category: "Comfort food",
+    description:
+      "Thick, velvety broccoli soup with sharp cheddar. Comfort in a bowl secretly loaded with vegetables.",
+    tags: ["30 min", "Vegetarian", "Easy"],
+    ingredients: ["Broccoli", "Cheese", "Butter", "Onions"],
+    whyItFits: "The sneaky vegetable soup that doesn't taste like a sacrifice",
+    image:
+      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "white-bean-soup",
+    name: "White Bean & Sausage Soup",
+    category: "Comfort food",
+    description:
+      "Creamy white beans, Italian sausage, and wilted spinach in herbed broth. Hearty and nearly effortless.",
+    tags: ["30 min", "Nutritious", "Easy"],
+    ingredients: ["Beans", "Sausage", "Garlic", "Spinach"],
+    whyItFits: "Barely any effort for how satisfying it lands",
+    image:
+      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "red-beans-rice",
+    name: "Red Beans & Rice",
+    category: "Comfort food",
+    description:
+      "Creole-style kidney beans and andouille over white rice. New Orleans soul food done simply.",
+    tags: ["30 min", "Crowd pleaser", "Easy"],
+    ingredients: ["Beans", "Rice", "Sausage", "Onions"],
+    whyItFits: "New Orleans soul in 30 minutes",
+    image:
+      "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Bold flavors
+  {
+    id: "szechuan-beef",
+    name: "Szechuan Beef",
+    category: "Bold flavors",
+    description:
+      "Thinly sliced beef wok-tossed with Sichuan peppercorns, chilies, and garlic. Numbing, fiery, addictive.",
+    tags: ["25 min", "Flavorful", "Medium effort"],
+    ingredients: ["Steak", "Bell peppers", "Garlic", "Onions"],
+    whyItFits: "The heat that creeps up and doesn't let go",
+    image:
+      "https://images.unsplash.com/photo-1562802378-9f64e2b21cb2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "moroccan-chicken",
+    name: "Moroccan Chicken Tagine",
+    category: "Bold flavors",
+    description:
+      "Slow-braised chicken with preserved lemon, olives, and warm Moroccan spices. North African warmth.",
+    tags: ["40 min", "Flavorful", "Medium effort"],
+    ingredients: ["Chicken", "Tomatoes", "Onions", "Garlic"],
+    whyItFits: "Spice depth that takes you somewhere completely different",
+    image:
+      "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "massaman-curry",
+    name: "Massaman Curry",
+    category: "Bold flavors",
+    description:
+      "Rich, mild Thai curry with potatoes, peanuts, and coconut milk. Sweet, warm, and deeply comforting.",
+    tags: ["40 min", "Flavorful", "Medium effort"],
+    ingredients: ["Chicken", "Potatoes", "Onions"],
+    whyItFits: "Thai curry for people who like flavor without the fire",
+    image:
+      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "birria-tacos",
+    name: "Birria Tacos",
+    category: "Bold flavors",
+    description:
+      "Beef braised in dried chiles, dipped in consomé, and crisped on the griddle. Instagram-worthy for a reason.",
+    tags: ["45 min", "Flavorful", "Medium effort"],
+    ingredients: ["Ground beef", "Tortillas", "Onions", "Tomatoes"],
+    whyItFits: "The taco that gets everyone talking",
+    image:
+      "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "beef-pho",
+    name: "Beef Pho",
+    category: "Bold flavors",
+    description:
+      "Fragrant star anise broth with paper-thin beef, rice noodles, and fresh herbs. Vietnamese warmth in a bowl.",
+    tags: ["35 min", "Flavorful", "Medium effort"],
+    ingredients: ["Steak", "Noodles", "Onions", "Garlic"],
+    whyItFits: "The broth alone is worth making this",
+    image:
+      "https://images.unsplash.com/photo-1569050483838-ad30f408c1d7?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "drunken-noodles",
+    name: "Drunken Noodles",
+    category: "Bold flavors",
+    description:
+      "Wide rice noodles stir-fried with basil, chilies, and chicken. Bangkok street food with serious wok heat.",
+    tags: ["25 min", "Flavorful", "Easy"],
+    ingredients: ["Noodles", "Chicken", "Bell peppers", "Garlic"],
+    whyItFits: "Different from Pad Thai in every way that matters",
+    image:
+      "https://images.unsplash.com/photo-1559314045-0c04de3ebfce?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "harissa-chicken",
+    name: "Harissa Roasted Chicken",
+    category: "Bold flavors",
+    description:
+      "Chicken thighs baked in a fiery harissa-tomato sauce with roasted peppers. North African spice done right.",
+    tags: ["35 min", "Flavorful", "Grill night"],
+    ingredients: ["Chicken", "Garlic", "Tomatoes", "Bell peppers"],
+    whyItFits: "Set it in and let the harissa do the work",
+    image:
+      "https://images.unsplash.com/photo-1598514536338-8b399a0780f9?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "chipotle-bowl",
+    name: "Chipotle Chicken Bowl",
+    category: "Bold flavors",
+    description:
+      "Smoky chipotle chicken, cilantro rice, black beans, and salsa. The bowl that inspired a chain, made better at home.",
+    tags: ["20 min", "Flavorful", "Easy"],
+    ingredients: ["Chicken", "Rice", "Beans", "Onions"],
+    whyItFits: "Better than the restaurant version in the time it takes to order",
+    image:
+      "https://images.unsplash.com/photo-1546069596-0a240a65c31a?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "mapo-beef",
+    name: "Mapo-Style Ground Beef",
+    category: "Bold flavors",
+    description:
+      "Spiced ground beef in a mouth-numbing Sichuan sauce over steamed rice. Weeknight Sichuan that delivers.",
+    tags: ["25 min", "Flavorful", "Medium effort"],
+    ingredients: ["Ground beef", "Garlic", "Onions", "Beans"],
+    whyItFits: "Sichuan heat in a genuinely quick format",
+    image:
+      "https://images.unsplash.com/photo-1603133987046-a8a3d37521c4?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "lamb-shawarma",
+    name: "Lamb Shawarma Plate",
+    category: "Bold flavors",
+    description:
+      "Warm spiced meat in pita with tahini, tomatoes, and pickles. Middle Eastern street food at home.",
+    tags: ["30 min", "Flavorful", "Medium effort"],
+    ingredients: ["Garlic", "Onions", "Bread", "Tomatoes"],
+    whyItFits: "Pita wraps everything together beautifully",
+    image:
+      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "chicken-mole",
+    name: "Chicken Mole",
+    category: "Bold flavors",
+    description:
+      "Rich Mexican mole sauce with chocolate, chilies, and warm spices over chicken. Complex, deep, unforgettable.",
+    tags: ["45 min", "Flavorful", "Medium effort"],
+    ingredients: ["Chicken", "Garlic", "Onions", "Tomatoes"],
+    whyItFits: "The sauce with a hundred flavors that somehow works every time",
+    image:
+      "https://images.unsplash.com/photo-1501200291289-c5a76c232e5f?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "green-shakshuka",
+    name: "Green Shakshuka",
+    category: "Bold flavors",
+    description:
+      "Eggs poached in a spiced green tomatillo and spinach sauce. A brighter, lighter take on the classic.",
+    tags: ["20 min", "Vegetarian", "Easy"],
+    ingredients: ["Eggs", "Spinach", "Garlic", "Onions"],
+    whyItFits: "The shakshuka that doesn't compete with the original",
+    image:
+      "https://images.unsplash.com/photo-1591985666643-9ce60217bae8?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "beef-rendang",
+    name: "Beef Rendang",
+    category: "Bold flavors",
+    description:
+      "Indonesian slow-cooked beef caramelized in coconut milk and spices until richly glazed. Worth every minute.",
+    tags: ["45 min", "Flavorful", "Medium effort"],
+    ingredients: ["Ground beef", "Onions", "Garlic"],
+    whyItFits: "The longer it cooks the better it gets",
+    image:
+      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "tamarind-shrimp",
+    name: "Tamarind Shrimp",
+    category: "Bold flavors",
+    description:
+      "Shrimp in a tangy-sweet tamarind sauce with garlic and chilies. Southeast Asian punch in under 30 minutes.",
+    tags: ["25 min", "Flavorful", "Easy"],
+    ingredients: ["Shrimp", "Garlic", "Onions", "Tomatoes"],
+    whyItFits: "Tangy, sweet, and spicy — the combination that always works",
+    image:
+      "https://images.unsplash.com/photo-1534482421-64566f976cfa?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Healthy
+  {
+    id: "detox-chicken-soup",
+    name: "Detox Chicken Soup",
+    category: "Healthy",
+    description:
+      "Light chicken broth with spinach, ginger, turmeric, and lemon. Clean and restorative without being boring.",
+    tags: ["30 min", "Nutritious", "Easy"],
+    ingredients: ["Chicken", "Spinach", "Garlic", "Onions"],
+    whyItFits: "The reset meal that actually tastes good",
+    image:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "veggie-stir-fry",
+    name: "Broccoli & Garlic Stir-Fry",
+    category: "Healthy",
+    description:
+      "Broccoli florets wok-fried in garlic sauce and served over steamed rice. Clean, fast, plant-based.",
+    tags: ["20 min", "Vegetarian", "Easy"],
+    ingredients: ["Broccoli", "Garlic", "Onions", "Rice"],
+    whyItFits: "Vegetables that actually taste like something",
+    image:
+      "https://images.unsplash.com/photo-1512852595523-54e2f8d8e9e7?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "kale-chickpea-salad",
+    name: "Kale & Chickpea Salad",
+    category: "Healthy",
+    description:
+      "Massaged kale and roasted chickpeas with cherry tomatoes and lemon tahini. A salad that actually fills you up.",
+    tags: ["15 min", "Vegetarian", "No-cook option"],
+    ingredients: ["Beans", "Spinach", "Tomatoes"],
+    whyItFits: "The salad that keeps you full until dinner",
+    image:
+      "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "salmon-tacos",
+    name: "Salmon Tacos",
+    category: "Healthy",
+    description:
+      "Blackened salmon in corn tortillas with pickled onions and lime crema. The lighter fish taco made elegant.",
+    tags: ["20 min", "Light", "Easy"],
+    ingredients: ["Salmon", "Tortillas", "Onions"],
+    whyItFits: "Lighter than the beer-battered version and somehow better",
+    image:
+      "https://images.unsplash.com/photo-1551504734-5da7e163d3a2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "chickpea-spinach-soup",
+    name: "Chickpea & Spinach Soup",
+    category: "Healthy",
+    description:
+      "Simmered chickpeas and wilted spinach in a spiced tomato broth. Plant-based protein without compromise.",
+    tags: ["25 min", "Vegetarian", "Nutritious"],
+    ingredients: ["Beans", "Spinach", "Garlic", "Tomatoes"],
+    whyItFits: "Plant-based and filling in equal measure",
+    image:
+      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "shrimp-avocado-bowl",
+    name: "Shrimp & Avocado Bowl",
+    category: "Healthy",
+    description:
+      "Sautéed shrimp over rice with fresh tomatoes and avocado. Clean bowl with high protein and bright flavors.",
+    tags: ["20 min", "Light", "Protein-packed"],
+    ingredients: ["Shrimp", "Rice", "Tomatoes"],
+    whyItFits: "Clean eating that actually tastes bright",
+    image:
+      "https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "roasted-veggie-bowl",
+    name: "Roasted Vegetable Bowl",
+    category: "Healthy",
+    description:
+      "Roasted broccoli, peppers, and mushrooms over grains with tahini. The all-vegetable bowl that doesn't feel like a compromise.",
+    tags: ["30 min", "Vegetarian", "Nutritious"],
+    ingredients: ["Broccoli", "Bell peppers", "Mushrooms", "Garlic"],
+    whyItFits: "The bowl that makes you forget you're eating healthy",
+    image:
+      "https://images.unsplash.com/photo-1513135467880-6c41603eb5e5?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "spinach-egg-cups",
+    name: "Spinach Egg Cups",
+    category: "Healthy",
+    description:
+      "Eggs baked in muffin tins with spinach, feta, and bacon bits. Meal-prepped protein for the whole week.",
+    tags: ["20 min", "Meal-prep friendly", "Protein-packed"],
+    ingredients: ["Eggs", "Spinach", "Cheese", "Bacon"],
+    whyItFits: "Batch it once and have breakfast covered for days",
+    image:
+      "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "tuna-rice-bowl",
+    name: "Tuna Rice Bowl",
+    category: "Healthy",
+    description:
+      "Flaked tuna over seasoned rice with cucumber and scallions. The no-fuss bowl that comes together from pantry basics.",
+    tags: ["15 min", "Light", "Easy"],
+    ingredients: ["Rice", "Onions", "Tomatoes"],
+    whyItFits: "Pantry-ready and surprisingly satisfying",
+    image:
+      "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "baked-salmon-veg",
+    name: "Baked Salmon & Vegetables",
+    category: "Healthy",
+    description:
+      "Sheet-pan salmon with lemon, garlic, and roasted broccoli. One pan, minimal cleanup, complete meal.",
+    tags: ["25 min", "Protein-packed", "Nutritious"],
+    ingredients: ["Salmon", "Broccoli", "Garlic", "Butter"],
+    whyItFits: "One sheet pan, complete meal, nothing to argue with",
+    image:
+      "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "white-chicken-chili",
+    name: "White Chicken Chili",
+    category: "Healthy",
+    description:
+      "Chicken and white beans in a creamy green chile broth. A lighter, fresher alternative to classic chili.",
+    tags: ["30 min", "Nutritious", "Easy"],
+    ingredients: ["Chicken", "Beans", "Garlic", "Onions"],
+    whyItFits: "All the satisfaction of chili without the weight",
+    image:
+      "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "avocado-chicken-salad",
+    name: "Avocado Chicken Salad",
+    category: "Healthy",
+    description:
+      "Shredded chicken with avocado, tomato, and cilantro. Works as a wrap, a bowl, or by itself.",
+    tags: ["15 min", "No-cook option", "Light"],
+    ingredients: ["Chicken", "Tomatoes", "Onions"],
+    whyItFits: "Zero cooking and still genuinely filling",
+    image:
+      "https://images.unsplash.com/photo-1512852595523-54e2f8d8e9e7?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "poached-eggs-toast",
+    name: "Poached Eggs on Toast",
+    category: "Healthy",
+    description:
+      "Perfectly poached eggs over buttered toast with wilted spinach. When scrambled feels like settling.",
+    tags: ["15 min", "Easy", "Light"],
+    ingredients: ["Eggs", "Bread", "Spinach", "Butter"],
+    whyItFits: "When scrambled feels like settling",
+    image:
+      "https://images.unsplash.com/photo-1541519481-1af5bde5b1d2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "spinach-frittata",
+    name: "Spinach Frittata",
+    category: "Healthy",
+    description:
+      "Oven-finished egg and spinach frittata with feta and onions. Slices like a pie, feeds a crowd, great cold.",
+    tags: ["20 min", "Vegetarian", "Easy"],
+    ingredients: ["Eggs", "Spinach", "Cheese", "Onions"],
+    whyItFits: "The egg dish that feeds a crowd without extra effort",
+    image:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Elevated
+  {
+    id: "shrimp-scampi",
+    name: "Shrimp Scampi",
+    category: "Elevated",
+    description:
+      "Shrimp in white wine garlic butter over linguine. The Italian-American dish that feels fancy but takes under 25 minutes.",
+    tags: ["20 min", "Elegant", "Easy"],
+    ingredients: ["Shrimp", "Pasta", "Butter", "Garlic"],
+    whyItFits: "Feels like date night but barely counts as cooking",
+    image:
+      "https://images.unsplash.com/photo-1534482421-64566f976cfa?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "beef-bourguignon",
+    name: "Beef Bourguignon",
+    category: "Elevated",
+    description:
+      "Beef braised in Burgundy wine with mushrooms, pearl onions, and bacon. Julia Child's favorite party trick.",
+    tags: ["45 min", "Elegant", "Medium effort"],
+    ingredients: ["Steak", "Mushrooms", "Onions", "Bacon"],
+    whyItFits: "French luxury that rewards the effort generously",
+    image:
+      "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "pan-seared-fish",
+    name: "Pan-Seared White Fish",
+    category: "Elevated",
+    description:
+      "Delicate white fish with a golden sear, finished in brown butter with wilted spinach. Clean and restaurant-worthy.",
+    tags: ["20 min", "Elegant", "Easy"],
+    ingredients: ["Butter", "Garlic", "Spinach"],
+    whyItFits: "The simplest path to a restaurant-quality plate",
+    image:
+      "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "chicken-marsala",
+    name: "Chicken Marsala",
+    category: "Elevated",
+    description:
+      "Golden chicken cutlets in a Marsala wine and mushroom reduction. Italian-American at its most satisfying.",
+    tags: ["25 min", "Elegant", "Easy"],
+    ingredients: ["Chicken", "Mushrooms", "Butter", "Garlic"],
+    whyItFits: "The Italian-American dish that earns its reputation",
+    image:
+      "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "seafood-linguine",
+    name: "Seafood Linguine",
+    category: "Elevated",
+    description:
+      "Linguine with shrimp and cherry tomatoes in white wine and garlic. Coastal Italian in under 30 minutes.",
+    tags: ["25 min", "Elegant", "Medium effort"],
+    ingredients: ["Pasta", "Shrimp", "Garlic", "Tomatoes"],
+    whyItFits: "Coastal Italian that comes together fast",
+    image:
+      "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "steak-au-poivre",
+    name: "Steak au Poivre",
+    category: "Elevated",
+    description:
+      "Pepper-crusted steak in a cognac cream sauce. The French bistro dinner that takes 20 minutes.",
+    tags: ["20 min", "Elegant", "Easy"],
+    ingredients: ["Steak", "Butter", "Garlic"],
+    whyItFits: "The bistro plate you can actually pull off at home",
+    image:
+      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "shrimp-bisque",
+    name: "Shrimp Bisque",
+    category: "Elevated",
+    description:
+      "Silky cream bisque with shrimp, brandy, and tomato. The starter that becomes the whole meal.",
+    tags: ["35 min", "Elegant", "Medium effort"],
+    ingredients: ["Shrimp", "Butter", "Onions", "Garlic"],
+    whyItFits: "Luxurious enough to be the main event",
+    image:
+      "https://images.unsplash.com/photo-1602743932936-1e4ee0b7419b?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "rack-of-lamb",
+    name: "Rack of Lamb",
+    category: "Elevated",
+    description:
+      "Herb-crusted rack of lamb roasted to a perfect pink. Dramatic presentation, manageable effort.",
+    tags: ["30 min", "Elegant", "Medium effort"],
+    ingredients: ["Garlic", "Butter"],
+    whyItFits: "The showstopper that's actually manageable",
+    image:
+      "https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "truffle-pasta",
+    name: "Truffle Mushroom Pasta",
+    category: "Elevated",
+    description:
+      "Tagliatelle in a rich mushroom and truffle butter sauce with aged parmesan. Decadence in 20 minutes.",
+    tags: ["20 min", "Elegant", "Indulgent"],
+    ingredients: ["Pasta", "Butter", "Cheese", "Mushrooms"],
+    whyItFits: "Maximum decadence, minimum effort",
+    image:
+      "https://images.unsplash.com/photo-1611270629569-8b357cb88da9?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "seafood-cakes",
+    name: "Crab-Style Seafood Cakes",
+    category: "Elevated",
+    description:
+      "Pan-fried seafood cakes with a crispy exterior, served with remoulade. Elevated starter that works better as dinner.",
+    tags: ["25 min", "Elegant", "Medium effort"],
+    ingredients: ["Shrimp", "Eggs", "Butter", "Garlic"],
+    whyItFits: "Fancy starters that work better as dinner",
+    image:
+      "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Classic Italian
+  {
+    id: "cacio-e-pepe",
+    name: "Cacio e Pepe",
+    category: "Classic Italian",
+    description:
+      "Just pasta, pecorino, butter, and freshly cracked pepper. Three ingredients, perfect execution.",
+    tags: ["15 min", "Elegant", "Easy"],
+    ingredients: ["Pasta", "Cheese", "Butter"],
+    whyItFits: "Roman simplicity that takes 15 minutes and tastes earned",
+    image:
+      "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "pasta-amatriciana",
+    name: "Pasta all'Amatriciana",
+    category: "Classic Italian",
+    description:
+      "Guanciale, San Marzano tomatoes, and pecorino. The Roman pasta that beats your average tomato sauce every time.",
+    tags: ["25 min", "Flavorful", "Easy"],
+    ingredients: ["Pasta", "Bacon", "Tomatoes", "Onions"],
+    whyItFits: "Better than pomodoro without much more effort",
+    image:
+      "https://images.unsplash.com/photo-1598866593549-d8e0d60a3d37?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "osso-buco",
+    name: "Osso Buco",
+    category: "Classic Italian",
+    description:
+      "Slow-braised beef shank with gremolata in a rich tomato and wine reduction. The Milanese slow-cook masterpiece.",
+    tags: ["45 min", "Elegant", "Medium effort"],
+    ingredients: ["Steak", "Tomatoes", "Onions", "Garlic"],
+    whyItFits: "The Italian classic that rewards patience",
+    image:
+      "https://images.unsplash.com/photo-1574673093985-59c47f1d64b5?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "puttanesca",
+    name: "Pasta Puttanesca",
+    category: "Classic Italian",
+    description:
+      "Olives, capers, anchovies, and tomatoes over spaghetti. The bold pantry pasta with genuine attitude.",
+    tags: ["20 min", "Flavorful", "Easy"],
+    ingredients: ["Pasta", "Tomatoes", "Garlic", "Onions"],
+    whyItFits: "Big personality from pantry ingredients",
+    image:
+      "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "minestrone",
+    name: "Minestrone Soup",
+    category: "Classic Italian",
+    description:
+      "Thick Italian vegetable and pasta soup with cannellini beans and parmesan rind. Filling and deeply savory.",
+    tags: ["30 min", "Vegetarian", "Nutritious"],
+    ingredients: ["Pasta", "Beans", "Tomatoes", "Onions"],
+    whyItFits: "The Italian soup that's a complete meal by itself",
+    image:
+      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "saltimbocca",
+    name: "Saltimbocca",
+    category: "Classic Italian",
+    description:
+      "Chicken with prosciutto and sage pan-finished in white wine and butter. Italian technique in 20 minutes.",
+    tags: ["20 min", "Elegant", "Easy"],
+    ingredients: ["Chicken", "Bacon", "Butter", "Garlic"],
+    whyItFits: "Simple Italian method that produces something genuinely impressive",
+    image:
+      "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "cheese-ravioli",
+    name: "Cheese Ravioli",
+    category: "Classic Italian",
+    description:
+      "Ricotta-stuffed ravioli with butter and sage or simple tomato sauce. The pasta shape that wins every vote.",
+    tags: ["20 min", "Kid-friendly", "Easy"],
+    ingredients: ["Pasta", "Cheese", "Butter", "Tomatoes"],
+    whyItFits: "The pasta shape everyone loves, minimal effort required",
+    image:
+      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "focaccia-bread",
+    name: "Focaccia with Caramelized Onions",
+    category: "Classic Italian",
+    description:
+      "Dimpled olive oil focaccia with rosemary and caramelized onions. The bread that's also a meal.",
+    tags: ["30 min", "Vegetarian", "Easy"],
+    ingredients: ["Bread", "Garlic", "Onions"],
+    whyItFits: "Bread that's enough to be dinner",
+    image:
+      "https://images.unsplash.com/photo-1516100882582-96c3a05fe590?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Mediterranean
+  {
+    id: "fattoush",
+    name: "Fattoush Salad",
+    category: "Mediterranean",
+    description:
+      "Toasted pita, tomatoes, cucumber, herbs, and sumac dressing. The Middle Eastern chopped salad with crunch.",
+    tags: ["15 min", "Vegetarian", "No-cook option"],
+    ingredients: ["Bread", "Tomatoes", "Onions"],
+    whyItFits: "The salad where the stale bread becomes the best part",
+    image:
+      "https://images.unsplash.com/photo-1541014741259-de529411b96a?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "mujaddara",
+    name: "Mujaddara",
+    category: "Mediterranean",
+    description:
+      "Lentils and rice topped with deeply caramelized onions. A humble Lebanese dish of extraordinary satisfaction.",
+    tags: ["30 min", "Vegetarian", "Nutritious"],
+    ingredients: ["Rice", "Beans", "Onions"],
+    whyItFits: "Humble ingredients, surprising depth",
+    image:
+      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "baba-ghanoush",
+    name: "Baba Ganoush Plate",
+    category: "Mediterranean",
+    description:
+      "Smoky eggplant dip with tahini, garlic, and warm pita. A different direction from hummus, equally good.",
+    tags: ["15 min", "Vegetarian", "No-cook option"],
+    ingredients: ["Garlic", "Bread", "Tomatoes"],
+    whyItFits: "Different from hummus and equally satisfying",
+    image:
+      "https://images.unsplash.com/photo-1577906071869-7c74a8ebd15?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "foul-medames",
+    name: "Foul Medames",
+    category: "Mediterranean",
+    description:
+      "Egyptian stewed fava beans with olive oil, lemon, and cumin. The breakfast dish eaten at all hours.",
+    tags: ["20 min", "Vegetarian", "Nutritious"],
+    ingredients: ["Beans", "Garlic", "Tomatoes", "Onions"],
+    whyItFits: "A dish eaten at breakfast, lunch, and dinner for good reason",
+    image:
+      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "sabich",
+    name: "Sabich Sandwich",
+    category: "Mediterranean",
+    description:
+      "Israeli pita sandwich with fried egg, tomatoes, pickled mango, and tahini. Tel Aviv street food at home.",
+    tags: ["20 min", "Vegetarian", "Easy"],
+    ingredients: ["Bread", "Eggs", "Tomatoes", "Onions"],
+    whyItFits: "The Israeli sandwich most people haven't tried yet",
+    image:
+      "https://images.unsplash.com/photo-1561626423-a51b45aef0a1?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "turkish-eggs",
+    name: "Turkish Eggs",
+    category: "Mediterranean",
+    description:
+      "Poached eggs over garlicky yogurt with chili butter. Turkish brunch that's as beautiful as it is fast.",
+    tags: ["15 min", "Vegetarian", "Easy"],
+    ingredients: ["Eggs", "Butter", "Garlic"],
+    whyItFits: "The breakfast that looks like it took way more effort",
+    image:
+      "https://images.unsplash.com/photo-1591985666643-9ce60217bae8?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "lahmacun",
+    name: "Lahmacun",
+    category: "Mediterranean",
+    description:
+      "Turkish spiced meat flatbread with herbs and lemon. The Middle Eastern pizza that's been there longer.",
+    tags: ["25 min", "Flavorful", "Easy"],
+    ingredients: ["Ground beef", "Bread", "Tomatoes", "Onions"],
+    whyItFits: "The flatbread pizza that predates pizza",
+    image:
+      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "spanakopita",
+    name: "Spanakopita",
+    category: "Mediterranean",
+    description:
+      "Spinach and feta in crispy phyllo pastry. The Greek savory pie that justifies every layer.",
+    tags: ["35 min", "Vegetarian", "Medium effort"],
+    ingredients: ["Eggs", "Spinach", "Cheese", "Butter"],
+    whyItFits: "Greek pastry worth the medium effort",
+    image:
+      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Fresh
+  {
+    id: "banh-mi",
+    name: "Bánh Mì Sandwich",
+    category: "Fresh",
+    description:
+      "Grilled chicken, pickled vegetables, jalapeño, and cilantro in a crusty baguette. Vietnamese flavor fusion.",
+    tags: ["20 min", "Flavorful", "Easy"],
+    ingredients: ["Bread", "Chicken", "Onions", "Tomatoes"],
+    whyItFits: "The sandwich that changed what sandwiches could be",
+    image:
+      "https://images.unsplash.com/photo-1553979459-d2229ba7433a?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "prawn-cocktail",
+    name: "Prawn Cocktail",
+    category: "Fresh",
+    description:
+      "Chilled shrimp with classic cocktail sauce and lemon. The dinner party starter that becomes the whole meal.",
+    tags: ["15 min", "No-cook option", "Light"],
+    ingredients: ["Shrimp", "Tomatoes", "Onions"],
+    whyItFits: "Effortless, fresh, and classically satisfying",
+    image:
+      "https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "gazpacho",
+    name: "Gazpacho",
+    category: "Fresh",
+    description:
+      "Blended chilled tomato soup with cucumber, garlic, and sherry vinegar. Spanish summer in a bowl, no heat required.",
+    tags: ["15 min", "Vegetarian", "No-cook option"],
+    ingredients: ["Tomatoes", "Garlic", "Onions", "Bell peppers"],
+    whyItFits: "The soup that requires no cooking and still impresses",
+    image:
+      "https://images.unsplash.com/photo-1546069596-0a240a65c31a?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "smoked-salmon-plate",
+    name: "Smoked Salmon Plate",
+    category: "Fresh",
+    description:
+      "Thinly sliced smoked salmon with capers, red onion, and crème fraîche on dark bread. No cooking needed.",
+    tags: ["15 min", "No-cook option", "Light"],
+    ingredients: ["Salmon", "Bread", "Onions"],
+    whyItFits: "No cooking, looks like you tried, tastes like you did",
+    image:
+      "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "gado-gado",
+    name: "Gado Gado",
+    category: "Fresh",
+    description:
+      "Indonesian salad of eggs, beans, and greens with a rich peanut sauce. The salad with a sauce that steals the show.",
+    tags: ["25 min", "Vegetarian", "Nutritious"],
+    ingredients: ["Eggs", "Beans", "Spinach"],
+    whyItFits: "The peanut sauce alone is worth making",
+    image:
+      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "cold-soba",
+    name: "Cold Soba Noodles",
+    category: "Fresh",
+    description:
+      "Buckwheat noodles chilled in dashi broth with wasabi and scallions. Japanese minimalism at its finest.",
+    tags: ["15 min", "Vegetarian", "Light"],
+    ingredients: ["Noodles", "Garlic", "Onions"],
+    whyItFits: "The Japanese noodle dish that's better cold",
+    image:
+      "https://images.unsplash.com/photo-1569050483838-ad30f408c1d7?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "thai-larb",
+    name: "Thai Larb",
+    category: "Fresh",
+    description:
+      "Minced meat salad with toasted rice powder, lime, and fresh herbs. Thai flavor intensity in a light form.",
+    tags: ["25 min", "Flavorful", "Light"],
+    ingredients: ["Ground beef", "Onions", "Garlic"],
+    whyItFits: "Bold Thai flavors in a dish that doesn't weigh you down",
+    image:
+      "https://images.unsplash.com/photo-1559314045-0c04de3ebfce?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "cobb-salad",
+    name: "Cobb Salad",
+    category: "Fresh",
+    description:
+      "Grilled chicken, crispy bacon, hard-boiled egg, and tomato over romaine with blue cheese dressing.",
+    tags: ["15 min", "Easy", "Protein-packed"],
+    ingredients: ["Chicken", "Eggs", "Bacon", "Tomatoes"],
+    whyItFits: "Everything protein-wise in one generous bowl",
+    image:
+      "https://images.unsplash.com/photo-1512852595523-54e2f8d8e9e7?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "mushroom-spinach-salad",
+    name: "Warm Mushroom & Spinach Salad",
+    category: "Fresh",
+    description:
+      "Sautéed mushrooms and spinach in garlic butter. The warm salad that works as a side or a solo meal.",
+    tags: ["15 min", "Vegetarian", "Easy"],
+    ingredients: ["Mushrooms", "Spinach", "Garlic", "Butter"],
+    whyItFits: "Warm, umami-forward, done in 15 minutes",
+    image:
+      "https://images.unsplash.com/photo-1506280754576-f6fa8a873550?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "cold-noodle-salad",
+    name: "Cold Noodle Salad",
+    category: "Fresh",
+    description:
+      "Glass noodles with julienned peppers, spinach, and a tangy sesame dressing. Light, Asian-inspired, satisfying cold.",
+    tags: ["15 min", "Vegetarian", "Light"],
+    ingredients: ["Noodles", "Spinach", "Bell peppers", "Garlic"],
+    whyItFits: "The cold noodle salad that refreshes without filling you up",
+    image:
+      "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+
+  // Crowd pleaser
+  {
+    id: "sliders",
+    name: "Mini Beef Sliders",
+    category: "Crowd pleaser",
+    description:
+      "Two-bite burgers with melted cheese and caramelized onions on soft rolls. The party food that becomes the whole meal.",
+    tags: ["25 min", "Kid-friendly", "Crowd pleaser"],
+    ingredients: ["Ground beef", "Bread", "Cheese", "Onions"],
+    whyItFits: "Mini burgers disappear faster than full ones",
+    image:
+      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "pizza-rolls",
+    name: "Homemade Pizza Rolls",
+    category: "Crowd pleaser",
+    description:
+      "Rolled dough filled with cheese, sausage, and tomato sauce, baked until golden. Everyone wants five more.",
+    tags: ["25 min", "Kid-friendly", "Easy"],
+    ingredients: ["Bread", "Cheese", "Tomatoes", "Sausage"],
+    whyItFits: "Everyone wants five more after the first one",
+    image:
+      "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "corn-dogs",
+    name: "Corn Dogs",
+    category: "Crowd pleaser",
+    description:
+      "Hot dogs wrapped in sweet cornbread batter, baked or fried until golden. Fairground food, homemade.",
+    tags: ["25 min", "Kid-friendly", "Easy"],
+    ingredients: ["Sausage", "Eggs", "Bread"],
+    whyItFits: "The fair food that's just as good at home",
+    image:
+      "https://images.unsplash.com/photo-1612392062631-94440b33ef54?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "bbq-ribs",
+    name: "BBQ Ribs",
+    category: "Crowd pleaser",
+    description:
+      "Slow-roasted ribs glazed with sticky BBQ sauce. Messy, communal, and utterly satisfying.",
+    tags: ["45 min", "Crowd pleaser", "Grill night"],
+    ingredients: ["Steak", "Garlic", "Onions"],
+    whyItFits: "Requires napkins. That's always a good sign.",
+    image:
+      "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "chicken-parmesan",
+    name: "Chicken Parmesan",
+    category: "Crowd pleaser",
+    description:
+      "Crispy breaded chicken, tomato sauce, and melted mozzarella. The Italian-American dish that never gets old.",
+    tags: ["35 min", "Crowd pleaser", "Medium effort"],
+    ingredients: ["Chicken", "Cheese", "Tomatoes", "Eggs"],
+    whyItFits: "Crowd pleaser that's been earning that title for decades",
+    image:
+      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "meatball-subs",
+    name: "Meatball Subs",
+    category: "Crowd pleaser",
+    description:
+      "Juicy beef meatballs in marinara smothered with mozzarella in a toasted hoagie. The game-day essential.",
+    tags: ["30 min", "Crowd pleaser", "Easy"],
+    ingredients: ["Ground beef", "Bread", "Cheese", "Tomatoes"],
+    whyItFits: "The sub that ends all arguments about dinner",
+    image:
+      "https://images.unsplash.com/photo-1607116667981-ff148b3a63de?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "buffalo-chicken-dip",
+    name: "Buffalo Chicken Dip",
+    category: "Crowd pleaser",
+    description:
+      "Hot, creamy, cheesy buffalo chicken in a skillet. Serve with chips or bread and watch it disappear.",
+    tags: ["20 min", "Crowd pleaser", "Easy"],
+    ingredients: ["Chicken", "Cheese", "Butter", "Garlic"],
+    whyItFits: "You'll run out before you want to",
+    image:
+      "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "southern-fried-chicken",
+    name: "Southern Fried Chicken",
+    category: "Crowd pleaser",
+    description:
+      "Crispy buttermilk-brined fried chicken. The benchmark dish that all other fried chicken aspires to be.",
+    tags: ["40 min", "Crowd pleaser", "Medium effort"],
+    ingredients: ["Chicken", "Eggs", "Bread"],
+    whyItFits: "When only the real thing will do",
+    image:
+      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "shrimp-boil",
+    name: "Shrimp Boil",
+    category: "Crowd pleaser",
+    description:
+      "Old Bay shrimp, andouille, corn, and potatoes boiled together and dumped on the table. Communal eating at its best.",
+    tags: ["35 min", "Crowd pleaser", "Grill night"],
+    ingredients: ["Shrimp", "Potatoes", "Sausage", "Onions"],
+    whyItFits: "Dump it on the table and everyone digs in",
+    image:
+      "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "fried-chicken-sandwich",
+    name: "Fried Chicken Sandwich",
+    category: "Crowd pleaser",
+    description:
+      "Crispy fried chicken thigh, pickles, and slaw in a brioche bun. The sandwich the internet keeps arguing about.",
+    tags: ["25 min", "Crowd pleaser", "Indulgent"],
+    ingredients: ["Chicken", "Bread", "Eggs"],
+    whyItFits: "The sandwich that's always worth the hype",
+    image:
+      "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&h=750&q=80",
+  },
+  {
+    id: "pigs-in-blankets",
+    name: "Pigs in Blankets",
+    category: "Crowd pleaser",
+    description:
+      "Cocktail sausages wrapped in flaky crescent dough, baked until golden. The snack that disappears within minutes.",
+    tags: ["20 min", "Kid-friendly", "Easy"],
+    ingredients: ["Sausage", "Bread", "Eggs"],
+    whyItFits: "The one nobody ever stops at just one",
+    image:
+      "https://images.unsplash.com/photo-1612392062631-94440b33ef54?auto=format&fit=crop&w=600&h=750&q=80",
+  },
 ];
