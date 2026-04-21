@@ -126,7 +126,9 @@ export default function OnboardingPage() {
     setStep((s) => s - 1);
   }
 
-  // Auto-advance single-select steps after selection
+  // Auto-advance single-select steps after a fresh selection.
+  // Only value in deps — adding `step` here caused back navigation to
+  // immediately re-advance, making the Back button appear broken.
   useEffect(() => {
     if (step === 3 && spiceLevel !== null) {
       const t = setTimeout(advance, 280);
@@ -151,7 +153,10 @@ export default function OnboardingPage() {
   function canContinue(): boolean {
     if (step === 1) return cuisines.length > 0;
     if (step === 2) return dislikedFoods.length > 0;
-    return false; // steps 3-5 auto-advance
+    if (step === 3) return spiceLevel !== null;
+    if (step === 4) return cookOrOrder !== null;
+    if (step === 5) return kidFriendly !== null;
+    return false;
   }
 
   // ── Done screen ────────────────────────────────────────────────────────────
@@ -418,8 +423,11 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      {/* Sticky Continue button — always visible at bottom for multi-select steps */}
-      {(step === 1 || step === 2) && (
+      {/* Sticky Continue button:
+           - Steps 1-2 (multi-select): always shown
+           - Steps 3-5 (auto-advance): shown only when the user navigated back
+             and already has a valid answer, so they can proceed without re-selecting */}
+      {(step <= 2 || direction === -1) && (
         <div className="fixed bottom-0 left-0 right-0 z-30">
           <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#080808]" />
@@ -434,7 +442,7 @@ export default function OnboardingPage() {
             >
               Continue
             </button>
-            {!canContinue() && (
+            {step <= 2 && !canContinue() && (
               <p className="mt-3 text-center text-xs text-white/30">
                 Select at least one above
               </p>

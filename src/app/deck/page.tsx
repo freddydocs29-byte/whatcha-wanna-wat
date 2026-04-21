@@ -602,7 +602,7 @@ function DeckContent() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={resetFilter}
               className="text-xs text-white/35 transition hover:text-white/60"
@@ -613,6 +613,14 @@ function DeckContent() {
             <p className="text-sm text-white/35">
               {currentIndex + 1}/{rankedMeals.length}
             </p>
+            <button
+              onClick={() => router.push("/")}
+              className="text-sm text-white/35 transition hover:text-white/60"
+            >
+              {isChangeMeal && existingMeal
+                ? `Keep ${existingMeal.meal.name}`
+                : "Back"}
+            </button>
           </div>
         </header>
 

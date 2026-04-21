@@ -515,8 +515,10 @@ export function scoreMeal(
   }
 
   // ── Pantry mode boost + reason ────────────────────────────────────────────
+  // Only activate when the user has actually selected ingredients — toggling
+  // pantry on with an empty selection should leave the deck unchanged.
 
-  if (pantryMode) {
+  if (pantryMode && selectedIngredients.length > 0) {
     const hasPantryTag = meal.tags.some((t) => PANTRY_FRIENDLY_TAGS.includes(t));
     const isQuick = meal.tags.some((t) => QUICK_PANTRY_TAGS.includes(t));
     if (hasPantryTag) score += 2;
