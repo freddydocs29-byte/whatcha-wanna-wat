@@ -165,7 +165,7 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
  * Meals added in later stages are still scored with the full preference + history
  * signals so the deck stays relevant — it just stops hard-blocking everything.
  */
-function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredients: string[] = [], context: WhoFor = "solo"): RankedMeal[] {
+function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredients: string[] = [], context: WhoFor = "solo", sessionShown: Set<string> = new Set()): RankedMeal[] {
   const prefs = getPreferences();
   const savedMeals = getSavedMeals();
   const history = getHistory();
@@ -174,8 +174,10 @@ function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredi
   const flavorProfile = getFlavorProfile() ?? undefined;
   const favorites = getFavorites();
 
+  // filterId doubles as the vibe ID — same string, same source of truth.
+  const vibe = filterId;
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe);
   }
 
   // Merge new ranked meals into an existing deck, skipping duplicates.
@@ -229,26 +231,40 @@ function DeckContent() {
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
   );
   const afterExitRef = useRef<(() => void) | null>(null);
+  // Tracks the last filter id for which we recorded a seen-session,
+  // so recordSeenSession fires only on genuine filter changes, not on
+  // every whoFor / pantry re-rank.
+  const seenSessionFilterRef = useRef<string | null>(null);
+  // In-memory set of meal IDs that were the active card during this visit.
+  // Populated before each re-rank so nearby re-ranks (context/pantry switches)
+  // apply a soft penalty to meals the user just saw.
+  const sessionShownRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
 
+  // Single reactive effect — re-ranks the deck whenever any of the four
+  // inputs that meaningfully affect scoring change.
   useEffect(() => {
     if (activeFilterId === null) return;
-    setRankedMeals(buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor));
+    // Snapshot all cards the user has seen so far (indices 0..currentIndex)
+    // into the session set before rebuilding, so they get a soft penalty in
+    // the new deck order and don't repeat immediately.
+    for (let i = 0; i <= currentIndex && i < rankedMeals.length; i++) {
+      const id = rankedMeals[i]?.meal?.id;
+      if (id) sessionShownRef.current.add(id);
+    }
+    const ranked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
+    if (activeFilterId !== seenSessionFilterRef.current) {
+      recordSeenSession(ranked.map((r) => r.meal.id));
+      seenSessionFilterRef.current = activeFilterId;
+    }
+    setRankedMeals(ranked);
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
-  }, [selectedIngredients]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (activeFilterId === null) return;
-    setRankedMeals(buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor));
-    setCurrentIndex(0);
-    x.set(0);
-    setExitX(null);
-  }, [whoFor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFilterId, pantryMode, selectedIngredients, whoFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function dismissHint() {
     if (!showSwipeHint) return;
@@ -271,18 +287,16 @@ function DeckContent() {
   const isExiting = exitX !== null;
 
   function selectFilter(id: string) {
-    const ranked = buildDeck(id, pantryMode, selectedIngredients, whoFor);
-    recordSeenSession(ranked.map((r) => r.meal.id));
-    setRankedMeals(ranked);
+    // State updates trigger the unified useEffect which rebuilds the deck
+    // and calls recordSeenSession when the filter id is new.
     setActiveFilterId(id);
-    setCurrentIndex(0);
     setTopPicksMode(false);
     x.set(0);
     setExitX(null);
   }
 
   function handleTopPicks() {
-    const allRanked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor);
+    const allRanked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
     const topN = Math.max(3, Math.ceil(allRanked.length * 0.35));
     setRankedMeals(allRanked.slice(0, topN));
     setCurrentIndex(0);
@@ -301,18 +315,15 @@ function DeckContent() {
 
   function togglePantry() {
     const next = !pantryMode;
-    const nextIngredients = next ? selectedIngredients : [];
+    // Clear selections when turning pantry off so they don't linger.
+    // Both state updates are batched by React 18, producing one re-render
+    // and one unified-effect execution with the correct final state.
     if (!next) setSelectedIngredients([]);
     setPantryMode(next);
-    if (activeFilterId !== null) {
-      setRankedMeals(buildDeck(activeFilterId, next, nextIngredients, whoFor));
-      setCurrentIndex(0);
-      x.set(0);
-      setExitX(null);
-    }
   }
 
   function resetFilter() {
+    seenSessionFilterRef.current = null; // so the next filter pick re-records
     setActiveFilterId(null);
     setRankedMeals([]);
     setCurrentIndex(0);

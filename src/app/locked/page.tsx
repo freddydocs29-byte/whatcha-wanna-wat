@@ -6,6 +6,7 @@ import LockedReveal from "./LockedReveal";
 import BackButton from "./BackButton";
 import FirstTimeVisitorCTA from "./FirstTimeVisitorCTA";
 import CookOrderButtons from "./CookOrderButtons";
+import PickAnotherButton from "./PickAnotherButton";
 
 type Props = {
   searchParams: Promise<{ mealId?: string; pantry?: string; decided?: string }>;
@@ -60,12 +61,7 @@ export default async function LockedPage({ searchParams }: Props) {
             <ShareButton mealName={meal.name} />
 
             {pickedForYou && (
-              <Link
-                href="/deck"
-                className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white/70"
-              >
-                Pick something else
-              </Link>
+              <PickAnotherButton currentMealId={meal.id} />
             )}
 
             <Link

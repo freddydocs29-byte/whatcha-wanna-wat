@@ -230,6 +230,7 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  *   +1      adventurous boost    — no kids at table and meal is bold/fresh/elevated
  *   -4      recent history       — meal was chosen in the last 8 sessions
  *   -2.5    recently seen        — meal appeared in a deck in the last 3 sessions (but wasn't chosen)
+ *   -1.5    session shown        — meal was the active card during this visit (in-memory only)
  *
  * Taste profile signals (scale 0→1 over 20 interactions; zero effect early on):
  *   up to +2  liked tag boost    — meal tags overlap with tags from saved/chosen meals
@@ -242,6 +243,18 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  *   +1.5/−0.5 energy level       — low energy boosts easy meals; penalizes high-effort
  *   +1/−0.5   budget sensitivity — frugal/generous vs pantry vs Elegant/Elevated meals
  *   +1/−0.5   cooking confidence — beginner/confident vs Easy vs Elevated meals
+ *
+ * Context signals (who the meal is for; stacks with other signals):
+ *   Family:  +2.5 kid-friendly/crowd-pleaser, +1.5 quick/easy, +1 comfort, −1.5 bold/elevated
+ *   Partner: +1 comfort, −0.75 bold/elevated
+ *   Solo:    baseline (no adjustments)
+ *
+ * Vibe scoring (active filter / mood; largest effect on deck order):
+ *   comfort-food:    +3 comfort-food cat / +2 crowd-pleaser / +1.5 classic; −2 light/healthy, −1 elevated
+ *   something-new:  +3.5 bold-flavors cat / +2.5 elevated / +2 med-fresh; −2 comfort/casual, −1.5 familiar tags
+ *   quick-easy:     +3.5 ≤20 min or no-cook / +2 25 min / +1.5 Easy; −2 slow (≥40 min / Medium effort), −1 35 min
+ *   healthy:        +3.5 Healthy cat / +2.5 Nutritious / +2.5 Fresh; −2.5 heavy/indulgent
+ *   kid-friendly:   +4.5 Kid-friendly tag / +3 Crowd pleaser / +2.5 comfort; −3 bold-flavors, −2 elevated/flavorful
  *
  * Reason priority (first match wins):
  *   1. Cuisine match
@@ -263,7 +276,9 @@ export function scoreMeal(
   flavorProfile?: FlavorProfile,
   favorites: Meal[] = [],
   selectedIngredients: string[] = [],
-  context: WhoFor = "solo"
+  context: WhoFor = "solo",
+  sessionShown: Set<string> = new Set(),
+  vibe: string | null = null
 ): { score: number; reason: string } {
   let score = 0;
   let topReason: string | null = null;
@@ -406,16 +421,18 @@ export function scoreMeal(
   // Each dimension is an independent modifier; setReason() only fires if no
   // higher-priority reason has been set yet (time/energy supply fallback context).
 
+  // Computed once here; reused by both FlavorProfile and Vibe sections below.
+  const mealMinutes = (() => {
+    for (const tag of meal.tags) {
+      const m = tag.match(/^(\d+)\s*min$/i);
+      if (m) return parseInt(m[1]);
+    }
+    return null;
+  })();
+
   if (flavorProfile) {
     const cat = meal.category.toLowerCase();
     const hasTags = (...ts: string[]) => ts.some((t) => meal.tags.includes(t));
-    const mealMinutes = (() => {
-      for (const tag of meal.tags) {
-        const m = tag.match(/^(\d+)\s*min$/i);
-        if (m) return parseInt(m[1]);
-      }
-      return null;
-    })();
 
     // Adventurousness
     const isAdventurous = ["bold flavors", "fresh", "elevated", "mediterranean"].some((c) => cat.includes(c));
@@ -490,6 +507,11 @@ export function scoreMeal(
     score -= 4;
   } else if (recentlySeen?.has(meal.id)) {
     score -= 2.5;
+  } else if (sessionShown.has(meal.id)) {
+    // Soft penalty for meals already shown as the active card this session.
+    // Lighter than cross-session suppression (-2.5) so strong matches can
+    // still surface, but meaningful enough to push repeated cards down a band.
+    score -= 1.5;
   }
 
   // ── Pantry mode boost + reason ────────────────────────────────────────────
@@ -525,31 +547,149 @@ export function scoreMeal(
 
   // ── Context adjustments ───────────────────────────────────────────────────
   //
-  // Small nudges based on who the meal is being decided for.
-  // Intentionally lightweight — these never dominate the existing signals.
+  // Meaningful nudges based on who the meal is being decided for.
+  // Family boosts are intentionally strong enough to visibly reorder the deck
+  // without completely eliminating variety.
+  //
+  // isBold now covers "elevated" and "fresh" categories in addition to
+  // "bold"/"flavorful" so adventurous meals (Beef Rendang, Dan Dan Noodles,
+  // etc.) are properly caught rather than scoring as neutral.
 
   if (context !== "solo") {
-    const boldTerms = ["bold", "flavorful"];
-    const isBold =
-      boldTerms.some((t) => meal.category.toLowerCase().includes(t)) ||
-      meal.tags.some((tag) => boldTerms.some((t) => tag.toLowerCase().includes(t)));
-    const isComfort =
-      meal.category.toLowerCase().includes("comfort") ||
-      meal.tags.some((t) => t.toLowerCase().includes("indulgent"));
     const isKidFriendly = meal.tags.some((t) =>
       ["kid", "crowd"].some((k) => t.toLowerCase().includes(k))
     );
     const isQuick = meal.tags.some((t) =>
       ["15 min", "20 min", "25 min", "easy"].some((k) => t.toLowerCase().includes(k))
     );
+    const isComfort =
+      meal.category.toLowerCase().includes("comfort") ||
+      meal.tags.some((t) => t.toLowerCase().includes("indulgent"));
+    // Expanded bold detection — catches elevated/fresh categories that were
+    // previously missed, plus spicy tags.
+    const isBold =
+      ["bold", "flavorful", "elevated", "fresh"].some((t) =>
+        meal.category.toLowerCase().includes(t)
+      ) ||
+      meal.tags.some((tag) =>
+        ["bold", "flavorful", "spicy"].some((t) => tag.toLowerCase().includes(t))
+      );
 
     if (context === "partner") {
-      if (isBold) score -= 0.5;
-      if (isComfort) score += 0.5;
+      // Slightly favor comfort / crowd-appeal; pull back on bold/niche meals.
+      if (isComfort) score += 1;
+      if (isBold) score -= 0.75;
     } else if (context === "family") {
-      if (isKidFriendly) score += 1;
-      if (isQuick) score += 0.5;
-      if (isBold) score -= 0.5;
+      // Strongly surface kid-friendly crowd-pleasers and quick/easy options.
+      // Clearly penalize bold/adventurous meals.
+      if (isKidFriendly) {
+        score += 2.5;
+        setReason("A crowd-pleaser everyone can enjoy");
+      }
+      if (isQuick) score += 1.5;
+      if (isComfort) score += 1;
+      if (isBold) score -= 1.5;
+    }
+  }
+
+  // ── Vibe scoring ──────────────────────────────────────────────────────────
+  //
+  // Boosts meals that strongly embody the chosen vibe so the top of the deck
+  // clearly reflects the mood. Applied on top of all other signals — strong
+  // vibe matches float up, conflicting ones sink toward the tail.
+  //
+  // Boosts are sized to span 2–4 band widths (bands = 1 point) so they
+  // reliably reorder the deck rather than nudging within the same band.
+  // Penalties are moderate — enough to push conflicts toward the tail without
+  // eliminating variety entirely.
+
+  if (vibe && vibe !== "no-preference") {
+    const vibecat = meal.category.toLowerCase();
+    // Case-insensitive substring match against actual tag strings.
+    const hasTag = (...ts: string[]) =>
+      ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
+
+    if (vibe === "comfort-food") {
+      // Strongly surface hearty/familiar meals; push fresh/light/elevated down.
+      const isStrongComfort = vibecat.includes("comfort food");
+      const isBroadComfort   = vibecat.includes("crowd pleaser") || hasTag("Indulgent", "Crowd pleaser");
+      const isMildComfort    = vibecat.includes("classic italian") || hasTag("Kid-friendly");
+      const isLight          = vibecat.includes("healthy") || vibecat.includes("fresh") || hasTag("Nutritious", "Light");
+      const isElevated       = vibecat.includes("elevated");
+
+      if (isStrongComfort)    { score += 3;   setReason("Exactly what comfort food should be"); }
+      else if (isBroadComfort){ score += 2;   setReason("Crowd-pleasing and familiar"); }
+      else if (isMildComfort) { score += 1.5; }
+      if (isLight)    score -= 2;
+      if (isElevated) score -= 1;
+
+    } else if (vibe === "something-new") {
+      // Strongly surface bold/global/adventurous meals; push basic/familiar down.
+      const isBoldCat      = vibecat.includes("bold flavors");
+      const isElevatedCat  = vibecat.includes("elevated");
+      const isGlobalFresh  = vibecat.includes("mediterranean") || vibecat.includes("fresh");
+      const hasFlavorful   = hasTag("Flavorful");
+      const isBasic        = vibecat.includes("comfort food") || vibecat.includes("quick & casual");
+      const isFamiliar     = hasTag("Kid-friendly", "Crowd pleaser");
+
+      if (isBoldCat)          { score += 3.5; setReason("Bold and unexpected — exactly something new"); }
+      else if (isElevatedCat) { score += 2.5; setReason("A step up from the usual"); }
+      else if (isGlobalFresh) { score += 2;   setReason("A global flavor worth exploring"); }
+      else if (hasFlavorful)  { score += 1.5; }
+      if (isBasic)    score -= 2;
+      if (isFamiliar) score -= 1.5;
+
+    } else if (vibe === "quick-easy") {
+      // Aggressively surface the fastest options; penalize anything slow.
+      const isVeryQuick  = hasTag("No-cook option") || (mealMinutes !== null && mealMinutes <= 20);
+      const is25min      = mealMinutes === 25;
+      const hasEasy      = hasTag("Easy");
+      const isSlow       = hasTag("Medium effort") || (mealMinutes !== null && mealMinutes >= 40);
+      const isModerate   = mealMinutes === 35;
+
+      if (isVeryQuick)  { score += 3.5; setReason("On the table in under 20 minutes"); }
+      else if (is25min) { score += 2; }
+      else if (hasEasy) { score += 1.5; setReason("Low-effort from start to finish"); }
+      if (isSlow)     score -= 2;
+      if (isModerate) score -= 1;
+
+    } else if (vibe === "healthy") {
+      // Clearly surface nutritious/light/fresh meals; push heavy/indulgent down.
+      const isHealthyCat = vibecat.includes("healthy");
+      const isFreshCat   = vibecat.includes("fresh");
+      const isMedCat     = vibecat.includes("mediterranean");
+      const hasNutritious = hasTag("Nutritious");
+      const hasLight      = hasTag("Light");
+      const hasProtein    = hasTag("Protein-packed");
+      const hasVeg        = hasTag("Vegetarian");
+      const isHeavy       = vibecat.includes("comfort food") || vibecat.includes("crowd pleaser") || hasTag("Indulgent");
+
+      if (isHealthyCat)   { score += 3.5; setReason("Light and nourishing"); }
+      else if (isFreshCat){ score += 2.5; setReason("Fresh and clean"); }
+      else if (isMedCat)  { score += 2; }
+      if (hasNutritious)  { score += 2.5; setReason("Genuinely nutritious"); }
+      else if (hasLight)  { score += 2; }
+      if (hasProtein) score += 1.5;
+      if (hasVeg)     score += 1.5;
+      if (isHeavy)    score -= 2.5;
+
+    } else if (vibe === "kid-friendly") {
+      // Very strongly bias toward kid-tagged and comfort meals; penalize bold/elevated.
+      const hasKid       = hasTag("Kid-friendly");
+      const hasCrowd     = hasTag("Crowd pleaser");
+      const isComfortCat = vibecat.includes("comfort food");
+      const isQuickCas   = vibecat.includes("quick & casual");
+      const isBoldCat    = vibecat.includes("bold flavors");
+      const isElevated   = vibecat.includes("elevated");
+      const hasFlavorful = hasTag("Flavorful");
+
+      if (hasKid)          { score += 4.5; setReason("A sure hit with the whole table"); }
+      else if (hasCrowd)   { score += 3;   setReason("Everyone will eat this without complaint"); }
+      else if (isComfortCat){ score += 2.5; }
+      else if (isQuickCas) { score += 1.5; }
+      if (isBoldCat)    score -= 3;
+      if (isElevated)   score -= 2;
+      if (hasFlavorful) score -= 2;
     }
   }
 
@@ -587,14 +727,16 @@ export function rankMeals(
   flavorProfile?: FlavorProfile,
   favorites: Meal[] = [],
   selectedIngredients: string[] = [],
-  context: WhoFor = "solo"
+  context: WhoFor = "solo",
+  sessionShown: Set<string> = new Set(),
+  vibe: string | null = null
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
   // 1. Score every meal
   const scored = meals.map((meal) => {
     const { score, reason } = scoreMeal(
-      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe
     );
     return { meal, score, reason };
   });
