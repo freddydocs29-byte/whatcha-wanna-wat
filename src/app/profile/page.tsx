@@ -243,7 +243,7 @@ function buildSummary(profile: TasteProfile): string {
     .map(([cat]) => cat.toLowerCase());
 
   const netDislikedTags = Object.entries(profile.dislikedTags)
-    .filter(([tag, count]) => count > (profile.likedTags[tag] ?? 0))
+    .filter(([tag, count]) => !/^\d+ min$/i.test(tag) && count > (profile.likedTags[tag] ?? 0))
     .sort(([, a], [, b]) => b - a)
     .slice(0, 1)
     .map(([tag]) => tag.toLowerCase());
@@ -267,13 +267,16 @@ function buildSummary(profile: TasteProfile): string {
 function TasteProfileSection({ profile }: { profile: TasteProfile }) {
   const hasData = profile.interactionCount >= 3;
 
+  const isTimeTag = (tag: string) => /^\d+ min$/i.test(tag);
+
   const topLikedTags = Object.entries(profile.likedTags)
+    .filter(([tag, count]) => !isTimeTag(tag) && count > (profile.dislikedTags[tag] ?? 0))
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
     .map(([tag]) => tag);
 
   const netDislikedTags = Object.entries(profile.dislikedTags)
-    .filter(([tag, count]) => count > (profile.likedTags[tag] ?? 0))
+    .filter(([tag, count]) => !isTimeTag(tag) && count > (profile.likedTags[tag] ?? 0))
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3)
     .map(([tag]) => tag);

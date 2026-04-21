@@ -178,6 +178,7 @@ export default function Home() {
     const pick = (lastId ? pool.find((r) => r.meal.id !== lastId) : null) ?? pool[0] ?? ranked[0];
 
     setLastDecidePick(pick.meal.id);
+    addToHistory(pick.meal);
     router.push(`/locked?mealId=${pick.meal.id}&decided=1`);
   }
 

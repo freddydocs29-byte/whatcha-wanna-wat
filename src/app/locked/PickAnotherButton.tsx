@@ -11,6 +11,7 @@ import {
   getHistory,
   getLastDecidePick,
   setLastDecidePick,
+  addToHistory,
 } from "../lib/storage";
 import { meals } from "../data/meals";
 import { rankMeals } from "../lib/scoring";
@@ -59,6 +60,7 @@ export default function PickAnotherButton({ currentMealId }: Props) {
     const pick = pool.find((r) => !avoid.has(r.meal.id)) ?? pool[0] ?? ranked[0];
 
     setLastDecidePick(pick.meal.id);
+    addToHistory(pick.meal);
 
     // replace — not push — so Back from the new locked page returns to home,
     // not to the rejected pick (which would trap the user in a loop).

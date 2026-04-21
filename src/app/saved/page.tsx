@@ -3,8 +3,9 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Meal } from "../data/meals";
-import { getSavedMealsEnriched, removeSavedMeal, toggleSavedFavorite } from "../lib/storage";
+import { getSavedMealsEnriched, removeSavedMeal, toggleSavedFavorite, addToHistory, updateTasteProfile } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
 
 function StarIcon({ filled }: { filled: boolean }) {
@@ -20,6 +21,7 @@ function StarIcon({ filled }: { filled: boolean }) {
 }
 
 export default function SavedPage() {
+  const router = useRouter();
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
   const [savedForLater, setSavedForLater] = useState<Meal[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -43,6 +45,12 @@ export default function SavedPage() {
   function handleRemove(mealId: string) {
     removeSavedMeal(mealId);
     refresh();
+  }
+
+  function handleChoose(meal: Meal) {
+    updateTasteProfile(meal, "choose");
+    addToHistory(meal);
+    router.push(`/locked?mealId=${meal.id}`);
   }
 
   const isEmpty = loaded && favoriteMeals.length === 0 && savedForLater.length === 0;
@@ -139,7 +147,7 @@ export default function SavedPage() {
                         className="rounded-[28px] border border-white/15 bg-white/[0.07] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <Link href={`/locked?mealId=${meal.id}`} className="flex-1 min-w-0">
+                          <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">
                             <div className="inline-flex rounded-full border border-white/10 bg-white/10 px-2.5 py-0.5 text-xs text-white/55">
                               {meal.category}
                             </div>
@@ -159,7 +167,7 @@ export default function SavedPage() {
                                 </span>
                               ))}
                             </div>
-                          </Link>
+                          </button>
 
                           <button
                             onClick={() => handleToggleFavorite(meal)}
@@ -194,7 +202,7 @@ export default function SavedPage() {
                         className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-md"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <Link href={`/locked?mealId=${meal.id}`} className="flex-1 min-w-0">
+                          <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">
                             <div className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.07] px-2.5 py-0.5 text-xs text-white/40">
                               {meal.category}
                             </div>
@@ -214,7 +222,7 @@ export default function SavedPage() {
                                 </span>
                               ))}
                             </div>
-                          </Link>
+                          </button>
 
                           <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
                             <button
