@@ -20,6 +20,7 @@ export default function SessionPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [startingDeck, setStartingDeck] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -114,20 +115,20 @@ export default function SessionPage() {
     };
   }, [role, session?.status, loadSession]);
 
-  // Host creates the shared deck once — persisted so both users swipe the same order.
-  // Runs as soon as the host's session row is loaded and deck_meal_ids is empty.
-  useEffect(() => {
-    if (role !== "host") return;
-    if (!session) return;
-    if (session.deck_meal_ids && session.deck_meal_ids.length > 0) return;
-
-    const mealIds = buildSharedDeck();
-    supabase
-      .from("sessions")
-      .update({ deck_meal_ids: mealIds })
-      .eq("id", sessionId)
-      .then(() => loadSession());
-  }, [role, session?.deck_meal_ids]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Host generates and persists the shared deck when tapping "Start swiping".
+  // The await ensures deck_meal_ids is written before the deck page loads.
+  async function handleStartSwiping() {
+    if (role === "host") {
+      setStartingDeck(true);
+      const mealIds = buildSharedDeck();
+      await supabase
+        .from("sessions")
+        .update({ deck_meal_ids: mealIds })
+        .eq("id", sessionId);
+      setStartingDeck(false);
+    }
+    router.push(`/deck?sessionId=${sessionId}`);
+  }
 
   function handleCopy() {
     navigator.clipboard.writeText(sessionUrl).then(() => {
@@ -248,10 +249,11 @@ export default function SessionPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => router.push(`/deck?sessionId=${sessionId}`)}
-                  className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+                  onClick={handleStartSwiping}
+                  disabled={startingDeck}
+                  className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
                 >
-                  Start swiping
+                  {startingDeck ? "Preparing deck…" : "Start swiping"}
                 </button>
               </>
             ) : (

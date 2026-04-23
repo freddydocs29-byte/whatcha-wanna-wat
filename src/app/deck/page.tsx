@@ -235,6 +235,7 @@ function DeckContent() {
   );
   // ── Shared-session state ────────────────────────────────────────────────────
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
+  const [sharedError, setSharedError] = useState(false);
   const [userId, setUserId] = useState<string>("");
   const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
   // Refs so polling/async callbacks always see current values without stale closures
@@ -255,10 +256,12 @@ function DeckContent() {
 
   // Load the host-defined shared deck from the session row.
   // Both users fetch the same stored order — no local re-ranking.
-  // Retries every 2 s if the host hasn't saved the deck yet.
+  // Retries up to 10 times (every 2 s) before showing an error state.
   useEffect(() => {
     if (!sessionId) return;
     let cancelled = false;
+    let retries = 0;
+    const MAX_RETRIES = 10;
 
     const load = async () => {
       const { data } = await supabase
@@ -271,7 +274,13 @@ function DeckContent() {
 
       const ids: string[] = data?.deck_meal_ids ?? [];
       if (ids.length === 0) {
-        // Deck not ready yet (host hasn't saved it) — retry shortly
+        retries++;
+        if (retries >= MAX_RETRIES) {
+          // Host hasn't saved the deck after ~20 s — surface a clear error.
+          setSharedError(true);
+          setSharedLoading(false);
+          return;
+        }
         setTimeout(load, 2000);
         return;
       }
@@ -613,6 +622,25 @@ function DeckContent() {
       setExitX(null);
       action();
     }
+  }
+
+  // ── Shared deck error screen ──────────────────────────────────────────────
+  if (sessionId && sharedError) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#080808] px-6 text-center text-white">
+        <p className="text-lg font-semibold tracking-[-0.03em]">Deck not ready</p>
+        <p className="max-w-[28ch] text-sm leading-6 text-white/50">
+          The shared deck hasn&apos;t been created yet. Ask the host to go back
+          and tap &ldquo;Start swiping&rdquo; again.
+        </p>
+        <button
+          onClick={() => router.push("/")}
+          className="rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-medium text-white"
+        >
+          Back to home
+        </button>
+      </main>
+    );
   }
 
   // ── Shared deck loading screen ────────────────────────────────────────────
