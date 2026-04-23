@@ -1,7 +1,21 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  const missing = [
+    !supabaseUrl && "NEXT_PUBLIC_SUPABASE_URL",
+    !supabaseAnonKey && "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ]
+    .filter(Boolean)
+    .join(", ");
+  throw new Error(
+    `[supabase] Missing env var(s): ${missing}. ` +
+      `In Vercel → Settings → Environment Variables, make sure both vars are enabled ` +
+      `for Production, Preview, AND Development, then trigger a new deployment.`,
+  );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

@@ -126,6 +126,7 @@ export default function Home() {
     "confirm",
   );
   const [creatingSession, setCreatingSession] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hasCompletedOnboarding()) {
@@ -187,6 +188,12 @@ export default function Home() {
 
   async function handleDecideWithSomeone() {
     setCreatingSession(true);
+    setSessionError(null);
+
+    // Diagnostic: log env var presence (not values) so preview failures are immediately visible
+    console.log("[session] env check — NEXT_PUBLIC_SUPABASE_URL present:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("[session] env check — NEXT_PUBLIC_SUPABASE_ANON_KEY present:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
     try {
       const hostId = getUserId();
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -201,14 +208,26 @@ export default function Home() {
         .single();
 
       if (error || !data) {
-        console.error("Failed to create session:", error);
+        console.error("[session] Failed to create session:", {
+          message: error?.message,
+          code: error?.code,
+          details: error?.details,
+          hint: error?.hint,
+        });
+        const detail = [error?.code, error?.message].filter(Boolean).join(" — ");
+        setSessionError(
+          detail
+            ? `Couldn't start a session: ${detail}`
+            : "Couldn't start a session. Check your connection and try again.",
+        );
         setCreatingSession(false);
         return;
       }
 
       router.push(`/session/${data.id}`);
     } catch (e) {
-      console.error(e);
+      console.error("[session] Unexpected error:", e);
+      setSessionError("Something went wrong. Please try again.");
       setCreatingSession(false);
     }
   }
@@ -379,6 +398,11 @@ export default function Home() {
                 >
                   {creatingSession ? "Starting…" : "Decide with someone"}
                 </button>
+                {sessionError && (
+                  <p className="mt-3 text-center text-sm text-red-400">
+                    {sessionError}
+                  </p>
+                )}
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <Link
                     href="/deck"
