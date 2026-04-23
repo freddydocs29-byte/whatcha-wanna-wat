@@ -6,6 +6,8 @@ import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-mo
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
 import { rankMeals, type RankedMeal, type WhoFor } from "../lib/scoring";
+import { supabase } from "../lib/supabase";
+import { getUserId } from "../lib/identity";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -215,6 +217,7 @@ function DeckContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isChangeMeal = searchParams.get("change") === "1";
+  const sessionId = searchParams.get("sessionId");
   const [existingMeal, setExistingMeal] = useState<HistoryEntry | null>(null);
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const [rankedMeals, setRankedMeals] = useState<RankedMeal[]>([]);
@@ -230,6 +233,112 @@ function DeckContent() {
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
   );
+  // ── Shared-session state ────────────────────────────────────────────────────
+  const [sharedLoading, setSharedLoading] = useState(!!sessionId);
+  const [userId, setUserId] = useState<string>("");
+  const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
+  // Refs so polling/async callbacks always see current values without stale closures
+  const matchedMealRef = useRef<Meal | null>(null);
+  const rejectedMatchIdsRef = useRef<Set<string>>(new Set());
+  // True when the current user's own 'yes' swipe triggered the match,
+  // meaning we still need to advance the card if they click "Pick something else"
+  const matchPendingAdvanceRef = useRef(false);
+
+  function setMatchedMeal(meal: Meal | null) {
+    matchedMealRef.current = meal;
+    setMatchedMealState(meal);
+  }
+
+  useEffect(() => {
+    setUserId(getUserId());
+  }, []);
+
+  // Load the host-defined shared deck from the session row.
+  // Both users fetch the same stored order — no local re-ranking.
+  // Retries every 2 s if the host hasn't saved the deck yet.
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("sessions")
+        .select("deck_meal_ids")
+        .eq("id", sessionId)
+        .single();
+
+      if (cancelled) return;
+
+      const ids: string[] = data?.deck_meal_ids ?? [];
+      if (ids.length === 0) {
+        // Deck not ready yet (host hasn't saved it) — retry shortly
+        setTimeout(load, 2000);
+        return;
+      }
+
+      const ordered: RankedMeal[] = ids
+        .map((id) => meals.find((m) => m.id === id))
+        .filter((m): m is Meal => !!m)
+        .map((meal) => ({ meal, reason: "" }));
+
+      setRankedMeals(ordered);
+      setActiveFilterId("__shared__"); // sentinel — skips filter picker, blocks re-rank
+      setSharedLoading(false);
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll for matches while inside a shared session
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const poll = async () => {
+      if (matchedMealRef.current) return; // Already showing match modal
+
+      const { data: swipeData } = await supabase
+        .from("swipes")
+        .select("meal_id, user_id")
+        .eq("session_id", sessionId)
+        .eq("decision", "yes");
+
+      if (!swipeData || swipeData.length === 0) return;
+
+      // Group voters by meal
+      const mealVoters: Record<string, Set<string>> = {};
+      for (const row of swipeData) {
+        if (!mealVoters[row.meal_id]) mealVoters[row.meal_id] = new Set();
+        mealVoters[row.meal_id].add(row.user_id);
+      }
+
+      for (const [mealId, voters] of Object.entries(mealVoters)) {
+        if (voters.size < 2) continue;
+        if (rejectedMatchIdsRef.current.has(mealId)) continue;
+
+        // Confirm session is still active before triggering
+        const { data: sessionData } = await supabase
+          .from("sessions")
+          .select("status")
+          .eq("id", sessionId)
+          .single();
+        if (sessionData?.status === "matched") return;
+
+        const found = meals.find((m) => m.id === mealId);
+        if (found) {
+          matchPendingAdvanceRef.current = false; // Detected via poll, not own swipe
+          setMatchedMeal(found);
+          return;
+        }
+      }
+    };
+
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ────────────────────────────────────────────────────────────────────────────
+
   const afterExitRef = useRef<(() => void) | null>(null);
   // Tracks the last filter id for which we recorded a seen-session,
   // so recordSeenSession fires only on genuine filter changes, not on
@@ -248,6 +357,7 @@ function DeckContent() {
   // inputs that meaningfully affect scoring change.
   useEffect(() => {
     if (activeFilterId === null) return;
+    if (sessionId) return; // Shared deck is fixed — never re-rank from local state
     // Snapshot all cards the user has seen so far (indices 0..currentIndex)
     // into the session set before rebuilding, so they get a soft penalty in
     // the new deck order and don't repeat immediately.
@@ -296,9 +406,13 @@ function DeckContent() {
   }
 
   function handleTopPicks() {
-    const allRanked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
-    const topN = Math.max(3, Math.ceil(allRanked.length * 0.35));
-    setRankedMeals(allRanked.slice(0, topN));
+    // In shared mode the deck is fixed — top picks = top 35% of the current order.
+    // In solo mode rebuild from scratch so scoring is fresh.
+    const source = sessionId
+      ? rankedMeals
+      : buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
+    const topN = Math.max(3, Math.ceil(source.length * 0.35));
+    setRankedMeals(source.slice(0, topN));
     setCurrentIndex(0);
     setTopPicksMode(true);
     x.set(0);
@@ -337,9 +451,112 @@ function DeckContent() {
     setExitX(direction === "left" ? -600 : 600);
   }
 
+  // ── Shared-session swipe helpers ────────────────────────────────────────────
+
+  /** Save a 'yes' swipe, then check whether both users have said yes to this meal.
+   *  Returns true if a match is found and the session is still active. */
+  async function saveYesAndCheckMatch(mealId: string): Promise<boolean> {
+    if (!sessionId || !userId) return false;
+
+    // Insert swipe — unique constraint prevents duplicates
+    await supabase.from("swipes").insert({
+      session_id: sessionId,
+      user_id: userId,
+      meal_id: mealId,
+      decision: "yes",
+    });
+
+    // Query 'yes' votes for this meal in this session
+    const { data } = await supabase
+      .from("swipes")
+      .select("user_id")
+      .eq("session_id", sessionId)
+      .eq("meal_id", mealId)
+      .eq("decision", "yes");
+
+    if (!data || data.length < 2) return false;
+
+    const uniqueUsers = new Set(data.map((r: { user_id: string }) => r.user_id));
+    if (uniqueUsers.size < 2) return false;
+
+    // Confirm session hasn't already been locked
+    const { data: sessionData } = await supabase
+      .from("sessions")
+      .select("status")
+      .eq("id", sessionId)
+      .single();
+
+    return sessionData?.status !== "matched";
+  }
+
+  async function handleSharedChoose(chosenMeal: Meal) {
+    updateTasteProfile(chosenMeal, "choose");
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate([12, 60, 8]);
+    }
+    setIsChoosing(true);
+
+    const isMatch = await saveYesAndCheckMatch(chosenMeal.id);
+
+    setIsChoosing(false);
+
+    if (isMatch && !rejectedMatchIdsRef.current.has(chosenMeal.id)) {
+      matchPendingAdvanceRef.current = true;
+      setMatchedMeal(chosenMeal);
+      return;
+    }
+
+    // No match — advance to next card
+    triggerExit("right", () => setCurrentIndex((i) => i + 1));
+  }
+
+  async function handleMatchConfirm() {
+    if (!matchedMeal || !sessionId) return;
+    await supabase
+      .from("sessions")
+      .update({
+        status: "matched",
+        locked_meal_id: matchedMeal.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+    addToHistory(matchedMeal);
+    router.push(`/locked?mealId=${matchedMeal.id}`);
+  }
+
+  function handleMatchReject() {
+    if (!matchedMeal) return;
+    rejectedMatchIdsRef.current.add(matchedMeal.id);
+    const shouldAdvance = matchPendingAdvanceRef.current;
+    matchPendingAdvanceRef.current = false;
+    setMatchedMeal(null);
+    // Only advance if the current user's own swipe triggered this match
+    // (i.e. they haven't moved to the next card yet)
+    if (shouldAdvance) {
+      triggerExit("right", () => setCurrentIndex((i) => i + 1));
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+
   function handlePass() {
     dismissHint();
-    if (meal) updateTasteProfile(meal, "pass");
+    if (meal) {
+      updateTasteProfile(meal, "pass");
+      // Save 'no' swipe in shared mode — fire-and-forget, no match check needed
+      if (sessionId && userId) {
+        supabase.from("swipes").insert({
+          session_id: sessionId,
+          user_id: userId,
+          meal_id: meal.id,
+          decision: "no",
+        }).then(({ error }) => {
+          if (error && error.code !== "23505") { // ignore unique violation
+            console.error("Failed to save pass swipe:", error);
+          }
+        });
+      }
+    }
     triggerExit("left", () => setCurrentIndex((i) => i + 1));
   }
 
@@ -355,6 +572,14 @@ function DeckContent() {
   function handleChoose() {
     if (!meal || isChoosing || isExiting) return;
     dismissHint();
+
+    // ── Shared session path ──
+    if (sessionId) {
+      handleSharedChoose(meal);
+      return;
+    }
+
+    // ── Solo path (unchanged) ──
     const chosenMeal = meal;
     updateTasteProfile(chosenMeal, "choose");
 
@@ -388,6 +613,18 @@ function DeckContent() {
       setExitX(null);
       action();
     }
+  }
+
+  // ── Shared deck loading screen ────────────────────────────────────────────
+  if (sessionId && sharedLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#080808] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <span className="h-2 w-2 animate-ping rounded-full bg-white/40" />
+          <p className="text-sm text-white/35">Loading shared deck…</p>
+        </div>
+      </main>
+    );
   }
 
   // ── Filter picker screen ──────────────────────────────────────────────────
@@ -506,12 +743,14 @@ function DeckContent() {
                   >
                     Start over
                   </button>
-                  <button
-                    onClick={resetFilter}
-                    className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
-                  >
-                    Change filter
-                  </button>
+                  {!sessionId && (
+                    <button
+                      onClick={resetFilter}
+                      className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
+                    >
+                      Change filter
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={() => router.push("/browse")}
@@ -547,12 +786,14 @@ function DeckContent() {
                     >
                       Start over
                     </button>
-                    <button
-                      onClick={resetFilter}
-                      className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
-                    >
-                      Change filter
-                    </button>
+                    {!sessionId && (
+                      <button
+                        onClick={resetFilter}
+                        className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
+                      >
+                        Change filter
+                      </button>
+                    )}
                   </div>
                   <div className="mt-4 flex justify-center">
                     <button
@@ -576,26 +817,34 @@ function DeckContent() {
     <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
-        {/* Ambient pantry glow — warm bloom from top edge */}
-        <AnimatePresence>
-          {pantryMode && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="pointer-events-none absolute inset-x-0 top-0 h-64 -mx-5"
-              style={{
-                background:
-                  "radial-gradient(ellipse 100% 160px at 50% 0%, rgba(251,191,36,0.07) 0%, transparent 100%)",
-              }}
-            />
-          )}
-        </AnimatePresence>
+        {/* Ambient pantry glow — warm bloom from top edge (solo only) */}
+        {!sessionId && (
+          <AnimatePresence>
+            {pantryMode && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="pointer-events-none absolute inset-x-0 top-0 h-64 -mx-5"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 100% 160px at 50% 0%, rgba(251,191,36,0.07) 0%, transparent 100%)",
+                }}
+              />
+            )}
+          </AnimatePresence>
+        )}
 
         <header className="relative flex items-center justify-between">
           <div className="flex items-center gap-2">
             <p className="text-sm text-white/50">Decision Deck</p>
+            {sessionId && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-2 py-0.5 text-[10px] text-emerald-400/80">
+                <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                shared
+              </span>
+            )}
             {topPicksMode && (
               <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[10px] text-white/35">
                 top picks
@@ -603,13 +852,15 @@ function DeckContent() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={resetFilter}
-              className="text-xs text-white/35 transition hover:text-white/60"
-            >
-              {activeFilter?.label} ·{" "}
-              <span className="underline underline-offset-2">change</span>
-            </button>
+            {!sessionId && (
+              <button
+                onClick={resetFilter}
+                className="text-xs text-white/35 transition hover:text-white/60"
+              >
+                {activeFilter?.label} ·{" "}
+                <span className="underline underline-offset-2">change</span>
+              </button>
+            )}
             <p className="text-sm text-white/35">
               {currentIndex + 1}/{rankedMeals.length}
             </p>
@@ -633,25 +884,27 @@ function DeckContent() {
           </p>
         </section>
 
-        {/* Who are you deciding for toggle */}
-        <div className="mt-4 flex rounded-2xl border border-white/[0.07] bg-white/[0.03] p-1 gap-0.5">
-          {(["solo", "partner", "family"] as WhoFor[]).map((option) => (
-            <button
-              key={option}
-              onClick={() => setWhoFor(option)}
-              className={`flex-1 rounded-xl py-2 text-xs font-medium transition-colors duration-150 ${
-                whoFor === option
-                  ? "bg-white/[0.1] text-white/80"
-                  : "text-white/30 hover:text-white/50 active:scale-[0.97]"
-              }`}
-            >
-              {option === "solo" ? "Just me" : option === "partner" ? "Me + partner" : "Family"}
-            </button>
-          ))}
-        </div>
+        {/* Who are you deciding for toggle — solo only */}
+        {!sessionId && (
+          <div className="mt-4 flex rounded-2xl border border-white/[0.07] bg-white/[0.03] p-1 gap-0.5">
+            {(["solo", "partner", "family"] as WhoFor[]).map((option) => (
+              <button
+                key={option}
+                onClick={() => setWhoFor(option)}
+                className={`flex-1 rounded-xl py-2 text-xs font-medium transition-colors duration-150 ${
+                  whoFor === option
+                    ? "bg-white/[0.1] text-white/80"
+                    : "text-white/30 hover:text-white/50 active:scale-[0.97]"
+                }`}
+              >
+                {option === "solo" ? "Just me" : option === "partner" ? "Me + partner" : "Family"}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* Pantry bar — always visible, directly above the card */}
-        <motion.button
+        {/* Pantry bar — solo only */}
+        {!sessionId && <motion.button
           onClick={() => {
             if (!pantryMode) togglePantry();
             setShowIngredientSheet(true);
@@ -690,7 +943,7 @@ function DeckContent() {
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300/40" : "text-white/15"}`}>
             <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </motion.button>
+        </motion.button>}
 
         <div className="relative mt-4">
           {/* Next card — sits behind, promotes forward when current card exits */}
@@ -913,6 +1166,70 @@ function DeckContent() {
           </div>
         )}
       </div>
+
+      {/* ── Match modal ──────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {matchedMeal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-5 pb-10 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ y: 72, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 72, opacity: 0 }}
+              transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
+              className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#111] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+            >
+              {/* Meal image */}
+              <div className="relative h-56">
+                <img
+                  src={matchedMeal.image}
+                  alt={matchedMeal.name}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.4) 55%, transparent 100%)",
+                  }}
+                />
+                <div className="absolute bottom-5 left-5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
+                    It&apos;s a match
+                  </p>
+                  <h2 className="mt-1 text-2xl font-semibold leading-tight tracking-[-0.04em]">
+                    You both picked
+                  </h2>
+                  <h2 className="text-2xl font-semibold leading-tight tracking-[-0.04em]">
+                    {matchedMeal.name} 🍽️
+                  </h2>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="grid gap-3 p-5">
+                <button
+                  onClick={handleMatchConfirm}
+                  className="w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+                >
+                  Let&apos;s do it
+                </button>
+                <button
+                  onClick={handleMatchReject}
+                  className="w-full rounded-full border border-white/10 bg-white/[0.05] py-4 text-base font-medium text-white/70 transition active:scale-[0.99]"
+                >
+                  Pick something else
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Ingredient sheet backdrop ─────────────────────────────────────── */}
       <AnimatePresence>

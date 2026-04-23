@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "./components/BottomNav";
+import { supabase } from "./lib/supabase";
+import { getUserId } from "./lib/identity";
 import {
   getSavedMeals,
   getFavorites,
@@ -123,6 +125,7 @@ export default function Home() {
   const [clearStep, setClearStep] = useState<"confirm" | "completed" | "save">(
     "confirm",
   );
+  const [creatingSession, setCreatingSession] = useState(false);
 
   useEffect(() => {
     if (!hasCompletedOnboarding()) {
@@ -180,6 +183,34 @@ export default function Home() {
     setLastDecidePick(pick.meal.id);
     addToHistory(pick.meal);
     router.push(`/locked?mealId=${pick.meal.id}&decided=1`);
+  }
+
+  async function handleDecideWithSomeone() {
+    setCreatingSession(true);
+    try {
+      const hostId = getUserId();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("sessions")
+        .insert({
+          host_user_id: hostId,
+          status: "waiting",
+          expires_at: expiresAt,
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error("Failed to create session:", error);
+        setCreatingSession(false);
+        return;
+      }
+
+      router.push(`/session/${data.id}`);
+    } catch (e) {
+      console.error(e);
+      setCreatingSession(false);
+    }
   }
 
   function recordPickIfNew() {
@@ -341,18 +372,27 @@ export default function Home() {
                   Swipe through ideas, save what hits, and lock in dinner without
                   the usual back-and-forth.
                 </p>
-                <Link
-                  href="/deck"
-                  className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
-                >
-                  Let&apos;s decide
-                </Link>
                 <button
-                  onClick={handleDecideForMe}
-                  className="mt-3 block w-full rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white transition active:scale-[0.99]"
+                  onClick={handleDecideWithSomeone}
+                  disabled={creatingSession}
+                  className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
                 >
-                  ✨ Decide for me
+                  {creatingSession ? "Starting…" : "Decide with someone"}
                 </button>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Link
+                    href="/deck"
+                    className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white transition active:scale-[0.99]"
+                  >
+                    Solo mode
+                  </Link>
+                  <button
+                    onClick={handleDecideForMe}
+                    className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white transition active:scale-[0.99]"
+                  >
+                    ✨ Decide for me
+                  </button>
+                </div>
                 <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/45">
                   <span className="h-1.5 w-1.5 rounded-full bg-white/40" />
                   Personalized picks
