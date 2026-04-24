@@ -11,6 +11,7 @@ import { getUserId } from "../lib/identity";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
+const DECK_SIZE = 20;
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -405,6 +406,17 @@ function DeckContent() {
   const isExhausted = currentIndex >= rankedMeals.length;
   const isExiting = exitX !== null;
 
+  const totalCount = Math.min(rankedMeals.length, DECK_SIZE);
+  const decisionsMade = currentIndex;
+  const progressPct = totalCount > 0 ? Math.min(100, (decisionsMade / totalCount) * 100) : 0;
+  const urgencyMessage = (() => {
+    if (sessionId && decisionsMade >= 15) return "Final picks…";
+    if (decisionsMade >= totalCount) return "Time to decide";
+    if (decisionsMade >= 15) return "Almost there";
+    if (decisionsMade >= 6) return "Getting closer";
+    return "Just getting started";
+  })();
+
   function selectFilter(id: string) {
     // State updates trigger the unified useEffect which rebuilds the deck
     // and calls recordSeenSession when the filter id is new.
@@ -547,6 +559,17 @@ function DeckContent() {
   }
 
   // ────────────────────────────────────────────────────────────────────────────
+
+  function handleRefreshDeck() {
+    sessionShownRef.current = new Set();
+    const ranked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
+    recordSeenSession(ranked.map((r) => r.meal.id));
+    seenSessionFilterRef.current = activeFilterId;
+    setRankedMeals(ranked);
+    setCurrentIndex(0);
+    x.set(0);
+    setExitX(null);
+  }
 
   function handlePass() {
     dismissHint();
@@ -878,31 +901,21 @@ function DeckContent() {
               </>
             ) : (
               <>
-                <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
-                  <span className="h-1 w-1 rounded-full bg-white/30" />
-                  First pass complete
-                </div>
-                <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
-                  Want to narrow it down?
+                <h2 className="text-2xl font-semibold tracking-[-0.04em]">
+                  No match yet
                 </h2>
                 <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
-                  You&apos;ve seen everything once. Let&apos;s zero in on your best picks.
+                  Want to run it back?
                 </p>
                 <div className="mt-8 w-full">
                   <button
-                    onClick={handleTopPicks}
+                    onClick={handleRefreshDeck}
                     className="w-full rounded-full bg-white py-4 text-base font-semibold text-black"
                     style={{ boxShadow: "0 0 24px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)" }}
                   >
-                    Show top picks
+                    Refresh deck
                   </button>
                   <div className="mt-5 flex justify-center gap-3">
-                    <button
-                      onClick={() => setCurrentIndex(0)}
-                      className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
-                    >
-                      Start over
-                    </button>
                     {!sessionId && (
                       <button
                         onClick={resetFilter}
@@ -911,13 +924,11 @@ function DeckContent() {
                         Change filter
                       </button>
                     )}
-                  </div>
-                  <div className="mt-4 flex justify-center">
                     <button
                       onClick={() => router.push("/browse")}
-                      className="text-sm text-white/35 underline underline-offset-4 transition hover:text-white/60"
+                      className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
                     >
-                      Browse all meals
+                      Browse all
                     </button>
                   </div>
                 </div>
@@ -1061,6 +1072,30 @@ function DeckContent() {
             <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </motion.button>}
+
+        {/* ── Progress + urgency ────────────────────────────────────────── */}
+        {totalCount > 0 && (
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-xs tabular-nums text-white/45">
+                {decisionsMade} / {totalCount} choices
+              </span>
+              {sessionId && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-white/35">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
+                  Shared session
+                </span>
+              )}
+            </div>
+            <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/[0.07]">
+              <div
+                className="h-full rounded-full bg-white/25 transition-[width] duration-500 ease-out"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-[11px] text-white/40">{urgencyMessage}</p>
+          </div>
+        )}
 
         <div className="relative mt-4">
           {/* Next card — sits behind, promotes forward when current card exits */}
