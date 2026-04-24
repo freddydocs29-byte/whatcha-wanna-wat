@@ -70,6 +70,7 @@ export default async function LockedPage({ searchParams }: Props) {
             >
               Back to home
             </Link>
+
           </div>
         </section>
 

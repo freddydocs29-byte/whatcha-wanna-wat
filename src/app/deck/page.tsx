@@ -735,6 +735,95 @@ function DeckContent() {
 
   // ── Exhausted screen ──────────────────────────────────────────────────────
   if (isExhausted) {
+    // ── Shared async waiting state ─────────────────────────────────────────
+    // User has swiped through all cards. Keep polling; show match modal if one arrives.
+    if (sessionId) {
+      return (
+        <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
+          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+            <header className="flex items-center justify-between">
+              <p className="text-sm text-white/50">Decision Deck</p>
+              <button
+                onClick={() => router.push("/")}
+                className="text-sm text-white/35 transition hover:text-white/60"
+              >
+                Back
+              </button>
+            </header>
+
+            <div className="flex flex-1 flex-col items-center justify-center text-center">
+              <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
+                <span className="h-1 w-1 rounded-full bg-white/30" />
+                Your picks are in
+              </div>
+              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
+                Waiting for them
+              </h2>
+              <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
+                You&apos;ll see a match as soon as you both agree on something.
+              </p>
+            </div>
+          </div>
+
+          {/* Match modal — polling continues in the background */}
+          <AnimatePresence>
+            {matchedMeal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-5 pb-10 backdrop-blur-sm"
+              >
+                <motion.div
+                  initial={{ y: 72, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 72, opacity: 0 }}
+                  transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
+                  className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#111] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+                >
+                  <div className="relative h-56">
+                    <img
+                      src={matchedMeal.image}
+                      alt={matchedMeal.name}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.4) 55%, transparent 100%)",
+                      }}
+                    />
+                    <div className="absolute bottom-5 left-5">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
+                        It&apos;s a match
+                      </p>
+                      <h2 className="mt-1 text-2xl font-semibold leading-tight tracking-[-0.04em]">
+                        You both picked
+                      </h2>
+                      <h2 className="text-2xl font-semibold leading-tight tracking-[-0.04em]">
+                        {matchedMeal.name} 🍽️
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 p-5">
+                    <button
+                      onClick={handleMatchConfirm}
+                      className="w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+                    >
+                      Lock it in
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      );
+    }
+
+    // ── Solo exhausted state ───────────────────────────────────────────────
     return (
       <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
@@ -1245,13 +1334,7 @@ function DeckContent() {
                   onClick={handleMatchConfirm}
                   className="w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
                 >
-                  Let&apos;s do it
-                </button>
-                <button
-                  onClick={handleMatchReject}
-                  className="w-full rounded-full border border-white/10 bg-white/[0.05] py-4 text-base font-medium text-white/70 transition active:scale-[0.99]"
-                >
-                  Pick something else
+                  Lock it in
                 </button>
               </div>
             </motion.div>
