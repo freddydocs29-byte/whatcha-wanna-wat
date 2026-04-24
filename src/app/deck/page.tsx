@@ -291,7 +291,7 @@ function DeckContent() {
         .filter((m): m is Meal => !!m)
         .map((meal) => ({ meal, reason: "" }));
 
-      setRankedMeals(ordered);
+      setRankedMeals(ordered.slice(0, DECK_SIZE));
       setActiveFilterId("__shared__"); // sentinel — skips filter picker, blocks re-rank
       setSharedLoading(false);
     };
@@ -380,7 +380,7 @@ function DeckContent() {
       recordSeenSession(ranked.map((r) => r.meal.id));
       seenSessionFilterRef.current = activeFilterId;
     }
-    setRankedMeals(ranked);
+    setRankedMeals(ranked.slice(0, DECK_SIZE));
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
@@ -403,10 +403,10 @@ function DeckContent() {
   const meal = current?.meal;
   const reason = current?.reason ?? "";
   const nextMeal = rankedMeals[currentIndex + 1]?.meal;
-  const isExhausted = currentIndex >= rankedMeals.length;
   const isExiting = exitX !== null;
 
   const totalCount = Math.min(rankedMeals.length, DECK_SIZE);
+  const isExhausted = currentIndex >= totalCount;
   const decisionsMade = currentIndex;
   const progressPct = totalCount > 0 ? Math.min(100, (decisionsMade / totalCount) * 100) : 0;
   const urgencyMessage = (() => {
@@ -565,7 +565,7 @@ function DeckContent() {
     const ranked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
     recordSeenSession(ranked.map((r) => r.meal.id));
     seenSessionFilterRef.current = activeFilterId;
-    setRankedMeals(ranked);
+    setRankedMeals(ranked.slice(0, DECK_SIZE));
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
