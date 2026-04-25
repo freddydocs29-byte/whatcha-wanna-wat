@@ -146,6 +146,8 @@ function DeckContent() {
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
   const [sharedError, setSharedError] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [bothDone, setBothDone] = useState(false);
+  const [sharedRefreshing, setSharedRefreshing] = useState(false);
   const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
   // Refs so polling/async callbacks always see current values without stale closures
   const matchedMealRef = useRef<Meal | null>(null);
@@ -209,6 +211,60 @@ function DeckContent() {
     load();
     return () => { cancelled = true; };
   }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Detect when both users have finished swiping (no match yet), or if the deck was
+  // cleared by a refresh — in which case follow the other user back to the session page.
+  // Uses currentIndex / rankedMeals.length (state values) instead of the derived
+  // `isExhausted` const to avoid a temporal-dead-zone issue with the dep array.
+  useEffect(() => {
+    const exhausted = currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    if (!sessionId || !userId || !exhausted) return;
+
+    const totalDeckSize = Math.min(rankedMeals.length, DECK_SIZE);
+    let mounted = true;
+
+    const checkState = async () => {
+      if (!mounted) return;
+
+      const { data: sessionData } = await supabase
+        .from("sessions")
+        .select("host_user_id, guest_user_id, deck_meal_ids")
+        .eq("id", sessionId)
+        .single();
+
+      if (!mounted || !sessionData) return;
+
+      // If the deck was cleared (other user hit "Refresh deck"), follow them to the lobby
+      if (!sessionData.deck_meal_ids?.length) {
+        router.push(`/session/${sessionId}`);
+        return;
+      }
+
+      const otherUserId =
+        userId === sessionData.host_user_id
+          ? sessionData.guest_user_id
+          : sessionData.host_user_id;
+
+      if (!otherUserId) return;
+
+      const { count } = await supabase
+        .from("swipes")
+        .select("*", { count: "exact", head: true })
+        .eq("session_id", sessionId)
+        .eq("user_id", otherUserId);
+
+      if (mounted && (count ?? 0) >= totalDeckSize) {
+        setBothDone(true);
+      }
+    };
+
+    checkState();
+    const interval = setInterval(checkState, 3000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [sessionId, userId, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for matches while inside a shared session
   useEffect(() => {
@@ -457,6 +513,20 @@ function DeckContent() {
     setExitX(null);
   }
 
+  // Shared-mode refresh: delete all swipes, clear the deck, return to the lobby so
+  // the host can pick a new vibe and generate a fresh deck.  The other user's
+  // both-done poller detects the cleared deck_meal_ids and follows automatically.
+  async function handleSharedRefreshDeck() {
+    if (!sessionId) return;
+    setSharedRefreshing(true);
+    await supabase.from("swipes").delete().eq("session_id", sessionId);
+    await supabase
+      .from("sessions")
+      .update({ deck_meal_ids: null, updated_at: new Date().toISOString() })
+      .eq("id", sessionId);
+    router.push(`/session/${sessionId}`);
+  }
+
   function handlePass() {
     dismissHint();
     if (meal) {
@@ -583,16 +653,43 @@ function DeckContent() {
             </header>
 
             <div className="flex flex-1 flex-col items-center justify-center text-center">
-              <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
-                <span className="h-1 w-1 rounded-full bg-white/30" />
-                Your picks are in
-              </div>
-              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
-                Waiting for them
-              </h2>
-              <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
-                You&apos;ll see a match as soon as you both agree on something.
-              </p>
+              {bothDone ? (
+                <>
+                  <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
+                    <span className="h-1 w-1 rounded-full bg-white/30" />
+                    No match
+                  </div>
+                  <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
+                    No match this round
+                  </h2>
+                  <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
+                    Want to try a fresh deck?
+                  </p>
+                  <div className="mt-8 w-full">
+                    <button
+                      onClick={handleSharedRefreshDeck}
+                      disabled={sharedRefreshing}
+                      className="w-full rounded-full bg-white py-4 text-base font-semibold text-black disabled:opacity-50"
+                      style={{ boxShadow: "0 0 24px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)" }}
+                    >
+                      {sharedRefreshing ? "Resetting…" : "Refresh deck"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
+                    <span className="h-1 w-1 rounded-full bg-white/30" />
+                    Your picks are in
+                  </div>
+                  <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
+                    Waiting for them…
+                  </h2>
+                  <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
+                    You&apos;ll see a match as soon as you both agree on something.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
@@ -795,61 +892,35 @@ function DeckContent() {
           </p>
         </section>
 
-        {/* Session selectors — inline context pills */}
-        <div className="mt-4 flex flex-col gap-2">
-          {/* Cook / Order / Either · Quick / Balanced / Something special */}
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
-            {(["cook", "either", "order"] as SessionCookMode[]).map((mode) => {
-              const label = mode === "cook" ? "Cook" : mode === "order" ? "Order" : "Either";
-              const isActive = cookMode === mode;
-              const isReadOnly = !!sessionId;
-              return (
-                <button
-                  key={mode}
-                  disabled={isReadOnly}
-                  onClick={() => !isReadOnly && setCookMode(mode)}
-                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 ${
-                    isActive
-                      ? "border-white/25 bg-white/[0.12] text-white/80"
-                      : isReadOnly
-                      ? "border-white/[0.05] bg-transparent text-white/20 cursor-default"
-                      : "border-white/[0.07] bg-transparent text-white/30 hover:border-white/15 hover:text-white/55 active:scale-[0.96]"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-            <span className="mx-0.5 shrink-0 self-center text-white/10">·</span>
-            {/* Vibe selector — 6 options */}
-            {(["mix-it-up", "comfort-food", "quick-easy", "healthy", "something-new", "kid-friendly"] as SessionVibeMode[]).map((mode) => {
-              const label =
-                mode === "mix-it-up" ? "Mix It Up" :
-                mode === "comfort-food" ? "Comfort Food" :
-                mode === "quick-easy" ? "Quick & Easy" :
-                mode === "healthy" ? "Healthy" :
-                mode === "something-new" ? "Something New" :
-                "Kid Friendly";
-              const isActive = sessionVibeMode === mode;
-              const isReadOnly = !!sessionId;
-              return (
-                <button
-                  key={mode}
-                  disabled={isReadOnly}
-                  onClick={() => !isReadOnly && setSessionVibeMode(mode)}
-                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 ${
-                    isActive
-                      ? "border-white/25 bg-white/[0.12] text-white/80"
-                      : isReadOnly
-                      ? "border-white/[0.05] bg-transparent text-white/20 cursor-default"
-                      : "border-white/[0.07] bg-transparent text-white/30 hover:border-white/15 hover:text-white/55 active:scale-[0.96]"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Vibe selector — solo: interactive; shared: read-only (locked by host) */}
+        <div className="mt-4 flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+          {(["mix-it-up", "comfort-food", "quick-easy", "healthy", "something-new", "kid-friendly"] as SessionVibeMode[]).map((mode) => {
+            const label =
+              mode === "mix-it-up" ? "Mix It Up" :
+              mode === "comfort-food" ? "Comfort Food" :
+              mode === "quick-easy" ? "Quick & Easy" :
+              mode === "healthy" ? "Healthy" :
+              mode === "something-new" ? "Something New" :
+              "Kid Friendly";
+            const isActive = sessionVibeMode === mode;
+            const isReadOnly = !!sessionId;
+            return (
+              <button
+                key={mode}
+                disabled={isReadOnly}
+                onClick={() => !isReadOnly && setSessionVibeMode(mode)}
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 ${
+                  isActive
+                    ? "border-white/25 bg-white/[0.12] text-white/80"
+                    : isReadOnly
+                    ? "border-white/[0.05] bg-transparent text-white/20 cursor-default"
+                    : "border-white/[0.07] bg-transparent text-white/30 hover:border-white/15 hover:text-white/55 active:scale-[0.96]"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Pantry bar — solo only */}

@@ -184,9 +184,7 @@ export default function SessionPage() {
     setSession(s);
     setRole("guest");
     setJoining(false);
-
-    // Trigger shared deck generation now that both users are present
-    await generateDeckIfNeeded(s);
+    // Deck generation is deferred — host triggers it explicitly by clicking "Start swiping"
   }, [sessionId, loadSession, generateDeckIfNeeded]);
 
   // Initial load
@@ -200,13 +198,6 @@ export default function SessionPage() {
       joinSession();
     }
   }, [role, session, joining, needsSetup, joinSession]);
-
-  // Host: trigger deck generation when guest joins (detected via poll)
-  useEffect(() => {
-    if (role === "host" && session?.guest_user_id && !session.deck_meal_ids?.length) {
-      generateDeckIfNeeded(session);
-    }
-  }, [role, session?.guest_user_id, session?.deck_meal_ids, session, generateDeckIfNeeded]);
 
   // Poll for changes:
   // - Host: detect when guest joins (status: waiting → active)
@@ -242,8 +233,19 @@ export default function SessionPage() {
       });
   }
 
-  // Host navigates to the deck page once the deck is ready
-  function handleStartSwiping() {
+  // Host locks the chosen vibe, generates the shared deck, then enters the deck page.
+  // This is the explicit gate that controls when the guest can start swiping.
+  async function handleStartSwiping() {
+    if (!session) return;
+    // Persist the vibe choice so deck page and guest screen both reflect it
+    await supabase
+      .from("sessions")
+      .update({ vibe: selectedVibe, updated_at: new Date().toISOString() })
+      .eq("id", sessionId);
+    // Build the shared deck (safe to call even if already built — returns early)
+    if (!session.deck_meal_ids?.length) {
+      await generateDeckIfNeeded(session);
+    }
     router.push(`/deck?sessionId=${sessionId}&vibe=${selectedVibe}`);
   }
 
@@ -518,7 +520,7 @@ export default function SessionPage() {
     );
   }
 
-  // ── Guest: building deck ──────────────────────────────────────────────────
+  // ── Guest: waiting for host to pick vibe / generate deck ─────────────────
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
     return (
       <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
@@ -548,14 +550,14 @@ export default function SessionPage() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
                 </span>
                 <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                  Building deck
+                  Waiting
                 </p>
               </div>
               <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
                 Hang tight…
               </h1>
               <p className="mt-3 text-sm leading-6 text-white/55">
-                Building your shared deck from both profiles.
+                Waiting for the host to pick a vibe and start the deck.
               </p>
             </div>
 
@@ -675,12 +677,9 @@ export default function SessionPage() {
               </div>
             ) : bothConnected ? (
               <div className="flex items-center gap-2.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
-                </span>
+                <span className="h-2 w-2 rounded-full bg-white/70" />
                 <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                  Building deck
+                  Pick a vibe
                 </p>
               </div>
             ) : (
@@ -706,8 +705,8 @@ export default function SessionPage() {
               {deckReady
                 ? "Your shared deck is ready. Start swiping — matches happen when you both say yes to the same meal."
                 : bothConnected
-                ? "Building your shared deck from both profiles…"
-                : "Share this link and wait for them to join. The deck will be built automatically once both of you are in."}
+                ? "Pick a vibe below, then tap Start swiping to generate your shared deck."
+                : "Share this link and wait for them to join. Once they're in, pick a vibe and start."}
             </p>
 
             {/* Invite link — always visible so host can share while waiting */}
@@ -729,8 +728,9 @@ export default function SessionPage() {
               </button>
             </div>
 
-            {/* Vibe picker — host only, shown once deck is ready */}
-            {deckReady && (
+            {/* Vibe picker — shown as soon as both users are connected so host
+                can pick before the deck is generated. Locked once swiping begins. */}
+            {bothConnected && (
               <div className="mt-5">
                 <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-white/30">
                   Choose a vibe
@@ -756,25 +756,16 @@ export default function SessionPage() {
               </div>
             )}
 
-            {/* Start swiping — only shown once the shared deck is ready */}
-            {deckReady && (
+            {/* Start swiping — shown once both users are connected.
+                First click generates the deck (locked to the chosen vibe) then enters. */}
+            {bothConnected && (
               <button
                 onClick={handleStartSwiping}
-                className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+                disabled={buildingDeck}
+                className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
               >
-                Start swiping
+                {buildingDeck ? "Building deck…" : "Start swiping"}
               </button>
-            )}
-
-            {/* Building indicator — shown while deck generation is in progress */}
-            {!deckReady && bothConnected && (
-              <div className="mt-6 flex items-center justify-center gap-2 text-sm text-white/40">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white/60" />
-                </span>
-                Building your shared deck…
-              </div>
             )}
           </div>
 
