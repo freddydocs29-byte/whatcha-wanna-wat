@@ -13,7 +13,8 @@
  *   Legacy fallback — kept for safety but no longer called in normal flow.
  */
 import { meals } from "../data/meals";
-import { rankMeals, hardGate } from "./scoring";
+import { rankMeals, rankMealsForSharedSession, hardGate } from "./scoring";
+import type { UserProfileForScoring } from "./scoring";
 import { supabase } from "./supabase";
 import type { UserPreferences, TasteProfile } from "./storage";
 import {
@@ -103,60 +104,32 @@ export async function buildSharedDeckForSession(
     ]),
   ];
 
-  // 4. Combine cuisine preferences — UNION
-  const combinedCuisines: string[] = [
-    ...new Set([
-      ...(hostProfile?.favorite_cuisines ?? []),
-      ...(guestProfile?.favorite_cuisines ?? []),
-    ]),
-  ];
-
-  // 5. Merge taste profiles: element-wise max preserves stronger signal
-  const mergedTasteProfile = mergeTasteProfiles(
-    (hostProfile?.learned_weights as TasteProfile | null) ?? null,
-    (guestProfile?.learned_weights as TasteProfile | null) ?? null,
-  );
-
-  // 6. Combine recently seen — UNION (recency penalty for either user's recent meals)
-  const combinedRecentlySeen: string[] = [
-    ...new Set([
-      ...(hostProfile?.recently_seen_meal_ids ?? []),
-      ...(guestProfile?.recently_seen_meal_ids ?? []),
-    ]),
-  ];
-
-  // 7. Build merged preferences for ranking
-  const mergedPrefs: UserPreferences = {
-    cuisines: combinedCuisines,
-    dislikedFoods: combinedHardNos,
-    spiceLevel: "any", // spice level is not stored in Supabase profiles
-    cookOrOrder: "either",
-    kidFriendly: null,
+  // 4. Build per-user scoring profiles (kept separate for mutual scoring)
+  const hostScoringProfile: UserProfileForScoring = {
+    cuisines: hostProfile?.favorite_cuisines ?? [],
+    learnedWeights: (hostProfile?.learned_weights as TasteProfile | null) ?? null,
+    recentlySeen: new Set(hostProfile?.recently_seen_meal_ids ?? []),
+  };
+  const guestScoringProfile: UserProfileForScoring = {
+    cuisines: guestProfile?.favorite_cuisines ?? [],
+    learnedWeights: (guestProfile?.learned_weights as TasteProfile | null) ?? null,
+    recentlySeen: new Set(guestProfile?.recently_seen_meal_ids ?? []),
   };
 
-  // 8. Hard gate — remove any meal that violates EITHER user's hard NOs
+  // 5. Hard gate — remove any meal that violates EITHER user's hard NOs
   const eligibleMeals = hardGate(meals, combinedHardNos);
 
-  // 9. Rank with merged preferences and "partner" context
-  const ranked = rankMeals(
+  // 6. Rank using mutual-fit scoring: each user scored independently,
+  //    combined via min(scoreA, scoreB) * 1.5 + overlap bonuses
+  const ranked = rankMealsForSharedSession(
     eligibleMeals,
-    mergedPrefs,
-    [],        // savedMeals not available from Supabase profiles
-    [],        // history not available from Supabase profiles
-    false,     // no pantry mode
-    mergedTasteProfile ?? undefined,
-    new Set(combinedRecentlySeen),
-    undefined, // flavorProfile not available from Supabase profiles
-    [],        // favorites not available from Supabase profiles
-    [],        // no ingredient filter
-    "partner", // shared context
-    new Set(), // fresh session — nothing seen yet
-    null,      // no vibe filter
+    hostScoringProfile,
+    guestScoringProfile,
   );
 
   const mealIds = ranked.map((r) => r.meal.id);
 
-  // 10. Atomically save — only writes if deck_meal_ids is still NULL
+  // 7. Atomically save — only writes if deck_meal_ids is still NULL
   //     This prevents duplicate decks when both clients trigger simultaneously.
   const { data: updated, error: updateError } = await supabase
     .from("sessions")

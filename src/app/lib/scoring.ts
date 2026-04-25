@@ -6,6 +6,19 @@ const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
 
 export type RankedMeal = { meal: Meal; reason: string };
 export type WhoFor = "solo" | "partner" | "family";
+export type SessionCookMode = "cook" | "order" | "either";
+export type SessionVibeMode = "mix-it-up" | "comfort-food" | "quick-easy" | "healthy" | "something-new" | "kid-friendly";
+
+/**
+ * Minimal profile data needed to score meals for one participant in a shared
+ * session. Constructed from their Supabase profile row — no localStorage data
+ * required so it works without the user being on the same device.
+ */
+export type UserProfileForScoring = {
+  cuisines: string[];
+  learnedWeights: TasteProfile | null;
+  recentlySeen: Set<string>;
+};
 
 // ── Hard gate ─────────────────────────────────────────────────────────────────
 //
@@ -337,12 +350,21 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  *   Partner: +1 comfort, −0.75 bold/elevated
  *   Solo:    baseline (no adjustments)
  *
- * Vibe scoring (active filter / mood; largest effect on deck order):
- *   comfort-food:    +3 comfort-food cat / +2 crowd-pleaser / +1.5 classic; −2 light/healthy, −1 elevated
- *   something-new:  +3.5 bold-flavors cat / +2.5 elevated / +2 med-fresh; −2 comfort/casual, −1.5 familiar tags
- *   quick-easy:     +3.5 ≤20 min or no-cook / +2 25 min / +1.5 Easy; −2 slow (≥40 min / Medium effort), −1 35 min
- *   healthy:        +3.5 Healthy cat / +2.5 Nutritious / +2.5 Fresh; −2.5 heavy/indulgent
- *   kid-friendly:   +4.5 Kid-friendly tag / +3 Crowd pleaser / +2.5 comfort; −3 bold-flavors, −2 elevated/flavorful
+ * Vibe nudge (secondary — preference signals always dominate; tracked separately as vibeScore):
+ *   Max boost per meal: +1.5 pts (healthy, kid-friendly); +1.0 pts (comfort-food, quick-easy, something-new)
+ *   Max penalty:        −1.0 pts (kid-friendly · bold meals)
+ *
+ *   comfort-food:   +1.0 comfort-food cat / +0.65 crowd-pleaser/indulgent / +0.35 classic-italian/kid;
+ *                   −0.5 light/healthy/fresh, −0.25 elevated
+ *   quick-easy:     +1.0 ≤20 min or no-cook / +0.5 25 min / +0.4 Easy;
+ *                   −0.5 slow (≥40 min / medium effort), −0.25 35 min
+ *   healthy:        base +1.0 Healthy cat / +0.75 Fresh cat / +0.4 Mediterranean;
+ *                   additive (total capped at +1.5): +0.5 Nutritious / +0.35 Light / +0.25 Protein-packed or Veg;
+ *                   −0.75 heavy/indulgent
+ *   something-new:  +1.0 bold-flavors cat / +0.75 elevated / +0.5 mediterranean-fresh / +0.35 Flavorful;
+ *                   −0.5 comfort/casual, −0.35 Kid-friendly/Crowd-pleaser
+ *   kid-friendly:   +1.5 Kid-friendly tag / +1.0 Crowd pleaser / +0.6 comfort-food cat / +0.35 quick-casual;
+ *                   −1.0 bold-flavors, −0.5 elevated/Flavorful
  *
  * Reason priority (first match wins):
  *   1. Cuisine match
@@ -366,9 +388,12 @@ export function scoreMeal(
   selectedIngredients: string[] = [],
   context: WhoFor = "solo",
   sessionShown: Set<string> = new Set(),
-  vibe: string | null = null
-): { score: number; reason: string } {
+  vibe: string | null = null,
+  cookMode: SessionCookMode = "either",
+  sessionVibeMode: SessionVibeMode = "mix-it-up"
+): { score: number; reason: string; vibeScore: number } {
   let score = 0;
+  let vibeScore = 0; // tracks vibe-only contribution for dev logging
   let topReason: string | null = null;
 
   function setReason(r: string) {
@@ -682,89 +707,78 @@ export function scoreMeal(
     }
   }
 
-  // ── Vibe scoring ──────────────────────────────────────────────────────────
+  // ── Vibe scoring (legacy `vibe` param — mirrors sessionVibeMode weights) ────
   //
-  // Boosts meals that strongly embody the chosen vibe so the top of the deck
-  // clearly reflects the mood. Applied on top of all other signals — strong
-  // vibe matches float up, conflicting ones sink toward the tail.
-  //
-  // Boosts are sized to span 2–4 band widths (bands = 1 point) so they
-  // reliably reorder the deck rather than nudging within the same band.
-  // Penalties are moderate — enough to push conflicts toward the tail without
-  // eliminating variety entirely.
+  // This parameter is always null in practice (passed as null from buildDeck).
+  // Weights match the sessionVibeMode section below; kept in sync for any
+  // future callers. Max boost +1.5, max penalty −1.0.
 
   if (vibe && vibe !== "no-preference") {
     const vibecat = meal.category.toLowerCase();
-    // Case-insensitive substring match against actual tag strings.
     const hasTag = (...ts: string[]) =>
       ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
 
-    if (vibe === "comfort-food") {
-      // Strongly surface hearty/familiar meals; push fresh/light/elevated down.
-      const isStrongComfort = vibecat.includes("comfort food");
-      const isBroadComfort   = vibecat.includes("crowd pleaser") || hasTag("Indulgent", "Crowd pleaser");
-      const isMildComfort    = vibecat.includes("classic italian") || hasTag("Kid-friendly");
-      const isLight          = vibecat.includes("healthy") || vibecat.includes("fresh") || hasTag("Nutritious", "Light");
-      const isElevated       = vibecat.includes("elevated");
+    let legacyVibeScore = 0;
 
-      if (isStrongComfort)    { score += 3;   setReason("Exactly what comfort food should be"); }
-      else if (isBroadComfort){ score += 2;   setReason("Crowd-pleasing and familiar"); }
-      else if (isMildComfort) { score += 1.5; }
-      if (isLight)    score -= 2;
-      if (isElevated) score -= 1;
+    if (vibe === "comfort-food") {
+      const isStrongComfort = vibecat.includes("comfort food");
+      const isBroadComfort  = vibecat.includes("crowd pleaser") || hasTag("Indulgent", "Crowd pleaser");
+      const isMildComfort   = vibecat.includes("classic italian") || hasTag("Kid-friendly");
+      const isLight         = vibecat.includes("healthy") || vibecat.includes("fresh") || hasTag("Nutritious", "Light");
+      const isElevated      = vibecat.includes("elevated");
+      if (isStrongComfort)     { legacyVibeScore += 1.0; setReason("Exactly what comfort food should be"); }
+      else if (isBroadComfort) { legacyVibeScore += 0.65; setReason("Crowd-pleasing and familiar"); }
+      else if (isMildComfort)  { legacyVibeScore += 0.35; }
+      if (isLight)    legacyVibeScore -= 0.5;
+      if (isElevated) legacyVibeScore -= 0.25;
 
     } else if (vibe === "something-new") {
-      // Strongly surface bold/global/adventurous meals; push basic/familiar down.
-      const isBoldCat      = vibecat.includes("bold flavors");
-      const isElevatedCat  = vibecat.includes("elevated");
-      const isGlobalFresh  = vibecat.includes("mediterranean") || vibecat.includes("fresh");
-      const hasFlavorful   = hasTag("Flavorful");
-      const isBasic        = vibecat.includes("comfort food") || vibecat.includes("quick & casual");
-      const isFamiliar     = hasTag("Kid-friendly", "Crowd pleaser");
-
-      if (isBoldCat)          { score += 3.5; setReason("Bold and unexpected — exactly something new"); }
-      else if (isElevatedCat) { score += 2.5; setReason("A step up from the usual"); }
-      else if (isGlobalFresh) { score += 2;   setReason("A global flavor worth exploring"); }
-      else if (hasFlavorful)  { score += 1.5; }
-      if (isBasic)    score -= 2;
-      if (isFamiliar) score -= 1.5;
+      const isBoldCat     = vibecat.includes("bold flavors");
+      const isElevatedCat = vibecat.includes("elevated");
+      const isGlobalFresh = vibecat.includes("mediterranean") || vibecat.includes("fresh");
+      const hasFlavorful  = hasTag("Flavorful");
+      const isBasic       = vibecat.includes("comfort food") || vibecat.includes("quick & casual");
+      const isFamiliar    = hasTag("Kid-friendly", "Crowd pleaser");
+      if (isBoldCat)          { legacyVibeScore += 1.0; setReason("Bold and unexpected — exactly something new"); }
+      else if (isElevatedCat) { legacyVibeScore += 0.75; setReason("A step up from the usual"); }
+      else if (isGlobalFresh) { legacyVibeScore += 0.5; setReason("A global flavor worth exploring"); }
+      else if (hasFlavorful)  { legacyVibeScore += 0.35; }
+      if (isBasic)    legacyVibeScore -= 0.5;
+      if (isFamiliar) legacyVibeScore -= 0.35;
 
     } else if (vibe === "quick-easy") {
-      // Aggressively surface the fastest options; penalize anything slow.
-      const isVeryQuick  = hasTag("No-cook option") || (mealMinutes !== null && mealMinutes <= 20);
-      const is25min      = mealMinutes === 25;
-      const hasEasy      = hasTag("Easy");
-      const isSlow       = hasTag("Medium effort") || (mealMinutes !== null && mealMinutes >= 40);
-      const isModerate   = mealMinutes === 35;
-
-      if (isVeryQuick)  { score += 3.5; setReason("On the table in under 20 minutes"); }
-      else if (is25min) { score += 2; }
-      else if (hasEasy) { score += 1.5; setReason("Low-effort from start to finish"); }
-      if (isSlow)     score -= 2;
-      if (isModerate) score -= 1;
+      const isVeryQuick = hasTag("No-cook option") || (mealMinutes !== null && mealMinutes <= 20);
+      const is25min     = mealMinutes === 25;
+      const hasEasy     = hasTag("Easy");
+      const isSlow      = hasTag("Medium effort") || (mealMinutes !== null && mealMinutes >= 40);
+      const isModerate  = mealMinutes === 35;
+      if (isVeryQuick)  { legacyVibeScore += 1.0; setReason("On the table in under 20 minutes"); }
+      else if (is25min) { legacyVibeScore += 0.5; }
+      else if (hasEasy) { legacyVibeScore += 0.4; setReason("Low-effort from start to finish"); }
+      if (isSlow)     legacyVibeScore -= 0.5;
+      if (isModerate) legacyVibeScore -= 0.25;
 
     } else if (vibe === "healthy") {
-      // Clearly surface nutritious/light/fresh meals; push heavy/indulgent down.
-      const isHealthyCat = vibecat.includes("healthy");
-      const isFreshCat   = vibecat.includes("fresh");
-      const isMedCat     = vibecat.includes("mediterranean");
+      const isHealthyCat  = vibecat.includes("healthy");
+      const isFreshCat    = vibecat.includes("fresh");
+      const isMedCat      = vibecat.includes("mediterranean");
       const hasNutritious = hasTag("Nutritious");
       const hasLight      = hasTag("Light");
       const hasProtein    = hasTag("Protein-packed");
       const hasVeg        = hasTag("Vegetarian");
       const isHeavy       = vibecat.includes("comfort food") || vibecat.includes("crowd pleaser") || hasTag("Indulgent");
-
-      if (isHealthyCat)   { score += 3.5; setReason("Light and nourishing"); }
-      else if (isFreshCat){ score += 2.5; setReason("Fresh and clean"); }
-      else if (isMedCat)  { score += 2; }
-      if (hasNutritious)  { score += 2.5; setReason("Genuinely nutritious"); }
-      else if (hasLight)  { score += 2; }
-      if (hasProtein) score += 1.5;
-      if (hasVeg)     score += 1.5;
-      if (isHeavy)    score -= 2.5;
+      let healthyBoost = 0;
+      if (isHealthyCat)    { healthyBoost += 1.0; setReason("Light and nourishing"); }
+      else if (isFreshCat) { healthyBoost += 0.75; setReason("Fresh and clean"); }
+      else if (isMedCat)   { healthyBoost += 0.4; }
+      if (hasNutritious)   { healthyBoost += 0.5; setReason("Genuinely nutritious"); }
+      else if (hasLight)   { healthyBoost += 0.35; }
+      if (hasProtein) healthyBoost += 0.25;
+      if (hasVeg)     healthyBoost += 0.25;
+      legacyVibeScore += Math.min(1.5, healthyBoost);
+      if (isHeavy) legacyVibeScore -= 0.75;
 
     } else if (vibe === "kid-friendly") {
-      // Very strongly bias toward kid-tagged and comfort meals; penalize bold/elevated.
       const hasKid       = hasTag("Kid-friendly");
       const hasCrowd     = hasTag("Crowd pleaser");
       const isComfortCat = vibecat.includes("comfort food");
@@ -772,18 +786,144 @@ export function scoreMeal(
       const isBoldCat    = vibecat.includes("bold flavors");
       const isElevated   = vibecat.includes("elevated");
       const hasFlavorful = hasTag("Flavorful");
+      if (hasKid)            { legacyVibeScore += 1.5; setReason("A sure hit with the whole table"); }
+      else if (hasCrowd)     { legacyVibeScore += 1.0; setReason("Everyone will eat this without complaint"); }
+      else if (isComfortCat) { legacyVibeScore += 0.6; }
+      else if (isQuickCas)   { legacyVibeScore += 0.35; }
+      if (isBoldCat)    legacyVibeScore -= 1.0;
+      if (isElevated)   legacyVibeScore -= 0.5;
+      if (hasFlavorful) legacyVibeScore -= 0.5;
+    }
 
-      if (hasKid)          { score += 4.5; setReason("A sure hit with the whole table"); }
-      else if (hasCrowd)   { score += 3;   setReason("Everyone will eat this without complaint"); }
-      else if (isComfortCat){ score += 2.5; }
-      else if (isQuickCas) { score += 1.5; }
-      if (isBoldCat)    score -= 3;
-      if (isElevated)   score -= 2;
-      if (hasFlavorful) score -= 2;
+    score += legacyVibeScore;
+    vibeScore += legacyVibeScore;
+  }
+
+  // ── Cook mode + vibe nudge ────────────────────────────────────────────────
+  //
+  // cookMode: light style signal (±0.5–1.0 pts). Not tracked in vibeScore.
+  // sessionVibeMode: secondary deck signal. Preference, behavioral, and
+  //   freshness scores are primary. Vibe only reorders within bands of
+  //   similar preference quality — it must never lift a weak match above a
+  //   strong one. Accumulated in vibeScore for dev logging.
+  //
+  //   Max boost per meal: +1.5 pts (healthy, kid-friendly)
+  //                       +1.0 pts (comfort-food, quick-easy, something-new)
+  //   Max penalty:        −1.0 pts (kid-friendly · bold meals)
+
+  if (cookMode !== "either") {
+    const scat = meal.category.toLowerCase();
+    const hasSTag = (...ts: string[]) =>
+      ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
+
+    if (cookMode === "cook") {
+      // Home-style / cookable: comfort, casual, pantry-friendly
+      const isHomestyle =
+        scat.includes("comfort food") || scat.includes("quick & casual") ||
+        scat.includes("classic italian") || hasSTag("Pantry staple", "Easy");
+      const isElevated = scat.includes("elevated");
+      if (isHomestyle) score += 1;
+      if (isElevated)  score -= 0.5;
+    } else if (cookMode === "order") {
+      // Takeout-friendly: bold global flavors
+      const isTakeoutFriendly =
+        scat.includes("bold flavors") || scat.includes("fresh") ||
+        scat.includes("mediterranean") || hasSTag("Flavorful");
+      const isHomeOnly = hasSTag("Pantry staple");
+      if (isTakeoutFriendly) score += 1;
+      if (isHomeOnly)        score -= 0.5;
     }
   }
 
-  return { score, reason: topReason ?? meal.whyItFits };
+  if (sessionVibeMode !== "mix-it-up") {
+    const scat = meal.category.toLowerCase();
+    const hasVTag = (...ts: string[]) =>
+      ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
+
+    let sessionVibeScore = 0;
+
+    if (sessionVibeMode === "comfort-food") {
+      const isStrongComfort = scat.includes("comfort food");
+      const isBroadComfort  = scat.includes("crowd pleaser") || hasVTag("Indulgent", "Crowd pleaser");
+      const isMildComfort   = scat.includes("classic italian") || hasVTag("Kid-friendly");
+      const isLight         = scat.includes("healthy") || scat.includes("fresh") || hasVTag("Nutritious", "Light");
+      const isElevated      = scat.includes("elevated");
+      if (isStrongComfort)     { sessionVibeScore += 1.0; setReason("Exactly what comfort food should be"); }
+      else if (isBroadComfort) { sessionVibeScore += 0.65; setReason("Crowd-pleasing and familiar"); }
+      else if (isMildComfort)  { sessionVibeScore += 0.35; }
+      if (isLight)    sessionVibeScore -= 0.5;
+      if (isElevated) sessionVibeScore -= 0.25;
+
+    } else if (sessionVibeMode === "quick-easy") {
+      const isVeryQuick = hasVTag("No-cook option") || (mealMinutes !== null && mealMinutes <= 20);
+      const is25min     = mealMinutes === 25;
+      const hasEasy     = hasVTag("Easy");
+      const isSlow      = hasVTag("Medium effort") || (mealMinutes !== null && mealMinutes >= 40);
+      const isModerate  = mealMinutes === 35;
+      if (isVeryQuick)  { sessionVibeScore += 1.0; setReason("On the table in under 20 minutes"); }
+      else if (is25min) { sessionVibeScore += 0.5; }
+      else if (hasEasy) { sessionVibeScore += 0.4; setReason("Low-effort from start to finish"); }
+      if (isSlow)     sessionVibeScore -= 0.5;
+      if (isModerate) sessionVibeScore -= 0.25;
+
+    } else if (sessionVibeMode === "healthy") {
+      // Stacking fix: compute base + additive separately, cap total boost at +1.5
+      // so a meal with every healthy signal never exceeds the cap.
+      const isHealthyCat  = scat.includes("healthy");
+      const isFreshCat    = scat.includes("fresh");
+      const isMedCat      = scat.includes("mediterranean");
+      const hasNutritious = hasVTag("Nutritious");
+      const hasLight      = hasVTag("Light");
+      const hasProtein    = hasVTag("Protein-packed");
+      const hasVeg        = hasVTag("Vegetarian");
+      const isHeavy       = scat.includes("comfort food") || scat.includes("crowd pleaser") || hasVTag("Indulgent");
+      let healthyBoost = 0;
+      if (isHealthyCat)    { healthyBoost += 1.0; setReason("Light and nourishing"); }
+      else if (isFreshCat) { healthyBoost += 0.75; setReason("Fresh and clean"); }
+      else if (isMedCat)   { healthyBoost += 0.4; }
+      if (hasNutritious)   { healthyBoost += 0.5; setReason("Genuinely nutritious"); }
+      else if (hasLight)   { healthyBoost += 0.35; }
+      if (hasProtein) healthyBoost += 0.25;
+      if (hasVeg)     healthyBoost += 0.25;
+      sessionVibeScore += Math.min(1.5, healthyBoost); // cap prevents stacking beyond preference tier
+      if (isHeavy) sessionVibeScore -= 0.75;
+
+    } else if (sessionVibeMode === "something-new") {
+      const isBoldCat     = scat.includes("bold flavors");
+      const isElevatedCat = scat.includes("elevated");
+      const isGlobalFresh = scat.includes("mediterranean") || scat.includes("fresh");
+      const hasFlavorful  = hasVTag("Flavorful");
+      const isBasic       = scat.includes("comfort food") || scat.includes("quick & casual");
+      const isFamiliar    = hasVTag("Kid-friendly", "Crowd pleaser");
+      if (isBoldCat)          { sessionVibeScore += 1.0; setReason("Bold and unexpected — exactly something new"); }
+      else if (isElevatedCat) { sessionVibeScore += 0.75; setReason("A step up from the usual"); }
+      else if (isGlobalFresh) { sessionVibeScore += 0.5; setReason("A global flavor worth exploring"); }
+      else if (hasFlavorful)  { sessionVibeScore += 0.35; }
+      if (isBasic)    sessionVibeScore -= 0.5;
+      if (isFamiliar) sessionVibeScore -= 0.35;
+
+    } else if (sessionVibeMode === "kid-friendly") {
+      const hasKid       = hasVTag("Kid-friendly");
+      const hasCrowd     = hasVTag("Crowd pleaser");
+      const isComfortCat = scat.includes("comfort food");
+      const isQuickCas   = scat.includes("quick & casual");
+      const isBoldCat    = scat.includes("bold flavors");
+      const isElevated   = scat.includes("elevated");
+      const hasFlavorful = hasVTag("Flavorful");
+      if (hasKid)            { sessionVibeScore += 1.5; setReason("A sure hit with the whole table"); }
+      else if (hasCrowd)     { sessionVibeScore += 1.0; setReason("Everyone will eat this without complaint"); }
+      else if (isComfortCat) { sessionVibeScore += 0.6; }
+      else if (isQuickCas)   { sessionVibeScore += 0.35; }
+      if (isBoldCat)    sessionVibeScore -= 1.0;
+      if (isElevated)   sessionVibeScore -= 0.5;
+      if (hasFlavorful) sessionVibeScore -= 0.5;
+    }
+
+    score     += sessionVibeScore;
+    vibeScore += sessionVibeScore;
+  }
+
+  return { score, reason: topReason ?? meal.whyItFits, vibeScore };
 }
 
 /**
@@ -819,20 +959,39 @@ export function rankMeals(
   selectedIngredients: string[] = [],
   context: WhoFor = "solo",
   sessionShown: Set<string> = new Set(),
-  vibe: string | null = null
+  vibe: string | null = null,
+  cookMode: SessionCookMode = "either",
+  sessionVibeMode: SessionVibeMode = "mix-it-up"
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
-  // 1. Score every meal
+  // 1. Score every meal — vibeScore is tracked separately for dev logging
   const scored = meals.map((meal) => {
-    const { score, reason } = scoreMeal(
-      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe
+    const { score, reason, vibeScore } = scoreMeal(
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode
     );
-    return { meal, score, reason };
+    return { meal, score, reason, vibeScore };
   });
 
   // 2. Sort by score descending — all meals ranked, no artificial cutoff
   scored.sort((a, b) => b.score - a.score);
+
+  // Dev logging — shows preference vs vibe contribution for top 10 meals
+  // so it's easy to verify vibe is nudging, not driving, the order.
+  if (process.env.NODE_ENV === "development" && sessionVibeMode !== "mix-it-up") {
+    console.log(`[rankMeals · vibe: ${sessionVibeMode}] Top 10 — pref vs vibe:`);
+    scored.slice(0, 10).forEach((s, i) => {
+      const pref = +(s.score - s.vibeScore).toFixed(2);
+      const vibe = +s.vibeScore.toFixed(2);
+      const sign = vibe >= 0 ? "+" : "";
+      console.log(
+        `  ${i + 1}. ${s.meal.name.padEnd(28)}` +
+        ` pref: ${String(pref).padStart(5)}` +
+        `  vibe: ${sign}${vibe}` +
+        `  total: ${s.score.toFixed(2)}`
+      );
+    });
+  }
 
   // 3. Shuffle within 1-point score bands to vary the deck each session
   const shuffled = bandShuffle(scored);
@@ -932,4 +1091,234 @@ function spreadByCuisine<T extends { meal: Meal }>(sorted: T[]): T[] {
   }
 
   return result;
+}
+
+// ── Shared-session mutual scoring ─────────────────────────────────────────────
+//
+// These functions score meals for a shared deck by evaluating each user's fit
+// independently and combining via a mutual-fit formula. The key insight is that
+// a meal is only as good as the *less interested* person in a shared decision,
+// so min(scoreA, scoreB) is the foundation rather than an average.
+//
+// Formula:
+//   mutualScore = min(userAScore, userBScore) * 1.5
+//               + sharedOverlapBonus       (both users have explicit positive signal)
+//               + safeCrowdPleaserBonus    (meal inherently works for groups)
+//               - bothSeenPenalty          (extra penalty when both have seen it)
+//
+// Solo mode is completely unaffected — rankMeals is unchanged.
+
+/**
+ * Scores a meal from one user's perspective using only the data available in
+ * their Supabase profile (cuisines, learned weights, recently seen).
+ * Uses "solo" context so partner/family nudges don't double-count.
+ */
+function scoreForUser(meal: Meal, profile: UserProfileForScoring): number {
+  const prefs: UserPreferences = {
+    cuisines: profile.cuisines,
+    dislikedFoods: [], // already hard-gated before this is called
+    spiceLevel: "any",
+    cookOrOrder: "either",
+    kidFriendly: null,
+  };
+
+  const { score } = scoreMeal(
+    meal,
+    prefs,
+    [],        // savedMeals — not available in Supabase profiles
+    [],        // history — not available in Supabase profiles
+    false,     // no pantry mode
+    profile.learnedWeights ?? undefined,
+    profile.recentlySeen,
+    undefined, // flavorProfile — not available in Supabase profiles
+    [],        // favorites — not available in Supabase profiles
+    [],        // no ingredient filter
+    "solo",    // score each user independently; mutual formula handles the partnership
+    new Set(), // fresh session — nothing card-shown yet
+    null,      // no vibe filter in shared mode
+  );
+
+  return score;
+}
+
+/**
+ * Computes a bonus for meals that both users have independently signalled they
+ * enjoy. Bonuses stack but are capped per-dimension so no single dimension
+ * dominates.
+ *
+ * Shared cuisine:   +1.5  (strongest signal — explicit preference from onboarding)
+ * Shared liked tags:  +1.0  (behavioral — both have saved/chosen meals with these tags)
+ * Shared liked category: +0.75  (behavioral — both have positive category history)
+ */
+function computeOverlapBonus(
+  meal: Meal,
+  profileA: UserProfileForScoring,
+  profileB: UserProfileForScoring,
+): { bonus: number; reasons: string[] } {
+  let bonus = 0;
+  const reasons: string[] = [];
+
+  const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
+
+  // Both users listed this cuisine in their favorite_cuisines
+  const sharedCuisine = mealCuisines.find(
+    (c) => profileA.cuisines.includes(c) && profileB.cuisines.includes(c),
+  );
+  if (sharedCuisine) {
+    bonus += 1.5;
+    reasons.push(`both like ${sharedCuisine}`);
+  }
+
+  // Both users' learned weights have positive signal for one of the meal's tags
+  const aLikedTags = new Set(
+    Object.entries(profileA.learnedWeights?.likedTags ?? {})
+      .filter(([, v]) => v > 0)
+      .map(([k]) => k),
+  );
+  const bLikedTags = new Set(
+    Object.entries(profileB.learnedWeights?.likedTags ?? {})
+      .filter(([, v]) => v > 0)
+      .map(([k]) => k),
+  );
+  const sharedLikedTags = meal.tags.filter((t) => aLikedTags.has(t) && bLikedTags.has(t));
+  if (sharedLikedTags.length > 0) {
+    bonus += 1.0;
+    reasons.push(`shared liked tags: ${sharedLikedTags.slice(0, 2).join(", ")}`);
+  }
+
+  // Both users have a positive learned signal for this meal's category
+  const aLikesCategory = (profileA.learnedWeights?.likedCategories[meal.category] ?? 0) > 0;
+  const bLikesCategory = (profileB.learnedWeights?.likedCategories[meal.category] ?? 0) > 0;
+  if (aLikesCategory && bLikesCategory) {
+    bonus += 0.75;
+    reasons.push(`both liked ${meal.category}`);
+  }
+
+  return { bonus, reasons };
+}
+
+/**
+ * Scores a single meal for mutual fit in a shared session.
+ *
+ * Returns individual scores (for logging/debugging) plus the combined
+ * mutualScore and overlap metadata.
+ *
+ * Exported so it can be unit-tested independently of the full ranking pipeline.
+ */
+export function scoreMealMutual(
+  meal: Meal,
+  profileA: UserProfileForScoring,
+  profileB: UserProfileForScoring,
+): {
+  mutualScore: number;
+  userAScore: number;
+  userBScore: number;
+  reason: string;
+  overlapReasons: string[];
+} {
+  const userAScore = scoreForUser(meal, profileA);
+  const userBScore = scoreForUser(meal, profileB);
+
+  const { bonus: overlapBonus, reasons: overlapReasons } = computeOverlapBonus(
+    meal,
+    profileA,
+    profileB,
+  );
+
+  // Safe crowd-pleaser bonus — benefits groups regardless of individual profiles
+  const isCrowdPleaser =
+    meal.tags.some((t) => t === "Crowd pleaser" || t === "Kid-friendly") ||
+    meal.category.toLowerCase().includes("crowd pleaser");
+  const crowdBonus = isCrowdPleaser ? 0.5 : 0;
+  if (isCrowdPleaser && overlapReasons.length === 0) overlapReasons.push("crowd pleaser");
+
+  // Extra penalty when BOTH users have already seen this meal recently.
+  // The individual scoreForUser calls already apply -2.5 for each user who has
+  // seen it; this adds a further -1.0 to push it down even more when both agree
+  // they've been exposed to it.
+  const bothSeenPenalty =
+    profileA.recentlySeen.has(meal.id) && profileB.recentlySeen.has(meal.id)
+      ? -1.0 : 0;
+
+  const mutualScore =
+    Math.min(userAScore, userBScore) * 1.5
+    + overlapBonus
+    + crowdBonus
+    + bothSeenPenalty;
+
+  // Derive a user-facing reason that reflects why this is a good shared pick
+  let reason: string;
+  const cuisineReason = overlapReasons.find((r) => r.startsWith("both like "));
+  const tagReason = overlapReasons.find((r) => r.startsWith("shared liked tags"));
+  const catReason = overlapReasons.find((r) => r.startsWith("both liked "));
+
+  if (cuisineReason) {
+    const cuisine = cuisineReason.replace("both like ", "");
+    reason = `You both love ${cuisine} — a great pick for tonight`;
+  } else if (tagReason) {
+    reason = "Matches both your tastes";
+  } else if (catReason) {
+    reason = "You both tend to enjoy this style";
+  } else {
+    reason = meal.whyItFits;
+  }
+
+  return { mutualScore, userAScore, userBScore, reason, overlapReasons };
+}
+
+/**
+ * Ranks meals for a shared session using mutual-fit scoring.
+ *
+ * Drop-in replacement for rankMeals() in shared contexts. Accepts both users'
+ * profile data separately (no merging) so each user's preferences are weighted
+ * fairly and independently before being combined.
+ *
+ * Pipeline:
+ *   1. Score every eligible meal with scoreMealMutual
+ *   2. Sort descending by mutualScore
+ *   3. Log top 10 in development (name + per-user scores + overlap reasons)
+ *   4. bandShuffle within 1-point bands — same variety as solo mode
+ *   5. spreadByCuisine — prevents same-cuisine runs
+ *
+ * Hard gates must be applied by the caller before passing meals in.
+ * Solo mode (rankMeals) is completely unaffected by this function.
+ */
+export function rankMealsForSharedSession(
+  meals: Meal[],
+  profileA: UserProfileForScoring,
+  profileB: UserProfileForScoring,
+): RankedMeal[] {
+  if (meals.length === 0) return [];
+
+  const scored = meals.map((meal) => {
+    const { mutualScore, userAScore, userBScore, reason, overlapReasons } =
+      scoreMealMutual(meal, profileA, profileB);
+    return { meal, score: mutualScore, userAScore, userBScore, reason, overlapReasons };
+  });
+
+  // Sort by mutual score descending
+  scored.sort((a, b) => b.score - a.score);
+
+  // Development logging — shared deck only, top 10 with full breakdown
+  if (process.env.NODE_ENV === "development") {
+    console.log("[sharedDeck] Top 10 mutual scores:");
+    scored.slice(0, 10).forEach((s, i) => {
+      const overlapStr = s.overlapReasons.length
+        ? ` | overlap: ${s.overlapReasons.join(", ")}`
+        : "";
+      console.log(
+        `  ${i + 1}. ${s.meal.name}` +
+        ` | A: ${s.userAScore.toFixed(2)}` +
+        ` | B: ${s.userBScore.toFixed(2)}` +
+        ` | mutual: ${s.score.toFixed(2)}` +
+        overlapStr,
+      );
+    });
+  }
+
+  // Band shuffle + cuisine spread — identical to rankMeals
+  const shuffled = bandShuffle(scored);
+  const diversified = spreadByCuisine(shuffled);
+
+  return diversified.map((s) => ({ meal: s.meal, reason: s.reason }));
 }

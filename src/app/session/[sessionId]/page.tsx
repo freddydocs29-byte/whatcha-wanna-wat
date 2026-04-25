@@ -7,6 +7,7 @@ import { supabase, Session } from "../../lib/supabase";
 import { getUserId } from "../../lib/identity";
 import { buildSharedDeckForSession } from "../../lib/deck";
 import { upsertProfilePreferences } from "../../lib/supabase-profile";
+import type { SessionVibeMode } from "../../lib/scoring";
 import {
   hasCompletedOnboarding,
   savePreferences,
@@ -48,6 +49,15 @@ type ViewerRole = "host" | "guest" | "full" | "unknown";
 
 const POLL_INTERVAL_MS = 3000;
 
+const VIBE_OPTIONS: { value: SessionVibeMode; label: string }[] = [
+  { value: "mix-it-up",     label: "Mix It Up" },
+  { value: "comfort-food",  label: "Comfort Food" },
+  { value: "quick-easy",    label: "Quick & Easy" },
+  { value: "healthy",       label: "Healthy" },
+  { value: "something-new", label: "Something New" },
+  { value: "kid-friendly",  label: "Kid Friendly" },
+];
+
 export default function SessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
@@ -59,6 +69,7 @@ export default function SessionPage() {
   const [joining, setJoining] = useState(false);
   const [buildingDeck, setBuildingDeck] = useState(false);
   const [completingSetup, setCompletingSetup] = useState(false);
+  const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
 
   // Guard so generateDeckIfNeeded only fires once per session load
   const deckTriggeredRef = useRef(false);
@@ -97,6 +108,7 @@ export default function SessionPage() {
 
     if (myId === s.host_user_id) {
       setRole("host");
+      if (s.vibe) setSelectedVibe(s.vibe as SessionVibeMode);
     } else if (myId === s.guest_user_id) {
       setRole("guest");
     } else if (s.guest_user_id !== null) {
@@ -189,13 +201,6 @@ export default function SessionPage() {
     }
   }, [role, session, joining, needsSetup, joinSession]);
 
-  // Navigate guest to deck as soon as the deck is ready
-  useEffect(() => {
-    if (role === "guest" && session?.deck_meal_ids && session.deck_meal_ids.length > 0) {
-      router.push(`/deck?sessionId=${sessionId}`);
-    }
-  }, [role, session?.deck_meal_ids, sessionId, router]);
-
   // Host: trigger deck generation when guest joins (detected via poll)
   useEffect(() => {
     if (role === "host" && session?.guest_user_id && !session.deck_meal_ids?.length) {
@@ -224,9 +229,22 @@ export default function SessionPage() {
     };
   }, [role, session?.status, session?.deck_meal_ids, loadSession]);
 
+  // Saves the host's vibe choice to the session row so the guest can read it.
+  // Fire-and-forget — requires a `vibe` column on the sessions table.
+  async function handleVibeChange(vibe: SessionVibeMode) {
+    setSelectedVibe(vibe);
+    supabase
+      .from("sessions")
+      .update({ vibe, updated_at: new Date().toISOString() })
+      .eq("id", sessionId)
+      .then(({ error: err }) => {
+        if (err) console.warn("[session] vibe save failed:", err.message);
+      });
+  }
+
   // Host navigates to the deck page once the deck is ready
   function handleStartSwiping() {
-    router.push(`/deck?sessionId=${sessionId}`);
+    router.push(`/deck?sessionId=${sessionId}&vibe=${selectedVibe}`);
   }
 
   function handleCopy() {
@@ -500,7 +518,7 @@ export default function SessionPage() {
     );
   }
 
-  // ── Guest: building deck or waiting for navigation ────────────────────────
+  // ── Guest: building deck ──────────────────────────────────────────────────
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
     return (
       <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
@@ -534,11 +552,78 @@ export default function SessionPage() {
                 </p>
               </div>
               <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
-                You&apos;re in!
+                Hang tight…
               </h1>
               <p className="mt-3 text-sm leading-6 text-white/55">
-                Building your shared deck from both profiles. You&apos;ll be taken there automatically.
+                Building your shared deck from both profiles.
               </p>
+            </div>
+
+            <p className="text-center text-[11px] text-white/20">
+              Session · {sessionId?.slice(0, 8)}
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Guest: deck ready — show intentional entry screen ────────────────────
+  if (role === "guest" && !!(session?.deck_meal_ids?.length)) {
+    const guestVibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;
+    const vibeLabel = VIBE_OPTIONS.find((v) => v.value === guestVibe)?.label ?? "Mix It Up";
+
+    return (
+      <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
+        <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/[0.06] blur-3xl" />
+          </div>
+
+          <div className="relative z-10 flex flex-col gap-8 pt-6">
+            <div className="flex items-center justify-between">
+              <Link
+                href="/"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 backdrop-blur-md transition active:scale-[0.98]"
+              >
+                ←
+              </Link>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+                Shared session
+              </span>
+              <div className="w-10" />
+            </div>
+
+            <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+              <div className="flex items-center gap-2.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                <p className="text-xs font-medium uppercase tracking-widest text-emerald-400">
+                  Ready
+                </p>
+              </div>
+              <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
+                You&apos;re in
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-white/55">
+                We&apos;ll use both profiles to build your shared deck.
+              </p>
+
+              {/* Vibe — read-only, set by host */}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-widest text-white/30">
+                  Vibe
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.06] px-3 py-1 text-xs text-white/60">
+                  {vibeLabel}
+                </span>
+              </div>
+
+              <button
+                onClick={() => router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`)}
+                className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+              >
+                Start swiping
+              </button>
             </div>
 
             <p className="text-center text-[11px] text-white/20">
@@ -643,6 +728,33 @@ export default function SessionPage() {
                 {copied ? "Copied!" : "Copy link"}
               </button>
             </div>
+
+            {/* Vibe picker — host only, shown once deck is ready */}
+            {deckReady && (
+              <div className="mt-5">
+                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-white/30">
+                  Choose a vibe
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {VIBE_OPTIONS.map(({ value, label }) => {
+                    const isActive = selectedVibe === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => handleVibeChange(value)}
+                        className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors duration-150 active:scale-[0.96] ${
+                          isActive
+                            ? "border-white/30 bg-white/[0.14] text-white/90"
+                            : "border-white/[0.08] bg-transparent text-white/35 hover:border-white/18 hover:text-white/60"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Start swiping — only shown once the shared deck is ready */}
             {deckReady && (

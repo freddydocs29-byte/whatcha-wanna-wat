@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, type RankedMeal, type WhoFor } from "../lib/scoring";
+import { rankMeals, hardGate, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/identity";
 
@@ -39,72 +39,6 @@ function FridgeOpen() {
   );
 }
 
-type TasteFilter = {
-  id: string;
-  label: string;
-  description: string;
-  match: (meal: Meal) => boolean;
-};
-
-const FILTERS: TasteFilter[] = [
-  {
-    id: "quick-easy",
-    label: "Quick & Easy",
-    description: "Under 25 min, minimal effort",
-    match: (m) =>
-      m.tags.some((t) =>
-        ["easy", "15 min", "20 min", "25 min"].some((k) =>
-          t.toLowerCase().includes(k)
-        )
-      ),
-  },
-  {
-    id: "comfort-food",
-    label: "Comfort Food",
-    description: "Hearty, familiar, feel-good",
-    match: (m) =>
-      m.category.toLowerCase().includes("comfort") ||
-      m.tags.some((t) =>
-        ["indulgent", "crowd pleaser"].some((k) => t.toLowerCase().includes(k))
-      ),
-  },
-  {
-    id: "healthy",
-    label: "Healthy",
-    description: "Light, nutritious, no regrets",
-    match: (m) =>
-      m.category.toLowerCase().includes("health") ||
-      m.tags.some((t) =>
-        ["nutritious", "light", "protein"].some((k) =>
-          t.toLowerCase().includes(k)
-        )
-      ),
-  },
-  {
-    id: "something-new",
-    label: "Something New",
-    description: "Bold, adventurous, unexpected",
-    match: (m) =>
-      ["bold flavors", "fresh", "elevated", "classic italian"].some((c) =>
-        m.category.toLowerCase().includes(c)
-      ),
-  },
-  {
-    id: "kid-friendly",
-    label: "Kid-Friendly",
-    description: "Everyone at the table will eat it",
-    match: (m) =>
-      m.tags.some((t) =>
-        ["kid", "crowd"].some((k) => t.toLowerCase().includes(k))
-      ),
-  },
-  {
-    id: "no-preference",
-    label: "No Preference",
-    description: "Show me everything",
-    match: () => true,
-  },
-];
 
 const PANTRY_INGREDIENTS: Record<string, string[]> = {
   Proteins: ["Chicken", "Ground beef", "Steak", "Shrimp", "Salmon", "Eggs", "Bacon", "Sausage", "Tofu"],
@@ -142,21 +76,21 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
 }
 
 /**
- * Build a ranked deck for the given filter + pantry mode, with a progressive
- * fallback so the deck never drops below MIN_DECK_SIZE.
+ * Build a ranked deck with a progressive fallback so the deck never drops
+ * below MIN_DECK_SIZE. No vibe filter — session selectors (cookMode /
+ * sessionVibeMode) are the only real-time context signals.
  *
- * hardGate runs first and permanently removes meals that violate the user's
- * hard-NO foods. Remaining stages only ever operate on these eligible meals,
- * so hard NOs can never re-enter the deck at any fallback stage.
- *
- * Stage 1 — full filter + spice/kid hard-filters (ideal path).
- * Stage 2 — relax taste filter: all eligible meals, still enforce spice + kid.
- * Stage 3 — relax spice + kid filters; hard-NOs still excluded by hardGate.
- *
- * Meals added in later stages are still scored with the full preference +
- * history signals so the deck stays relevant.
+ * hardGate runs first and permanently removes hard-NO meals.
+ * Stage 1 — spice/kid preference hard-filters.
+ * Stage 2 — relax spice + kid filters; hard NOs still excluded.
  */
-function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredients: string[] = [], context: WhoFor = "solo", sessionShown: Set<string> = new Set()): RankedMeal[] {
+function buildDeck(
+  pantryMode: boolean,
+  selectedIngredients: string[] = [],
+  sessionShown: Set<string> = new Set(),
+  cookMode: SessionCookMode = "either",
+  sessionVibeMode: SessionVibeMode = "mix-it-up",
+): RankedMeal[] {
   const prefs = getPreferences();
   const savedMeals = getSavedMeals();
   const history = getHistory();
@@ -165,17 +99,12 @@ function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredi
   const flavorProfile = getFlavorProfile() ?? undefined;
   const favorites = getFavorites();
 
-  // Hard gate — remove meals that violate hard NOs before any scoring.
-  // This runs once; all subsequent stages operate only on eligible meals.
   const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
 
-  // filterId doubles as the vibe ID — same string, same source of truth.
-  const vibe = filterId;
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode);
   }
 
-  // Merge new ranked meals into an existing deck, skipping duplicates.
   function fill(deck: RankedMeal[], candidates: Meal[]): RankedMeal[] {
     const seen = new Set(deck.map((r) => r.meal.id));
     const newMeals = candidates.filter((m) => !seen.has(m.id));
@@ -183,18 +112,11 @@ function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredi
     return [...deck, ...rank(newMeals)];
   }
 
-  const filter = FILTERS.find((f) => f.id === filterId) ?? null;
-  const filterBase = filter ? eligibleMeals.filter(filter.match) : eligibleMeals;
-
-  // Stage 1: full filter + spice/kid preference hard-filters
-  let deck = rank(filterBase.filter((m) => matchesPreferences(m, prefs)));
+  // Stage 1: spice/kid preference hard-filters
+  let deck = rank(eligibleMeals.filter((m) => matchesPreferences(m, prefs)));
   if (deck.length >= MIN_DECK_SIZE) return deck;
 
-  // Stage 2: relax taste filter — all eligible meals still pass spice/kid filters
-  deck = fill(deck, eligibleMeals.filter((m) => matchesPreferences(m, prefs)));
-  if (deck.length >= MIN_DECK_SIZE) return deck;
-
-  // Stage 3: relax spice + kid filters; hard NOs are already excluded above
+  // Stage 2: relax spice + kid filters
   deck = fill(deck, eligibleMeals);
   return deck;
 }
@@ -205,7 +127,6 @@ function DeckContent() {
   const isChangeMeal = searchParams.get("change") === "1";
   const sessionId = searchParams.get("sessionId");
   const [existingMeal, setExistingMeal] = useState<HistoryEntry | null>(null);
-  const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const [rankedMeals, setRankedMeals] = useState<RankedMeal[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitX, setExitX] = useState<number | null>(null);
@@ -214,7 +135,9 @@ function DeckContent() {
   const [showIngredientSheet, setShowIngredientSheet] = useState(false);
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
-  const [whoFor, setWhoFor] = useState<WhoFor>("solo");
+  const [cookMode, setCookMode] = useState<SessionCookMode>("either");
+  const vibeParam = searchParams.get("vibe") as SessionVibeMode | null;
+  const [sessionVibeMode, setSessionVibeMode] = useState<SessionVibeMode>(vibeParam ?? "mix-it-up");
   const [isChoosing, setIsChoosing] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
@@ -280,7 +203,6 @@ function DeckContent() {
       const ordered: RankedMeal[] = orderedMeals.map((meal) => ({ meal, reason: "" }));
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
-      setActiveFilterId("__shared__"); // sentinel — skips filter picker, blocks re-rank
       setSharedLoading(false);
     };
 
@@ -338,41 +260,37 @@ function DeckContent() {
   // ────────────────────────────────────────────────────────────────────────────
 
   const afterExitRef = useRef<(() => void) | null>(null);
-  // Tracks the last filter id for which we recorded a seen-session,
-  // so recordSeenSession fires only on genuine filter changes, not on
-  // every whoFor / pantry re-rank.
-  const seenSessionFilterRef = useRef<string | null>(null);
   // In-memory set of meal IDs that were the active card during this visit.
-  // Populated before each re-rank so nearby re-ranks (context/pantry switches)
-  // apply a soft penalty to meals the user just saw.
+  // Populated before each re-rank so context/pantry switches apply a soft
+  // penalty to meals the user just saw.
   const sessionShownRef = useRef<Set<string>>(new Set());
+  // Tracks whether recordSeenSession has been called for the current deck
+  // session — resets on handleRefreshDeck to allow re-recording.
+  const deckRecordedRef = useRef(false);
 
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
 
-  // Single reactive effect — re-ranks the deck whenever any of the four
-  // inputs that meaningfully affect scoring change.
+  // Builds the solo deck on mount and whenever pantry/ingredients/session
+  // selectors change. Shared decks are loaded in their own effect and never
+  // re-ranked from local state.
   useEffect(() => {
-    if (activeFilterId === null) return;
-    if (sessionId) return; // Shared deck is fixed — never re-rank from local state
-    // Snapshot all cards the user has seen so far (indices 0..currentIndex)
-    // into the session set before rebuilding, so they get a soft penalty in
-    // the new deck order and don't repeat immediately.
+    if (sessionId) return;
     for (let i = 0; i <= currentIndex && i < rankedMeals.length; i++) {
       const id = rankedMeals[i]?.meal?.id;
       if (id) sessionShownRef.current.add(id);
     }
-    const ranked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
-    if (activeFilterId !== seenSessionFilterRef.current) {
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
+    if (!deckRecordedRef.current) {
       recordSeenSession(ranked.map((r) => r.meal.id));
-      seenSessionFilterRef.current = activeFilterId;
+      deckRecordedRef.current = true;
     }
     setRankedMeals(ranked.slice(0, DECK_SIZE));
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
-  }, [activeFilterId, pantryMode, selectedIngredients, whoFor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pantryMode, selectedIngredients, cookMode, sessionVibeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function dismissHint() {
     if (!showSwipeHint) return;
@@ -384,8 +302,6 @@ function DeckContent() {
   const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15]);
   const passOpacity = useTransform(x, [-SWIPE_THRESHOLD, -30], [1, 0]);
   const chooseOpacity = useTransform(x, [30, SWIPE_THRESHOLD], [0, 1]);
-
-  const activeFilter = FILTERS.find((f) => f.id === activeFilterId) ?? null;
 
   const current = rankedMeals[currentIndex];
   const meal = current?.meal;
@@ -405,21 +321,12 @@ function DeckContent() {
     return "Just getting started";
   })();
 
-  function selectFilter(id: string) {
-    // State updates trigger the unified useEffect which rebuilds the deck
-    // and calls recordSeenSession when the filter id is new.
-    setActiveFilterId(id);
-    setTopPicksMode(false);
-    x.set(0);
-    setExitX(null);
-  }
-
   function handleTopPicks() {
     // In shared mode the deck is fixed — top picks = top 35% of the current order.
     // In solo mode rebuild from scratch so scoring is fresh.
     const source = sessionId
       ? rankedMeals
-      : buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
+      : buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
     const topN = Math.max(3, Math.ceil(source.length * 0.35));
     setRankedMeals(source.slice(0, topN));
     setCurrentIndex(0);
@@ -443,16 +350,6 @@ function DeckContent() {
     // and one unified-effect execution with the correct final state.
     if (!next) setSelectedIngredients([]);
     setPantryMode(next);
-  }
-
-  function resetFilter() {
-    seenSessionFilterRef.current = null; // so the next filter pick re-records
-    setActiveFilterId(null);
-    setRankedMeals([]);
-    setCurrentIndex(0);
-    setTopPicksMode(false);
-    x.set(0);
-    setExitX(null);
   }
 
   function triggerExit(direction: "left" | "right", afterExit: () => void) {
@@ -550,9 +447,10 @@ function DeckContent() {
 
   function handleRefreshDeck() {
     sessionShownRef.current = new Set();
-    const ranked = buildDeck(activeFilterId, pantryMode, selectedIngredients, whoFor, sessionShownRef.current);
+    deckRecordedRef.current = false;
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
     recordSeenSession(ranked.map((r) => r.meal.id));
-    seenSessionFilterRef.current = activeFilterId;
+    deckRecordedRef.current = true;
     setRankedMeals(ranked.slice(0, DECK_SIZE));
     setCurrentIndex(0);
     x.set(0);
@@ -661,84 +559,6 @@ function DeckContent() {
         <div className="flex flex-col items-center gap-3">
           <span className="h-2 w-2 animate-ping rounded-full bg-white/40" />
           <p className="text-sm text-white/35">Loading shared deck…</p>
-        </div>
-      </main>
-    );
-  }
-
-  // ── Filter picker screen ──────────────────────────────────────────────────
-  if (activeFilterId === null) {
-    return (
-      <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
-          <header className="flex items-center justify-between">
-            <p className="text-sm text-white/50">Decision Deck</p>
-            <button
-              onClick={() => router.push("/")}
-              className="text-sm text-white/35 transition hover:text-white/60"
-            >
-              {isChangeMeal && existingMeal
-                ? `Keep ${existingMeal.meal.name}`
-                : "Back"}
-            </button>
-          </header>
-
-          <section className="mt-10">
-            <h1 className="text-4xl font-semibold tracking-[-0.05em]">
-              What are you feeling?
-            </h1>
-            <p className="mt-3 max-w-[30ch] text-sm leading-6 text-white/55">
-              Pick a vibe and we'll show meals that match. You can always change
-              it.
-            </p>
-          </section>
-
-          <div className="mt-8">
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/25">
-              Deciding for
-            </p>
-            <div className="flex rounded-2xl border border-white/[0.07] bg-white/[0.03] p-1 gap-0.5">
-              {(["solo", "partner", "family"] as WhoFor[]).map((option) => (
-                <button
-                  key={option}
-                  onClick={() => setWhoFor(option)}
-                  className={`flex-1 rounded-xl py-2 text-xs font-medium transition-colors duration-150 ${
-                    whoFor === option
-                      ? "bg-white/[0.1] text-white/80"
-                      : "text-white/30 hover:text-white/50 active:scale-[0.97]"
-                  }`}
-                >
-                  {option === "solo" ? "Just me" : option === "partner" ? "Me + partner" : "Family"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {FILTERS.slice(0, -1).map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => selectFilter(filter.id)}
-                className="flex flex-col items-start rounded-[24px] border border-white/10 bg-white/[0.05] p-4 text-left shadow-[0_6px_24px_rgba(0,0,0,0.25)] transition hover:bg-white/[0.09] active:scale-[0.98]"
-              >
-                <span className="text-base font-semibold tracking-[-0.03em]">
-                  {filter.label}
-                </span>
-                <span className="mt-1 text-xs leading-5 text-white/50">
-                  {filter.description}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={() => selectFilter("no-preference")}
-              className="text-sm text-white/40 underline underline-offset-4 transition hover:text-white/70"
-            >
-              Skip — show me everything
-            </button>
-          </div>
         </div>
       </main>
     );
@@ -871,14 +691,6 @@ function DeckContent() {
                   >
                     Start over
                   </button>
-                  {!sessionId && (
-                    <button
-                      onClick={resetFilter}
-                      className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
-                    >
-                      Change filter
-                    </button>
-                  )}
                 </div>
                 <button
                   onClick={() => router.push("/browse")}
@@ -904,14 +716,6 @@ function DeckContent() {
                     Refresh deck
                   </button>
                   <div className="mt-5 flex justify-center gap-3">
-                    {!sessionId && (
-                      <button
-                        onClick={resetFilter}
-                        className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
-                      >
-                        Change filter
-                      </button>
-                    )}
                     <button
                       onClick={() => router.push("/browse")}
                       className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
@@ -968,15 +772,6 @@ function DeckContent() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            {!sessionId && (
-              <button
-                onClick={resetFilter}
-                className="text-xs text-white/35 transition hover:text-white/60"
-              >
-                {activeFilter?.label} ·{" "}
-                <span className="underline underline-offset-2">change</span>
-              </button>
-            )}
             <p className="text-sm text-white/35">
               {currentIndex + 1}/{rankedMeals.length}
             </p>
@@ -1000,24 +795,62 @@ function DeckContent() {
           </p>
         </section>
 
-        {/* Who are you deciding for toggle — solo only */}
-        {!sessionId && (
-          <div className="mt-4 flex rounded-2xl border border-white/[0.07] bg-white/[0.03] p-1 gap-0.5">
-            {(["solo", "partner", "family"] as WhoFor[]).map((option) => (
-              <button
-                key={option}
-                onClick={() => setWhoFor(option)}
-                className={`flex-1 rounded-xl py-2 text-xs font-medium transition-colors duration-150 ${
-                  whoFor === option
-                    ? "bg-white/[0.1] text-white/80"
-                    : "text-white/30 hover:text-white/50 active:scale-[0.97]"
-                }`}
-              >
-                {option === "solo" ? "Just me" : option === "partner" ? "Me + partner" : "Family"}
-              </button>
-            ))}
+        {/* Session selectors — inline context pills */}
+        <div className="mt-4 flex flex-col gap-2">
+          {/* Cook / Order / Either · Quick / Balanced / Something special */}
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+            {(["cook", "either", "order"] as SessionCookMode[]).map((mode) => {
+              const label = mode === "cook" ? "Cook" : mode === "order" ? "Order" : "Either";
+              const isActive = cookMode === mode;
+              const isReadOnly = !!sessionId;
+              return (
+                <button
+                  key={mode}
+                  disabled={isReadOnly}
+                  onClick={() => !isReadOnly && setCookMode(mode)}
+                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 ${
+                    isActive
+                      ? "border-white/25 bg-white/[0.12] text-white/80"
+                      : isReadOnly
+                      ? "border-white/[0.05] bg-transparent text-white/20 cursor-default"
+                      : "border-white/[0.07] bg-transparent text-white/30 hover:border-white/15 hover:text-white/55 active:scale-[0.96]"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            <span className="mx-0.5 shrink-0 self-center text-white/10">·</span>
+            {/* Vibe selector — 6 options */}
+            {(["mix-it-up", "comfort-food", "quick-easy", "healthy", "something-new", "kid-friendly"] as SessionVibeMode[]).map((mode) => {
+              const label =
+                mode === "mix-it-up" ? "Mix It Up" :
+                mode === "comfort-food" ? "Comfort Food" :
+                mode === "quick-easy" ? "Quick & Easy" :
+                mode === "healthy" ? "Healthy" :
+                mode === "something-new" ? "Something New" :
+                "Kid Friendly";
+              const isActive = sessionVibeMode === mode;
+              const isReadOnly = !!sessionId;
+              return (
+                <button
+                  key={mode}
+                  disabled={isReadOnly}
+                  onClick={() => !isReadOnly && setSessionVibeMode(mode)}
+                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 ${
+                    isActive
+                      ? "border-white/25 bg-white/[0.12] text-white/80"
+                      : isReadOnly
+                      ? "border-white/[0.05] bg-transparent text-white/20 cursor-default"
+                      : "border-white/[0.07] bg-transparent text-white/30 hover:border-white/15 hover:text-white/55 active:scale-[0.96]"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {/* Pantry bar — solo only */}
         {!sessionId && <motion.button

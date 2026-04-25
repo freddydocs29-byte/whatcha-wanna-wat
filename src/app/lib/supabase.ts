@@ -26,6 +26,7 @@ export type Session = {
   status: "waiting" | "active" | "matched";
   locked_meal_id: string | null;
   deck_meal_ids: string[] | null;
+  vibe: string | null;
   created_at: string;
   updated_at: string;
   expires_at: string;
