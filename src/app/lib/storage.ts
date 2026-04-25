@@ -1,4 +1,6 @@
 import { Meal } from "../data/meals";
+import { getUserId } from "./identity";
+import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen } from "./supabase-profile";
 
 export type HistoryEntry = {
   meal: Meal;
@@ -212,6 +214,8 @@ export function getPreferences(): UserPreferences | null {
 export function savePreferences(prefs: UserPreferences): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  // Fire-and-forget sync to Supabase
+  upsertProfilePreferences(getUserId(), prefs).catch(() => {});
 }
 
 export function markOnboardingDone(): void {
@@ -241,6 +245,7 @@ export function getTasteProfile(): TasteProfile {
  *   save   → +1 to each tag in likedTags, +1 to the category in likedCategories
  *   choose → +2 to each tag in likedTags, +2 to the category in likedCategories
  */
+let _tasteProfileSyncTimer: ReturnType<typeof setTimeout> | null = null;
 export function updateTasteProfile(meal: Meal, signal: "pass" | "save" | "choose"): void {
   if (typeof window === "undefined") return;
   const profile = getTasteProfile();
@@ -259,6 +264,13 @@ export function updateTasteProfile(meal: Meal, signal: "pass" | "save" | "choose
   }
 
   localStorage.setItem(TASTE_KEY, JSON.stringify(profile));
+
+  // Debounce Supabase sync — batch rapid swipes into a single write
+  if (_tasteProfileSyncTimer) clearTimeout(_tasteProfileSyncTimer);
+  const snapshot = profile;
+  _tasteProfileSyncTimer = setTimeout(() => {
+    upsertLearnedWeights(getUserId(), snapshot).catch(() => {});
+  }, 500);
 }
 
 export function getFlavorProfile(): FlavorProfile | null {
@@ -301,7 +313,11 @@ export function recordSeenSession(mealIds: string[]): void {
   if (typeof window === "undefined") return;
   const sessions = read<SeenSession[]>(SEEN_KEY, []);
   const entry: SeenSession = { mealIds, seenAt: new Date().toISOString() };
-  localStorage.setItem(SEEN_KEY, JSON.stringify([entry, ...sessions].slice(0, 5)));
+  const updated = [entry, ...sessions].slice(0, 5);
+  localStorage.setItem(SEEN_KEY, JSON.stringify(updated));
+  // Sync flattened IDs to Supabase for cross-session recency penalty
+  const allIds = updated.flatMap((s) => s.mealIds);
+  upsertRecentlySeen(getUserId(), allIds).catch(() => {});
 }
 
 function toLocalDateStr(date: Date): string {

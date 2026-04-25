@@ -39,3 +39,20 @@ export type Swipe = {
   decision: "yes" | "no";
   created_at: string;
 };
+
+export type Profile = {
+  user_id: string;
+  display_name: string | null;
+  dietary_restrictions: string[];
+  hard_no_foods: string[];
+  favorite_cuisines: string[];
+  learned_weights: {
+    likedTags: Record<string, number>;
+    dislikedTags: Record<string, number>;
+    likedCategories: Record<string, number>;
+    interactionCount: number;
+  } | null;
+  recently_seen_meal_ids: string[];
+  created_at: string;
+  updated_at: string;
+};

@@ -1,5 +1,26 @@
 -- Run this in the Supabase SQL editor (Dashboard → SQL Editor → New query)
 
+-- ─── Profiles ────────────────────────────────────────────────────────────────
+-- One row per anonymous user (keyed by localStorage UUID). No auth required.
+-- Persists preferences and learned weights across sessions on the same device,
+-- and enables week-over-week improvement for each user.
+
+create table if not exists profiles (
+  user_id                text        primary key,
+  display_name           text,
+  dietary_restrictions   jsonb       not null default '[]',  -- dislikedFoods e.g. ["Seafood","Dairy"]
+  hard_no_foods          jsonb       not null default '[]',  -- strict never-show list (same as above for MVP)
+  favorite_cuisines      jsonb       not null default '[]',  -- preferred cuisines e.g. ["Italian","Asian"]
+  learned_weights        jsonb,                              -- TasteProfile: likedTags/dislikedTags/likedCategories/interactionCount
+  recently_seen_meal_ids jsonb       not null default '[]',  -- flat list of recently shown meal IDs (recency penalty)
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now()
+);
+
+-- RLS: open access for MVP (tighten when real auth is added)
+alter table profiles enable row level security;
+create policy "MVP open access" on profiles for all using (true) with check (true);
+
 create table sessions (
   id             uuid        default gen_random_uuid() primary key,
   host_user_id   text        not null,
