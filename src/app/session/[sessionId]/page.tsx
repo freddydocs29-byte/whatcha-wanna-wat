@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase, Session } from "../../lib/supabase";
 import { getUserId } from "../../lib/identity";
-import { buildSharedDeck } from "../../lib/deck";
+import { buildSharedDeckForSession } from "../../lib/deck";
+import { upsertProfilePreferences } from "../../lib/supabase-profile";
 import {
   hasCompletedOnboarding,
   savePreferences,
@@ -56,7 +57,11 @@ export default function SessionPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [joining, setJoining] = useState(false);
-  const [startingDeck, setStartingDeck] = useState(false);
+  const [buildingDeck, setBuildingDeck] = useState(false);
+  const [completingSetup, setCompletingSetup] = useState(false);
+
+  // Guard so generateDeckIfNeeded only fires once per session load
+  const deckTriggeredRef = useRef(false);
 
   // Guest quick-setup state (null = not yet checked)
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
@@ -106,6 +111,39 @@ export default function SessionPage() {
     }
   }, [sessionId]);
 
+  // Generates the shared deck from both users' profiles and stores it on the
+  // session row. Safe to call from either participant — the DB guard
+  // (deck_meal_ids IS NULL) ensures only one deck is ever written.
+  const generateDeckIfNeeded = useCallback(
+    async (currentSession: Session) => {
+      if (!currentSession.guest_user_id) return; // guest hasn't joined yet
+      if (currentSession.deck_meal_ids?.length) return; // deck already built
+      if (deckTriggeredRef.current) return; // already in progress on this client
+
+      deckTriggeredRef.current = true;
+      setBuildingDeck(true);
+
+      try {
+        const mealIds = await buildSharedDeckForSession(
+          currentSession.id,
+          currentSession.host_user_id,
+          currentSession.guest_user_id,
+        );
+
+        setSession((prev) =>
+          prev ? { ...prev, deck_meal_ids: mealIds } : prev,
+        );
+      } catch (err) {
+        console.error("[session] deck generation failed:", err);
+        // Reset so polling can retry
+        deckTriggeredRef.current = false;
+      } finally {
+        setBuildingDeck(false);
+      }
+    },
+    [], // sessionId is stable; no deps needed
+  );
+
   // Guest joins the session
   const joinSession = useCallback(async () => {
     setJoining(true);
@@ -134,7 +172,10 @@ export default function SessionPage() {
     setSession(s);
     setRole("guest");
     setJoining(false);
-  }, [sessionId, loadSession]);
+
+    // Trigger shared deck generation now that both users are present
+    await generateDeckIfNeeded(s);
+  }, [sessionId, loadSession, generateDeckIfNeeded]);
 
   // Initial load
   useEffect(() => {
@@ -148,20 +189,27 @@ export default function SessionPage() {
     }
   }, [role, session, joining, needsSetup, joinSession]);
 
-  // Navigate guest to deck as soon as host has built the deck
+  // Navigate guest to deck as soon as the deck is ready
   useEffect(() => {
     if (role === "guest" && session?.deck_meal_ids && session.deck_meal_ids.length > 0) {
       router.push(`/deck?sessionId=${sessionId}`);
     }
   }, [role, session?.deck_meal_ids, sessionId, router]);
 
+  // Host: trigger deck generation when guest joins (detected via poll)
+  useEffect(() => {
+    if (role === "host" && session?.guest_user_id && !session.deck_meal_ids?.length) {
+      generateDeckIfNeeded(session);
+    }
+  }, [role, session?.guest_user_id, session?.deck_meal_ids, session, generateDeckIfNeeded]);
+
   // Poll for changes:
-  // - Host: detect when guest joins (for status indicator)
-  // - Guest: detect when host has started the deck
+  // - Host: detect when guest joins (status: waiting → active)
+  // - Both: detect when deck is ready (deck_meal_ids populated)
   useEffect(() => {
     const shouldPoll =
       (role === "host" && session?.status === "waiting") ||
-      (role === "guest" && !(session?.deck_meal_ids?.length));
+      ((role === "host" || role === "guest") && !(session?.deck_meal_ids?.length));
 
     if (shouldPoll) {
       pollRef.current = setInterval(loadSession, POLL_INTERVAL_MS);
@@ -176,18 +224,8 @@ export default function SessionPage() {
     };
   }, [role, session?.status, session?.deck_meal_ids, loadSession]);
 
-  // Host generates and persists the shared deck, then navigates to the deck page.
-  // Guest can join any time — even after host has started swiping.
-  async function handleStartSwiping() {
-    if (role === "host") {
-      setStartingDeck(true);
-      const mealIds = buildSharedDeck();
-      await supabase
-        .from("sessions")
-        .update({ deck_meal_ids: mealIds })
-        .eq("id", sessionId);
-      setStartingDeck(false);
-    }
+  // Host navigates to the deck page once the deck is ready
+  function handleStartSwiping() {
     router.push(`/deck?sessionId=${sessionId}`);
   }
 
@@ -198,15 +236,26 @@ export default function SessionPage() {
     });
   }
 
-  function completeGuestSetup() {
-    savePreferences({
+  // Saves guest preferences locally AND to Supabase (so deck generation can
+  // read them immediately). Awaited before setNeedsSetup to guarantee the
+  // profile row exists when buildSharedDeckForSession fires.
+  async function completeGuestSetup() {
+    setCompletingSetup(true);
+    const prefs: UserPreferences = {
       cuisines: guestCuisines,
       dislikedFoods: guestHardNos.filter((f) => f !== "None of these"),
       spiceLevel: guestSpice ?? "any",
       cookOrOrder: "either",
       kidFriendly: null,
-    });
+    };
+    savePreferences(prefs);
     markOnboardingDone();
+    // Sync to Supabase before joining so deck generation can read this profile
+    await upsertProfilePreferences(getUserId(), {
+      cuisines: prefs.cuisines,
+      dislikedFoods: prefs.dislikedFoods,
+    });
+    setCompletingSetup(false);
     setNeedsSetup(false);
   }
 
@@ -240,10 +289,10 @@ export default function SessionPage() {
         ? guestHardNos.length > 0
         : true; // heat is optional
 
-    function advanceSetup() {
+    async function advanceSetup() {
       if (setupStep === "cuisines") setSetupStep("hardNos");
       else if (setupStep === "hardNos") setSetupStep("heat");
-      else completeGuestSetup();
+      else await completeGuestSetup();
     }
 
     const stepNum = setupStep === "cuisines" ? 1 : setupStep === "hardNos" ? 2 : 3;
@@ -385,17 +434,18 @@ export default function SessionPage() {
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#080808]" />
             <button
               onClick={advanceSetup}
-              disabled={!canAdvance}
+              disabled={!canAdvance || completingSetup}
               className={`w-full rounded-full bg-white px-5 py-[18px] text-center text-[15px] font-semibold text-black transition hover:opacity-95 active:scale-[0.99] disabled:opacity-30 ${
-                canAdvance ? "shadow-[0_8px_40px_rgba(255,255,255,0.28)]" : "shadow-none"
+                canAdvance && !completingSetup ? "shadow-[0_8px_40px_rgba(255,255,255,0.28)]" : "shadow-none"
               }`}
             >
-              {setupStep === "heat" ? "Join session" : "Continue"}
+              {completingSetup ? "Joining…" : setupStep === "heat" ? "Join session" : "Continue"}
             </button>
             {setupStep === "heat" && (
               <button
-                onClick={completeGuestSetup}
-                className="mt-3 w-full text-center text-sm text-white/35 transition hover:text-white/55"
+                onClick={() => completeGuestSetup()}
+                disabled={completingSetup}
+                className="mt-3 w-full text-center text-sm text-white/35 transition hover:text-white/55 disabled:opacity-30"
               >
                 Skip heat preference
               </button>
@@ -450,8 +500,7 @@ export default function SessionPage() {
     );
   }
 
-  // ── Guest waiting for host to start ──────────────────────────────────────
-  // Guest joined but host hasn't built the deck yet — poll until ready.
+  // ── Guest: building deck or waiting for navigation ────────────────────────
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
     return (
       <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
@@ -481,15 +530,14 @@ export default function SessionPage() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
                 </span>
                 <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                  Waiting for host
+                  Building deck
                 </p>
               </div>
               <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
                 You&apos;re in!
               </h1>
               <p className="mt-3 text-sm leading-6 text-white/55">
-                The host hasn&apos;t started the deck yet. You&apos;ll be taken there
-                automatically once they do.
+                Building your shared deck from both profiles. You&apos;ll be taken there automatically.
               </p>
             </div>
 
@@ -502,9 +550,9 @@ export default function SessionPage() {
     );
   }
 
-  // ── Host lobby (async-friendly) ───────────────────────────────────────────
-  // Host can start swiping at any time — no need to wait for guest.
+  // ── Host lobby ────────────────────────────────────────────────────────────
   const bothConnected = session?.status === "active" || session?.status === "matched";
+  const deckReady = !!(session?.deck_meal_ids?.length);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
@@ -533,11 +581,21 @@ export default function SessionPage() {
           {/* Status card */}
           <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
             {/* Status indicator */}
-            {bothConnected ? (
+            {deckReady ? (
               <div className="flex items-center gap-2.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
                 <p className="text-xs font-medium uppercase tracking-widest text-emerald-400">
-                  Both connected
+                  Ready
+                </p>
+              </div>
+            ) : bothConnected ? (
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
+                </span>
+                <p className="text-xs font-medium uppercase tracking-widest text-white/50">
+                  Building deck
                 </p>
               </div>
             ) : (
@@ -553,15 +611,21 @@ export default function SessionPage() {
             )}
 
             <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
-              {bothConnected ? "Ready to decide" : "Session created"}
+              {deckReady
+                ? "Ready to decide"
+                : bothConnected
+                ? "Both connected"
+                : "Session created"}
             </h1>
             <p className="mt-3 text-sm leading-6 text-white/55">
-              {bothConnected
-                ? "You're both in. Start swiping — matches happen when you both say yes to the same meal."
-                : "Share this link, then start swiping whenever you're ready. They can join at any time — even after you start."}
+              {deckReady
+                ? "Your shared deck is ready. Start swiping — matches happen when you both say yes to the same meal."
+                : bothConnected
+                ? "Building your shared deck from both profiles…"
+                : "Share this link and wait for them to join. The deck will be built automatically once both of you are in."}
             </p>
 
-            {/* Invite link */}
+            {/* Invite link — always visible so host can share while waiting */}
             <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
               <p className="truncate text-xs text-white/40">{sessionUrl}</p>
             </div>
@@ -580,14 +644,26 @@ export default function SessionPage() {
               </button>
             </div>
 
-            {/* Start swiping — available immediately, no guest required */}
-            <button
-              onClick={handleStartSwiping}
-              disabled={startingDeck}
-              className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
-            >
-              {startingDeck ? "Preparing deck…" : "Start swiping"}
-            </button>
+            {/* Start swiping — only shown once the shared deck is ready */}
+            {deckReady && (
+              <button
+                onClick={handleStartSwiping}
+                className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+              >
+                Start swiping
+              </button>
+            )}
+
+            {/* Building indicator — shown while deck generation is in progress */}
+            {!deckReady && bothConnected && (
+              <div className="mt-6 flex items-center justify-center gap-2 text-sm text-white/40">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white/60" />
+                </span>
+                Building your shared deck…
+              </div>
+            )}
           </div>
 
           {/* Session ID footer */}

@@ -271,16 +271,13 @@ function DeckContent() {
         return;
       }
 
-      // Restore meal objects from stored IDs, then apply this user's hard gate.
-      // Host hard NOs were applied at deck-build time; guest hard NOs are applied
-      // here on the guest's device. Together they enforce the UNION of both
-      // users' hard NOs without requiring a schema change.
-      const prefs = getPreferences();
+      // Restore meal objects from stored IDs. Both users' hard NOs were already
+      // applied at deck-build time (server-side UNION), so no client-side
+      // filtering is needed — both users see the exact same deck.
       const orderedMeals: Meal[] = ids
         .map((id) => meals.find((m) => m.id === id))
         .filter((m): m is Meal => !!m);
-      const eligible = hardGate(orderedMeals, prefs?.dislikedFoods ?? []);
-      const ordered: RankedMeal[] = eligible.map((meal) => ({ meal, reason: "" }));
+      const ordered: RankedMeal[] = orderedMeals.map((meal) => ({ meal, reason: "" }));
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
       setActiveFilterId("__shared__"); // sentinel — skips filter picker, blocks re-rank
