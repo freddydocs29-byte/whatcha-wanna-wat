@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, type RankedMeal, type WhoFor } from "../lib/scoring";
+import { rankMeals, hardGate, type RankedMeal, type WhoFor } from "../lib/scoring";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/identity";
 
@@ -113,15 +113,9 @@ const PANTRY_INGREDIENTS: Record<string, string[]> = {
   Staples: ["Cheese", "Butter", "Beans"],
 };
 
-const DISLIKED_MEAL_MAP: Record<string, string[]> = {
-  Seafood: ["sushi-bowl", "grilled-salmon"],
-  Dairy: ["chicken-alfredo"],
-  "Gluten / Pasta": ["chicken-alfredo", "pasta-pomodoro"],
-  Beef: ["burgers"],
-  Pork: [],
-  Chicken: ["chicken-alfredo", "butter-chicken", "chicken-stir-fry", "bbq-chicken", "caesar-salad"],
-};
-
+// Soft preference filters — spice and kid-friendly only.
+// Hard-NO foods are enforced upstream by hardGate before any scoring,
+// so they are intentionally absent here.
 function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean {
   if (!prefs) return true;
 
@@ -144,12 +138,6 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
     if (!isKidFriendly) return false;
   }
 
-  // Disliked foods filter
-  for (const disliked of prefs.dislikedFoods) {
-    const excluded = DISLIKED_MEAL_MAP[disliked] ?? [];
-    if (excluded.includes(meal.id)) return false;
-  }
-
   return true;
 }
 
@@ -157,16 +145,16 @@ function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean 
  * Build a ranked deck for the given filter + pantry mode, with a progressive
  * fallback so the deck never drops below MIN_DECK_SIZE.
  *
- * Stage 1 — full filter + all preference hard-filters (ideal path).
- * Stage 2 — relax the taste filter: use all meals but keep kid-friendly, spice,
- *           and disliked-foods hard-filters. Adds the best cross-filter matches
- *           the user still clearly wants.
- * Stage 3 — relax kid-friendly and spice hard-filters, keep only disliked-foods.
- *           These are explicit ingredient exclusions the user set; we always honour them.
- * Stage 4 — add all remaining meals. Safety net for extreme edge cases.
+ * hardGate runs first and permanently removes meals that violate the user's
+ * hard-NO foods. Remaining stages only ever operate on these eligible meals,
+ * so hard NOs can never re-enter the deck at any fallback stage.
  *
- * Meals added in later stages are still scored with the full preference + history
- * signals so the deck stays relevant — it just stops hard-blocking everything.
+ * Stage 1 — full filter + spice/kid hard-filters (ideal path).
+ * Stage 2 — relax taste filter: all eligible meals, still enforce spice + kid.
+ * Stage 3 — relax spice + kid filters; hard-NOs still excluded by hardGate.
+ *
+ * Meals added in later stages are still scored with the full preference +
+ * history signals so the deck stays relevant.
  */
 function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredients: string[] = [], context: WhoFor = "solo", sessionShown: Set<string> = new Set()): RankedMeal[] {
   const prefs = getPreferences();
@@ -176,6 +164,10 @@ function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredi
   const tasteProfile = getTasteProfile();
   const flavorProfile = getFlavorProfile() ?? undefined;
   const favorites = getFavorites();
+
+  // Hard gate — remove meals that violate hard NOs before any scoring.
+  // This runs once; all subsequent stages operate only on eligible meals.
+  const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
 
   // filterId doubles as the vibe ID — same string, same source of truth.
   const vibe = filterId;
@@ -192,25 +184,18 @@ function buildDeck(filterId: string | null, pantryMode: boolean, selectedIngredi
   }
 
   const filter = FILTERS.find((f) => f.id === filterId) ?? null;
-  const filterBase = filter ? meals.filter(filter.match) : meals;
+  const filterBase = filter ? eligibleMeals.filter(filter.match) : eligibleMeals;
 
-  // Stage 1: full filter + full preferences
+  // Stage 1: full filter + spice/kid preference hard-filters
   let deck = rank(filterBase.filter((m) => matchesPreferences(m, prefs)));
   if (deck.length >= MIN_DECK_SIZE) return deck;
 
-  // Stage 2: relax taste filter — all meals still pass through preference hard-filters
-  deck = fill(deck, meals.filter((m) => matchesPreferences(m, prefs)));
+  // Stage 2: relax taste filter — all eligible meals still pass spice/kid filters
+  deck = fill(deck, eligibleMeals.filter((m) => matchesPreferences(m, prefs)));
   if (deck.length >= MIN_DECK_SIZE) return deck;
 
-  // Stage 3: relax kid-friendly + spice hard-filters, keep only disliked-food exclusions
-  const dislikedIds = new Set(
-    (prefs?.dislikedFoods ?? []).flatMap((d) => DISLIKED_MEAL_MAP[d] ?? [])
-  );
-  deck = fill(deck, meals.filter((m) => !dislikedIds.has(m.id)));
-  if (deck.length >= MIN_DECK_SIZE) return deck;
-
-  // Stage 4: add all remaining meals (safety net)
-  deck = fill(deck, meals);
+  // Stage 3: relax spice + kid filters; hard NOs are already excluded above
+  deck = fill(deck, eligibleMeals);
   return deck;
 }
 
@@ -286,10 +271,16 @@ function DeckContent() {
         return;
       }
 
-      const ordered: RankedMeal[] = ids
+      // Restore meal objects from stored IDs, then apply this user's hard gate.
+      // Host hard NOs were applied at deck-build time; guest hard NOs are applied
+      // here on the guest's device. Together they enforce the UNION of both
+      // users' hard NOs without requiring a schema change.
+      const prefs = getPreferences();
+      const orderedMeals: Meal[] = ids
         .map((id) => meals.find((m) => m.id === id))
-        .filter((m): m is Meal => !!m)
-        .map((meal) => ({ meal, reason: "" }));
+        .filter((m): m is Meal => !!m);
+      const eligible = hardGate(orderedMeals, prefs?.dislikedFoods ?? []);
+      const ordered: RankedMeal[] = eligible.map((meal) => ({ meal, reason: "" }));
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
       setActiveFilterId("__shared__"); // sentinel — skips filter picker, blocks re-rank

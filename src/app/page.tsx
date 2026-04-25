@@ -27,7 +27,7 @@ import {
   HistoryEntry,
 } from "./lib/storage";
 import { meals } from "./data/meals";
-import { rankMeals } from "./lib/scoring";
+import { rankMeals, hardGate } from "./lib/scoring";
 import SaveLaterButton from "./locked/SaveLaterButton";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
@@ -164,8 +164,10 @@ export default function Home() {
     const tasteProfile = getTasteProfile();
     const flavorProfile = getFlavorProfile();
     const recentlySeen = getRecentlySeenIds();
+    // Hard gate — exclude meals that violate hard NOs before ranking
+    const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
     const ranked = rankMeals(
-      meals,
+      eligibleMeals,
       prefs,
       saved,
       history,

@@ -7,6 +7,94 @@ const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
 export type RankedMeal = { meal: Meal; reason: string };
 export type WhoFor = "solo" | "partner" | "family";
 
+// ── Hard gate ─────────────────────────────────────────────────────────────────
+//
+// Keyword lists for each user-facing hard-NO category.
+// Matching runs case-insensitively against the combined text of:
+//   meal.id  +  meal.name  +  meal.ingredients (if present)
+//
+// Rules of thumb:
+//   • Use the most specific substring that reliably identifies the ingredient.
+//   • Ingredient-field matches cover ambiguous meals (e.g. "caesar-salad" has
+//     "Chicken" in its ingredient list even though "chicken" isn't in the ID).
+//   • ID/name keywords catch meals whose ingredient list is absent or sparse.
+
+const HARD_NO_KEYWORDS: Record<string, string[]> = {
+  Beef: [
+    "beef", "steak", "burger", "meatloaf", "meatball",
+    "bolognese", "ribeye", "rendang", "bourguignon", "veal",
+    "osso buco", "birria", "pot roast", "cheesesteak", "sloppy joe",
+    "brisket", "ground beef",
+  ],
+  Pork: [
+    "pork", "bacon", "ham", "sausage", "pepperoni", "ribs",
+    "hot dog", "prosciutto", "pancetta", "chorizo", "pig",
+    "salami", "mortadella",
+  ],
+  Seafood: [
+    "seafood", "fish", "shrimp", "salmon", "tuna", "crab", "lobster",
+    "scallop", "cod", "tilapia", "halibut", "sardine", "anchovy",
+    "sushi", "poke", "prawn", "clam", "oyster", "mussel", "squid",
+    "octopus", "lox", "sea bass", "ceviche", "nicoise",
+  ],
+  Chicken: [
+    "chicken", "poultry", "coq",
+  ],
+  Dairy: [
+    "cheese", "butter", "cream", "milk", "yogurt",
+    "ricotta", "mozzarella", "parmesan", "alfredo", "cheddar",
+  ],
+  "Gluten / Pasta": [
+    "pasta", "noodle", "spaghetti", "linguine", "penne", "fettuccine",
+    "lasagna", "gnocchi", "ravioli", "ramen", "udon", "soba",
+    "couscous", "dumpling", "wonton", "gyoza", "pizza",
+    "focaccia", "bread", "toast", "sandwich", "sub", "bagel",
+    "tortilla", "burrito", "taco", "waffle", "pancake",
+    "flatbread", "bun", "roll", "biscuit", "pita", "wrap",
+  ],
+};
+
+/** Returns true if this meal should be removed for the given hard-NO category. */
+function mealViolatesHardNO(meal: Meal, dislikedFoods: string[]): boolean {
+  if (dislikedFoods.length === 0) return false;
+  const searchText = [
+    meal.id,
+    meal.name,
+    ...(meal.ingredients ?? []),
+  ].join(" ").toLowerCase();
+
+  return dislikedFoods.some((category) => {
+    const keywords = HARD_NO_KEYWORDS[category];
+    return keywords?.some((kw) => searchText.includes(kw)) ?? false;
+  });
+}
+
+/**
+ * Hard gate — removes every meal that violates any of the user's hard-NO
+ * food categories. Must be called BEFORE scoring so excluded meals never
+ * appear anywhere in the deck.
+ *
+ * Fields read: meal.id, meal.name, meal.ingredients
+ * Enforces:    UserPreferences.dislikedFoods
+ *
+ * Shared-mode usage: call with the UNION of both users' dislikedFoods so
+ * that a meal is excluded if EITHER participant has it as a hard NO.
+ */
+export function hardGate(meals: Meal[], dislikedFoods: string[]): Meal[] {
+  if (dislikedFoods.length === 0) return meals;
+  const filtered = meals.filter((m) => !mealViolatesHardNO(m, dislikedFoods));
+  if (process.env.NODE_ENV === "development") {
+    const removed = meals.length - filtered.length;
+    if (removed > 0) {
+      console.log(
+        `[hardGate] removed ${removed} of ${meals.length} meals` +
+        ` · hard NOs: [${dislikedFoods.join(", ")}]`
+      );
+    }
+  }
+  return filtered;
+}
+
 /**
  * Maps each meal ID to the cuisine(s) it belongs to.
  * Used to match against the user's preferred cuisines from onboarding.

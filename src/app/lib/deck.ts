@@ -7,7 +7,7 @@
  * row so both users load the exact same sequence.
  */
 import { meals } from "../data/meals";
-import { rankMeals } from "./scoring";
+import { rankMeals, hardGate } from "./scoring";
 import {
   getPreferences,
   getSavedMeals,
@@ -27,8 +27,13 @@ export function buildSharedDeck(): string[] {
   const flavorProfile = getFlavorProfile() ?? undefined;
   const favorites = getFavorites();
 
+  // Hard gate — exclude host's hard NOs before ranking.
+  // Guest's hard NOs are applied on the guest's device when the deck loads.
+  // Together they enforce the UNION of both users' hard NOs.
+  const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
+
   const ranked = rankMeals(
-    meals,
+    eligibleMeals,
     prefs,
     savedMeals,
     history,
