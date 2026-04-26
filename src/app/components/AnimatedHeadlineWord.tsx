@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { motion, useAnimate } from "framer-motion";
+import { motion, useAnimate, type Easing } from "framer-motion";
 
 // All words stacked in the reel, top-to-bottom. "tonight?" is the final target.
 const REEL = [
@@ -50,7 +50,7 @@ export function AnimatedHeadlineWord() {
 
     // Each segment between words eases out — smooth stop per click.
     // Deceleration across the whole animation comes from non-uniform TIMES.
-    const segEase = Array(REEL.length - 1).fill("easeOut") as string[];
+    const segEase = Array(REEL.length - 1).fill("easeOut") as Easing[];
 
     // Brief pause before spin — lets the page paint first
     const t = setTimeout(() => {

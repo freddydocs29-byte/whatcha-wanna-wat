@@ -4,10 +4,12 @@ import { useRef, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
-import { saveMeal, addToHistory, getPreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
+import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
 import { rankMeals, hardGate, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/identity";
+import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type NudgeTrigger } from "../lib/session-signals";
+import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -332,6 +334,17 @@ function DeckContent() {
   // session — resets on handleRefreshDeck to allow re-recording.
   const deckRecordedRef = useRef(false);
 
+  // ── Progressive onboarding signals ────────────────────────────────────────
+  // All in-memory: reset each time the deck page mounts. Pass signals track
+  // food-type avoidances; like signals track cuisine preferences from saves.
+  // Only one nudge fires per session (firedTriggersRef guards this).
+  const passSignalsRef = useRef<Record<string, number>>({});
+  const likeSignalsRef = useRef<Record<string, number>>({});
+  const firedTriggersRef = useRef<Set<string>>(new Set());
+  // Nudge queued during a swipe exit — shown after the animation completes.
+  const pendingNudgeRef = useRef<NudgeTrigger | null>(null);
+  const [activeNudge, setActiveNudge] = useState<NudgeTrigger | null>(null);
+
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
@@ -539,6 +552,25 @@ function DeckContent() {
     dismissHint();
     if (meal) {
       updateTasteProfile(meal, "pass");
+
+      // ── Progressive onboarding: track avoid signals (solo only) ──────────
+      if (!sessionId) {
+        for (const sig of getAvoidSignals(meal)) {
+          passSignalsRef.current[sig] = (passSignalsRef.current[sig] ?? 0) + 1;
+        }
+        const nudge = checkTriggers(
+          passSignalsRef.current,
+          likeSignalsRef.current,
+          firedTriggersRef.current,
+        );
+        if (nudge) {
+          firedTriggersRef.current.add(nudge.signal);
+          markNudgeFired(nudge.signal);
+          // Queue to display after the exit animation completes
+          pendingNudgeRef.current = nudge;
+        }
+      }
+
       // Save 'no' swipe in shared mode — fire-and-forget, no match check needed
       if (sessionId && userId) {
         supabase.from("swipes").insert({
@@ -560,6 +592,25 @@ function DeckContent() {
     if (meal) {
       saveMeal(meal);
       updateTasteProfile(meal, "save");
+
+      // ── Progressive onboarding: track prefer signals (solo only) ─────────
+      // handleSave doesn't use triggerExit so we show the nudge immediately
+      // rather than queuing it through onAnimationComplete.
+      if (!sessionId) {
+        for (const sig of getPreferSignals(meal)) {
+          likeSignalsRef.current[sig] = (likeSignalsRef.current[sig] ?? 0) + 1;
+        }
+        const nudge = checkTriggers(
+          passSignalsRef.current,
+          likeSignalsRef.current,
+          firedTriggersRef.current,
+        );
+        if (nudge) {
+          firedTriggersRef.current.add(nudge.signal);
+          markNudgeFired(nudge.signal);
+          setActiveNudge(nudge);
+        }
+      }
     }
     x.set(0);
     setCurrentIndex((i) => i + 1);
@@ -608,6 +659,76 @@ function DeckContent() {
       x.set(0);
       setExitX(null);
       action();
+
+      // Show any queued nudge after the next card has settled (150 ms grace).
+      if (pendingNudgeRef.current) {
+        const nudge = pendingNudgeRef.current;
+        pendingNudgeRef.current = null;
+        setTimeout(() => setActiveNudge(nudge), 150);
+      }
+    }
+  }
+
+  // ── Nudge answer handler ──────────────────────────────────────────────────
+
+  function handleNudgeAnswer(yes: boolean) {
+    const nudge = activeNudge;
+    setActiveNudge(null);
+    // Nudges are solo-only; shared decks are fixed and can't be rebuilt here.
+    if (!nudge || !yes || sessionId) return;
+
+    const prefs = getPreferences();
+    if (!prefs) return;
+
+    if (nudge.type === "avoid") {
+      // Guard against duplicate entries
+      if (prefs.dislikedFoods.includes(nudge.signal)) return;
+      const updatedPrefs = {
+        ...prefs,
+        dislikedFoods: [...prefs.dislikedFoods, nudge.signal],
+      };
+      savePreferences(updatedPrefs);
+
+      // Filter the NEW hard-NO out of the remaining deck in-place so the
+      // user doesn't need to restart — they just keep swiping.
+      const filteredRemaining = rankedMeals
+        .slice(currentIndex)
+        .filter(
+          (rm) => hardGate([rm.meal], updatedPrefs.dislikedFoods).length > 0,
+        );
+      setRankedMeals([...rankedMeals.slice(0, currentIndex), ...filteredRemaining]);
+    } else {
+      // prefer: add cuisine to favorites
+      if (prefs.cuisines.includes(nudge.signal)) return;
+      const updatedPrefs = {
+        ...prefs,
+        cuisines: [...prefs.cuisines, nudge.signal],
+      };
+      savePreferences(updatedPrefs);
+
+      // Re-rank remaining cards with the updated cuisine preference so the
+      // user sees the boost take effect immediately this session.
+      const remaining = rankedMeals.slice(currentIndex).map((rm) => rm.meal);
+      if (remaining.length > 0) {
+        const reranked = rankMeals(
+          remaining,
+          updatedPrefs,
+          getSavedMeals(),
+          getHistory(),
+          pantryMode,
+          getTasteProfile(),
+          getRecentlySeenIds(),
+          getFlavorProfile() ?? undefined,
+          getFavorites(),
+          selectedIngredients,
+          "solo",
+          sessionShownRef.current,
+          null,
+          cookMode,
+          sessionVibeMode,
+        );
+        setRankedMeals([...rankedMeals.slice(0, currentIndex), ...reranked]);
+      }
     }
   }
 
@@ -1276,6 +1397,9 @@ function DeckContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Progressive onboarding nudge ────────────────────────────────────── */}
+      <ProgressiveQuestion nudge={activeNudge} onAnswer={handleNudgeAnswer} />
 
       {/* ── Ingredient sheet backdrop ─────────────────────────────────────── */}
       <AnimatePresence>
