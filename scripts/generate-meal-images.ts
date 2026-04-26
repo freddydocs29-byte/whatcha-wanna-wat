@@ -312,8 +312,11 @@ async function main() {
         n: 1,
       });
 
-      const tempUrl = response.data[0]?.url;
-      if (!tempUrl) throw new Error("OpenAI returned no image URL");
+      const firstImage = response.data?.[0];
+      if (!firstImage || !firstImage.url) {
+        throw new Error("OpenAI returned no image URL");
+      }
+      const tempUrl = firstImage.url;
 
       // 2. Download
       console.log(`     › Downloading...`);
