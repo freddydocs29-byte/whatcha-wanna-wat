@@ -27,8 +27,17 @@ import {
   HistoryEntry,
 } from "./lib/storage";
 import { meals } from "./data/meals";
-import { rankMeals, hardGate } from "./lib/scoring";
+import { rankMeals, hardGate, type SessionVibeMode } from "./lib/scoring";
 import SaveLaterButton from "./locked/SaveLaterButton";
+
+const SHARED_VIBE_OPTIONS: { value: SessionVibeMode; label: string }[] = [
+  { value: "mix-it-up",     label: "Mix It Up" },
+  { value: "comfort-food",  label: "Comfort Food" },
+  { value: "quick-easy",    label: "Quick & Easy" },
+  { value: "healthy",       label: "Healthy" },
+  { value: "something-new", label: "Something New" },
+  { value: "kid-friendly",  label: "Kid Friendly" },
+];
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -127,6 +136,8 @@ export default function Home() {
   );
   const [creatingSession, setCreatingSession] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [showVibeStep, setShowVibeStep] = useState(false);
+  const [selectedSharedVibe, setSelectedSharedVibe] = useState<SessionVibeMode>("mix-it-up");
 
   useEffect(() => {
     if (!hasCompletedOnboarding()) {
@@ -188,7 +199,7 @@ export default function Home() {
     router.push(`/locked?mealId=${pick.meal.id}&decided=1`);
   }
 
-  async function handleDecideWithSomeone() {
+  async function handleDecideWithSomeone(vibe: SessionVibeMode) {
     setCreatingSession(true);
     setSessionError(null);
 
@@ -205,6 +216,7 @@ export default function Home() {
           host_user_id: hostId,
           status: "waiting",
           expires_at: expiresAt,
+          vibe,
         })
         .select()
         .single();
@@ -376,6 +388,54 @@ export default function Home() {
                   </Link>
                 </div>
               </>
+            ) : showVibeStep ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowVibeStep(false)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
+                  >
+                    ←
+                  </button>
+                  <p className="text-sm text-white/50">Shared session</p>
+                </div>
+                <h2 className="mt-4 text-[28px] font-semibold leading-tight tracking-[-0.04em]">
+                  What&apos;s the vibe?
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-white/55">
+                  Pick a mood for your shared deck. Your partner sees this when they join.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {SHARED_VIBE_OPTIONS.map(({ value, label }) => {
+                    const isActive = selectedSharedVibe === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => setSelectedSharedVibe(value)}
+                        className={`rounded-full border px-3.5 py-2 text-sm font-medium transition-colors duration-150 active:scale-[0.96] ${
+                          isActive
+                            ? "border-white/30 bg-white/[0.14] text-white/90"
+                            : "border-white/[0.08] bg-transparent text-white/35 hover:border-white/18 hover:text-white/60"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => handleDecideWithSomeone(selectedSharedVibe)}
+                  disabled={creatingSession}
+                  className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+                >
+                  {creatingSession ? "Creating…" : "Create session"}
+                </button>
+                {sessionError && (
+                  <p className="mt-3 text-center text-sm text-red-400">
+                    {sessionError}
+                  </p>
+                )}
+              </>
             ) : (
               <>
                 <div className="flex items-start justify-between gap-4">
@@ -394,17 +454,11 @@ export default function Home() {
                   the usual back-and-forth.
                 </p>
                 <button
-                  onClick={handleDecideWithSomeone}
-                  disabled={creatingSession}
-                  className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+                  onClick={() => setShowVibeStep(true)}
+                  className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
                 >
-                  {creatingSession ? "Starting…" : "Decide with someone"}
+                  Decide with someone
                 </button>
-                {sessionError && (
-                  <p className="mt-3 text-center text-sm text-red-400">
-                    {sessionError}
-                  </p>
-                )}
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <Link
                     href="/deck"

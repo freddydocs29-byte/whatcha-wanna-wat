@@ -82,26 +82,71 @@ function mealViolatesHardNO(meal: Meal, dislikedFoods: string[]): boolean {
   });
 }
 
+// ── Time-of-day gate ─────────────────────────────────────────────────────────
+//
+// Meals in BREAKFAST_ONLY_IDS are considered strictly breakfast/brunch and are
+// excluded from evening and night-time decks.
+//
+// Buckets:
+//   morning   5:00 – 14:59  (breakfast welcome)
+//   dinner   15:00 –  4:59  (breakfast-only meals excluded)
+//
+// Flexible egg dishes (avocado toast, frittata, shakshuka, scrambled eggs,
+// omelette, egg cups, turkish eggs) are intentionally NOT in this list — they
+// are reasonable at any meal.  "Breakfast for Dinner" is also excluded by
+// design: its name signals it is intended for evening eating.
+
+const BREAKFAST_ONLY_IDS = new Set([
+  "breakfast-burrito",
+  "french-toast",
+  "pancakes",
+  "bacon-egg-cheese",
+  "breakfast-hash",
+  "waffles",
+  "biscuits-gravy",
+  "hash-browns",
+]);
+
+/**
+ * Returns "morning" (5 am – 3 pm) or "dinner" (3 pm – 5 am).
+ * Pass hourOverride (0-23) in tests to avoid depending on wall-clock time.
+ */
+export function getTimeBucket(hourOverride?: number): "morning" | "dinner" {
+  const hour = hourOverride ?? new Date().getHours();
+  return hour >= 5 && hour < 15 ? "morning" : "dinner";
+}
+
 /**
  * Hard gate — removes every meal that violates any of the user's hard-NO
- * food categories. Must be called BEFORE scoring so excluded meals never
- * appear anywhere in the deck.
+ * food categories, and removes breakfast-only meals during evening/night hours.
+ * Must be called BEFORE scoring so excluded meals never appear anywhere in the
+ * deck.
  *
  * Fields read: meal.id, meal.name, meal.ingredients
- * Enforces:    UserPreferences.dislikedFoods
+ * Enforces:    UserPreferences.dislikedFoods + current time of day
  *
  * Shared-mode usage: call with the UNION of both users' dislikedFoods so
  * that a meal is excluded if EITHER participant has it as a hard NO.
+ *
+ * hourOverride (0-23) is accepted for testing; omit in production code.
  */
-export function hardGate(meals: Meal[], dislikedFoods: string[]): Meal[] {
-  if (dislikedFoods.length === 0) return meals;
-  const filtered = meals.filter((m) => !mealViolatesHardNO(m, dislikedFoods));
+export function hardGate(meals: Meal[], dislikedFoods: string[], hourOverride?: number): Meal[] {
+  const timeBucket = getTimeBucket(hourOverride);
+
+  let filtered = meals.filter((m) => {
+    // Time gate: exclude breakfast-only meals during dinner hours
+    if (timeBucket === "dinner" && BREAKFAST_ONLY_IDS.has(m.id)) return false;
+    // Dietary hard NOs
+    if (dislikedFoods.length > 0 && mealViolatesHardNO(m, dislikedFoods)) return false;
+    return true;
+  });
+
   if (process.env.NODE_ENV === "development") {
     const removed = meals.length - filtered.length;
     if (removed > 0) {
       console.log(
         `[hardGate] removed ${removed} of ${meals.length} meals` +
-        ` · hard NOs: [${dislikedFoods.join(", ")}]`
+        ` · hard NOs: [${dislikedFoods.join(", ")}] · time bucket: ${timeBucket}`
       );
     }
   }

@@ -295,10 +295,18 @@ function DeckContent() {
         // Confirm session is still active before triggering
         const { data: sessionData } = await supabase
           .from("sessions")
-          .select("status")
+          .select("status, locked_meal_id")
           .eq("id", sessionId)
           .single();
-        if (sessionData?.status === "matched") return;
+        if (sessionData?.status === "matched") {
+          // The other user already confirmed the match — navigate this user
+          // to the locked screen even if they are on the waiting/end-of-deck
+          // screen and never saw the match modal.
+          if (sessionData.locked_meal_id && !matchedMealRef.current) {
+            router.push(`/locked?mealId=${sessionData.locked_meal_id}`);
+          }
+          return;
+        }
 
         const found = meals.find((m) => m.id === mealId);
         if (found) {

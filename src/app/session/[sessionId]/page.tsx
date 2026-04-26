@@ -557,7 +557,7 @@ export default function SessionPage() {
                 Hang tight…
               </h1>
               <p className="mt-3 text-sm leading-6 text-white/55">
-                Waiting for the host to pick a vibe and start the deck.
+                Waiting for the host to start the deck.
               </p>
             </div>
 
@@ -679,7 +679,7 @@ export default function SessionPage() {
               <div className="flex items-center gap-2.5">
                 <span className="h-2 w-2 rounded-full bg-white/70" />
                 <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                  Pick a vibe
+                  Ready to start
                 </p>
               </div>
             ) : (
@@ -705,8 +705,8 @@ export default function SessionPage() {
               {deckReady
                 ? "Your shared deck is ready. Start swiping — matches happen when you both say yes to the same meal."
                 : bothConnected
-                ? "Pick a vibe below, then tap Start swiping to generate your shared deck."
-                : "Share this link and wait for them to join. Once they're in, pick a vibe and start."}
+                ? "Tap Start swiping to build your shared deck."
+                : "Share this link and wait for them to join."}
             </p>
 
             {/* Invite link — always visible so host can share while waiting */}
@@ -728,31 +728,43 @@ export default function SessionPage() {
               </button>
             </div>
 
-            {/* Vibe picker — shown as soon as both users are connected so host
-                can pick before the deck is generated. Locked once swiping begins. */}
-            {bothConnected && (
+            {/* Vibe — editable while waiting for guest, locked once both are connected */}
+            {!deckReady && (
               <div className="mt-5">
-                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-white/30">
-                  Choose a vibe
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {VIBE_OPTIONS.map(({ value, label }) => {
-                    const isActive = selectedVibe === value;
-                    return (
-                      <button
-                        key={value}
-                        onClick={() => handleVibeChange(value)}
-                        className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors duration-150 active:scale-[0.96] ${
-                          isActive
-                            ? "border-white/30 bg-white/[0.14] text-white/90"
-                            : "border-white/[0.08] bg-transparent text-white/35 hover:border-white/18 hover:text-white/60"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
+                {!bothConnected ? (
+                  <>
+                    <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-white/30">
+                      Vibe
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {VIBE_OPTIONS.map(({ value, label }) => {
+                        const isActive = selectedVibe === value;
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => handleVibeChange(value)}
+                            className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors duration-150 active:scale-[0.96] ${
+                              isActive
+                                ? "border-white/30 bg-white/[0.14] text-white/90"
+                                : "border-white/[0.08] bg-transparent text-white/35 hover:border-white/18 hover:text-white/60"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-medium uppercase tracking-widest text-white/30">
+                      Vibe
+                    </span>
+                    <span className="inline-flex items-center rounded-full border border-white/[0.1] bg-white/[0.06] px-3 py-1 text-xs text-white/60">
+                      {VIBE_OPTIONS.find((v) => v.value === selectedVibe)?.label ?? "Mix It Up"}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
