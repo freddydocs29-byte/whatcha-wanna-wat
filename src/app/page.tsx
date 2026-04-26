@@ -30,6 +30,7 @@ import {
 import { meals } from "./data/meals";
 import { rankMeals, hardGate, type SessionVibeMode } from "./lib/scoring";
 import SaveLaterButton from "./locked/SaveLaterButton";
+import { trackEvent } from "./lib/analytics";
 
 const SHARED_VIBE_OPTIONS: { value: SessionVibeMode; label: string }[] = [
   { value: "mix-it-up",     label: "Mix It Up" },
@@ -156,6 +157,12 @@ export default function Home() {
     setTodaysPick(getTodaysPick());
     setStreak(getStreak());
     setReady(true);
+
+    // Track once per browser session so repeated navigations don't re-fire.
+    if (!sessionStorage.getItem("wwe_app_opened")) {
+      sessionStorage.setItem("wwe_app_opened", "1");
+      trackEvent("app_opened");
+    }
   }, [router]);
 
   function openClearModal() {
@@ -169,6 +176,7 @@ export default function Home() {
   }
 
   function handleDecideForMe() {
+    trackEvent("decide_for_me_clicked");
     const prefs = getPreferences();
     const saved = getSavedMeals();
     const favs = getFavorites();
@@ -239,6 +247,7 @@ export default function Home() {
         return;
       }
 
+      trackEvent("shared_session_created", { sessionId: data.id, vibe });
       router.push(`/session/${data.id}`);
     } catch (e) {
       console.error("[session] Unexpected error:", e);
@@ -455,23 +464,24 @@ export default function Home() {
                   the usual back-and-forth.
                 </p>
                 <button
-                  onClick={() => setShowVibeStep(true)}
+                  onClick={() => { trackEvent("decide_with_someone_clicked"); setShowVibeStep(true); }}
                   className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
                 >
                   Decide with someone
                 </button>
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="mt-3 flex gap-3">
                   <Link
                     href="/deck"
-                    className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white transition active:scale-[0.99]"
+                    onClick={() => trackEvent("solo_mode_clicked")}
+                    className="flex-1 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.05] px-4 py-3.5 text-center text-[15px] font-medium text-white transition active:scale-[0.99]"
                   >
                     Solo mode
                   </Link>
                   <button
                     onClick={handleDecideForMe}
-                    className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white transition active:scale-[0.99]"
+                    className="flex-1 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.05] px-4 py-3.5 text-center text-[15px] font-medium text-white transition active:scale-[0.99]"
                   >
-                    ✨ Decide for me
+                    Decide for me
                   </button>
                 </div>
                 <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/45">

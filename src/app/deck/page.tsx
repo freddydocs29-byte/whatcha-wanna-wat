@@ -11,6 +11,7 @@ import { getUserId } from "../lib/identity";
 import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type NudgeTrigger } from "../lib/session-signals";
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
+import { trackEvent } from "../lib/analytics";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -162,6 +163,9 @@ function DeckContent() {
   function setMatchedMeal(meal: Meal | null) {
     matchedMealRef.current = meal;
     setMatchedMealState(meal);
+    if (meal && sessionId) {
+      trackEvent("match_found", { mealId: meal.id, sessionId });
+    }
   }
 
   useEffect(() => {
@@ -352,9 +356,26 @@ function DeckContent() {
   const [activeNudge, setActiveNudge] = useState<NudgeTrigger | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Track the last meal id we fired card_seen for so we don't double-fire.
+  const lastSeenMealIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
+
+  // Fire card_seen whenever a new card becomes the active one.
+  useEffect(() => {
+    const mealId = rankedMeals[currentIndex]?.meal?.id;
+    if (!mealId || mealId === lastSeenMealIdRef.current) return;
+    lastSeenMealIdRef.current = mealId;
+    trackEvent("card_seen", {
+      mealId,
+      swipeIndex: currentIndex,
+      deckSize: Math.min(rankedMeals.length, DECK_SIZE),
+      mode: sessionId ? "shared" : "solo",
+      ...(sessionId ? { sessionId } : {}),
+    });
+  }, [currentIndex, rankedMeals, sessionId]);
 
   // Builds the solo deck on mount and whenever pantry/ingredients/session
   // selectors change. Shared decks are loaded in their own effect and never
@@ -375,6 +396,20 @@ function DeckContent() {
     x.set(0);
     setExitX(null);
   }, [pantryMode, selectedIngredients, cookMode, sessionVibeMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fire deck_finished once when the user exhausts all cards.
+  const deckFinishedFiredRef = useRef(false);
+  useEffect(() => {
+    const total = Math.min(rankedMeals.length, DECK_SIZE);
+    const exhausted = total > 0 && currentIndex >= total;
+    if (!exhausted || deckFinishedFiredRef.current) return;
+    deckFinishedFiredRef.current = true;
+    trackEvent("deck_finished", {
+      deckSize: total,
+      mode: sessionId ? "shared" : "solo",
+      ...(sessionId ? { sessionId } : {}),
+    });
+  }, [currentIndex, rankedMeals.length, sessionId]);
 
   function dismissHint() {
     if (!showSwipeHint) return;
@@ -480,6 +515,13 @@ function DeckContent() {
   }
 
   async function handleSharedChoose(chosenMeal: Meal) {
+    trackEvent("card_swiped_yes", {
+      mealId: chosenMeal.id,
+      swipeIndex: currentIndex,
+      deckSize: totalCount,
+      mode: "shared",
+      sessionId,
+    });
     updateTasteProfile(chosenMeal, "choose");
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       navigator.vibrate([12, 60, 8]);
@@ -502,6 +544,7 @@ function DeckContent() {
 
   async function handleMatchConfirm() {
     if (!matchedMeal || !sessionId) return;
+    trackEvent("match_confirmed", { mealId: matchedMeal.id, sessionId });
     await supabase
       .from("sessions")
       .update({
@@ -516,6 +559,7 @@ function DeckContent() {
 
   function handleMatchReject() {
     if (!matchedMeal) return;
+    trackEvent("match_started_over", { mealId: matchedMeal.id, sessionId });
     rejectedMatchIdsRef.current.add(matchedMeal.id);
     const shouldAdvance = matchPendingAdvanceRef.current;
     matchPendingAdvanceRef.current = false;
@@ -530,6 +574,8 @@ function DeckContent() {
   // ────────────────────────────────────────────────────────────────────────────
 
   function handleRefreshDeck() {
+    trackEvent("deck_refreshed", { mode: "solo" });
+    deckFinishedFiredRef.current = false;
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
     const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
@@ -546,6 +592,7 @@ function DeckContent() {
   // both-done poller detects the cleared deck_meal_ids and follows automatically.
   async function handleSharedRefreshDeck() {
     if (!sessionId) return;
+    trackEvent("deck_refreshed", { mode: "shared", sessionId });
     setSharedRefreshing(true);
     await supabase.from("swipes").delete().eq("session_id", sessionId);
     await supabase
@@ -558,6 +605,13 @@ function DeckContent() {
   function handlePass() {
     dismissHint();
     if (meal) {
+      trackEvent("card_swiped_no", {
+        mealId: meal.id,
+        swipeIndex: currentIndex,
+        deckSize: totalCount,
+        mode: sessionId ? "shared" : "solo",
+        ...(sessionId ? { sessionId } : {}),
+      });
       updateTasteProfile(meal, "pass");
 
       // ── Progressive onboarding: track avoid signals (solo only) ──────────
@@ -616,6 +670,7 @@ function DeckContent() {
           firedTriggersRef.current.add(nudge.signal);
           markNudgeFired(nudge.signal);
           setActiveNudge(nudge);
+          trackEvent("nudge_shown", { nudgeType: nudge.type, nudgeSignal: nudge.signal });
         }
       }
     }
@@ -635,6 +690,12 @@ function DeckContent() {
 
     // ── Solo path (unchanged) ──
     const chosenMeal = meal;
+    trackEvent("card_swiped_yes", {
+      mealId: chosenMeal.id,
+      swipeIndex: currentIndex,
+      deckSize: totalCount,
+      mode: "solo",
+    });
     updateTasteProfile(chosenMeal, "choose");
 
     // Haptic feedback: firm tap + soft echo
@@ -671,7 +732,10 @@ function DeckContent() {
       if (pendingNudgeRef.current) {
         const nudge = pendingNudgeRef.current;
         pendingNudgeRef.current = null;
-        setTimeout(() => setActiveNudge(nudge), 150);
+        setTimeout(() => {
+          setActiveNudge(nudge);
+          trackEvent("nudge_shown", { nudgeType: nudge.type, nudgeSignal: nudge.signal });
+        }, 150);
       }
     }
   }
@@ -681,6 +745,12 @@ function DeckContent() {
   function handleNudgeAnswer(yes: boolean) {
     const nudge = activeNudge;
     setActiveNudge(null);
+    if (nudge) {
+      trackEvent(yes ? "nudge_accepted" : "nudge_dismissed", {
+        nudgeType: nudge.type,
+        nudgeSignal: nudge.signal,
+      });
+    }
     // Nudges are solo-only; shared decks are fixed and can't be rebuilt here.
     if (!nudge || !yes || sessionId) return;
 

@@ -58,3 +58,26 @@ create index swipes_session_meal on swipes (session_id, meal_id);
 
 alter table swipes enable row level security;
 create policy "MVP open access" on swipes for all using (true) with check (true);
+
+-- ─── Analytics Events ─────────────────────────────────────────────────────────
+-- Lightweight event log. session_id is nullable (solo sessions have none).
+-- properties is free-form JSONB — includes timestamp, mealId, swipeIndex, etc.
+-- Do NOT store personal/sensitive info in properties.
+
+create table if not exists analytics_events (
+  id           uuid        default gen_random_uuid() primary key,
+  user_id      text,
+  session_id   text,
+  event_name   text        not null,
+  properties   jsonb       not null default '{}',
+  created_at   timestamptz not null default now()
+);
+
+create index analytics_events_event_name on analytics_events (event_name);
+create index analytics_events_user_id    on analytics_events (user_id);
+create index analytics_events_created_at on analytics_events (created_at desc);
+
+-- RLS: open write for MVP (anonymous users insert their own events).
+-- Reads are locked down — only service-role queries should read analytics.
+alter table analytics_events enable row level security;
+create policy "MVP analytics insert" on analytics_events for insert using (true) with check (true);

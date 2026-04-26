@@ -14,6 +14,7 @@ import {
   markOnboardingDone,
   type UserPreferences,
 } from "../../lib/storage";
+import { trackEvent } from "../../lib/analytics";
 
 // ── Lightweight guest setup data ──────────────────────────────────────────────
 
@@ -184,6 +185,7 @@ export default function SessionPage() {
     setSession(s);
     setRole("guest");
     setJoining(false);
+    trackEvent("shared_session_joined", { sessionId });
     // Deck generation is deferred — host triggers it explicitly by clicking "Start swiping"
   }, [sessionId, loadSession, generateDeckIfNeeded]);
 
@@ -246,6 +248,7 @@ export default function SessionPage() {
     if (!session.deck_meal_ids?.length) {
       await generateDeckIfNeeded(session);
     }
+    trackEvent("shared_deck_started", { sessionId, vibe: selectedVibe });
     router.push(`/deck?sessionId=${sessionId}&vibe=${selectedVibe}`);
   }
 

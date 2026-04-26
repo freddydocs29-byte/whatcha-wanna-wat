@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { meals } from "../data/meals";
 import ShareButton from "./ShareButton";
 import SaveLaterButton from "./SaveLaterButton";
@@ -7,6 +6,7 @@ import BackButton from "./BackButton";
 import FirstTimeVisitorCTA from "./FirstTimeVisitorCTA";
 import CookOrderButtons from "./CookOrderButtons";
 import PickAnotherButton from "./PickAnotherButton";
+import BackToHomeLink from "./BackToHomeLink";
 
 type Props = {
   searchParams: Promise<{ mealId?: string; pantry?: string; decided?: string }>;
@@ -64,12 +64,7 @@ export default async function LockedPage({ searchParams }: Props) {
               <PickAnotherButton currentMealId={meal.id} />
             )}
 
-            <Link
-              href="/"
-              className="rounded-full border border-white/10 bg-transparent px-5 py-4 text-center text-base font-medium text-white/70"
-            >
-              Back to home
-            </Link>
+            <BackToHomeLink />
 
           </div>
         </section>
