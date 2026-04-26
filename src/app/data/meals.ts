@@ -239,7 +239,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Rice", "Bell peppers", "Broccoli"],
     whyItFits: "Fast, healthy, no excuses",
     image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-stir-fry.jpg",
   },
   {
     id: "mushroom-risotto",
@@ -263,7 +263,7 @@ export const meals: Meal[] = [
     ingredients: ["Garlic", "Butter"],
     whyItFits: "Elevated but doable on a weeknight",
     image:
-      "https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/lamb-chops.jpg",
   },
   {
     id: "chili",
@@ -287,7 +287,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Tomatoes", "Spinach"],
     whyItFits: "Satisfying without the meat",
     image:
-      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/veggie-curry.jpg",
   },
   {
     id: "caesar-salad",
@@ -423,7 +423,7 @@ export const meals: Meal[] = [
     ingredients: ["Tortillas", "Spinach", "Bell peppers"],
     whyItFits: "Light, fast, and genuinely satisfying",
     image:
-      "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/veggie-wrap.jpg",
   },
   {
     id: "hot-dogs",
@@ -569,7 +569,7 @@ export const meals: Meal[] = [
     ingredients: ["Onions", "Butter", "Cheese", "Bread"],
     whyItFits: "Worth every minute of the caramelizing",
     image:
-      "https://images.unsplash.com/photo-1602743932936-1e4ee0b7419b?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/french-onion-soup.jpg",
   },
   {
     id: "shepherds-pie",
@@ -607,7 +607,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Rice", "Garlic", "Onions"],
     whyItFits: "When you want big flavors and a full bowl",
     image:
-      "https://images.unsplash.com/photo-1583847268964-9d5f6e35d048?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/korean-bbq-bowl.jpg",
   },
   {
     id: "tikka-masala",
@@ -619,7 +619,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Tomatoes", "Garlic", "Butter"],
     whyItFits: "Crowd-pleasing bold flavor that never gets old",
     image:
-      "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tikka-masala.jpg",
   },
   {
     id: "pad-thai",
