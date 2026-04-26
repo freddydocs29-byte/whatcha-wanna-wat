@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { rankMeals, hardGate, getSharedReason, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/identity";
 import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type NudgeTrigger } from "../lib/session-signals";
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
+import { LearningToast } from "../components/LearningToast";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -204,7 +205,12 @@ function DeckContent() {
       const orderedMeals: Meal[] = ids
         .map((id) => meals.find((m) => m.id === id))
         .filter((m): m is Meal => !!m);
-      const ordered: RankedMeal[] = orderedMeals.map((meal) => ({ meal, reason: "" }));
+      const userCuisines = getPreferences()?.cuisines ?? [];
+      const userLearnedWeights = getTasteProfile();
+      const ordered: RankedMeal[] = orderedMeals.map((meal) => ({
+        meal,
+        reason: getSharedReason(meal, userCuisines, userLearnedWeights),
+      }));
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
       setSharedLoading(false);
@@ -344,6 +350,7 @@ function DeckContent() {
   // Nudge queued during a swipe exit — shown after the animation completes.
   const pendingNudgeRef = useRef<NudgeTrigger | null>(null);
   const [activeNudge, setActiveNudge] = useState<NudgeTrigger | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
@@ -676,6 +683,13 @@ function DeckContent() {
     setActiveNudge(null);
     // Nudges are solo-only; shared decks are fixed and can't be rebuilt here.
     if (!nudge || !yes || sessionId) return;
+
+    // Show a brief confirmation so the user knows the app learned something.
+    const msg =
+      nudge.type === "avoid"
+        ? `Got it — we'll avoid ${nudge.signal.toLowerCase()} going forward`
+        : `Nice — we'll show more ${nudge.signal}`;
+    setToastMessage(msg);
 
     const prefs = getPreferences();
     if (!prefs) return;
@@ -1255,8 +1269,8 @@ function DeckContent() {
 
                   {reason && (
                     <p
-                      className="text-xs text-white/50"
-                      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.7)" }}
+                      className="text-xs text-white/60"
+                      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}
                     >
                       ✦ {reason}
                     </p>
@@ -1400,6 +1414,9 @@ function DeckContent() {
 
       {/* ── Progressive onboarding nudge ────────────────────────────────────── */}
       <ProgressiveQuestion nudge={activeNudge} onAnswer={handleNudgeAnswer} />
+
+      {/* ── Learning confirmation toast ──────────────────────────────────────── */}
+      <LearningToast message={toastMessage} onDone={() => setToastMessage(null)} />
 
       {/* ── Ingredient sheet backdrop ─────────────────────────────────────── */}
       <AnimatePresence>

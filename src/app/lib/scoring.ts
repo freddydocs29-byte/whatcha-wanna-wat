@@ -368,7 +368,7 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  * Score a single meal and return the most relevant reason to surface.
  *
  * Scores (additive):
- *   +3      cuisine match        — meal matches a preferred cuisine from onboarding
+ *   +4      cuisine match        — meal matches a preferred cuisine from onboarding
  *   +2      saved category       — user saved a meal in the same category
  *   +1      saved tag overlap    — meal shares ≥1 tag with any saved meal
  *   +2      spice match (hot)    — user likes hot food and meal is bold/flavorful
@@ -378,10 +378,10 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  *   -2.5    recently seen        — meal appeared in a deck in the last 3 sessions (but wasn't chosen)
  *   -1.5    session shown        — meal was the active card during this visit (in-memory only)
  *
- * Taste profile signals (scale 0→1 over 20 interactions; zero effect early on):
- *   up to +2  liked tag boost    — meal tags overlap with tags from saved/chosen meals
- *   up to +1  liked category     — meal's category matches previously liked categories
- *   up to −1  disliked tag       — meal tags overlap with tags from passed meals
+ * Taste profile signals (scale 0→1 over 15 interactions; zero effect early on):
+ *   up to +3  liked tag boost    — meal tags overlap with tags from saved/chosen meals
+ *   up to +1.5 liked category    — meal's category matches previously liked categories
+ *   up to −1.5 disliked tag      — meal tags overlap with tags from passed meals
  *
  * Full Flavor Profile signals (explicit stated preferences; active when set):
  *   ±1        adventurousness    — adventurous/familiar preference vs meal category
@@ -395,9 +395,10 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  *   Partner: +1 comfort, −0.75 bold/elevated
  *   Solo:    baseline (no adjustments)
  *
- * Vibe nudge (secondary — preference signals always dominate; tracked separately as vibeScore):
- *   Max boost per meal: +1.5 pts (healthy, kid-friendly); +1.0 pts (comfort-food, quick-easy, something-new)
- *   Max penalty:        −1.0 pts (kid-friendly · bold meals)
+ * Vibe / session nudge (lowest priority — scaled ×0.6 from raw; tracked separately as vibeScore):
+ *   Max boost per meal: +0.9 pts (healthy, kid-friendly); +0.6 pts (comfort-food, quick-easy, something-new)
+ *   Max penalty:        −0.6 pts (kid-friendly · bold meals)
+ *   Guardrail: capped at +0.25 if pre-vibe score < 1.0 (weak-match protection)
  *
  *   comfort-food:   +1.0 comfort-food cat / +0.65 crowd-pleaser/indulgent / +0.35 classic-italian/kid;
  *                   −0.5 light/healthy/fresh, −0.25 elevated
@@ -436,9 +437,10 @@ export function scoreMeal(
   vibe: string | null = null,
   cookMode: SessionCookMode = "either",
   sessionVibeMode: SessionVibeMode = "mix-it-up"
-): { score: number; reason: string; vibeScore: number } {
+): { score: number; reason: string; vibeScore: number; behaviorScore: number } {
   let score = 0;
-  let vibeScore = 0; // tracks vibe-only contribution for dev logging
+  let vibeScore = 0;    // tracks session-selector contribution for dev logging
+  let behaviorScore = 0; // tracks learned-behavior contribution for dev logging
   let topReason: string | null = null;
 
   function setReason(r: string) {
@@ -452,7 +454,7 @@ export function scoreMeal(
     const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
     const matchedCuisine = mealCuisines.find((c) => prefs.cuisines.includes(c));
     if (matchedCuisine) {
-      score += 3;
+      score += 4;
       setReason(`You listed ${matchedCuisine} as a favorite`);
     }
 
@@ -553,24 +555,37 @@ export function scoreMeal(
   // dominate early and learned behavior gradually gains weight.
 
   if (tasteProfile && tasteProfile.interactionCount > 0) {
-    const behaviorScale = Math.min(1, tasteProfile.interactionCount / 20);
+    // Scale reaches 1.0 at 15 interactions (was 20) — learned behavior matters sooner,
+    // ensuring repeat-like signals dominate within a few sessions of use.
+    const behaviorScale = Math.min(1, tasteProfile.interactionCount / 15);
 
-    // Liked tag boost: +1 per matching tag, capped at +2
+    // Liked tag boost: +1 per matching tag, capped at +3 (was +2)
     const likedTagMatches = meal.tags.filter(
       (t) => (tasteProfile.likedTags[t] ?? 0) > 0
     ).length;
-    score += Math.min(2, likedTagMatches) * behaviorScale;
+    const tagBoost = Math.min(3, likedTagMatches) * behaviorScale;
+    score += tagBoost;
+    behaviorScore += tagBoost;
 
-    // Liked category boost: +1 if this category appeared in saves/chooses
-    if ((tasteProfile.likedCategories[meal.category] ?? 0) > 0) {
-      score += 1 * behaviorScale;
+    // Liked category boost: +1.5 (was +1) if this category appeared in saves/chooses
+    const likesCategory = (tasteProfile.likedCategories[meal.category] ?? 0) > 0;
+    if (likesCategory) {
+      const catBoost = 1.5 * behaviorScale;
+      score += catBoost;
+      behaviorScore += catBoost;
     }
 
-    // Disliked tag penalty: −1 per matching tag, floored at −1
+    // Disliked tag penalty: floored at −1.5 (was −1) for stronger avoidance signal
     const dislikedTagMatches = meal.tags.filter(
       (t) => (tasteProfile.dislikedTags[t] ?? 0) > 0
     ).length;
-    score += Math.max(-1, -dislikedTagMatches) * behaviorScale;
+    const dislikedPenalty = Math.max(-1.5, -dislikedTagMatches) * behaviorScale;
+    score += dislikedPenalty;
+    behaviorScore += dislikedPenalty;
+
+    // Learned behavior reason — fires only if no stronger reason has been set yet
+    if (likedTagMatches > 0) setReason("You've liked similar meals");
+    else if (likesCategory) setReason("Fits your usual choices");
   }
 
   // ── Full Flavor Profile signals ───────────────────────────────────────────
@@ -840,6 +855,7 @@ export function scoreMeal(
       if (hasFlavorful) legacyVibeScore -= 0.5;
     }
 
+    legacyVibeScore *= 0.6; // kept in sync with sessionVibeMode scaling
     score += legacyVibeScore;
     vibeScore += legacyVibeScore;
   }
@@ -867,16 +883,16 @@ export function scoreMeal(
         scat.includes("comfort food") || scat.includes("quick & casual") ||
         scat.includes("classic italian") || hasSTag("Pantry staple", "Easy");
       const isElevated = scat.includes("elevated");
-      if (isHomestyle) score += 1;
-      if (isElevated)  score -= 0.5;
+      if (isHomestyle) score += 0.6; // was 1.0 — scaled down with session selectors
+      if (isElevated)  score -= 0.3; // was -0.5
     } else if (cookMode === "order") {
       // Takeout-friendly: bold global flavors
       const isTakeoutFriendly =
         scat.includes("bold flavors") || scat.includes("fresh") ||
         scat.includes("mediterranean") || hasSTag("Flavorful");
       const isHomeOnly = hasSTag("Pantry staple");
-      if (isTakeoutFriendly) score += 1;
-      if (isHomeOnly)        score -= 0.5;
+      if (isTakeoutFriendly) score += 0.6; // was 1.0
+      if (isHomeOnly)        score -= 0.3; // was -0.5
     }
   }
 
@@ -964,11 +980,24 @@ export function scoreMeal(
       if (hasFlavorful) sessionVibeScore -= 0.5;
     }
 
+    // Reduce all session-selector influence by ~40% so preference + learned behavior
+    // dominate. Vibe reorders meals within peer score bands; it cannot define rank.
+    sessionVibeScore *= 0.6;
+
+    // Guardrail: session context cannot elevate a meal with weak preference signal
+    // into top-tier ranking. If the pre-vibe score is below the weak-match threshold,
+    // cap the session bonus at a trace amount so only genuine preference matches rank up.
+    const WEAK_MATCH_THRESHOLD = 1.0;
+    const WEAK_MATCH_CAP = 0.25;
+    if (sessionVibeScore > WEAK_MATCH_CAP && score < WEAK_MATCH_THRESHOLD) {
+      sessionVibeScore = WEAK_MATCH_CAP;
+    }
+
     score     += sessionVibeScore;
     vibeScore += sessionVibeScore;
   }
 
-  return { score, reason: topReason ?? meal.whyItFits, vibeScore };
+  return { score, reason: topReason ?? meal.whyItFits, vibeScore, behaviorScore };
 }
 
 /**
@@ -1010,30 +1039,34 @@ export function rankMeals(
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
-  // 1. Score every meal — vibeScore is tracked separately for dev logging
+  // 1. Score every meal — behaviorScore and vibeScore tracked separately for dev logging
   const scored = meals.map((meal) => {
-    const { score, reason, vibeScore } = scoreMeal(
+    const { score, reason, vibeScore, behaviorScore } = scoreMeal(
       meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode
     );
-    return { meal, score, reason, vibeScore };
+    return { meal, score, reason, vibeScore, behaviorScore };
   });
 
   // 2. Sort by score descending — all meals ranked, no artificial cutoff
   scored.sort((a, b) => b.score - a.score);
 
-  // Dev logging — shows preference vs vibe contribution for top 10 meals
-  // so it's easy to verify vibe is nudging, not driving, the order.
-  if (process.env.NODE_ENV === "development" && sessionVibeMode !== "mix-it-up") {
-    console.log(`[rankMeals · vibe: ${sessionVibeMode}] Top 10 — pref vs vibe:`);
+  // Dev logging — base preference, learned behavior, session selector, and final score
+  // for the top 10 meals. Confirms behavior > vibe in the ranking hierarchy.
+  if (process.env.NODE_ENV === "development") {
+    const label = sessionVibeMode !== "mix-it-up" ? `vibe:${sessionVibeMode}` : "mix-it-up";
+    console.log(`[rankMeals · ${label}] Top 10:`);
     scored.slice(0, 10).forEach((s, i) => {
-      const pref = +(s.score - s.vibeScore).toFixed(2);
-      const vibe = +s.vibeScore.toFixed(2);
-      const sign = vibe >= 0 ? "+" : "";
+      const base = +(s.score - s.behaviorScore - s.vibeScore).toFixed(2);
+      const beh  = +s.behaviorScore.toFixed(2);
+      const sess = +s.vibeScore.toFixed(2);
+      const behSign  = beh  >= 0 ? "+" : "";
+      const sessSign = sess >= 0 ? "+" : "";
       console.log(
         `  ${i + 1}. ${s.meal.name.padEnd(28)}` +
-        ` pref: ${String(pref).padStart(5)}` +
-        `  vibe: ${sign}${vibe}` +
-        `  total: ${s.score.toFixed(2)}`
+        ` base:${String(base).padStart(5)}` +
+        `  behavior:${behSign}${String(beh).padStart(4)}` +
+        `  session:${sessSign}${String(sess).padStart(4)}` +
+        `  final:${s.score.toFixed(2)}`
       );
     });
   }
@@ -1191,9 +1224,9 @@ function scoreForUser(meal: Meal, profile: UserProfileForScoring): number {
  * enjoy. Bonuses stack but are capped per-dimension so no single dimension
  * dominates.
  *
- * Shared cuisine:   +1.5  (strongest signal — explicit preference from onboarding)
- * Shared liked tags:  +1.0  (behavioral — both have saved/chosen meals with these tags)
- * Shared liked category: +0.75  (behavioral — both have positive category history)
+ * Shared cuisine:        +2.0  (strongest signal — explicit preference from onboarding)
+ * Shared liked tags:     +1.5  (behavioral — both have saved/chosen meals with these tags)
+ * Shared liked category: +1.0  (behavioral — both have positive category history)
  */
 function computeOverlapBonus(
   meal: Meal,
@@ -1210,7 +1243,7 @@ function computeOverlapBonus(
     (c) => profileA.cuisines.includes(c) && profileB.cuisines.includes(c),
   );
   if (sharedCuisine) {
-    bonus += 1.5;
+    bonus += 2.0;
     reasons.push(`both like ${sharedCuisine}`);
   }
 
@@ -1227,7 +1260,7 @@ function computeOverlapBonus(
   );
   const sharedLikedTags = meal.tags.filter((t) => aLikedTags.has(t) && bLikedTags.has(t));
   if (sharedLikedTags.length > 0) {
-    bonus += 1.0;
+    bonus += 1.5;
     reasons.push(`shared liked tags: ${sharedLikedTags.slice(0, 2).join(", ")}`);
   }
 
@@ -1235,7 +1268,7 @@ function computeOverlapBonus(
   const aLikesCategory = (profileA.learnedWeights?.likedCategories[meal.category] ?? 0) > 0;
   const bLikesCategory = (profileB.learnedWeights?.likedCategories[meal.category] ?? 0) > 0;
   if (aLikesCategory && bLikesCategory) {
-    bonus += 0.75;
+    bonus += 1.0;
     reasons.push(`both liked ${meal.category}`);
   }
 
@@ -1344,26 +1377,114 @@ export function rankMealsForSharedSession(
   // Sort by mutual score descending
   scored.sort((a, b) => b.score - a.score);
 
-  // Development logging — shared deck only, top 10 with full breakdown
+  // --- Deck tiering ---
+  // Calibrated to: mutualScore = Math.min(userA, userB) * 1.5 + overlapBonus + crowdBonus + bothSeenPenalty
+  // Overlap bonuses (post-rebalance): cuisine +2.0, liked-tags +1.5, liked-category +1.0, crowd +0.5
+  //
+  // HIGH_THRESHOLD (11.0): both users rate the meal ~5+ AND at least one shared overlap fires.
+  //   Example: min(6, 7) * 1.5 + 2.0 cuisine + 1.5 tags = 12.5 → top tier.
+  //   Example: min(5, 5) * 1.5 + 2.0 cuisine = 9.5 → still mid — needs behavior overlap too.
+  // MID_THRESHOLD  (8.0):  decent mutual fit — both broadly positive, at least cuisine overlap.
+  //   Example: min(4, 5) * 1.5 + 2.0 cuisine = 8.0 → mid; min(5, 5) * 1.5 = 7.5 → fallback.
+  // Fallback: anything below MID_THRESHOLD that survived the hard gate.
+  //
+  // Meals are already sorted descending by mutualScore, so tier arrays preserve
+  // score order. A light intra-tier shuffle adds session variety without mixing tiers.
+  const HIGH_THRESHOLD = 11.0;
+  const MID_THRESHOLD = 8.0;
+
+  const topTier  = scored.filter((s) => s.score >= HIGH_THRESHOLD);
+  const midTier  = scored.filter((s) => s.score >= MID_THRESHOLD && s.score < HIGH_THRESHOLD);
+  const fallback = scored.filter((s) => s.score < MID_THRESHOLD);
+
+  // Development logging — tier breakdown + top 10 with tier labels
   if (process.env.NODE_ENV === "development") {
+    console.log(
+      `[sharedDeck] Tier breakdown — top: ${topTier.length} (≥${HIGH_THRESHOLD}),` +
+      ` mid: ${midTier.length} (≥${MID_THRESHOLD}),` +
+      ` fallback: ${fallback.length}`,
+    );
+    if (topTier.length < 5) {
+      console.warn(
+        `[sharedDeck] ⚠ Only ${topTier.length} meal(s) met HIGH_THRESHOLD (${HIGH_THRESHOLD}).` +
+        ` Filling remaining top-5 slots from mid/fallback.`,
+      );
+    }
     console.log("[sharedDeck] Top 10 mutual scores:");
     scored.slice(0, 10).forEach((s, i) => {
+      const tier =
+        s.score >= HIGH_THRESHOLD ? "top" : s.score >= MID_THRESHOLD ? "mid" : "fallback";
       const overlapStr = s.overlapReasons.length
         ? ` | overlap: ${s.overlapReasons.join(", ")}`
         : "";
       console.log(
         `  ${i + 1}. ${s.meal.name}` +
+        ` | mutual: ${s.score.toFixed(2)}` +
+        ` | tier: ${tier}` +
         ` | A: ${s.userAScore.toFixed(2)}` +
         ` | B: ${s.userBScore.toFixed(2)}` +
-        ` | mutual: ${s.score.toFixed(2)}` +
         overlapStr,
       );
     });
   }
 
-  // Band shuffle + cuisine spread — identical to rankMeals
-  const shuffled = bandShuffle(scored);
-  const diversified = spreadByCuisine(shuffled);
+  // Light Fisher-Yates shuffle within each tier for session-to-session variety.
+  // Tiers are never mixed — top tier always leads the deck.
+  const shuffleTier = <T>(arr: T[]): T[] => {
+    const a = [...arr];
+    for (let k = a.length - 1; k > 0; k--) {
+      const r = Math.floor(Math.random() * (k + 1));
+      [a[k], a[r]] = [a[r], a[k]];
+    }
+    return a;
+  };
 
-  return diversified.map((s) => ({ meal: s.meal, reason: s.reason }));
+  const ordered = [
+    ...shuffleTier(topTier),
+    ...shuffleTier(midTier),
+    ...shuffleTier(fallback),
+  ];
+
+  return ordered.map((s) => ({ meal: s.meal, reason: s.reason }));
+}
+
+/**
+ * Derives a user-facing recommendation reason for a meal in a shared session,
+ * using the current user's profile (the other user's profile is not available
+ * client-side when loading the pre-built deck from the database).
+ *
+ * Priority:
+ *   1. Cuisine match → "You both might enjoy [cuisine]"
+ *   2. Learned tag match → "You've liked similar meals"
+ *   3. Learned category match → "You both tend to enjoy this style"
+ *   4. Crowd pleaser / kid-friendly → "A crowd-pleasing pick for tonight"
+ *   5. Fallback → meal.whyItFits
+ *
+ * Used at line where shared deck is loaded from Supabase; replaces the
+ * placeholder `reason: ""` assigned when only meal IDs are stored.
+ */
+export function getSharedReason(
+  meal: Meal,
+  cuisines: string[],
+  learnedWeights: TasteProfile | null,
+): string {
+  const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
+  const matchedCuisine = mealCuisines.find((c) => cuisines.includes(c));
+  if (matchedCuisine) return `You both might enjoy ${matchedCuisine}`;
+
+  if (learnedWeights) {
+    const likedTagMatches = meal.tags.filter(
+      (t) => (learnedWeights.likedTags[t] ?? 0) > 0,
+    ).length;
+    if (likedTagMatches > 0) return "You've liked similar meals";
+    if ((learnedWeights.likedCategories[meal.category] ?? 0) > 0) {
+      return "You both tend to enjoy this style";
+    }
+  }
+
+  if (meal.tags.some((t) => t === "Crowd pleaser" || t === "Kid-friendly")) {
+    return "A crowd-pleasing pick for tonight";
+  }
+
+  return meal.whyItFits;
 }
