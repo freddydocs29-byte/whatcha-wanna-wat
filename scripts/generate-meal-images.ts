@@ -1,9 +1,11 @@
 /**
  * generate-meal-images.ts
  *
- * Generates DALL-E 3 food images for meals filtered by cuisine that still
- * use Unsplash/placeholder URLs, uploads them to Supabase Storage, and
- * optionally auto-updates src/app/data/meals.ts.
+ * Generates DALL-E 3 food images for meals that still use Unsplash/placeholder
+ * URLs, uploads them to Supabase Storage, and auto-updates meals.ts after each
+ * successful meal so progress is saved even if later meals fail.
+ *
+ * Run repeatedly, 10 meals at a time, until all remaining images are updated.
  *
  * Usage:
  *   OPENAI_API_KEY=sk-... \
@@ -12,10 +14,13 @@
  *   AUTO_WRITE=true \
  *   npx tsx scripts/generate-meal-images.ts
  *
- * Env options (all optional):
- *   CUISINES=American,Mexican,Italian  (default: "American,Mexican,Italian")
- *   BATCH_SIZE=10                       (default: 10, hard cap: 15)
- *   AUTO_WRITE=true                     (default: false — prints URLs only)
+ * Env options:
+ *   CUISINES=American,Mexican,Italian   filter by cuisine  (default: ALL)
+ *   CUISINES=ALL                        process every cuisine
+ *   BATCH_SIZE=10                       meals per run      (default: 10)
+ *   AUTO_WRITE=true                     update meals.ts    (default: false)
+ *   START_AFTER=meal-id                 skip meals up to and including this ID
+ *   ONLY_IDS=id1,id2,id3               process only these specific meal IDs
  */
 
 import fs from "fs";
@@ -31,17 +36,29 @@ const __dirname = path.dirname(__filename);
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const CUISINES_RAW = process.env.CUISINES ?? "American,Mexican,Italian";
-const TARGET_CUISINES = CUISINES_RAW.split(",")
-  .map((c) => c.trim())
-  .filter(Boolean);
+const CUISINES_RAW = process.env.CUISINES ?? "ALL";
+const USE_ALL_CUISINES =
+  CUISINES_RAW.trim().toUpperCase() === "ALL" || CUISINES_RAW.trim() === "";
+const TARGET_CUISINES = USE_ALL_CUISINES
+  ? []
+  : CUISINES_RAW.split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
 
-const BATCH_SIZE = Math.min(
-  parseInt(process.env.BATCH_SIZE ?? "10", 10),
-  15 // hard cap — DALL-E 3 is $0.04/image at 1024×1792 standard quality
-);
+const BATCH_SIZE = parseInt(process.env.BATCH_SIZE ?? "10", 10);
 
 const AUTO_WRITE = process.env.AUTO_WRITE === "true";
+
+// START_AFTER: skip all meals up to and including this ID (for resuming)
+const START_AFTER = process.env.START_AFTER?.trim() ?? "";
+
+// ONLY_IDS: if set, only process these specific meal IDs
+const ONLY_IDS_RAW = process.env.ONLY_IDS?.trim() ?? "";
+const ONLY_IDS = ONLY_IDS_RAW
+  ? ONLY_IDS_RAW.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : [];
 
 // DALL-E 3 default rate limit: 5 img/min on Tier 1.
 // 13 s between requests keeps us safely under.
@@ -52,14 +69,11 @@ const MEALS_BACKUP_PATH = path.resolve(
   __dirname,
   "../src/app/data/meals.backup.ts"
 );
-const SCORING_TS_PATH = path.resolve(
-  __dirname,
-  "../src/app/lib/scoring.ts"
-);
+const SCORING_TS_PATH = path.resolve(__dirname, "../src/app/lib/scoring.ts");
 
 // ── Load cuisine map from scoring.ts source ───────────────────────────────────
 //
-// We read and parse scoring.ts as text rather than importing it, because
+// Read and parse scoring.ts as text rather than importing it, because
 // scoring.ts → storage.ts → supabase.ts creates a client at module load time
 // and throws if NEXT_PUBLIC_SUPABASE_* env vars aren't set.
 
@@ -225,6 +239,36 @@ function replaceMealImageInContent(
   return before + block.replace(oldUrl, newUrl) + after;
 }
 
+/**
+ * Atomically writes updated content to meals.ts.
+ * Creates the backup on first call of each run, then updates in-place.
+ */
+function writeMealsTs(
+  mealId: string,
+  oldUrl: string,
+  newUrl: string,
+  backupCreated: { value: boolean }
+): boolean {
+  const current = fs.readFileSync(MEALS_TS_PATH, "utf8");
+
+  // Create backup once at the start of each run (before first write)
+  if (!backupCreated.value) {
+    fs.writeFileSync(MEALS_BACKUP_PATH, current, "utf8");
+    console.log(`  ✓ Backup saved → src/app/data/meals.backup.ts`);
+    backupCreated.value = true;
+  }
+
+  const updated = replaceMealImageInContent(current, mealId, oldUrl, newUrl);
+  if (updated === current) {
+    return false; // nothing changed
+  }
+
+  const tmpPath = `${MEALS_TS_PATH}.tmp`;
+  fs.writeFileSync(tmpPath, updated, "utf8");
+  fs.renameSync(tmpPath, MEALS_TS_PATH);
+  return true;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -239,37 +283,81 @@ async function main() {
   const openai = new OpenAI({ apiKey: requireEnv("OPENAI_API_KEY") });
   const supabase = createClient(requireEnv("SUPABASE_URL"), serviceRoleKey);
 
-  // ── Filter meals ─────────────────────────────────────────────────────────
+  // ── Build candidate list ──────────────────────────────────────────────────
 
-  const allTargetMeals = meals.filter((m) => {
-    const mealCuisines = MEAL_CUISINES[m.id] ?? [];
-    return mealCuisines.some((c) => TARGET_CUISINES.includes(c));
-  });
+  // 1. All meals (total pool)
+  const allMeals = meals;
 
-  const alreadyDone = allTargetMeals.filter((m) =>
+  // 2. Already on Supabase — always skipped regardless of other filters
+  const alreadyDone = allMeals.filter((m) =>
     m.image.includes("supabase.co/storage")
   );
-  const eligible = allTargetMeals.filter(
+
+  // 3. Needs an image
+  let eligible = allMeals.filter(
     (m) => !m.image.includes("supabase.co/storage")
   );
+
+  // 4. ONLY_IDS filter — overrides cuisine and START_AFTER
+  if (ONLY_IDS.length > 0) {
+    const idSet = new Set(ONLY_IDS);
+    const missing = ONLY_IDS.filter(
+      (id) => !allMeals.find((m) => m.id === id)
+    );
+    if (missing.length > 0) {
+      console.warn(`  ⚠  Unknown meal IDs in ONLY_IDS: ${missing.join(", ")}`);
+    }
+    eligible = eligible.filter((m) => idSet.has(m.id));
+  } else {
+    // 4a. Cuisine filter
+    if (!USE_ALL_CUISINES) {
+      eligible = eligible.filter((m) => {
+        const mealCuisines = MEAL_CUISINES[m.id] ?? [];
+        return mealCuisines.some((c) => TARGET_CUISINES.includes(c));
+      });
+    }
+
+    // 4b. START_AFTER: drop everything up to and including that ID
+    if (START_AFTER) {
+      const idx = eligible.findIndex((m) => m.id === START_AFTER);
+      if (idx === -1) {
+        console.warn(
+          `  ⚠  START_AFTER="${START_AFTER}" not found in eligible list — ignoring`
+        );
+      } else {
+        eligible = eligible.slice(idx + 1);
+      }
+    }
+  }
+
   const targets = eligible.slice(0, BATCH_SIZE);
 
   // ── Header ───────────────────────────────────────────────────────────────
 
   console.log(`\n${"─".repeat(60)}`);
-  console.log(` Meal image generator — cuisine batch`);
+  console.log(` Meal image generator — repeatable batch`);
   console.log(`${"─".repeat(60)}`);
-  console.log(` Target cuisines    : ${TARGET_CUISINES.join(", ")}`);
-  console.log(` Matching meals     : ${allTargetMeals.length}`);
+  console.log(
+    ` Target cuisines    : ${USE_ALL_CUISINES ? "ALL" : TARGET_CUISINES.join(", ")}`
+  );
+  if (ONLY_IDS.length > 0) {
+    console.log(` ONLY_IDS           : ${ONLY_IDS.join(", ")}`);
+  }
+  if (START_AFTER) {
+    console.log(` START_AFTER        : ${START_AFTER}`);
+  }
+  console.log(` Total meals        : ${allMeals.length}`);
   console.log(` Already on Supabase: ${alreadyDone.length} (skipping)`);
-  console.log(` Need images        : ${eligible.length}`);
-  console.log(` Batch this run     : ${targets.length} (cap: ${BATCH_SIZE})`);
+  console.log(` Remaining (eligible): ${eligible.length}`);
+  console.log(
+    ` Batch this run     : ${targets.length} (size: ${BATCH_SIZE})`
+  );
   console.log(` Model              : dall-e-3  1024×1792  standard`);
   console.log(` Estimated cost     : ~$${(targets.length * 0.04).toFixed(2)}`);
   console.log(
     ` Auto-write         : ${
       AUTO_WRITE
-        ? "YES — meals.ts will be updated"
+        ? "YES — meals.ts updated after each success"
         : "NO  — URLs printed only (set AUTO_WRITE=true to apply)"
     }`
   );
@@ -282,24 +370,28 @@ async function main() {
     return;
   }
 
+  console.log("Meals queued this run:");
   targets.forEach((m, i) => {
-    const cuisines = (MEAL_CUISINES[m.id] ?? []).join(", ");
+    const cuisines = (MEAL_CUISINES[m.id] ?? []).join(", ") || "—";
     console.log(
       `  ${String(i + 1).padStart(2)}. ${m.id.padEnd(32)} [${cuisines}]`
     );
   });
   console.log();
 
-  // ── Generate, download, upload ───────────────────────────────────────────
+  // ── Generate, download, upload, write ────────────────────────────────────
 
-  const results: { id: string; oldUrl: string; newUrl: string }[] = [];
+  let succeeded = 0;
+  let failed = 0;
+  let written = 0;
   const failures: { id: string; reason: string }[] = [];
+  const backupCreated = { value: false };
 
   for (let i = 0; i < targets.length; i++) {
     const meal = targets[i];
     const tag = `[${i + 1}/${targets.length}]`;
 
-    console.log(`${tag} ${meal.name}`);
+    console.log(`${tag} ${meal.name}  (${meal.id})`);
 
     try {
       // 1. Generate
@@ -345,12 +437,27 @@ async function main() {
       const { data: urlData } = supabase.storage
         .from("meal-images")
         .getPublicUrl(fileName);
-
       const newUrl = urlData.publicUrl;
-      results.push({ id: meal.id, oldUrl: meal.image, newUrl });
-      console.log(`     ✓ ${newUrl}\n`);
+
+      succeeded++;
+      console.log(`     ✓ ${newUrl}`);
+
+      // 5. Immediately update meals.ts — progress saved even if next meal fails
+      if (AUTO_WRITE) {
+        const didWrite = writeMealsTs(meal.id, meal.image, newUrl, backupCreated);
+        if (didWrite) {
+          written++;
+          console.log(`     ✓ meals.ts updated (${written} written this run)`);
+        } else {
+          console.warn(`     ⚠  meals.ts not modified for ${meal.id}`);
+        }
+      } else {
+        console.log(`     → image: "${newUrl}",`);
+      }
+      console.log();
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
+      failed++;
       failures.push({ id: meal.id, reason });
       console.error(`     ✗ Failed: ${reason}\n`);
     }
@@ -366,28 +473,23 @@ async function main() {
 
   // ── Summary ──────────────────────────────────────────────────────────────
 
+  const remainingAfterRun = eligible.length - succeeded;
+
   console.log(`\n${"─".repeat(60)}`);
   console.log(` Summary`);
   console.log(`${"─".repeat(60)}`);
-  console.log(` Total eligible     : ${eligible.length}`);
-  console.log(` Processed          : ${targets.length}`);
-  console.log(` Updated            : ${results.length}`);
+  console.log(` Total meals        : ${allMeals.length}`);
+  console.log(` Total remaining    : ${eligible.length}`);
+  console.log(` Processed this run : ${targets.length}`);
+  console.log(` Succeeded          : ${succeeded}`);
+  console.log(` Failed             : ${failed}`);
   console.log(` Skipped (Supabase) : ${alreadyDone.length}`);
-  console.log(` Failed             : ${failures.length}`);
-  console.log(` Remaining after run: ${eligible.length - results.length}`);
-  console.log(` Actual cost        : ~$${(results.length * 0.04).toFixed(2)}`);
-  console.log(`${"─".repeat(60)}\n`);
-
-  // Log all changes
-  if (results.length > 0) {
-    console.log("Changes:");
-    for (const { id, oldUrl, newUrl } of results) {
-      console.log(`  ${id}`);
-      console.log(`    old: ${oldUrl}`);
-      console.log(`    new: ${newUrl}`);
-      console.log();
-    }
+  console.log(` Remaining after run: ${remainingAfterRun}`);
+  console.log(` Actual cost        : ~$${(succeeded * 0.04).toFixed(2)}`);
+  if (AUTO_WRITE) {
+    console.log(` meals.ts writes    : ${written}`);
   }
+  console.log(`${"─".repeat(60)}\n`);
 
   if (failures.length > 0) {
     console.log("Failed meals (re-run to retry):");
@@ -395,65 +497,37 @@ async function main() {
       console.log(`  ✗ ${id}: ${reason}`);
     }
     console.log();
+    // Suggest an ONLY_IDS retry command
+    const failedIds = failures.map((f) => f.id).join(",");
+    console.log(
+      `  Retry failed meals:\n` +
+        `    ONLY_IDS=${failedIds} AUTO_WRITE=true npx tsx scripts/generate-meal-images.ts\n`
+    );
   }
 
-  // ── Auto-write meals.ts ──────────────────────────────────────────────────
-
-  if (!AUTO_WRITE) {
-    if (results.length > 0) {
-      console.log(
-        "AUTO_WRITE=false — paste these into src/app/data/meals.ts manually:\n"
-      );
-      for (const { id, newUrl } of results) {
-        console.log(`  ${id}`);
-        console.log(`    image: "${newUrl}",`);
-        console.log();
-      }
-      console.log(
-        "Or re-run with AUTO_WRITE=true to apply changes automatically."
-      );
-    }
-    return;
+  if (!AUTO_WRITE && succeeded > 0) {
+    console.log(
+      "AUTO_WRITE=false — re-run with AUTO_WRITE=true to apply changes to meals.ts.\n"
+    );
   }
 
-  if (results.length === 0) {
-    console.log("No successful results — nothing to write.");
-    return;
+  if (remainingAfterRun > 0 && succeeded > 0) {
+    // Suggest next batch command
+    const lastId = targets[targets.length - 1].id;
+    const cuisineFlag = USE_ALL_CUISINES
+      ? "CUISINES=ALL"
+      : `CUISINES=${TARGET_CUISINES.join(",")}`;
+    console.log(
+      `  Next batch:\n` +
+        `    ${cuisineFlag} START_AFTER=${lastId} AUTO_WRITE=true npx tsx scripts/generate-meal-images.ts\n`
+    );
   }
 
-  // 1. Backup original file before any writes
-  console.log("Writing meals.ts...");
-  const originalContent = fs.readFileSync(MEALS_TS_PATH, "utf8");
-  fs.writeFileSync(MEALS_BACKUP_PATH, originalContent, "utf8");
-  console.log(`  ✓ Backup → src/app/data/meals.backup.ts`);
-
-  // 2. Apply URL replacements one by one
-  let content = originalContent;
-  let writeCount = 0;
-
-  for (const { id, oldUrl, newUrl } of results) {
-    const before = content;
-    content = replaceMealImageInContent(content, id, oldUrl, newUrl);
-    if (content !== before) {
-      writeCount++;
-      console.log(`  ✓ Replaced: ${id}`);
-    }
+  if (AUTO_WRITE && backupCreated.value) {
+    console.log(
+      "  To revert: cp src/app/data/meals.backup.ts src/app/data/meals.ts\n"
+    );
   }
-
-  if (writeCount === 0) {
-    console.log("\nNo URL replacements were made — meals.ts unchanged.");
-    return;
-  }
-
-  // 3. Write atomically (write to tmp then rename)
-  const tmpPath = `${MEALS_TS_PATH}.tmp`;
-  fs.writeFileSync(tmpPath, content, "utf8");
-  fs.renameSync(tmpPath, MEALS_TS_PATH);
-
-  console.log(`\n✓ meals.ts updated — ${writeCount} meal(s) replaced.\n`);
-  console.log(
-    "  To revert: cp src/app/data/meals.backup.ts src/app/data/meals.ts\n"
-  );
 }
 
 main().catch((err) => {

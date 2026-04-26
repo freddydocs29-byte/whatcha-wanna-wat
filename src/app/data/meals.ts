@@ -631,7 +631,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Shrimp", "Eggs", "Garlic"],
     whyItFits: "The noodle dish that started your Thai food phase",
     image:
-      "https://images.unsplash.com/photo-1559314045-0c04de3ebfce?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pad-thai.jpg",
   },
   {
     id: "kung-pao-chicken",
@@ -643,7 +643,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Bell peppers", "Garlic", "Onions"],
     whyItFits: "Hits the spice craving and then some",
     image:
-      "https://images.unsplash.com/photo-1562802378-9f64e2b21cb2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/kung-pao-chicken.jpg",
   },
   {
     id: "jerk-chicken",
@@ -655,7 +655,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Garlic", "Onions"],
     whyItFits: "Bold, smoky, and unlike anything else",
     image:
-      "https://images.unsplash.com/photo-1501200291289-c5a76c232e5f?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/jerk-chicken.jpg",
   },
   {
     id: "bibimbap",
@@ -667,7 +667,7 @@ export const meals: Meal[] = [
     ingredients: ["Rice", "Ground beef", "Eggs", "Spinach"],
     whyItFits: "Every bite is a little different",
     image:
-      "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bibimbap.jpg",
   },
   {
     id: "dan-dan-noodles",
@@ -679,7 +679,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Ground beef", "Garlic", "Onions"],
     whyItFits: "For when you want heat that slowly builds",
     image:
-      "https://images.unsplash.com/photo-1583599872387-a1c73d5c08c8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/dan-dan-noodles.jpg",
   },
   {
     id: "mango-curry",
@@ -691,7 +691,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Garlic", "Onions"],
     whyItFits: "The curry that surprises you with sweetness",
     image:
-      "https://images.unsplash.com/photo-1565299584077-ea0a3dd34f8a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mango-curry.jpg",
   },
   {
     id: "spicy-miso-ramen",
@@ -703,7 +703,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Mushrooms", "Garlic", "Spinach"],
     whyItFits: "Different enough from tonkotsu to feel completely fresh",
     image:
-      "https://images.unsplash.com/photo-1557126819-f3a53d6f9a7d?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spicy-miso-ramen.jpg",
   },
   {
     id: "peri-peri-chicken",
@@ -715,7 +715,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Garlic", "Bell peppers"],
     whyItFits: "The flavor is impossible to ignore",
     image:
-      "https://images.unsplash.com/photo-1598514536338-8b399a0780f9?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/peri-peri-chicken.jpg",
   },
 
   // Healthy
@@ -729,7 +729,7 @@ export const meals: Meal[] = [
     ingredients: ["Salmon", "Rice", "Broccoli"],
     whyItFits: "High-protein clean eating that doesn't feel like a sacrifice",
     image:
-      "https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/teriyaki-salmon.jpg",
   },
   {
     id: "lettuce-wrap-bowls",
@@ -741,7 +741,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Garlic", "Onions"],
     whyItFits: "Filling without the heaviness",
     image:
-      "https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/lettuce-wrap-bowls.jpg",
   },
   {
     id: "shrimp-stir-fry",
@@ -753,7 +753,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Bell peppers", "Garlic", "Rice"],
     whyItFits: "Protein-packed and genuinely fast",
     image:
-      "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/shrimp-stir-fry.jpg",
   },
   {
     id: "lentil-soup",
@@ -765,7 +765,7 @@ export const meals: Meal[] = [
     ingredients: ["Tomatoes", "Garlic", "Onions", "Spinach"],
     whyItFits: "Filling, healthy, and better than you think",
     image:
-      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/lentil-soup.jpg",
   },
   {
     id: "buddha-bowl",
@@ -777,7 +777,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Spinach", "Tomatoes"],
     whyItFits: "The kind of food that makes you feel like you're winning",
     image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/buddha-bowl.jpg",
   },
   {
     id: "veggie-omelette",
@@ -789,7 +789,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Bell peppers", "Spinach", "Cheese"],
     whyItFits: "Quick protein that keeps you going all day",
     image:
-      "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/veggie-omelette.jpg",
   },
   {
     id: "stuffed-peppers",
@@ -801,7 +801,7 @@ export const meals: Meal[] = [
     ingredients: ["Bell peppers", "Ground beef", "Rice", "Tomatoes"],
     whyItFits: "Built-in portion control that actually tastes great",
     image:
-      "https://images.unsplash.com/photo-1513135467880-6c41603eb5e5?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/stuffed-peppers.jpg",
   },
   {
     id: "baked-lemon-chicken",
@@ -813,7 +813,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Garlic", "Butter"],
     whyItFits: "Clean eating that doesn't feel like a compromise",
     image:
-      "https://images.unsplash.com/photo-1598103442097-8b74394b95c8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/baked-lemon-chicken.jpg",
   },
   {
     id: "tuna-salad",
@@ -825,7 +825,7 @@ export const meals: Meal[] = [
     ingredients: ["Tomatoes", "Onions"],
     whyItFits: "Fast, no-fuss, and lighter than you'd expect",
     image:
-      "https://images.unsplash.com/photo-1512852595523-54e2f8d8e9e7?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tuna-salad.jpg",
   },
   {
     id: "black-bean-bowl",
@@ -837,7 +837,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Rice", "Tomatoes", "Onions"],
     whyItFits: "Plant-based meal that actually fills you up",
     image:
-      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/black-bean-bowl.jpg",
   },
 
   // Elevated
@@ -851,7 +851,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Mushrooms", "Bacon", "Onions"],
     whyItFits: "Dinner party energy on a Tuesday",
     image:
-      "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/coq-au-vin.jpg",
   },
   {
     id: "sea-bass",
@@ -863,7 +863,7 @@ export const meals: Meal[] = [
     ingredients: ["Butter", "Garlic", "Spinach"],
     whyItFits: "Restaurant plate you made yourself",
     image:
-      "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sea-bass.jpg",
   },
   {
     id: "duck-breast",
@@ -875,7 +875,7 @@ export const meals: Meal[] = [
     ingredients: ["Garlic", "Butter"],
     whyItFits: "Impressive result from a method anyone can master",
     image:
-      "https://images.unsplash.com/photo-1518492104633-130d0cc84637?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/duck-breast.jpg",
   },
   {
     id: "beef-tenderloin",
@@ -887,7 +887,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Butter", "Garlic"],
     whyItFits: "When the occasion calls for the best",
     image:
-      "https://images.unsplash.com/photo-1558030137-a56c1b003f91?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/beef-tenderloin.jpg",
   },
   {
     id: "seared-scallops",
@@ -899,7 +899,7 @@ export const meals: Meal[] = [
     ingredients: ["Butter", "Garlic"],
     whyItFits: "The easiest impressive dinner you can make",
     image:
-      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/seared-scallops.jpg",
   },
   {
     id: "stuffed-mushrooms",
@@ -911,7 +911,7 @@ export const meals: Meal[] = [
     ingredients: ["Mushrooms", "Spinach", "Cheese", "Garlic"],
     whyItFits: "Vegetarian centerpiece that doesn't feel like a compromise",
     image:
-      "https://images.unsplash.com/photo-1506280754576-f6fa8a873550?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/stuffed-mushrooms.jpg",
   },
 
   // Classic Italian
@@ -925,7 +925,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Eggs", "Cheese", "Bacon"],
     whyItFits: "Proper Italian comfort in 20 minutes",
     image:
-      "https://images.unsplash.com/photo-1611270629569-8b357cb88da9?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/carbonara.jpg",
   },
   {
     id: "beef-lasagna",
@@ -937,7 +937,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Pasta", "Cheese", "Tomatoes"],
     whyItFits: "When you want to cook something that actually matters",
     image:
-      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/beef-lasagna.jpg",
   },
   {
     id: "chicken-piccata",
@@ -949,7 +949,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Butter", "Garlic"],
     whyItFits: "Italian technique that's easier than it looks",
     image:
-      "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-piccata.jpg",
   },
   {
     id: "gnocchi",
@@ -961,7 +961,7 @@ export const meals: Meal[] = [
     ingredients: ["Potatoes", "Butter", "Cheese"],
     whyItFits: "Feels like restaurant pasta without the restaurant bill",
     image:
-      "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/gnocchi.jpg",
   },
   {
     id: "penne-arrabbiata",
@@ -973,7 +973,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Tomatoes", "Garlic"],
     whyItFits: "Quick pasta that has actual personality",
     image:
-      "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/penne-arrabbiata.jpg",
   },
   {
     id: "bruschetta",
@@ -985,7 +985,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Tomatoes", "Garlic"],
     whyItFits: "The starter that somehow steals the show",
     image:
-      "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bruschetta.jpg",
   },
 
   // Mediterranean
@@ -999,7 +999,7 @@ export const meals: Meal[] = [
     ingredients: ["Tomatoes", "Onions", "Cheese"],
     whyItFits: "Bright, fresh, and zero cooking required",
     image:
-      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/greek-salad.jpg",
   },
   {
     id: "hummus-plate",
@@ -1011,7 +1011,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Garlic", "Bread"],
     whyItFits: "Deceptively simple and genuinely satisfying",
     image:
-      "https://images.unsplash.com/photo-1577906071869-7c74a8ebd15?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/hummus-plate.jpg",
   },
   {
     id: "moussaka",
@@ -1023,7 +1023,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Onions", "Garlic", "Tomatoes"],
     whyItFits: "Takes time and is worth every minute",
     image:
-      "https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/moussaka.jpg",
   },
   {
     id: "tabbouleh",
@@ -1035,7 +1035,7 @@ export const meals: Meal[] = [
     ingredients: ["Tomatoes", "Onions"],
     whyItFits: "Refreshing and clean without trying to be",
     image:
-      "https://images.unsplash.com/photo-1541014741259-de529411b96a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tabbouleh.jpg",
   },
   {
     id: "chicken-souvlaki",
@@ -1047,7 +1047,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Garlic", "Bread"],
     whyItFits: "The Greek takeout you can make better at home",
     image:
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-souvlaki.jpg",
   },
   {
     id: "spanish-tortilla",
@@ -1059,7 +1059,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Potatoes", "Onions"],
     whyItFits: "The Spanish staple you'll want to make every week",
     image:
-      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spanish-tortilla.jpg",
   },
 
   // Fresh
@@ -1073,7 +1073,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Noodles"],
     whyItFits: "Light, fresh, and fun to assemble",
     image:
-      "https://images.unsplash.com/photo-1562802378-9f64e2b21cb2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/vietnamese-spring-rolls.jpg",
   },
   {
     id: "shrimp-ceviche",
@@ -1085,7 +1085,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Tomatoes", "Onions"],
     whyItFits: "Bright, clean, no stove required",
     image:
-      "https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/shrimp-ceviche.jpg",
   },
   {
     id: "caprese-salad",
@@ -1097,7 +1097,7 @@ export const meals: Meal[] = [
     ingredients: ["Tomatoes", "Cheese"],
     whyItFits: "Three good ingredients and no cooking needed",
     image:
-      "https://images.unsplash.com/photo-1592417817098-8fd3d9eb14a5?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/caprese-salad.jpg",
   },
   {
     id: "cold-sesame-noodles",
@@ -1109,7 +1109,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Garlic", "Spinach"],
     whyItFits: "The noodle dish that's better cold",
     image:
-      "https://images.unsplash.com/photo-1569050483838-ad30f408c1d7?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cold-sesame-noodles.jpg",
   },
   {
     id: "mango-shrimp-bowl",
@@ -1121,7 +1121,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Rice"],
     whyItFits: "Bright and tropical when you need a lift",
     image:
-      "https://images.unsplash.com/photo-1546069596-0a240a65c31a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mango-shrimp-bowl.jpg",
   },
   {
     id: "nicoise-salad",
@@ -1133,7 +1133,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Potatoes", "Tomatoes"],
     whyItFits: "A complete meal that somehow feels refined",
     image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/nicoise-salad.jpg",
   },
 
   // Crowd pleaser
@@ -1147,7 +1147,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Onions", "Garlic"],
     whyItFits: "Nobody walks away from pulled pork unhappy",
     image:
-      "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pulled-pork-sandwich.jpg",
   },
   {
     id: "chicken-wings",
@@ -1159,7 +1159,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Butter", "Garlic"],
     whyItFits: "Never fails to disappear before you've had enough",
     image:
-      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-wings.jpg",
   },
   {
     id: "fish-tacos",
@@ -1171,7 +1171,7 @@ export const meals: Meal[] = [
     ingredients: ["Salmon", "Tortillas", "Onions"],
     whyItFits: "Fresh and crowd-friendly with a coastal vibe",
     image:
-      "https://images.unsplash.com/photo-1551504734-5da7e163d3a2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/fish-tacos.jpg",
   },
   {
     id: "sloppy-joes",
@@ -1183,7 +1183,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Bread", "Tomatoes", "Onions"],
     whyItFits: "Gets everyone at the table immediately",
     image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sloppy-joes.jpg",
   },
   {
     id: "chicken-tenders",
@@ -1195,7 +1195,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Eggs", "Bread"],
     whyItFits: "The universal crowd pleaser that works every single time",
     image:
-      "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-tenders.jpg",
   },
   {
     id: "breakfast-for-dinner",
@@ -1207,7 +1207,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Bacon", "Bread", "Butter"],
     whyItFits: "Dinner that feels like getting away with something",
     image:
-      "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/breakfast-for-dinner.jpg",
   },
   {
     id: "garlic-butter-shrimp",
@@ -1219,7 +1219,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Butter", "Garlic"],
     whyItFits: "Fast, impressive, and gone before you know it",
     image:
-      "https://images.unsplash.com/photo-1534482421-64566f976cfa?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/garlic-butter-shrimp.jpg",
   },
   {
     id: "steak-frites",
@@ -1231,7 +1231,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Potatoes", "Butter", "Garlic"],
     whyItFits: "The steak dinner that needs nothing else",
     image:
-      "https://images.unsplash.com/photo-1558030137-a56c1b003f91?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/steak-frites.jpg",
   },
 
   // ── Expansion 100 ──────────────────────────────────────────────────────────
@@ -1247,7 +1247,7 @@ export const meals: Meal[] = [
     ingredients: ["Bacon", "Bread", "Tomatoes"],
     whyItFits: "Classic that never needs an explanation",
     image:
-      "https://images.unsplash.com/photo-1553979459-d2229ba7433a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/blt-sandwich.jpg",
   },
   {
     id: "club-sandwich",
@@ -1259,7 +1259,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Bacon", "Bread", "Tomatoes"],
     whyItFits: "Stacked, satisfying, and always hits",
     image:
-      "https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/club-sandwich.jpg",
   },
   {
     id: "breakfast-hash",
@@ -1271,7 +1271,7 @@ export const meals: Meal[] = [
     ingredients: ["Potatoes", "Eggs", "Bacon", "Onions"],
     whyItFits: "One pan, zero waste, everyone wins",
     image:
-      "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/breakfast-hash.jpg",
   },
   {
     id: "waffles",
@@ -1283,7 +1283,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Butter"],
     whyItFits: "Crispier than pancakes and just as crowd-pleasing",
     image:
-      "https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/waffles.jpg",
   },
   {
     id: "mini-pizzas",
@@ -1295,7 +1295,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Cheese", "Tomatoes"],
     whyItFits: "Kids build their own, you do nothing",
     image:
-      "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mini-pizzas.jpg",
   },
   {
     id: "cheesesteak",
@@ -1307,7 +1307,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Bread", "Cheese", "Onions"],
     whyItFits: "All the flavor, none of the travel",
     image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cheesesteak.jpg",
   },
   {
     id: "egg-salad-sandwich",
@@ -1319,7 +1319,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Bread", "Onions"],
     whyItFits: "Pantry ingredients, zero excuses",
     image:
-      "https://images.unsplash.com/photo-1494548162494-384bba4ab999?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/egg-salad-sandwich.jpg",
   },
   {
     id: "chicken-salad-wrap",
@@ -1331,7 +1331,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Tortillas", "Onions"],
     whyItFits: "Protein in, effort out",
     image:
-      "https://images.unsplash.com/photo-1553909489-cd47e0907980?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-salad-wrap.jpg",
   },
   {
     id: "bagel-lox",
@@ -1343,7 +1343,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Salmon", "Onions", "Cheese"],
     whyItFits: "No cooking, feels like brunch",
     image:
-      "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bagel-lox.jpg",
   },
   {
     id: "hash-browns",
@@ -1355,7 +1355,7 @@ export const meals: Meal[] = [
     ingredients: ["Potatoes", "Eggs", "Butter"],
     whyItFits: "Crispy, simple, done fast",
     image:
-      "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/hash-browns.jpg",
   },
   {
     id: "miso-rice",
@@ -1367,7 +1367,7 @@ export const meals: Meal[] = [
     ingredients: ["Rice", "Mushrooms", "Onions"],
     whyItFits: "Light, warm, and done before you second-guess it",
     image:
-      "https://images.unsplash.com/photo-1557126819-f3a53d6f9a7d?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/miso-rice.jpg",
   },
   {
     id: "congee",
@@ -1379,7 +1379,7 @@ export const meals: Meal[] = [
     ingredients: ["Rice", "Garlic", "Onions", "Eggs"],
     whyItFits: "Gentle, filling, and surprisingly satisfying",
     image:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/congee.jpg",
   },
   {
     id: "pan-fried-gyoza",
@@ -1391,7 +1391,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Garlic", "Onions"],
     whyItFits: "Crispy on one side, tender on the other — hard to stop eating",
     image:
-      "https://images.unsplash.com/photo-1562802378-9f64e2b21cb2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pan-fried-gyoza.jpg",
   },
 
   // Comfort food
@@ -1405,7 +1405,7 @@ export const meals: Meal[] = [
     ingredients: ["Tomatoes", "Butter", "Garlic", "Onions"],
     whyItFits: "The soup that needs nothing except maybe a grilled cheese",
     image:
-      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tomato-soup.jpg",
   },
   {
     id: "pot-roast",
@@ -1417,7 +1417,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Potatoes", "Onions", "Garlic"],
     whyItFits: "Makes the whole house smell right on a Sunday",
     image:
-      "https://images.unsplash.com/photo-1583835746434-cf1534674b41?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pot-roast.jpg",
   },
   {
     id: "chicken-dumplings",
@@ -1429,7 +1429,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Onions", "Garlic", "Butter"],
     whyItFits: "The dumpling pillows land it every time",
     image:
-      "https://images.unsplash.com/photo-1601972599720-36938d4ecd31?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-dumplings.jpg",
   },
   {
     id: "biscuits-gravy",
@@ -1441,7 +1441,7 @@ export const meals: Meal[] = [
     ingredients: ["Sausage", "Butter", "Onions"],
     whyItFits: "Indulgent in the best possible way",
     image:
-      "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/biscuits-gravy.jpg",
   },
   {
     id: "beef-vegetable-soup",
@@ -1453,7 +1453,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Onions", "Garlic", "Mushrooms"],
     whyItFits: "Gets better the longer you let it simmer",
     image:
-      "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/beef-vegetable-soup.jpg",
   },
   {
     id: "tuna-noodle",
@@ -1465,7 +1465,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Mushrooms", "Cheese", "Onions"],
     whyItFits: "Makes a lot, reheats perfectly, no apologies needed",
     image:
-      "https://images.unsplash.com/photo-1476124369491-e7addf5db371?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tuna-noodle.jpg",
   },
   {
     id: "stuffed-cabbage",
@@ -1477,7 +1477,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Rice", "Tomatoes", "Onions"],
     whyItFits: "Slow-cooked and deeply satisfying",
     image:
-      "https://images.unsplash.com/photo-1583847268964-9d5f6e35d048?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/stuffed-cabbage.jpg",
   },
   {
     id: "corn-chowder",
@@ -1489,7 +1489,7 @@ export const meals: Meal[] = [
     ingredients: ["Potatoes", "Bacon", "Onions", "Butter"],
     whyItFits: "Thick and sweet and exactly what a cold night calls for",
     image:
-      "https://images.unsplash.com/photo-1547592579-9f20d5a5a5f3?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/corn-chowder.jpg",
   },
   {
     id: "sausage-pasta",
@@ -1501,7 +1501,7 @@ export const meals: Meal[] = [
     ingredients: ["Sausage", "Pasta", "Tomatoes", "Garlic"],
     whyItFits: "Sausage does all the heavy lifting",
     image:
-      "https://images.unsplash.com/photo-1598866593549-d8e0d60a3d37?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sausage-pasta.jpg",
   },
   {
     id: "broccoli-cheddar-soup",
@@ -1513,7 +1513,7 @@ export const meals: Meal[] = [
     ingredients: ["Broccoli", "Cheese", "Butter", "Onions"],
     whyItFits: "The sneaky vegetable soup that doesn't taste like a sacrifice",
     image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/broccoli-cheddar-soup.jpg",
   },
   {
     id: "white-bean-soup",
@@ -1525,7 +1525,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Sausage", "Garlic", "Spinach"],
     whyItFits: "Barely any effort for how satisfying it lands",
     image:
-      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/white-bean-soup.jpg",
   },
   {
     id: "red-beans-rice",
@@ -1537,7 +1537,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Rice", "Sausage", "Onions"],
     whyItFits: "New Orleans soul in 30 minutes",
     image:
-      "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/red-beans-rice.jpg",
   },
 
   // Bold flavors
@@ -1551,7 +1551,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Bell peppers", "Garlic", "Onions"],
     whyItFits: "The heat that creeps up and doesn't let go",
     image:
-      "https://images.unsplash.com/photo-1562802378-9f64e2b21cb2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/szechuan-beef.jpg",
   },
   {
     id: "moroccan-chicken",
@@ -1563,7 +1563,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Tomatoes", "Onions", "Garlic"],
     whyItFits: "Spice depth that takes you somewhere completely different",
     image:
-      "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/moroccan-chicken.jpg",
   },
   {
     id: "massaman-curry",
@@ -1575,7 +1575,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Potatoes", "Onions"],
     whyItFits: "Thai curry for people who like flavor without the fire",
     image:
-      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/massaman-curry.jpg",
   },
   {
     id: "birria-tacos",
@@ -1587,7 +1587,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Tortillas", "Onions", "Tomatoes"],
     whyItFits: "The taco that gets everyone talking",
     image:
-      "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/birria-tacos.jpg",
   },
   {
     id: "beef-pho",
@@ -1599,7 +1599,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Noodles", "Onions", "Garlic"],
     whyItFits: "The broth alone is worth making this",
     image:
-      "https://images.unsplash.com/photo-1569050483838-ad30f408c1d7?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/beef-pho.jpg",
   },
   {
     id: "drunken-noodles",
@@ -1611,7 +1611,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Chicken", "Bell peppers", "Garlic"],
     whyItFits: "Different from Pad Thai in every way that matters",
     image:
-      "https://images.unsplash.com/photo-1559314045-0c04de3ebfce?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/drunken-noodles.jpg",
   },
   {
     id: "harissa-chicken",
@@ -1623,7 +1623,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Garlic", "Tomatoes", "Bell peppers"],
     whyItFits: "Set it in and let the harissa do the work",
     image:
-      "https://images.unsplash.com/photo-1598514536338-8b399a0780f9?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/harissa-chicken.jpg",
   },
   {
     id: "chipotle-bowl",
@@ -1635,7 +1635,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Rice", "Beans", "Onions"],
     whyItFits: "Better than the restaurant version in the time it takes to order",
     image:
-      "https://images.unsplash.com/photo-1546069596-0a240a65c31a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chipotle-bowl.jpg",
   },
   {
     id: "mapo-beef",
@@ -1647,7 +1647,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Garlic", "Onions", "Beans"],
     whyItFits: "Sichuan heat in a genuinely quick format",
     image:
-      "https://images.unsplash.com/photo-1603133987046-a8a3d37521c4?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mapo-beef.jpg",
   },
   {
     id: "lamb-shawarma",
@@ -1659,7 +1659,7 @@ export const meals: Meal[] = [
     ingredients: ["Garlic", "Onions", "Bread", "Tomatoes"],
     whyItFits: "Pita wraps everything together beautifully",
     image:
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/lamb-shawarma.jpg",
   },
   {
     id: "chicken-mole",
@@ -1671,7 +1671,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Garlic", "Onions", "Tomatoes"],
     whyItFits: "The sauce with a hundred flavors that somehow works every time",
     image:
-      "https://images.unsplash.com/photo-1501200291289-c5a76c232e5f?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-mole.jpg",
   },
   {
     id: "green-shakshuka",
@@ -1683,7 +1683,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Spinach", "Garlic", "Onions"],
     whyItFits: "The shakshuka that doesn't compete with the original",
     image:
-      "https://images.unsplash.com/photo-1591985666643-9ce60217bae8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/green-shakshuka.jpg",
   },
   {
     id: "beef-rendang",
@@ -1695,7 +1695,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Onions", "Garlic"],
     whyItFits: "The longer it cooks the better it gets",
     image:
-      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/beef-rendang.jpg",
   },
   {
     id: "tamarind-shrimp",
@@ -1707,7 +1707,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Garlic", "Onions", "Tomatoes"],
     whyItFits: "Tangy, sweet, and spicy — the combination that always works",
     image:
-      "https://images.unsplash.com/photo-1534482421-64566f976cfa?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tamarind-shrimp.jpg",
   },
 
   // Healthy
@@ -1721,7 +1721,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Spinach", "Garlic", "Onions"],
     whyItFits: "The reset meal that actually tastes good",
     image:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/detox-chicken-soup.jpg",
   },
   {
     id: "veggie-stir-fry",
@@ -1733,7 +1733,7 @@ export const meals: Meal[] = [
     ingredients: ["Broccoli", "Garlic", "Onions", "Rice"],
     whyItFits: "Vegetables that actually taste like something",
     image:
-      "https://images.unsplash.com/photo-1512852595523-54e2f8d8e9e7?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/veggie-stir-fry.jpg",
   },
   {
     id: "kale-chickpea-salad",
@@ -1745,7 +1745,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Spinach", "Tomatoes"],
     whyItFits: "The salad that keeps you full until dinner",
     image:
-      "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/kale-chickpea-salad.jpg",
   },
   {
     id: "salmon-tacos",
@@ -1757,7 +1757,7 @@ export const meals: Meal[] = [
     ingredients: ["Salmon", "Tortillas", "Onions"],
     whyItFits: "Lighter than the beer-battered version and somehow better",
     image:
-      "https://images.unsplash.com/photo-1551504734-5da7e163d3a2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/salmon-tacos.jpg",
   },
   {
     id: "chickpea-spinach-soup",
@@ -1769,7 +1769,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Spinach", "Garlic", "Tomatoes"],
     whyItFits: "Plant-based and filling in equal measure",
     image:
-      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chickpea-spinach-soup.jpg",
   },
   {
     id: "shrimp-avocado-bowl",
@@ -1781,7 +1781,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Rice", "Tomatoes"],
     whyItFits: "Clean eating that actually tastes bright",
     image:
-      "https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/shrimp-avocado-bowl.jpg",
   },
   {
     id: "roasted-veggie-bowl",
@@ -1793,7 +1793,7 @@ export const meals: Meal[] = [
     ingredients: ["Broccoli", "Bell peppers", "Mushrooms", "Garlic"],
     whyItFits: "The bowl that makes you forget you're eating healthy",
     image:
-      "https://images.unsplash.com/photo-1513135467880-6c41603eb5e5?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/roasted-veggie-bowl.jpg",
   },
   {
     id: "spinach-egg-cups",
@@ -1805,7 +1805,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Spinach", "Cheese", "Bacon"],
     whyItFits: "Batch it once and have breakfast covered for days",
     image:
-      "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spinach-egg-cups.jpg",
   },
   {
     id: "tuna-rice-bowl",
@@ -1817,7 +1817,7 @@ export const meals: Meal[] = [
     ingredients: ["Rice", "Onions", "Tomatoes"],
     whyItFits: "Pantry-ready and surprisingly satisfying",
     image:
-      "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tuna-rice-bowl.jpg",
   },
   {
     id: "baked-salmon-veg",
@@ -1829,7 +1829,7 @@ export const meals: Meal[] = [
     ingredients: ["Salmon", "Broccoli", "Garlic", "Butter"],
     whyItFits: "One sheet pan, complete meal, nothing to argue with",
     image:
-      "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/baked-salmon-veg.jpg",
   },
   {
     id: "white-chicken-chili",
@@ -1841,7 +1841,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Beans", "Garlic", "Onions"],
     whyItFits: "All the satisfaction of chili without the weight",
     image:
-      "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/white-chicken-chili.jpg",
   },
   {
     id: "avocado-chicken-salad",
@@ -1853,7 +1853,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Tomatoes", "Onions"],
     whyItFits: "Zero cooking and still genuinely filling",
     image:
-      "https://images.unsplash.com/photo-1512852595523-54e2f8d8e9e7?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/avocado-chicken-salad.jpg",
   },
   {
     id: "poached-eggs-toast",
@@ -1865,7 +1865,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Bread", "Spinach", "Butter"],
     whyItFits: "When scrambled feels like settling",
     image:
-      "https://images.unsplash.com/photo-1541519481-1af5bde5b1d2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/poached-eggs-toast.jpg",
   },
   {
     id: "spinach-frittata",
@@ -1877,7 +1877,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Spinach", "Cheese", "Onions"],
     whyItFits: "The egg dish that feeds a crowd without extra effort",
     image:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spinach-frittata.jpg",
   },
 
   // Elevated
@@ -1891,7 +1891,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Pasta", "Butter", "Garlic"],
     whyItFits: "Feels like date night but barely counts as cooking",
     image:
-      "https://images.unsplash.com/photo-1534482421-64566f976cfa?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/shrimp-scampi.jpg",
   },
   {
     id: "beef-bourguignon",
@@ -1903,7 +1903,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Mushrooms", "Onions", "Bacon"],
     whyItFits: "French luxury that rewards the effort generously",
     image:
-      "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/beef-bourguignon.jpg",
   },
   {
     id: "pan-seared-fish",
@@ -1915,7 +1915,7 @@ export const meals: Meal[] = [
     ingredients: ["Butter", "Garlic", "Spinach"],
     whyItFits: "The simplest path to a restaurant-quality plate",
     image:
-      "https://images.unsplash.com/photo-1519984388953-d2406bc725e1?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pan-seared-fish.jpg",
   },
   {
     id: "chicken-marsala",
@@ -1927,7 +1927,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Mushrooms", "Butter", "Garlic"],
     whyItFits: "The Italian-American dish that earns its reputation",
     image:
-      "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-marsala.jpg",
   },
   {
     id: "seafood-linguine",
@@ -1939,7 +1939,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Shrimp", "Garlic", "Tomatoes"],
     whyItFits: "Coastal Italian that comes together fast",
     image:
-      "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/seafood-linguine.jpg",
   },
   {
     id: "steak-au-poivre",
@@ -1951,7 +1951,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Butter", "Garlic"],
     whyItFits: "The bistro plate you can actually pull off at home",
     image:
-      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/steak-au-poivre.jpg",
   },
   {
     id: "shrimp-bisque",
@@ -1963,7 +1963,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Butter", "Onions", "Garlic"],
     whyItFits: "Luxurious enough to be the main event",
     image:
-      "https://images.unsplash.com/photo-1602743932936-1e4ee0b7419b?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/shrimp-bisque.jpg",
   },
   {
     id: "rack-of-lamb",
@@ -1975,7 +1975,7 @@ export const meals: Meal[] = [
     ingredients: ["Garlic", "Butter"],
     whyItFits: "The showstopper that's actually manageable",
     image:
-      "https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/rack-of-lamb.jpg",
   },
   {
     id: "truffle-pasta",
@@ -1987,7 +1987,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Butter", "Cheese", "Mushrooms"],
     whyItFits: "Maximum decadence, minimum effort",
     image:
-      "https://images.unsplash.com/photo-1611270629569-8b357cb88da9?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/truffle-pasta.jpg",
   },
   {
     id: "seafood-cakes",
@@ -1999,7 +1999,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Eggs", "Butter", "Garlic"],
     whyItFits: "Fancy starters that work better as dinner",
     image:
-      "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/seafood-cakes.jpg",
   },
 
   // Classic Italian
@@ -2013,7 +2013,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Cheese", "Butter"],
     whyItFits: "Roman simplicity that takes 15 minutes and tastes earned",
     image:
-      "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cacio-e-pepe.jpg",
   },
   {
     id: "pasta-amatriciana",
@@ -2025,7 +2025,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Bacon", "Tomatoes", "Onions"],
     whyItFits: "Better than pomodoro without much more effort",
     image:
-      "https://images.unsplash.com/photo-1598866593549-d8e0d60a3d37?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pasta-amatriciana.jpg",
   },
   {
     id: "osso-buco",
@@ -2037,7 +2037,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Tomatoes", "Onions", "Garlic"],
     whyItFits: "The Italian classic that rewards patience",
     image:
-      "https://images.unsplash.com/photo-1574673093985-59c47f1d64b5?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/osso-buco.jpg",
   },
   {
     id: "puttanesca",
@@ -2049,7 +2049,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Tomatoes", "Garlic", "Onions"],
     whyItFits: "Big personality from pantry ingredients",
     image:
-      "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/puttanesca.jpg",
   },
   {
     id: "minestrone",
@@ -2061,7 +2061,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Beans", "Tomatoes", "Onions"],
     whyItFits: "The Italian soup that's a complete meal by itself",
     image:
-      "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/minestrone.jpg",
   },
   {
     id: "saltimbocca",
@@ -2073,7 +2073,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Bacon", "Butter", "Garlic"],
     whyItFits: "Simple Italian method that produces something genuinely impressive",
     image:
-      "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/saltimbocca.jpg",
   },
   {
     id: "cheese-ravioli",
@@ -2085,7 +2085,7 @@ export const meals: Meal[] = [
     ingredients: ["Pasta", "Cheese", "Butter", "Tomatoes"],
     whyItFits: "The pasta shape everyone loves, minimal effort required",
     image:
-      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cheese-ravioli.jpg",
   },
   {
     id: "focaccia-bread",
@@ -2097,7 +2097,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Garlic", "Onions"],
     whyItFits: "Bread that's enough to be dinner",
     image:
-      "https://images.unsplash.com/photo-1516100882582-96c3a05fe590?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/focaccia-bread.jpg",
   },
 
   // Mediterranean
@@ -2111,7 +2111,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Tomatoes", "Onions"],
     whyItFits: "The salad where the stale bread becomes the best part",
     image:
-      "https://images.unsplash.com/photo-1541014741259-de529411b96a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/fattoush.jpg",
   },
   {
     id: "mujaddara",
@@ -2123,7 +2123,7 @@ export const meals: Meal[] = [
     ingredients: ["Rice", "Beans", "Onions"],
     whyItFits: "Humble ingredients, surprising depth",
     image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mujaddara.jpg",
   },
   {
     id: "baba-ghanoush",
@@ -2135,7 +2135,7 @@ export const meals: Meal[] = [
     ingredients: ["Garlic", "Bread", "Tomatoes"],
     whyItFits: "Different from hummus and equally satisfying",
     image:
-      "https://images.unsplash.com/photo-1577906071869-7c74a8ebd15?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/baba-ghanoush.jpg",
   },
   {
     id: "foul-medames",
@@ -2147,7 +2147,7 @@ export const meals: Meal[] = [
     ingredients: ["Beans", "Garlic", "Tomatoes", "Onions"],
     whyItFits: "A dish eaten at breakfast, lunch, and dinner for good reason",
     image:
-      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/foul-medames.jpg",
   },
   {
     id: "sabich",
@@ -2159,7 +2159,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Eggs", "Tomatoes", "Onions"],
     whyItFits: "The Israeli sandwich most people haven't tried yet",
     image:
-      "https://images.unsplash.com/photo-1561626423-a51b45aef0a1?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sabich.jpg",
   },
   {
     id: "turkish-eggs",
@@ -2171,7 +2171,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Butter", "Garlic"],
     whyItFits: "The breakfast that looks like it took way more effort",
     image:
-      "https://images.unsplash.com/photo-1591985666643-9ce60217bae8?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/turkish-eggs.jpg",
   },
   {
     id: "lahmacun",
@@ -2183,7 +2183,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Bread", "Tomatoes", "Onions"],
     whyItFits: "The flatbread pizza that predates pizza",
     image:
-      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/lahmacun.jpg",
   },
   {
     id: "spanakopita",
@@ -2195,7 +2195,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Spinach", "Cheese", "Butter"],
     whyItFits: "Greek pastry worth the medium effort",
     image:
-      "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spanakopita.jpg",
   },
 
   // Fresh
@@ -2209,7 +2209,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Chicken", "Onions", "Tomatoes"],
     whyItFits: "The sandwich that changed what sandwiches could be",
     image:
-      "https://images.unsplash.com/photo-1553979459-d2229ba7433a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/banh-mi.jpg",
   },
   {
     id: "prawn-cocktail",
@@ -2221,7 +2221,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Tomatoes", "Onions"],
     whyItFits: "Effortless, fresh, and classically satisfying",
     image:
-      "https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/prawn-cocktail.jpg",
   },
   {
     id: "gazpacho",
@@ -2233,7 +2233,7 @@ export const meals: Meal[] = [
     ingredients: ["Tomatoes", "Garlic", "Onions", "Bell peppers"],
     whyItFits: "The soup that requires no cooking and still impresses",
     image:
-      "https://images.unsplash.com/photo-1546069596-0a240a65c31a?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/gazpacho.jpg",
   },
   {
     id: "smoked-salmon-plate",
@@ -2245,7 +2245,7 @@ export const meals: Meal[] = [
     ingredients: ["Salmon", "Bread", "Onions"],
     whyItFits: "No cooking, looks like you tried, tastes like you did",
     image:
-      "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/smoked-salmon-plate.jpg",
   },
   {
     id: "gado-gado",
@@ -2257,7 +2257,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Beans", "Spinach"],
     whyItFits: "The peanut sauce alone is worth making",
     image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/gado-gado.jpg",
   },
   {
     id: "cold-soba",
@@ -2269,7 +2269,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Garlic", "Onions"],
     whyItFits: "The Japanese noodle dish that's better cold",
     image:
-      "https://images.unsplash.com/photo-1569050483838-ad30f408c1d7?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cold-soba.jpg",
   },
   {
     id: "thai-larb",
@@ -2281,7 +2281,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Onions", "Garlic"],
     whyItFits: "Bold Thai flavors in a dish that doesn't weigh you down",
     image:
-      "https://images.unsplash.com/photo-1559314045-0c04de3ebfce?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/thai-larb.jpg",
   },
   {
     id: "cobb-salad",
@@ -2293,7 +2293,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Eggs", "Bacon", "Tomatoes"],
     whyItFits: "Everything protein-wise in one generous bowl",
     image:
-      "https://images.unsplash.com/photo-1512852595523-54e2f8d8e9e7?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cobb-salad.jpg",
   },
   {
     id: "mushroom-spinach-salad",
@@ -2305,7 +2305,7 @@ export const meals: Meal[] = [
     ingredients: ["Mushrooms", "Spinach", "Garlic", "Butter"],
     whyItFits: "Warm, umami-forward, done in 15 minutes",
     image:
-      "https://images.unsplash.com/photo-1506280754576-f6fa8a873550?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mushroom-spinach-salad.jpg",
   },
   {
     id: "cold-noodle-salad",
@@ -2317,7 +2317,7 @@ export const meals: Meal[] = [
     ingredients: ["Noodles", "Spinach", "Bell peppers", "Garlic"],
     whyItFits: "The cold noodle salad that refreshes without filling you up",
     image:
-      "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cold-noodle-salad.jpg",
   },
 
   // Crowd pleaser
@@ -2331,7 +2331,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Bread", "Cheese", "Onions"],
     whyItFits: "Mini burgers disappear faster than full ones",
     image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sliders.jpg",
   },
   {
     id: "pizza-rolls",
@@ -2343,7 +2343,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Cheese", "Tomatoes", "Sausage"],
     whyItFits: "Everyone wants five more after the first one",
     image:
-      "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pizza-rolls.jpg",
   },
   {
     id: "corn-dogs",
@@ -2355,7 +2355,7 @@ export const meals: Meal[] = [
     ingredients: ["Sausage", "Eggs", "Bread"],
     whyItFits: "The fair food that's just as good at home",
     image:
-      "https://images.unsplash.com/photo-1612392062631-94440b33ef54?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/corn-dogs.jpg",
   },
   {
     id: "bbq-ribs",
@@ -2367,7 +2367,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Garlic", "Onions"],
     whyItFits: "Requires napkins. That's always a good sign.",
     image:
-      "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bbq-ribs.jpg",
   },
   {
     id: "chicken-parmesan",
@@ -2379,7 +2379,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Cheese", "Tomatoes", "Eggs"],
     whyItFits: "Crowd pleaser that's been earning that title for decades",
     image:
-      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-parmesan.jpg",
   },
   {
     id: "meatball-subs",
@@ -2391,7 +2391,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Bread", "Cheese", "Tomatoes"],
     whyItFits: "The sub that ends all arguments about dinner",
     image:
-      "https://images.unsplash.com/photo-1607116667981-ff148b3a63de?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/meatball-subs.jpg",
   },
   {
     id: "buffalo-chicken-dip",
@@ -2403,7 +2403,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Cheese", "Butter", "Garlic"],
     whyItFits: "You'll run out before you want to",
     image:
-      "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/buffalo-chicken-dip.jpg",
   },
   {
     id: "southern-fried-chicken",
@@ -2415,7 +2415,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Eggs", "Bread"],
     whyItFits: "When only the real thing will do",
     image:
-      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/southern-fried-chicken.jpg",
   },
   {
     id: "shrimp-boil",
@@ -2427,7 +2427,7 @@ export const meals: Meal[] = [
     ingredients: ["Shrimp", "Potatoes", "Sausage", "Onions"],
     whyItFits: "Dump it on the table and everyone digs in",
     image:
-      "https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/shrimp-boil.jpg",
   },
   {
     id: "fried-chicken-sandwich",
@@ -2439,7 +2439,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Bread", "Eggs"],
     whyItFits: "The sandwich that's always worth the hype",
     image:
-      "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/fried-chicken-sandwich.jpg",
   },
   {
     id: "pigs-in-blankets",
@@ -2451,6 +2451,6 @@ export const meals: Meal[] = [
     ingredients: ["Sausage", "Bread", "Eggs"],
     whyItFits: "The one nobody ever stops at just one",
     image:
-      "https://images.unsplash.com/photo-1612392062631-94440b33ef54?auto=format&fit=crop&w=600&h=750&q=80",
+      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pigs-in-blankets.jpg",
   },
 ];
