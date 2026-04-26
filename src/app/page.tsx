@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "./components/BottomNav";
+import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
 import { supabase } from "./lib/supabase";
 import { getUserId } from "./lib/identity";
 import {
@@ -330,7 +331,7 @@ export default function Home() {
                   <br />
                   eating
                   <br />
-                  tonight?
+                  <AnimatedHeadlineWord />
                 </h1>
                 <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-white/65">
                   Less scrolling, less debating, less &quot;I don&apos;t know.&quot; Let&apos;s land on
