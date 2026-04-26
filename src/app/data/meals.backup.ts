@@ -399,7 +399,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Eggs", "Butter"],
     whyItFits: "Feels like a treat without trying hard",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/french-toast.jpg",
+      "https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "pancakes",
@@ -411,7 +411,7 @@ export const meals: Meal[] = [
     ingredients: ["Eggs", "Butter"],
     whyItFits: "The breakfast that brings everyone to the table",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pancakes.jpg",
+      "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "veggie-wrap",
@@ -435,7 +435,7 @@ export const meals: Meal[] = [
     ingredients: ["Sausage", "Bread", "Onions"],
     whyItFits: "No one has ever complained about hot dogs",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/hot-dogs.jpg",
+      "https://images.unsplash.com/photo-1612392062631-94440b33ef54?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "bacon-egg-cheese",
@@ -447,7 +447,7 @@ export const meals: Meal[] = [
     ingredients: ["Bacon", "Eggs", "Cheese", "Bread"],
     whyItFits: "The breakfast sandwich that built a city",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bacon-egg-cheese.jpg",
+      "https://images.unsplash.com/photo-1550317138-10000687a72b?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "tuna-melt",
@@ -459,7 +459,7 @@ export const meals: Meal[] = [
     ingredients: ["Bread", "Cheese"],
     whyItFits: "Pantry-perfect when you need something fast",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tuna-melt.jpg",
+      "https://images.unsplash.com/photo-1553979459-d2229ba7433a?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "loaded-fries",
@@ -471,7 +471,7 @@ export const meals: Meal[] = [
     ingredients: ["Potatoes", "Cheese", "Bacon"],
     whyItFits: "Snack energy that crosses into full meal territory",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/loaded-fries.jpg",
+      "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&h=750&q=80",
   },
 
   // Comfort food
@@ -485,7 +485,7 @@ export const meals: Meal[] = [
     ingredients: ["Steak", "Potatoes", "Onions", "Garlic"],
     whyItFits: "The kind of meal that fixes a rough day",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/beef-stew.jpg",
+      "https://images.unsplash.com/photo-1583835746434-cf1534674b41?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "chicken-pot-pie",
@@ -497,7 +497,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Potatoes", "Onions", "Butter"],
     whyItFits: "Sunday dinner that feels like a hug",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-pot-pie.jpg",
+      "https://images.unsplash.com/photo-1583845112203-29329902332e?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "meatloaf",
@@ -509,7 +509,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Onions", "Garlic", "Eggs"],
     whyItFits: "The dinner everyone secretly loves",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/meatloaf.jpg",
+      "https://images.unsplash.com/photo-1607116667981-ff148b3a63de?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "chicken-noodle-soup",
@@ -521,7 +521,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Noodles", "Onions", "Garlic"],
     whyItFits: "Fixes everything. Scientifically proven.",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-noodle-soup.jpg",
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "loaded-baked-potato",
@@ -533,7 +533,7 @@ export const meals: Meal[] = [
     ingredients: ["Potatoes", "Cheese", "Bacon", "Butter"],
     whyItFits: "Comfort food in its simplest, most satisfying form",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/loaded-baked-potato.jpg",
+      "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "spaghetti-bolognese",
@@ -545,7 +545,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Pasta", "Tomatoes", "Garlic"],
     whyItFits: "The sauce gets better the longer you let it go",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spaghetti-bolognese.jpg",
+      "https://images.unsplash.com/photo-1598866593549-d8e0d60a3d37?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "potato-soup",
@@ -557,7 +557,7 @@ export const meals: Meal[] = [
     ingredients: ["Potatoes", "Bacon", "Cheese", "Onions"],
     whyItFits: "Warm, filling, and needs nothing else",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/potato-soup.jpg",
+      "https://images.unsplash.com/photo-1547592579-9f20d5a5a5f3?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "french-onion-soup",
@@ -581,7 +581,7 @@ export const meals: Meal[] = [
     ingredients: ["Ground beef", "Potatoes", "Onions", "Butter"],
     whyItFits: "One dish that feeds everyone and satisfies completely",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/shepherds-pie.jpg",
+      "https://images.unsplash.com/photo-1574673093985-59c47f1d64b5?auto=format&fit=crop&w=600&h=750&q=80",
   },
   {
     id: "chicken-casserole",
@@ -593,7 +593,7 @@ export const meals: Meal[] = [
     ingredients: ["Chicken", "Rice", "Mushrooms", "Onions"],
     whyItFits: "One pan, no fuss, feeds the whole table",
     image:
-      "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chicken-casserole.jpg",
+      "https://images.unsplash.com/photo-1601972599720-36938d4ecd31?auto=format&fit=crop&w=600&h=750&q=80",
   },
 
   // Bold flavors
