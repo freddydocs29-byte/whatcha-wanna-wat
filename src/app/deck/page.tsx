@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, getSharedReason, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { rankMeals, hardGate, getSharedReason, getTimeBucket, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { fetchAIMeals } from "../lib/ai-meals";
+import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/identity";
 import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type NudgeTrigger } from "../lib/session-signals";
@@ -125,6 +127,42 @@ function buildDeck(
   return deck;
 }
 
+/**
+ * Merge AI-ranked meals into the static deck by inserting them at regular
+ * intervals. Skips any AI meal whose ID already exists in the static deck.
+ * Inserts at positions 2, 5, 9, 13, 17 (0-indexed) so AI meals appear
+ * throughout the deck rather than only at the end.
+ */
+function interleaveAI(staticDeck: RankedMeal[], aiDeck: RankedMeal[]): RankedMeal[] {
+  const staticIds = new Set(staticDeck.map((r) => r.meal.id));
+  const uniqueAI = aiDeck.filter((r) => !staticIds.has(r.meal.id));
+  if (uniqueAI.length === 0) return staticDeck;
+
+  const result: RankedMeal[] = [...staticDeck];
+  // Insert positions spread evenly through a 20-card deck
+  const insertAt = [2, 5, 9, 13, 17];
+  let aiIndex = 0;
+  let offset = 0; // each insertion shifts subsequent indices by 1
+
+  for (const pos of insertAt) {
+    if (aiIndex >= uniqueAI.length) break;
+    const target = pos + offset;
+    if (target <= result.length) {
+      result.splice(target, 0, uniqueAI[aiIndex++]);
+    } else {
+      result.push(uniqueAI[aiIndex++]);
+    }
+    offset++;
+  }
+
+  // Any remaining AI meals go at the end
+  while (aiIndex < uniqueAI.length) {
+    result.push(uniqueAI[aiIndex++]);
+  }
+
+  return result;
+}
+
 function DeckContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -146,6 +184,16 @@ function DeckContent() {
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
   );
+  // ── AI Fresh Ideas state ────────────────────────────────────────────────────
+  const [aiMealsLoading, setAiMealsLoading] = useState(false);
+  // Tracks IDs of AI-generated meals so the card can show the right label.
+  // Using a Set in state (vs relying on meal.aiGenerated) makes renders stable.
+  const [aiMealIds, setAiMealIds] = useState<Set<string>>(new Set());
+  // Prevent duplicate AI calls for the same context key within one deck lifetime.
+  // Key encodes: sorted(ingredients) | vibeMode | triggerReason
+  const lastAiContextKeyRef = useRef<string | null>(null);
+  // Swipe-fatigue trigger fires once per deck, not per render cycle
+  const swipeFatigueFiredRef = useRef(false);
   // ── Shared-session state ────────────────────────────────────────────────────
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
   const [sharedError, setSharedError] = useState(false);
@@ -395,6 +443,47 @@ function DeckContent() {
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
+
+    // ── Deterministic AI freshness trigger ──────────────────────────────────
+    // shouldGenerateAI() inspects the static deck quality and returns whether
+    // AI enrichment is warranted and why. Each unique (ingredients, vibe, reason)
+    // combination can fire at most once per session to prevent duplicate calls.
+    swipeFatigueFiredRef.current = false; // reset fatigue guard on each deck rebuild
+
+    const pantryActive = pantryMode && selectedIngredients.length > 0;
+    const recentlySeenIds = getRecentlySeenIds();
+    const { shouldGenerate, reason } = shouldGenerateAI({
+      deck: ranked,
+      pantryActive,
+      recentlySeenIds,
+      deckSize: DECK_SIZE,
+    });
+
+    if (!shouldGenerate) {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[AI Freshness] skipped: strong_static_deck");
+      }
+      lastAiContextKeyRef.current = null; // reset so future context shifts can re-evaluate
+    } else {
+      // Build a stable context key: same (ingredients, vibe, reason) → same key → no duplicate call
+      const contextKey = [
+        ...[...selectedIngredients].sort(),
+        sessionVibeMode,
+        reason as AIMealTriggerReason,
+      ].join("|");
+
+      if (contextKey === lastAiContextKeyRef.current) {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[AI Freshness] skipped: cache_hit");
+        }
+      } else {
+        lastAiContextKeyRef.current = contextKey;
+        if (process.env.NODE_ENV === "development") {
+          console.log(`[AI Freshness] triggered: ${reason}`);
+        }
+        void enrichDeckWithAI(ranked.slice(0, DECK_SIZE), selectedIngredients);
+      }
+    }
   }, [pantryMode, selectedIngredients, cookMode, sessionVibeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fire deck_finished once when the user exhausts all cards.
@@ -571,11 +660,223 @@ function DeckContent() {
     }
   }
 
+  // ── AI Fresh Ideas ───────────────────────────────────────────────────────────
+  //
+  // Fetches AI-generated meals and merges them into the deck.
+  // Called explicitly via the "Fresh ideas" button, or automatically when
+  // pantry mode is active and the ingredient context key has changed.
+  // Always falls back silently — the static deck is never disrupted on error.
+
+  async function enrichDeckWithAI(
+    baseStaticDeck: RankedMeal[],
+    activePantryIngredients: string[],
+  ): Promise<void> {
+    if (aiMealsLoading) return;
+    setAiMealsLoading(true);
+    try {
+      const prefs = getPreferences();
+      const timeBucket = getTimeBucket();
+      const history = getHistory();
+      const recentNames = history.slice(0, 10).map((h) => h.meal.name);
+
+      const aiRaw = await fetchAIMeals({
+        preferences: {
+          cuisines: prefs?.cuisines ?? [],
+          dislikedFoods: prefs?.dislikedFoods ?? [],
+          spiceLevel: prefs?.spiceLevel ?? "any",
+          cookOrOrder: prefs?.cookOrOrder ?? "either",
+        },
+        partnerPreferences: null,
+        pantryIngredients: activePantryIngredients,
+        timeBucket,
+        cookMode,
+        vibeMode: sessionVibeMode,
+        recentlySeenNames: recentNames,
+        count: 10,
+      });
+
+      if (aiRaw.length === 0) return; // Nothing came back — silent fallback
+
+      // ── Double hardGate: server already filtered, client confirms ──────────
+      const gated = hardGate(aiRaw, prefs?.dislikedFoods ?? []);
+      if (gated.length === 0) return;
+
+      // Track IDs for the "Fresh idea" / "Made from your pantry" label
+      setAiMealIds((prev) => {
+        const next = new Set(prev);
+        gated.forEach((m) => next.add(m.id));
+        return next;
+      });
+
+      // ── Rank AI meals through the existing scoring pipeline ────────────────
+      const savedMeals = getSavedMeals();
+      const historyEntries = getHistory();
+      const recentlySeen = getRecentlySeenIds();
+      const tasteProfile = getTasteProfile();
+      const flavorProfile = getFlavorProfile() ?? undefined;
+      const favorites = getFavorites();
+
+      const rankedAI = rankMeals(
+        gated,
+        prefs,
+        savedMeals,
+        historyEntries,
+        pantryMode,
+        tasteProfile,
+        recentlySeen,
+        flavorProfile,
+        favorites,
+        activePantryIngredients,
+        "solo",
+        sessionShownRef.current,
+        null,
+        cookMode,
+        sessionVibeMode,
+      );
+
+      // ── Interleave AI meals into the static deck ───────────────────────────
+      const merged = interleaveAI(baseStaticDeck, rankedAI);
+      setRankedMeals(merged.slice(0, DECK_SIZE));
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[ai-meals] enrichDeckWithAI failed — using static deck:", err);
+      }
+      // Static deck is already set — no-op on error
+    } finally {
+      setAiMealsLoading(false);
+    }
+  }
+
+  /**
+   * Swipe-fatigue AI injection — surgically inserts AI meals into the
+   * REMAINING (not-yet-seen) cards without resetting currentIndex.
+   * Only called once per deck lifetime (swipeFatigueFiredRef guards this).
+   */
+  async function injectAIForSwipeFatigue(): Promise<void> {
+    if (aiMealsLoading || sessionId || swipeFatigueFiredRef.current) return;
+    swipeFatigueFiredRef.current = true;
+
+    const capturedIndex = currentIndex; // snapshot so async completion uses build-time index
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[AI Freshness] triggered: swipe_fatigue (at card ${capturedIndex})`);
+    }
+
+    setAiMealsLoading(true);
+    try {
+      const prefs = getPreferences();
+      const timeBucket = getTimeBucket();
+      const history = getHistory();
+      const recentNames = history.slice(0, 10).map((h) => h.meal.name);
+
+      const aiRaw = await fetchAIMeals({
+        preferences: {
+          cuisines: prefs?.cuisines ?? [],
+          dislikedFoods: prefs?.dislikedFoods ?? [],
+          spiceLevel: prefs?.spiceLevel ?? "any",
+          cookOrOrder: prefs?.cookOrOrder ?? "either",
+        },
+        partnerPreferences: null,
+        pantryIngredients: selectedIngredients,
+        timeBucket,
+        cookMode,
+        vibeMode: sessionVibeMode,
+        recentlySeenNames: recentNames,
+        count: 8,
+      });
+
+      if (aiRaw.length === 0) return;
+
+      const gated = hardGate(aiRaw, prefs?.dislikedFoods ?? []);
+      if (gated.length === 0) return;
+
+      setAiMealIds((prev) => {
+        const next = new Set(prev);
+        gated.forEach((m) => next.add(m.id));
+        return next;
+      });
+
+      const savedMeals = getSavedMeals();
+      const historyEntries = getHistory();
+      const recentlySeen = getRecentlySeenIds();
+      const tasteProfile = getTasteProfile();
+      const flavorProfile = getFlavorProfile() ?? undefined;
+      const favorites = getFavorites();
+
+      const rankedAI = rankMeals(
+        gated,
+        prefs,
+        savedMeals,
+        historyEntries,
+        pantryMode,
+        tasteProfile,
+        recentlySeen,
+        flavorProfile,
+        favorites,
+        selectedIngredients,
+        "solo",
+        sessionShownRef.current,
+        null,
+        cookMode,
+        sessionVibeMode,
+      );
+
+      // Splice AI meals into the remaining (unseen) portion of the deck only.
+      // Cards already swiped (< capturedIndex) are left untouched.
+      setRankedMeals((prev) => {
+        const swiped = prev.slice(0, capturedIndex);
+        const remaining = prev.slice(capturedIndex);
+        const enrichedRemaining = interleaveAI(remaining, rankedAI);
+        return [...swiped, ...enrichedRemaining].slice(0, DECK_SIZE + rankedAI.length);
+      });
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[ai-meals] swipe_fatigue injection failed — continuing with static deck:", err);
+      }
+    } finally {
+      setAiMealsLoading(false);
+    }
+  }
+
+  // Swipe-fatigue trigger: fires once when the user reaches card 12 with no
+  // match yet. Solo mode only — shared decks are fixed at build time.
+  useEffect(() => {
+    if (sessionId) return;                        // shared mode: skip
+    if (currentIndex < 12) return;                // threshold not yet reached
+    if (swipeFatigueFiredRef.current) return;     // already fired this deck
+    if (aiMealsLoading) return;                   // AI already in flight
+    void injectAIForSwipeFatigue();
+  }, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * "Fresh Ideas" button handler — explicit user-triggered AI enrichment.
+   * Rebuilds the static deck first to get a clean base, then enriches with AI.
+   */
+  async function handleFreshIdeas(): Promise<void> {
+    if (aiMealsLoading || sessionId) return;
+    trackEvent("fresh_ideas_tapped", { pantryMode, ingredientCount: selectedIngredients.length, vibeMode: sessionVibeMode });
+    deckFinishedFiredRef.current = false;
+    swipeFatigueFiredRef.current = false;
+    sessionShownRef.current = new Set();
+    deckRecordedRef.current = false;
+    lastAiContextKeyRef.current = null; // allow re-trigger after explicit Fresh Ideas
+    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
+    recordSeenSession(staticDeck.map((r) => r.meal.id));
+    deckRecordedRef.current = true;
+    setRankedMeals(staticDeck.slice(0, DECK_SIZE));
+    setCurrentIndex(0);
+    x.set(0);
+    setExitX(null);
+    await enrichDeckWithAI(staticDeck.slice(0, DECK_SIZE), selectedIngredients);
+  }
+
   // ────────────────────────────────────────────────────────────────────────────
 
   function handleRefreshDeck() {
     trackEvent("deck_refreshed", { mode: "solo" });
     deckFinishedFiredRef.current = false;
+    swipeFatigueFiredRef.current = false;
+    lastAiContextKeyRef.current = null; // allow freshness re-evaluation on next deck
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
     const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
@@ -1136,47 +1437,70 @@ function DeckContent() {
           })}
         </div>
 
-        {/* Pantry bar — solo only */}
-        {!sessionId && <motion.button
-          onClick={() => {
-            if (!pantryMode) togglePantry();
-            setShowIngredientSheet(true);
-          }}
-          animate={
-            pantryMode
-              ? { boxShadow: "0 0 18px rgba(251,191,36,0.12)" }
-              : { boxShadow: "none" }
-          }
-          transition={{ duration: 0.3 }}
-          className={`mt-4 flex w-full items-center justify-between rounded-2xl border px-4 py-2.5 text-left transition-colors duration-200 ${
-            pantryMode
-              ? "border-amber-400/25 bg-amber-400/[0.06] hover:bg-amber-400/[0.1]"
-              : "border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06]"
-          } active:scale-[0.99]`}
-        >
-          <div className="flex items-center gap-2">
-            <span
-              className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300" : "text-white/25"}`}
-              style={pantryMode ? { filter: "drop-shadow(0 0 4px rgba(251,191,36,0.55))" } : undefined}
+        {/* Pantry bar + Fresh Ideas row — solo only */}
+        {!sessionId && (
+          <div className="mt-4 flex items-stretch gap-2">
+            <motion.button
+              onClick={() => {
+                if (!pantryMode) togglePantry();
+                setShowIngredientSheet(true);
+              }}
+              animate={
+                pantryMode
+                  ? { boxShadow: "0 0 18px rgba(251,191,36,0.12)" }
+                  : { boxShadow: "none" }
+              }
+              transition={{ duration: 0.3 }}
+              className={`flex flex-1 items-center justify-between rounded-2xl border px-4 py-2.5 text-left transition-colors duration-200 ${
+                pantryMode
+                  ? "border-amber-400/25 bg-amber-400/[0.06] hover:bg-amber-400/[0.1]"
+                  : "border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06]"
+              } active:scale-[0.99]`}
             >
-              {pantryMode ? <FridgeOpen /> : <FridgeClosed />}
-            </span>
-            <span className={`text-xs font-medium tracking-[-0.01em] transition-colors duration-200 ${pantryMode ? "text-amber-200/70" : "text-white/30"}`}>
-              Pantry
-            </span>
-            <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/30" : "text-white/20"}`}>—</span>
-            <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/50" : "text-white/25"}`}>
-              {selectedIngredients.length === 0
-                ? "Use what you have"
-                : selectedIngredients.length <= 2
-                ? selectedIngredients.join(", ")
-                : `${selectedIngredients.slice(0, 2).join(", ")} +${selectedIngredients.length - 2}`}
-            </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300" : "text-white/25"}`}
+                  style={pantryMode ? { filter: "drop-shadow(0 0 4px rgba(251,191,36,0.55))" } : undefined}
+                >
+                  {pantryMode ? <FridgeOpen /> : <FridgeClosed />}
+                </span>
+                <span className={`text-xs font-medium tracking-[-0.01em] transition-colors duration-200 ${pantryMode ? "text-amber-200/70" : "text-white/30"}`}>
+                  Pantry
+                </span>
+                <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/30" : "text-white/20"}`}>—</span>
+                <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/50" : "text-white/25"}`}>
+                  {selectedIngredients.length === 0
+                    ? "Use what you have"
+                    : selectedIngredients.length <= 2
+                    ? selectedIngredients.join(", ")
+                    : `${selectedIngredients.slice(0, 2).join(", ")} +${selectedIngredients.length - 2}`}
+                </span>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300/40" : "text-white/15"}`}>
+                <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </motion.button>
+
+            {/* Fresh Ideas button — calls AI generation */}
+            <motion.button
+              onClick={() => void handleFreshIdeas()}
+              disabled={aiMealsLoading}
+              animate={aiMealsLoading ? { opacity: 0.5 } : { opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 text-xs text-white/35 transition-colors duration-200 hover:border-white/15 hover:text-white/55 active:scale-[0.97] disabled:pointer-events-none"
+              title="Generate fresh meal ideas"
+            >
+              {aiMealsLoading ? (
+                <span className="h-2.5 w-2.5 animate-spin rounded-full border border-white/30 border-t-white/70" />
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                  <path d="M6.5 1v2M6.5 10v2M1 6.5h2M10 6.5h2M2.93 2.93l1.41 1.41M8.66 8.66l1.41 1.41M2.93 10.07l1.41-1.41M8.66 4.34l1.41-1.41" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              )}
+              <span className="whitespace-nowrap">Fresh ideas</span>
+            </motion.button>
           </div>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300/40" : "text-white/15"}`}>
-            <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </motion.button>}
+        )}
 
         {/* ── Progress + urgency ────────────────────────────────────────── */}
         {totalCount > 0 && (
@@ -1303,10 +1627,27 @@ function DeckContent() {
               {/* Card content */}
               <div className="relative z-10 flex h-full flex-col justify-between p-5">
                 {/* Top: category badge */}
-                <div>
+                <div className="flex items-start justify-between gap-2">
                   <div className="inline-flex rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/75 backdrop-blur-sm">
                     {meal.category}
                   </div>
+                  {/* AI label — only on AI-generated cards */}
+                  {aiMealIds.has(meal.id) && (
+                    <div
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm ${
+                        meal.aiLabel === "Made from your pantry"
+                          ? "border-amber-400/30 bg-black/35 text-amber-300/80"
+                          : "border-white/20 bg-black/35 text-white/60"
+                      }`}
+                    >
+                      {meal.aiLabel === "Made from your pantry" ? (
+                        <span style={{ filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))" }}>✦</span>
+                      ) : (
+                        <span className="text-white/40">✦</span>
+                      )}
+                      {meal.aiLabel ?? "Fresh idea"}
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom: title, description, tags, why */}
