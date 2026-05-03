@@ -1815,19 +1815,21 @@ function DeckContent() {
             <motion.button
               onClick={() => void handleFreshIdeas()}
               disabled={aiMealsLoading}
-              animate={aiMealsLoading ? { opacity: 0.5 } : { opacity: 1 }}
+              animate={aiMealsLoading ? { opacity: 0.75 } : { opacity: 1 }}
               transition={{ duration: 0.2 }}
               className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 text-xs text-white/35 transition-colors duration-200 hover:border-white/15 hover:text-white/55 active:scale-[0.97] disabled:pointer-events-none"
               title="Generate fresh meal ideas"
             >
               {aiMealsLoading ? (
-                <span className="h-2.5 w-2.5 animate-spin rounded-full border border-white/30 border-t-white/70" />
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-white/25 border-t-white/80" />
               ) : (
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
                   <path d="M6.5 1v2M6.5 10v2M1 6.5h2M10 6.5h2M2.93 2.93l1.41 1.41M8.66 8.66l1.41 1.41M2.93 10.07l1.41-1.41M8.66 4.34l1.41-1.41" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                 </svg>
               )}
-              <span className="whitespace-nowrap">Fresh ideas</span>
+              <span className="whitespace-nowrap">
+                {aiMealsLoading ? "Finding better options…" : "Fresh ideas"}
+              </span>
             </motion.button>
           </div>
         )}
@@ -1856,7 +1858,7 @@ function DeckContent() {
           </div>
         )}
 
-        <div className="relative mt-4">
+<div className="relative mt-4">
           {/* Next card — sits behind, promotes forward when current card exits */}
           {nextMeal && (
             <motion.div
