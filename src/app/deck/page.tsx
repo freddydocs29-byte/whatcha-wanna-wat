@@ -816,7 +816,18 @@ function DeckContent() {
     challengerMode: boolean = false,
     sessionSeed: string = "",
   ): Promise<void> {
-    if (aiMealsLoading) return;
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[AI] enrichDeckWithAI called · seed: "${sessionSeed}" · aiMealsLoading: ${aiMealsLoading}`);
+    }
+    if (aiMealsLoading) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[AI] skipped — previous AI call still in flight · resetting context key so next trigger retries");
+      }
+      // Reset so the next dep change or explicit trigger retries rather than being
+      // permanently blocked by the stale context key that was committed before this call.
+      lastAiContextKeyRef.current = null;
+      return;
+    }
     setAiMealsLoading(true);
     try {
       const prefs = getPreferences();
@@ -824,39 +835,91 @@ function DeckContent() {
       const history = getHistory();
       const recentNames = history.slice(0, 10).map((h) => h.meal.name);
 
-      // Names of AI meals from prior sessions — model avoids re-suggesting them.
-      const previousAIMealNames = getAIMealNameHistory();
+      // Names of AI meals from prior sessions — capped at 12 (most recent first).
+      // Soft guidance only; never blocks output entirely.
+      const previousAIMealNames = getAIMealNameHistory(12);
 
       // Zone 1 names already anchored in the deck — model avoids near-duplicates.
       const existingDeckNames = baseStaticDeck.slice(0, 5).map((r) => r.meal.name);
 
-      const aiRaw = await fetchAIMeals({
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `[AI] request starting · previousAIMealNames: ${previousAIMealNames.length} · existingDeckNames: ${existingDeckNames.length} · pantry: [${activePantryIngredients.join(", ")}]`,
+        );
+        if (previousAIMealNames.length > 0) {
+          console.log(`[AI] previousAIMealNames (capped 12): ${previousAIMealNames.join(", ")}`);
+        }
+      }
+
+      // ── Fetch + gate helper — extracted for retry support ──────────────────
+      const baseRequest = {
         preferences: {
           cuisines: prefs?.cuisines ?? [],
           dislikedFoods: prefs?.dislikedFoods ?? [],
           spiceLevel: prefs?.spiceLevel ?? "any",
           cookOrOrder: prefs?.cookOrOrder ?? "either",
         },
-        partnerPreferences: null,
+        partnerPreferences: null as null,
         pantryIngredients: activePantryIngredients,
         timeBucket,
         cookMode,
         vibeMode: sessionVibeMode,
         recentlySeenNames: recentNames,
-        // Phase A: 14 meals — enough to fill Zone 2 (9) + Zone 3 tail (5)
         count: 14,
         cuisineGaps: FEATURES.AI_DIVERSIFIER ? cuisineGaps : [],
         challengerMode: FEATURES.AI_CHALLENGER ? challengerMode : false,
         sessionSeed,
-        previousAIMealNames,
-        existingDeckNames,
-      });
+      };
 
-      if (aiRaw.length === 0) return; // Nothing came back — silent fallback
+      async function fetchAndGate(
+        prevNames: string[],
+        deckNames: string[],
+        attempt: number,
+      ): Promise<Meal[] | null> {
+        const raw = await fetchAIMeals({ ...baseRequest, previousAIMealNames: prevNames, existingDeckNames: deckNames });
+        if (process.env.NODE_ENV === "development") {
+          console.log(`[AI] attempt ${attempt} — server returned ${raw.length} meals`);
+        }
+        if (raw.length === 0) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(`[AI] attempt ${attempt} — 0 meals returned (API error, key missing, or all filtered server-side)`);
+          }
+          return null;
+        }
+        const g = hardGate(raw, prefs?.dislikedFoods ?? []);
+        if (process.env.NODE_ENV === "development") {
+          console.log(`[AI] attempt ${attempt} — after hardGate: ${g.length}/${raw.length} · hardNos: [${(prefs?.dislikedFoods ?? []).join(", ") || "none"}]`);
+          if (g.length < raw.length) {
+            const removed = raw.filter((m) => !g.some((x) => x.id === m.id)).map((m) => m.name);
+            console.warn(`[AI] attempt ${attempt} — hardGate removed: ${removed.join(", ")}`);
+          }
+        }
+        if (g.length === 0) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(`[AI] attempt ${attempt} — all meals removed by hardGate`);
+          }
+          return null;
+        }
+        return g;
+      }
 
-      // ── Double hardGate: server already filtered, client confirms ──────────
-      const gated = hardGate(aiRaw, prefs?.dislikedFoods ?? []);
-      if (gated.length === 0) return;
+      // First attempt — full context
+      let gated = await fetchAndGate(previousAIMealNames, existingDeckNames, 1);
+
+      // Retry with relaxed blocklist if first attempt returned nothing
+      if (gated === null) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[AI] first attempt empty — retrying with relaxed blocklist (no previousAIMealNames, no existingDeckNames)");
+        }
+        gated = await fetchAndGate([], [], 2);
+      }
+
+      if (gated === null) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[AI] both attempts returned 0 valid meals — keeping static deck");
+        }
+        return;
+      }
 
       // Persist names so the next session's prompt avoids repeating them.
       recordAIMealNames(gated.map((m) => m.name));
@@ -865,6 +928,9 @@ function DeckContent() {
       setAiMealIds((prev) => {
         const next = new Set(prev);
         gated.forEach((m) => next.add(m.id));
+        if (process.env.NODE_ENV === "development") {
+          console.log(`[AI] aiMealIds updated · total tracked: ${next.size} · new this call: ${gated.length}`);
+        }
         return next;
       });
 
@@ -955,7 +1021,19 @@ function DeckContent() {
         const preservedIds = new Set(preserved.map((r) => r.meal.id));
         // Append AI-enriched tail, skipping any meal already in preserved
         const freshTail = merged.filter((r) => !preservedIds.has(r.meal.id));
-        return [...preserved, ...freshTail].slice(0, DECK_SIZE);
+        const finalDeck = [...preserved, ...freshTail].slice(0, DECK_SIZE);
+
+        if (process.env.NODE_ENV === "development") {
+          const aiPositions = finalDeck
+            .map((r, i) => (r.meal.aiGenerated ? i + 1 : null))
+            .filter((p): p is number => p !== null);
+          console.log(
+            `[AI] deck updated · pivot: ${pivot} · preserved: ${preserved.length} · freshTail: ${freshTail.length} · final: ${finalDeck.length}` +
+            ` · AI positions: [${aiPositions.join(", ") || "none"}]`,
+          );
+        }
+
+        return finalDeck;
       });
     } catch (err) {
       if (process.env.NODE_ENV === "development") {

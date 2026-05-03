@@ -75,90 +75,108 @@ function buildPrompt(ctx: PromptContext): string {
   };
   const vibeHint = vibeDescriptions[ctx.vibeMode] ?? "a variety of meals";
 
-  const pantrySection =
-    ctx.pantryIngredients.length > 0
-      ? `PANTRY INGREDIENTS AVAILABLE: ${ctx.pantryIngredients.join(", ")}
-RULE: At least 60% of your suggestions must creatively use these ingredients. Prefer combinations of 2+ ingredients (e.g., Chicken + Rice = Chicken Fried Rice, Eggs + Tortillas = Breakfast Tacos).`
-      : "No specific pantry ingredients — generate a diverse set.";
+  // ── HARD constraints (non-negotiable) ────────────────────────────────────────
 
   const hardNoSection =
     ctx.hardNos.length > 0
-      ? `HARD NOs — NEVER include meals that contain any of: ${ctx.hardNos.join(", ")}.
-This is absolute. If "Seafood" is listed: no fish, shrimp, sushi, poke, ceviche, or any ocean ingredient.
-If "Beef" is listed: no burgers, steaks, ground beef, or beef-based dishes.`
+      ? `ALLERGIES / HARD NOs — never include meals containing: ${ctx.hardNos.join(", ")}.
+Examples: "Seafood" excludes fish, shrimp, sushi, poke, ceviche. "Beef" excludes burgers, steak, ground beef.`
       : "";
 
-  const timeSection = ctx.isEveningTime
-    ? "TIME: It is dinner/evening. Do NOT suggest breakfast-only meals (pancakes, waffles, french toast, cereal, breakfast burritos)."
-    : "TIME: It is morning or lunchtime. Breakfast, brunch, and lunch ideas are welcome.";
+  // ── SOFT preferences (hints, never block output) ─────────────────────────────
 
-  const recentSection =
-    ctx.recentlySeenNames.length > 0
-      ? `AVOID REPEATING these recently shown meals: ${ctx.recentlySeenNames.slice(0, 12).join(", ")}`
-      : "";
+  const timeHint = ctx.isEveningTime
+    ? "It is dinner/evening — prefer dinner-appropriate meals over breakfast-only dishes."
+    : "It is morning or lunchtime — breakfast, brunch, and lunch ideas are welcome.";
 
-  const cuisineSection =
+  const cuisineHint =
     ctx.cuisines.length > 0
-      ? `PREFERRED CUISINES: ${ctx.cuisines.join(", ")} — lean toward these but include some variety.`
-      : "No cuisine preference — vary widely.";
+      ? `Preferred cuisines: ${ctx.cuisines.join(", ")} — lean toward these but vary across the full list.`
+      : "No cuisine preference — vary widely across cuisines.";
 
-  const cookSection =
+  const cookHint =
     ctx.cookOrOrder === "cook"
-      ? "All meals should be home-cookable."
+      ? "Prefer home-cookable meals."
       : ctx.cookOrOrder === "order"
-      ? "Meals should be orderable from restaurants or deliverable."
+      ? "Prefer meals orderable from restaurants or delivery."
       : "Mix of home cooking and takeout ideas.";
 
-  // Phase 4B — diversifier: steer AI toward underrepresented cuisines
-  const diversifierSection =
+  const pantrySection =
+    ctx.pantryIngredients.length > 0
+      ? `PANTRY AVAILABLE: ${ctx.pantryIngredients.join(", ")} — try to have at least half your suggestions creatively use these ingredients. Prefer combinations of 2+ (e.g., Chicken + Rice → Chicken Fried Rice).`
+      : "";
+
+  // Phase 4B — diversifier (soft)
+  const diversifierHint =
     ctx.cuisineGaps.length > 0
-      ? `CUISINE DIVERSITY GOAL: The user's current deck is missing meals from these cuisines: ${ctx.cuisineGaps.join(", ")}. ` +
-        `Try to include at least ${Math.min(2, ctx.cuisineGaps.length)} meals from this list — ` +
-        `but only if they fit the hard NOs and other constraints above.`
+      ? `For variety, try to include ${Math.min(2, ctx.cuisineGaps.length)} meal(s) from these underrepresented cuisines: ${ctx.cuisineGaps.join(", ")}.`
       : "";
 
-  // Phase 4C — challenger: push outside comfort zone
-  const challengerSection = ctx.challengerMode
-    ? `CHALLENGER MODE: This session, deliberately push the user outside their comfort zone. ` +
-      `Suggest meals from cuisines or cooking styles they haven't explored recently. ` +
-      `Be bold — think Korean BBQ, Ethiopian injera, Persian stew, Peruvian ceviche (if not in hard NOs). ` +
-      `Avoid obvious repeats of their usual favorites.`
+  // Phase 4C — challenger (soft)
+  const challengerHint = ctx.challengerMode
+    ? `This session, lean toward bold or globally-inspired meals outside the user's usual comfort zone — think Korean BBQ, Ethiopian, Persian, or Peruvian styles (only if not in hard NOs).`
     : "";
 
-  // Phase A — session seed: a random phrase that nudges the model out of its
-  // habitual defaults without overriding user preferences.
-  const seedSection = ctx.sessionSeed
-    ? `SESSION DIRECTION: "${ctx.sessionSeed}" — let this phrase subtly inspire the mood or ingredients of at least 2 of your suggestions. Do not mention the phrase literally.`
+  // Phase A — session seed (soft nudge)
+  const seedHint = ctx.sessionSeed
+    ? `Session mood: "${ctx.sessionSeed}" — let this subtly inspire the mood or ingredients of a couple suggestions. Do not mention it literally.`
     : "";
 
-  // AI self-repetition blocker: meals the model already suggested in recent sessions.
-  const prevAISection =
+  // Recently seen (soft — try to vary, never block)
+  const recentHint =
+    ctx.recentlySeenNames.length > 0
+      ? `Try to vary from these recently shown meals: ${ctx.recentlySeenNames.slice(0, 10).join(", ")}.`
+      : "";
+
+  // Previous AI suggestions (soft — avoid exact repeats only, never reduce count)
+  const prevAIHint =
     ctx.previousAIMealNames.length > 0
-      ? `DO NOT REPEAT — you suggested these meals in recent sessions, do not suggest them again: ${ctx.previousAIMealNames.join(", ")}.`
+      ? `Try to avoid re-suggesting these recent AI picks: ${ctx.previousAIMealNames.join(", ")}. Ignore this list if following it would result in fewer than ${ctx.count} meals.`
       : "";
 
-  // Zone 1 anchor blocklist: static meals already placed at the top of the deck.
-  const existingSection =
+  // Existing deck (soft — only block near-identical, not similar)
+  const existingHint =
     ctx.existingDeckNames.length > 0
-      ? `ALREADY IN DECK — these meals are already shown to the user, do not suggest similar ones: ${ctx.existingDeckNames.join(", ")}.`
+      ? `These meals are already in the user's deck — avoid exact or near-identical duplicates: ${ctx.existingDeckNames.join(", ")}. Similar-category or same-cuisine meals are fine.`
       : "";
 
-  return `Generate exactly ${ctx.count} creative, specific meal suggestions. Return ONLY valid JSON — no markdown, no explanation.
+  // Assemble soft hints block — only include non-empty lines
+  const softHints = [
+    timeHint,
+    cuisineHint,
+    cookHint,
+    pantrySection,
+    diversifierHint,
+    challengerHint,
+    seedHint,
+    recentHint,
+    prevAIHint,
+    existingHint,
+  ]
+    .filter(Boolean)
+    .map((h) => `- ${h}`)
+    .join("\n");
 
-CONTEXT:
-- Vibe/mood: ${vibeHint}
-- Spice: ${ctx.spiceLevel}
-- ${cookSection}
-- ${timeSection}
-- ${cuisineSection}
+  return `You are a meal suggestion engine. Return ONLY valid JSON — no markdown, no explanation.
 
-${pantrySection}
+ABSOLUTE REQUIREMENT: You must return exactly ${ctx.count} meals. Never return fewer. Never return an empty list.
+If any soft guideline below conflicts with reaching ${ctx.count} meals, ignore that guideline.
 
-${hardNoSection ? hardNoSection + "\n\n" : ""}${recentSection ? recentSection + "\n\n" : ""}${prevAISection ? prevAISection + "\n\n" : ""}${existingSection ? existingSection + "\n\n" : ""}${diversifierSection ? diversifierSection + "\n\n" : ""}${challengerSection ? challengerSection + "\n\n" : ""}${seedSection ? seedSection + "\n\n" : ""}QUALITY RULES:
-1. Be specific, not generic. "Garlic Butter Chicken Thighs" not just "Chicken". "Banana Pancakes" not "Pancakes".
-2. When pantry items are available, name the combination in the meal name.
-3. Make descriptions sensory and appealing (2 sentences max).
-4. Each meal must be clearly distinct — no duplicates or near-duplicates.
+CONSTRAINT PRIORITY (highest to lowest):
+1. Hard NO foods / allergies — never violate these
+2. Return exactly ${ctx.count} realistic meals — non-negotiable
+3. Variety and freshness across cuisines and styles
+4. Preference matching (cuisine, vibe, cook mode)
+
+${hardNoSection ? hardNoSection + "\n\n" : ""}SOFT PREFERENCES (hints only — relax any of these to meet the meal count):
+${softHints}
+
+QUALITY RULES:
+1. Be specific, not generic. "Garlic Butter Chicken Thighs" not "Chicken". "Banana Pancakes" not "Pancakes".
+2. When pantry items are available, name the combination in the meal title.
+3. Make descriptions sensory and appealing (1-2 sentences).
+4. Each meal must be clearly distinct.
+5. If soft preferences are too limiting, generate good alternatives from any cuisine or style.
 
 INGREDIENT NAMES (use these exact strings for pantry matching):
 Proteins: Chicken, Ground beef, Steak, Shrimp, Salmon, Eggs, Bacon, Sausage, Tofu
@@ -166,7 +184,7 @@ Carbs: Pasta, Rice, Bread, Tortillas, Potatoes, Noodles
 Vegetables: Onions, Garlic, Bell peppers, Broccoli, Spinach, Mushrooms, Tomatoes
 Staples: Cheese, Butter, Beans
 
-REQUIRED JSON STRUCTURE — return exactly this shape:
+REQUIRED JSON STRUCTURE:
 {
   "meals": [
     {
@@ -178,13 +196,13 @@ REQUIRED JSON STRUCTURE — return exactly this shape:
       "ingredients": ["Chicken", "Rice"],
       "estimatedTimeMinutes": 25,
       "cuisine": "Asian",
-      "aiLabel": "Made from your pantry"
+      "aiLabel": "Fresh idea"
     }
   ]
 }
 
-LABEL RULE: Set "aiLabel" to "Made from your pantry" if the meal uses 2+ of the available pantry ingredients; otherwise "Fresh idea".
-TIME TAG: Include exactly one time tag in tags array: "15 min", "20 min", "25 min", "30 min", "35 min", "40 min", or "45 min".`;
+LABEL RULE: Set "aiLabel" to "Made from your pantry" if the meal uses 2+ pantry ingredients; otherwise "Fresh idea".
+TIME TAG: Include exactly one time tag in the tags array: "15 min", "20 min", "25 min", "30 min", "35 min", "40 min", or "45 min".`;
 }
 
 // ── Response validation ──────────────────────────────────────────────────────

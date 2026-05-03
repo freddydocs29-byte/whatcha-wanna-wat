@@ -13,7 +13,7 @@
  *   Legacy fallback — kept for safety but no longer called in normal flow.
  */
 import { meals } from "../data/meals";
-import { rankMeals, rankMealsForSharedSession, hardGate } from "./scoring";
+import { rankMeals, rankMealsForSharedSession, scoreAllMealsForSharedSession, hardGate } from "./scoring";
 import type { UserProfileForScoring } from "./scoring";
 import { supabase } from "./supabase";
 import type { UserPreferences, TasteProfile } from "./storage";
@@ -26,6 +26,8 @@ import {
   getFlavorProfile,
   getFavorites,
 } from "./storage";
+import { composeDeck } from "./deck-composer";
+import { FEATURES } from "./feature-flags";
 
 // ── Merge helpers ─────────────────────────────────────────────────────────────
 
@@ -120,14 +122,45 @@ export async function buildSharedDeckForSession(
   const eligibleMeals = hardGate(meals, combinedHardNos);
 
   // 6. Rank using mutual-fit scoring: each user scored independently,
-  //    combined via min(scoreA, scoreB) * 1.5 + overlap bonuses
-  const ranked = rankMealsForSharedSession(
-    eligibleMeals,
-    hostScoringProfile,
-    guestScoringProfile,
-  );
+  //    combined via min(scoreA, scoreB) * 1.5 + overlap bonuses.
+  //    Phase 5: when SHARED_THREE_ZONE_DECK is on, feed scores into composeDeck()
+  //    for zone-based layout instead of the legacy tiered sort.
+  let mealIds: string[];
 
-  const mealIds = ranked.map((r) => r.meal.id);
+  if (FEATURES.SHARED_THREE_ZONE_DECK) {
+    const scoredMeals = scoreAllMealsForSharedSession(
+      eligibleMeals,
+      hostScoringProfile,
+      guestScoringProfile,
+    );
+
+    // Build a union of recently-seen IDs from both users for Zone 1 freshness gates.
+    // Stored as flat weight 0.9 (high but below the 1.0 cap) since Supabase profiles
+    // don't carry timestamps — this is conservative but correct.
+    const combinedSeenWeights = new Map<string, number>();
+    for (const id of [
+      ...(hostProfile?.recently_seen_meal_ids ?? []),
+      ...(guestProfile?.recently_seen_meal_ids ?? []),
+    ]) {
+      combinedSeenWeights.set(id, 0.9);
+    }
+
+    const composed = composeDeck(scoredMeals, {
+      overexposedArchetypes: new Set(), // archetype history is localStorage-only
+      recentlyChosenIds: new Set(),     // history not stored in profiles table
+      recentlySeenWeights: combinedSeenWeights,
+      lastSessionTopTen: [],            // cross-session overlap check is solo-only
+    });
+
+    mealIds = composed.map((r) => r.meal.id);
+  } else {
+    const ranked = rankMealsForSharedSession(
+      eligibleMeals,
+      hostScoringProfile,
+      guestScoringProfile,
+    );
+    mealIds = ranked.map((r) => r.meal.id);
+  }
 
   // 7. Atomically save — only writes if deck_meal_ids is still NULL
   //     This prevents duplicate decks when both clients trigger simultaneously.

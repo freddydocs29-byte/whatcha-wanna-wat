@@ -14,6 +14,7 @@
  *   Phase 4A  AI_ALWAYS_ON               → back to shouldGenerateAI() check
  *   Phase 4B  AI_DIVERSIFIER              → no cuisineGaps sent to AI
  *   Phase 4C  AI_CHALLENGER               → no challenger mode prompt
+ *   Phase 5   SHARED_THREE_ZONE_DECK      → back to tiered rankMealsForSharedSession
  *   Phase 6   DECK_OVERLAP_CHECK          → no cross-session overlap penalty
  */
 export const FEATURES = {
@@ -37,6 +38,9 @@ export const FEATURES = {
 
   /** Phase 4C — AI challenger mode fires every 3 sessions */
   AI_CHALLENGER: true,
+
+  /** Phase 5 — three-zone deck composition for shared sessions */
+  SHARED_THREE_ZONE_DECK: true,
 
   /** Phase 6 — deck-level overlap penalty vs last session */
   DECK_OVERLAP_CHECK: true,

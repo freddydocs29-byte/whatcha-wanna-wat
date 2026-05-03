@@ -1461,6 +1461,26 @@ export function scoreMealMutual(
 }
 
 /**
+ * Phase 5 — scores all meals for a shared session and returns ScoredMeal[].
+ *
+ * Analogous to scoreAllMeals() for solo mode. The output feeds composeDeck()
+ * in deck.ts when SHARED_THREE_ZONE_DECK is on.
+ *
+ * vibeScore and behaviorScore are set to 0 — the mutual formula already
+ * bakes all preference and overlap signals into a single mutualScore.
+ */
+export function scoreAllMealsForSharedSession(
+  meals: Meal[],
+  profileA: UserProfileForScoring,
+  profileB: UserProfileForScoring,
+): ScoredMeal[] {
+  return meals.map((meal) => {
+    const { mutualScore, reason } = scoreMealMutual(meal, profileA, profileB);
+    return { meal, score: mutualScore, reason, vibeScore: 0, behaviorScore: 0 };
+  });
+}
+
+/**
  * Ranks meals for a shared session using mutual-fit scoring.
  *
  * Drop-in replacement for rankMeals() in shared contexts. Accepts both users'

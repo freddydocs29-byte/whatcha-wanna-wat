@@ -590,12 +590,14 @@ type AIMealNamesSession = {
 };
 
 /**
- * Returns all AI-generated meal names from the last 3 sessions, flattened.
- * Used as `previousAIMealNames` in each new AI request.
+ * Returns AI-generated meal names from recent sessions, capped at `maxNames`.
+ * Newest sessions come first (flattened), so the most recent suggestions are
+ * always included within the cap. Defaults to 12 — enough to prevent obvious
+ * repeats without over-constraining the model's output.
  */
-export function getAIMealNameHistory(): string[] {
+export function getAIMealNameHistory(maxNames = 12): string[] {
   const sessions = read<AIMealNamesSession[]>(AI_MEAL_NAMES_KEY, []);
-  return sessions.flatMap((s) => s.names);
+  return sessions.flatMap((s) => s.names).slice(0, maxNames);
 }
 
 /**
