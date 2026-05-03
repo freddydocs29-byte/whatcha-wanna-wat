@@ -35,12 +35,33 @@ export interface AIMealRequest {
    * deliberately outside the user's comfort zone (fires every 3 sessions).
    */
   challengerMode?: boolean;
+  /**
+   * Phase A — random phrase generated fresh each deck build.
+   * Included in the cache key so the same preferences never return cached
+   * results from a previous session.
+   */
+  sessionSeed?: string;
+  /**
+   * Names of AI-generated meals from the last 3 sessions.
+   * Passed to the server prompt so the model explicitly avoids re-suggesting
+   * meals it already produced — prevents AI self-repetition across sessions.
+   */
+  previousAIMealNames?: string[];
+  /**
+   * Names of static meals already placed in Zone 1 of the current deck.
+   * Passed to the server prompt so the model avoids suggesting near-duplicates
+   * of the anchored meals the user will already see.
+   */
+  existingDeckNames?: string[];
 }
 
 // ── Cache ────────────────────────────────────────────────────────────────────
 
 const CACHE_PREFIX = "wwe_ai_meals_v1_";
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour — same pantry context unlikely to change faster
+// Phase A: reduced from 1 hour to 5 minutes. sessionSeed in the key already
+// guarantees a fresh call per deck build; the short TTL is purely a cleanup
+// mechanism so stale entries don't accumulate in sessionStorage.
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface CacheEntry {
   meals: Meal[];
@@ -57,7 +78,10 @@ function getCacheKey(req: AIMealRequest): string {
   // Phase 4B/4C — include gaps and challenger flag so context shifts get fresh results
   const gaps = [...(req.cuisineGaps ?? [])].sort().join(",");
   const challenger = req.challengerMode ? "1" : "0";
-  return `${CACHE_PREFIX}${pantry}|${nos}|${cuisines}|${partner}|${req.timeBucket}|${req.vibeMode}|${gaps}|${challenger}`;
+  // Phase A — sessionSeed makes every deck build a distinct cache key so we
+  // never serve stale AI results from a previous session.
+  const seed = req.sessionSeed ?? "";
+  return `${CACHE_PREFIX}${pantry}|${nos}|${cuisines}|${partner}|${req.timeBucket}|${req.vibeMode}|${gaps}|${challenger}|${seed}`;
 }
 
 function readCache(key: string): Meal[] | null {

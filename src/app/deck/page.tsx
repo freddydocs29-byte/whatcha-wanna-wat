@@ -4,7 +4,7 @@ import { useRef, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
-import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getDecayedTasteProfile, getRecentlySeenWithWeights, getLastSeenSession, getOverexposedArchetypes, addToArchetypeHistory, getChallengerSessionCount, incrementChallengerCount, resetChallengerCount, type UserPreferences, type HistoryEntry } from "../lib/storage";
+import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getDecayedTasteProfile, getRecentlySeenWithWeights, getLastSeenSession, getOverexposedArchetypes, addToArchetypeHistory, getChallengerSessionCount, incrementChallengerCount, resetChallengerCount, getAIMealNameHistory, recordAIMealNames, type UserPreferences, type HistoryEntry } from "../lib/storage";
 import { rankMeals, hardGate, getSharedReason, getTimeBucket, scoreAllMeals, getMealArchetype as _getMealArchetype, MEAL_CUISINES, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { composeDeck } from "../lib/deck-composer";
 import { fetchAIMeals } from "../lib/ai-meals";
@@ -20,6 +20,19 @@ import { trackEvent } from "../lib/analytics";
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
 const DECK_SIZE = 20;
+
+// ── Session seed ──────────────────────────────────────────────────────────────
+// A random phrase generated once per deck build. Included in the AI request so
+// the model never serves the same habitual suggestions two sessions in a row,
+// even when preferences and pantry haven't changed.
+const SEED_ADJECTIVES = ["smoky", "bright", "earthy", "bold", "crisp", "warming", "vibrant", "rustic", "zesty", "fragrant", "tangy", "hearty", "delicate", "rich", "light"];
+const SEED_NOUNS = ["coastal", "garden", "market", "autumn", "street", "harvest", "valley", "kitchen", "monsoon", "grove", "evening", "hillside", "riverbank", "rooftop", "cellar"];
+
+function generateSessionSeed(): string {
+  const adj = SEED_ADJECTIVES[Math.floor(Math.random() * SEED_ADJECTIVES.length)];
+  const noun = SEED_NOUNS[Math.floor(Math.random() * SEED_NOUNS.length)];
+  return `${adj} ${noun}`;
+}
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -264,6 +277,10 @@ function DeckContent() {
   // Phase 4B/4C — cuisine gaps and challenger flag persist across re-renders
   const cuisineGapsRef = useRef<string[]>([]);
   const challengerModeRef = useRef<boolean>(false);
+  // Phase A — stable per deck build; regenerated on refresh / fresh ideas
+  const sessionSeedRef = useRef<string>(generateSessionSeed());
+  // Mirrors currentIndex for safe access inside async callbacks without stale closures
+  const currentIndexRef = useRef(0);
   // ── Shared-session state ────────────────────────────────────────────────────
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
   const [sharedError, setSharedError] = useState(false);
@@ -481,6 +498,11 @@ function DeckContent() {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
   }, [isChangeMeal]);
 
+  // Keep currentIndexRef in sync so async AI callbacks can safely read it.
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
   // Fire card_seen whenever a new card becomes the active one.
   useEffect(() => {
     const mealId = rankedMeals[currentIndex]?.meal?.id;
@@ -553,9 +575,9 @@ function DeckContent() {
         challengerModeRef.current = challengerMode;
 
         if (process.env.NODE_ENV === "development") {
-          console.log(`[AI] Always-on Zone 3 fill · gaps: [${cuisineGaps.join(", ")}] · challenger: ${challengerMode}`);
+          console.log(`[AI] Always-on Zone 2+3 fill · gaps: [${cuisineGaps.join(", ")}] · challenger: ${challengerMode} · seed: "${sessionSeedRef.current}"`);
         }
-        void enrichDeckWithAI(ranked.slice(0, DECK_SIZE), selectedIngredients, cuisineGaps, challengerMode);
+        void enrichDeckWithAI(ranked.slice(0, DECK_SIZE), selectedIngredients, cuisineGaps, challengerMode, sessionSeedRef.current);
       }
     } else {
       // Legacy: shouldGenerateAI() deterministic trigger
@@ -792,6 +814,7 @@ function DeckContent() {
     activePantryIngredients: string[],
     cuisineGaps: string[] = [],
     challengerMode: boolean = false,
+    sessionSeed: string = "",
   ): Promise<void> {
     if (aiMealsLoading) return;
     setAiMealsLoading(true);
@@ -800,6 +823,12 @@ function DeckContent() {
       const timeBucket = getTimeBucket();
       const history = getHistory();
       const recentNames = history.slice(0, 10).map((h) => h.meal.name);
+
+      // Names of AI meals from prior sessions — model avoids re-suggesting them.
+      const previousAIMealNames = getAIMealNameHistory();
+
+      // Zone 1 names already anchored in the deck — model avoids near-duplicates.
+      const existingDeckNames = baseStaticDeck.slice(0, 5).map((r) => r.meal.name);
 
       const aiRaw = await fetchAIMeals({
         preferences: {
@@ -814,9 +843,13 @@ function DeckContent() {
         cookMode,
         vibeMode: sessionVibeMode,
         recentlySeenNames: recentNames,
-        count: 10,
+        // Phase A: 14 meals — enough to fill Zone 2 (9) + Zone 3 tail (5)
+        count: 14,
         cuisineGaps: FEATURES.AI_DIVERSIFIER ? cuisineGaps : [],
         challengerMode: FEATURES.AI_CHALLENGER ? challengerMode : false,
+        sessionSeed,
+        previousAIMealNames,
+        existingDeckNames,
       });
 
       if (aiRaw.length === 0) return; // Nothing came back — silent fallback
@@ -824,6 +857,9 @@ function DeckContent() {
       // ── Double hardGate: server already filtered, client confirms ──────────
       const gated = hardGate(aiRaw, prefs?.dislikedFoods ?? []);
       if (gated.length === 0) return;
+
+      // Persist names so the next session's prompt avoids repeating them.
+      recordAIMealNames(gated.map((m) => m.name));
 
       // Track IDs for the "Fresh idea" / "Made from your pantry" label
       setAiMealIds((prev) => {
@@ -861,40 +897,66 @@ function DeckContent() {
       // ── Merge AI meals into the deck ───────────────────────────────────────
       let merged: RankedMeal[];
       if (FEATURES.THREE_ZONE_DECK) {
-        // Phase 3/4A: AI fills the deck tail. Zone 1 (0–4) stays untouched.
-        // Two AI meals are spliced into Zone 2 (at positions 5 and 10) so users
-        // encounter AI suggestions before card 14 — without disrupting the anchors.
-        const ZONE_BOUNDARY = 14; // zone1(5) + zone2(9)
-        const zone12 = baseStaticDeck.slice(0, ZONE_BOUNDARY);
-        const zone12Ids = new Set(zone12.map((r) => r.meal.id));
-        const freshAI = rankedAI.filter((r) => !zone12Ids.has(r.meal.id));
-        const staticZone3 = baseStaticDeck
-          .slice(ZONE_BOUNDARY)
-          .filter((r) => !freshAI.some((a) => a.meal.id === r.meal.id));
+        // Phase A: AI owns Zone 2 (positions 5–13) and Zone 3 tail.
+        // Zone 1 (positions 0–4) remains static high-confidence anchors.
+        // Static meals backfill Zone 2 only when AI returns fewer than 9 meals.
+        const ZONE1_SIZE = 5;
+        const ZONE2_SIZE = 9;
 
-        // Splice up to 2 AI meals into Zone 2 (positions 5 and 10) so they appear
-        // early enough that users actually see them. Remaining AI fills the tail.
-        const [earlyAI1, earlyAI2, ...tailAI] = freshAI;
-        const deckWithEarlyAI = [...zone12];
-        if (earlyAI1) deckWithEarlyAI.splice(5, 0, earlyAI1);
-        if (earlyAI2) deckWithEarlyAI.splice(Math.min(10, deckWithEarlyAI.length), 0, earlyAI2);
-        merged = [...deckWithEarlyAI, ...tailAI, ...staticZone3];
+        const zone1 = baseStaticDeck.slice(0, ZONE1_SIZE);
+        const zone1Ids = new Set(zone1.map((r) => r.meal.id));
+
+        // Remove any AI meal that duplicates a Zone 1 anchor
+        const freshAI = rankedAI.filter((r) => !zone1Ids.has(r.meal.id));
+
+        // Zone 2: AI-first, static backfills remaining slots
+        const aiZone2 = freshAI.slice(0, ZONE2_SIZE);
+        const aiZone2Ids = new Set(aiZone2.map((r) => r.meal.id));
+        const staticZone2Candidates = baseStaticDeck
+          .slice(ZONE1_SIZE, ZONE1_SIZE + ZONE2_SIZE)
+          .filter((r) => !aiZone2Ids.has(r.meal.id));
+        const zone2 = [...aiZone2, ...staticZone2Candidates].slice(0, ZONE2_SIZE);
+
+        // Zone 3: remaining AI + static tail (both deduped against zone1+zone2)
+        const zone2Ids = new Set(zone2.map((r) => r.meal.id));
+        const aiZone3 = freshAI.slice(ZONE2_SIZE);
+        const aiZone3Ids = new Set(aiZone3.map((r) => r.meal.id));
+        const staticZone3 = baseStaticDeck
+          .slice(ZONE1_SIZE + ZONE2_SIZE)
+          .filter((r) => !zone2Ids.has(r.meal.id) && !aiZone3Ids.has(r.meal.id));
+        const zone3 = [...aiZone3, ...staticZone3];
+
+        merged = [...zone1, ...zone2, ...zone3];
 
         if (process.env.NODE_ENV === "development") {
-          const earlyCount = (earlyAI1 ? 1 : 0) + (earlyAI2 ? 1 : 0);
+          const aiInZ2 = aiZone2.length;
+          const staticInZ2 = zone2.length - aiInZ2;
           console.log(
-            `[AI] Merged ${freshAI.length} AI meals: ${earlyCount} early (pos 5/10) + ${tailAI.length} tail (pos 16+)`,
+            `[AI] Zone 2: ${aiInZ2} AI + ${staticInZ2} static fallback | Zone 3: ${aiZone3.length} AI + ${staticZone3.length} static | seed: "${sessionSeed}"`,
           );
-          freshAI.forEach((r, i) => {
-            const pos = i === 0 ? 5 : i === 1 ? 10 : 14 + i;
-            console.log(`  AI[${i}] ~pos ${pos}: ${r.meal.name} — ${r.meal.aiLabel ?? "Fresh idea"}`);
-          });
+          zone2.forEach((r, i) =>
+            console.log(`  Z2[${i + 1}] ${r.meal.aiGenerated ? "✦ AI" : "   "} ${r.meal.name}`),
+          );
         }
       } else {
         // Legacy: interleave AI meals throughout the deck
         merged = interleaveAI(baseStaticDeck, rankedAI);
       }
-      setRankedMeals(merged.slice(0, DECK_SIZE));
+
+      // Safe async update: preserve any cards the user is already viewing or has
+      // swiped past. Zone 1 (first 5) is always kept intact as the static anchor.
+      // Cards from the current position onwards are replaced with AI-enriched content.
+      const ZONE1_SIZE_CONST = 5;
+      setRankedMeals((prev) => {
+        // Preserve everything up to and including the current card, but always
+        // keep at least Zone 1 even if the user hasn't swiped that far yet.
+        const pivot = Math.max(currentIndexRef.current, ZONE1_SIZE_CONST);
+        const preserved = prev.slice(0, pivot);
+        const preservedIds = new Set(preserved.map((r) => r.meal.id));
+        // Append AI-enriched tail, skipping any meal already in preserved
+        const freshTail = merged.filter((r) => !preservedIds.has(r.meal.id));
+        return [...preserved, ...freshTail].slice(0, DECK_SIZE);
+      });
     } catch (err) {
       if (process.env.NODE_ENV === "development") {
         console.warn("[ai-meals] enrichDeckWithAI failed — using static deck:", err);
@@ -1023,11 +1085,12 @@ function DeckContent() {
     const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
     recordSeenSession(staticDeck.map((r) => r.meal.id));
     deckRecordedRef.current = true;
+    sessionSeedRef.current = generateSessionSeed(); // fresh seed for each explicit request
     setRankedMeals(staticDeck.slice(0, DECK_SIZE));
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
-    await enrichDeckWithAI(staticDeck.slice(0, DECK_SIZE), selectedIngredients);
+    await enrichDeckWithAI(staticDeck.slice(0, DECK_SIZE), selectedIngredients, cuisineGapsRef.current, challengerModeRef.current, sessionSeedRef.current);
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -1070,7 +1133,8 @@ function DeckContent() {
         refreshCuisineGaps = [...allCuisines].filter((c) => !zone12Cuisines.has(c));
       }
       cuisineGapsRef.current = refreshCuisineGaps;
-      void enrichDeckWithAI(ranked.slice(0, DECK_SIZE), selectedIngredients, refreshCuisineGaps, challengerModeRef.current);
+      sessionSeedRef.current = generateSessionSeed(); // new seed = fresh AI output
+      void enrichDeckWithAI(ranked.slice(0, DECK_SIZE), selectedIngredients, refreshCuisineGaps, challengerModeRef.current, sessionSeedRef.current);
     }
   }
 

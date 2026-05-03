@@ -573,3 +573,39 @@ export function setLastDecidePick(mealId: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(LAST_DECIDE_KEY, JSON.stringify(mealId));
 }
+
+// ── AI Meal Name History ──────────────────────────────────────────────────────
+//
+// Tracks the display names of AI-generated meals across recent sessions.
+// Passed back to the server as `previousAIMealNames` so the model explicitly
+// avoids repeating meals it already suggested — preventing self-repetition
+// that the static library suppression alone can't catch.
+
+const AI_MEAL_NAMES_KEY = "wwe_ai_meal_names_v1";
+const AI_MEAL_NAMES_MAX_SESSIONS = 3;
+
+type AIMealNamesSession = {
+  names: string[];
+  recordedAt: string; // ISO timestamp
+};
+
+/**
+ * Returns all AI-generated meal names from the last 3 sessions, flattened.
+ * Used as `previousAIMealNames` in each new AI request.
+ */
+export function getAIMealNameHistory(): string[] {
+  const sessions = read<AIMealNamesSession[]>(AI_MEAL_NAMES_KEY, []);
+  return sessions.flatMap((s) => s.names);
+}
+
+/**
+ * Persist the AI-generated meal names produced in the current session.
+ * Call once after AI meals are gated and validated — not on every render.
+ */
+export function recordAIMealNames(names: string[]): void {
+  if (typeof window === "undefined" || names.length === 0) return;
+  const sessions = read<AIMealNamesSession[]>(AI_MEAL_NAMES_KEY, []);
+  const entry: AIMealNamesSession = { names, recordedAt: new Date().toISOString() };
+  const updated = [entry, ...sessions].slice(0, AI_MEAL_NAMES_MAX_SESSIONS);
+  localStorage.setItem(AI_MEAL_NAMES_KEY, JSON.stringify(updated));
+}

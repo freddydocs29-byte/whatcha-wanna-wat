@@ -56,6 +56,12 @@ interface PromptContext {
   cuisineGaps: string[];
   /** Phase 4C — if true, prompt steers toward outside-comfort-zone suggestions. */
   challengerMode: boolean;
+  /** Phase A — random phrase injected to break habitual patterns each session. */
+  sessionSeed: string;
+  /** Names of AI meals from the last 3 sessions — model avoids re-suggesting them. */
+  previousAIMealNames: string[];
+  /** Names of static Zone 1 meals already placed — model avoids near-duplicates. */
+  existingDeckNames: string[];
 }
 
 function buildPrompt(ctx: PromptContext): string {
@@ -119,6 +125,24 @@ If "Beef" is listed: no burgers, steaks, ground beef, or beef-based dishes.`
       `Avoid obvious repeats of their usual favorites.`
     : "";
 
+  // Phase A — session seed: a random phrase that nudges the model out of its
+  // habitual defaults without overriding user preferences.
+  const seedSection = ctx.sessionSeed
+    ? `SESSION DIRECTION: "${ctx.sessionSeed}" — let this phrase subtly inspire the mood or ingredients of at least 2 of your suggestions. Do not mention the phrase literally.`
+    : "";
+
+  // AI self-repetition blocker: meals the model already suggested in recent sessions.
+  const prevAISection =
+    ctx.previousAIMealNames.length > 0
+      ? `DO NOT REPEAT — you suggested these meals in recent sessions, do not suggest them again: ${ctx.previousAIMealNames.join(", ")}.`
+      : "";
+
+  // Zone 1 anchor blocklist: static meals already placed at the top of the deck.
+  const existingSection =
+    ctx.existingDeckNames.length > 0
+      ? `ALREADY IN DECK — these meals are already shown to the user, do not suggest similar ones: ${ctx.existingDeckNames.join(", ")}.`
+      : "";
+
   return `Generate exactly ${ctx.count} creative, specific meal suggestions. Return ONLY valid JSON — no markdown, no explanation.
 
 CONTEXT:
@@ -130,7 +154,7 @@ CONTEXT:
 
 ${pantrySection}
 
-${hardNoSection ? hardNoSection + "\n\n" : ""}${recentSection ? recentSection + "\n\n" : ""}${diversifierSection ? diversifierSection + "\n\n" : ""}${challengerSection ? challengerSection + "\n\n" : ""}QUALITY RULES:
+${hardNoSection ? hardNoSection + "\n\n" : ""}${recentSection ? recentSection + "\n\n" : ""}${prevAISection ? prevAISection + "\n\n" : ""}${existingSection ? existingSection + "\n\n" : ""}${diversifierSection ? diversifierSection + "\n\n" : ""}${challengerSection ? challengerSection + "\n\n" : ""}${seedSection ? seedSection + "\n\n" : ""}QUALITY RULES:
 1. Be specific, not generic. "Garlic Butter Chicken Thighs" not just "Chicken". "Banana Pancakes" not "Pancakes".
 2. When pantry items are available, name the combination in the meal name.
 3. Make descriptions sensory and appealing (2 sentences max).
@@ -247,6 +271,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       count = 10,
       cuisineGaps = [],
       challengerMode = false,
+      sessionSeed = "",
+      previousAIMealNames = [],
+      existingDeckNames = [],
     } = body as {
       preferences?: { cuisines?: string[]; dislikedFoods?: string[]; spiceLevel?: string; cookOrOrder?: string };
       partnerPreferences?: { cuisines?: string[]; dislikedFoods?: string[] } | null;
@@ -258,6 +285,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       count?: number;
       cuisineGaps?: string[];
       challengerMode?: boolean;
+      sessionSeed?: string;
+      previousAIMealNames?: string[];
+      existingDeckNames?: string[];
     };
 
     // Union both users' hard NOs so neither partner sees a blocked ingredient
@@ -275,7 +305,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ]),
     ];
 
-    const safeCount = Math.min(Math.max(1, Number(count) || 10), 12);
+    // Phase A: raised cap from 12 to 16 to accommodate Zone 2 (9 slots) + Zone 3 tail.
+    const safeCount = Math.min(Math.max(1, Number(count) || 10), 16);
 
     const promptContext: PromptContext = {
       hardNos,
@@ -289,6 +320,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       count: safeCount,
       cuisineGaps: Array.isArray(cuisineGaps) ? cuisineGaps : [],
       challengerMode: Boolean(challengerMode),
+      sessionSeed: typeof sessionSeed === "string" ? sessionSeed : "",
+      previousAIMealNames: Array.isArray(previousAIMealNames) ? previousAIMealNames : [],
+      existingDeckNames: Array.isArray(existingDeckNames) ? existingDeckNames : [],
     };
 
     const openai = new OpenAI({ apiKey });
