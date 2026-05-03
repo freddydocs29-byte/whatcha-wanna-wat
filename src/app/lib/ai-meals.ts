@@ -25,6 +25,16 @@ export interface AIMealRequest {
   vibeMode: string;
   recentlySeenNames: string[];
   count?: number;
+  /**
+   * Phase 4B — cuisines underrepresented in Zones 1+2 of the composed deck.
+   * When AI_DIVERSIFIER is on, the server prompt steers AI toward these cuisines.
+   */
+  cuisineGaps?: string[];
+  /**
+   * Phase 4C — when true, the server prompt instructs AI to suggest meals
+   * deliberately outside the user's comfort zone (fires every 3 sessions).
+   */
+  challengerMode?: boolean;
 }
 
 // ── Cache ────────────────────────────────────────────────────────────────────
@@ -44,8 +54,10 @@ function getCacheKey(req: AIMealRequest): string {
   const partner = req.partnerPreferences
     ? [...(req.partnerPreferences.dislikedFoods)].sort().join(",")
     : "";
-  // Include vibeMode + timeBucket so context shifts get fresh results
-  return `${CACHE_PREFIX}${pantry}|${nos}|${cuisines}|${partner}|${req.timeBucket}|${req.vibeMode}`;
+  // Phase 4B/4C — include gaps and challenger flag so context shifts get fresh results
+  const gaps = [...(req.cuisineGaps ?? [])].sort().join(",");
+  const challenger = req.challengerMode ? "1" : "0";
+  return `${CACHE_PREFIX}${pantry}|${nos}|${cuisines}|${partner}|${req.timeBucket}|${req.vibeMode}|${gaps}|${challenger}`;
 }
 
 function readCache(key: string): Meal[] | null {

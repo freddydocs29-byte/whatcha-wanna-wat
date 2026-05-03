@@ -52,6 +52,10 @@ interface PromptContext {
   vibeMode: string;
   recentlySeenNames: string[];
   count: number;
+  /** Phase 4B — cuisines absent from Zones 1+2; AI should cover at least some. */
+  cuisineGaps: string[];
+  /** Phase 4C — if true, prompt steers toward outside-comfort-zone suggestions. */
+  challengerMode: boolean;
 }
 
 function buildPrompt(ctx: PromptContext): string {
@@ -99,6 +103,22 @@ If "Beef" is listed: no burgers, steaks, ground beef, or beef-based dishes.`
       ? "Meals should be orderable from restaurants or deliverable."
       : "Mix of home cooking and takeout ideas.";
 
+  // Phase 4B — diversifier: steer AI toward underrepresented cuisines
+  const diversifierSection =
+    ctx.cuisineGaps.length > 0
+      ? `CUISINE DIVERSITY GOAL: The user's current deck is missing meals from these cuisines: ${ctx.cuisineGaps.join(", ")}. ` +
+        `Try to include at least ${Math.min(2, ctx.cuisineGaps.length)} meals from this list — ` +
+        `but only if they fit the hard NOs and other constraints above.`
+      : "";
+
+  // Phase 4C — challenger: push outside comfort zone
+  const challengerSection = ctx.challengerMode
+    ? `CHALLENGER MODE: This session, deliberately push the user outside their comfort zone. ` +
+      `Suggest meals from cuisines or cooking styles they haven't explored recently. ` +
+      `Be bold — think Korean BBQ, Ethiopian injera, Persian stew, Peruvian ceviche (if not in hard NOs). ` +
+      `Avoid obvious repeats of their usual favorites.`
+    : "";
+
   return `Generate exactly ${ctx.count} creative, specific meal suggestions. Return ONLY valid JSON — no markdown, no explanation.
 
 CONTEXT:
@@ -110,7 +130,7 @@ CONTEXT:
 
 ${pantrySection}
 
-${hardNoSection ? hardNoSection + "\n\n" : ""}${recentSection ? recentSection + "\n\n" : ""}QUALITY RULES:
+${hardNoSection ? hardNoSection + "\n\n" : ""}${recentSection ? recentSection + "\n\n" : ""}${diversifierSection ? diversifierSection + "\n\n" : ""}${challengerSection ? challengerSection + "\n\n" : ""}QUALITY RULES:
 1. Be specific, not generic. "Garlic Butter Chicken Thighs" not just "Chicken". "Banana Pancakes" not "Pancakes".
 2. When pantry items are available, name the combination in the meal name.
 3. Make descriptions sensory and appealing (2 sentences max).
@@ -225,6 +245,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       vibeMode = "mix-it-up",
       recentlySeenNames = [],
       count = 10,
+      cuisineGaps = [],
+      challengerMode = false,
     } = body as {
       preferences?: { cuisines?: string[]; dislikedFoods?: string[]; spiceLevel?: string; cookOrOrder?: string };
       partnerPreferences?: { cuisines?: string[]; dislikedFoods?: string[] } | null;
@@ -234,6 +256,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       vibeMode?: string;
       recentlySeenNames?: string[];
       count?: number;
+      cuisineGaps?: string[];
+      challengerMode?: boolean;
     };
 
     // Union both users' hard NOs so neither partner sees a blocked ingredient
@@ -263,6 +287,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       vibeMode,
       recentlySeenNames: Array.isArray(recentlySeenNames) ? recentlySeenNames : [],
       count: safeCount,
+      cuisineGaps: Array.isArray(cuisineGaps) ? cuisineGaps : [],
+      challengerMode: Boolean(challengerMode),
     };
 
     const openai = new OpenAI({ apiKey });

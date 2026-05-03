@@ -10,6 +10,33 @@ export type SessionCookMode = "cook" | "order" | "either";
 export type SessionVibeMode = "mix-it-up" | "comfort-food" | "quick-easy" | "healthy" | "something-new" | "kid-friendly";
 
 /**
+ * Phase 3 — intermediate scoring result used by scoreAllMeals() and
+ * consumed by composeDeck() in deck-composer.ts.
+ */
+export type ScoredMeal = {
+  meal: Meal;
+  score: number;
+  reason: string;
+  vibeScore: number;
+  behaviorScore: number;
+};
+
+/**
+ * Phase 2 — returns the archetype fingerprint for a meal.
+ * Format: "PrimaryCuisine|category|sortedTag1+sortedTag2"
+ *
+ * Used by:
+ *   • composeDeck() to check overexposedArchetypes (deck-composer.ts)
+ *   • addToArchetypeHistory() caller in deck/page.tsx (cuisine passed separately
+ *     to avoid circular deps with storage.ts)
+ */
+export function getMealArchetype(meal: Meal): string {
+  const cuisine = MEAL_CUISINES[meal.id]?.[0] ?? "Other";
+  const keyTags = [...meal.tags].sort().slice(0, 2).join("+");
+  return `${cuisine}|${meal.category}|${keyTags}`;
+}
+
+/**
  * Minimal profile data needed to score meals for one participant in a shared
  * session. Constructed from their Supabase profile row — no localStorage data
  * required so it works without the user being on the same device.
@@ -436,7 +463,9 @@ export function scoreMeal(
   sessionShown: Set<string> = new Set(),
   vibe: string | null = null,
   cookMode: SessionCookMode = "either",
-  sessionVibeMode: SessionVibeMode = "mix-it-up"
+  sessionVibeMode: SessionVibeMode = "mix-it-up",
+  // Phase 1A — time-decayed seen weights (optional; falls back to flat Set when absent)
+  recentlySeenWeights?: Map<string, number>,
 ): { score: number; reason: string; vibeScore: number; behaviorScore: number } {
   let score = 0;
   let vibeScore = 0;    // tracks session-selector contribution for dev logging
@@ -551,40 +580,62 @@ export function scoreMeal(
 
   // ── Taste profile signals (learned behavior) ─────────────────────────────
   //
-  // Influence scales from 0 → 1 over 20 interactions so onboarding signals
-  // dominate early and learned behavior gradually gains weight.
+  // Phase 1B: applies log₂ diminishing returns so the 10th signal for a tag
+  // contributes far less than the 1st. This prevents entrenched signals from
+  // locking in the same meals session after session.
+  //
+  // Per-tag contribution = min(1, log₂(rawCount + 1) / LOG_SCALE)
+  //   rawCount 1  → 0.23   rawCount 5  → 0.58
+  //   rawCount 10 → 0.79   rawCount 20 → 0.99  (≈ cap)
+  //
+  // Total tag boost is still capped at +3; category still capped at +1.5.
+  // Disliked penalty is floored at -1.5 with the same log transform.
+  //
+  // Callers that pass a getDecayedTasteProfile() result get time-decay on
+  // top of the log transform (compounding freshness bias). Callers that pass
+  // a raw getTasteProfile() get only the log transform.
+
+  const LOG_SCALE = 4.4; // log₂(21) ≈ 4.4 — raw count 20 maps to ≈ 1.0
 
   if (tasteProfile && tasteProfile.interactionCount > 0) {
-    // Scale reaches 1.0 at 15 interactions (was 20) — learned behavior matters sooner,
-    // ensuring repeat-like signals dominate within a few sessions of use.
     const behaviorScale = Math.min(1, tasteProfile.interactionCount / 15);
 
-    // Liked tag boost: +1 per matching tag, capped at +3 (was +2)
-    const likedTagMatches = meal.tags.filter(
-      (t) => (tasteProfile.likedTags[t] ?? 0) > 0
-    ).length;
-    const tagBoost = Math.min(3, likedTagMatches) * behaviorScale;
+    // Liked tag boost — log-scaled per tag, total capped at +3
+    let rawTagBoost = 0;
+    let likedTagMatchCount = 0; // binary count for reason-setting (unchanged)
+    for (const t of meal.tags) {
+      const raw = tasteProfile.likedTags[t] ?? 0;
+      if (raw > 0) {
+        rawTagBoost += Math.min(1, Math.log2(raw + 1) / LOG_SCALE);
+        likedTagMatchCount++;
+      }
+    }
+    const tagBoost = Math.min(3, rawTagBoost) * behaviorScale;
     score += tagBoost;
     behaviorScore += tagBoost;
 
-    // Liked category boost: +1.5 (was +1) if this category appeared in saves/chooses
-    const likesCategory = (tasteProfile.likedCategories[meal.category] ?? 0) > 0;
+    // Liked category boost — log-scaled, capped at +1.5
+    const rawCatCount = tasteProfile.likedCategories[meal.category] ?? 0;
+    const likesCategory = rawCatCount > 0;
     if (likesCategory) {
-      const catBoost = 1.5 * behaviorScale;
+      const catBoost =
+        Math.min(1.5, (Math.log2(rawCatCount + 1) / LOG_SCALE) * 1.5) * behaviorScale;
       score += catBoost;
       behaviorScore += catBoost;
     }
 
-    // Disliked tag penalty: floored at −1.5 (was −1) for stronger avoidance signal
-    const dislikedTagMatches = meal.tags.filter(
-      (t) => (tasteProfile.dislikedTags[t] ?? 0) > 0
-    ).length;
-    const dislikedPenalty = Math.max(-1.5, -dislikedTagMatches) * behaviorScale;
+    // Disliked tag penalty — log-scaled, floored at -1.5
+    let rawDislikeBoost = 0;
+    for (const t of meal.tags) {
+      const raw = tasteProfile.dislikedTags[t] ?? 0;
+      if (raw > 0) rawDislikeBoost += Math.min(1, Math.log2(raw + 1) / LOG_SCALE);
+    }
+    const dislikedPenalty = Math.max(-1.5, -rawDislikeBoost) * behaviorScale;
     score += dislikedPenalty;
     behaviorScore += dislikedPenalty;
 
-    // Learned behavior reason — fires only if no stronger reason has been set yet
-    if (likedTagMatches > 0) setReason("You've liked similar meals");
+    // Learned behavior reason (uses binary count for readability)
+    if (likedTagMatchCount > 0) setReason("You've liked similar meals");
     else if (likesCategory) setReason("Fits your usual choices");
   }
 
@@ -670,21 +721,45 @@ export function scoreMeal(
 
   // ── History / seen penalties ──────────────────────────────────────────────
   //
-  // Chosen meals get -4 to strongly suppress recently-eaten meals.
-  // Looking back 8 entries ensures suppression lasts several sessions, not
-  // just the next visit. Meals shown but not chosen get -2.5 so they rotate
-  // out meaningfully — strong enough to break the "same 5 meals" cycle.
+  // Phase 1A: penalties are now time-decayed so a meal chosen last night is
+  // suppressed harder than one chosen three weeks ago. The flat-Set fallback
+  // (recentlySeen) is preserved for shared-mode callers (scoreForUser) that
+  // don't carry timestamp data.
+  //
+  // History penalty schedule (chosen meals):
+  //   < 1 day   → -4.0   (very recent — strong suppression)
+  //   < 7 days  → -3.0
+  //   < 30 days → -1.5
+  //   ≥ 30 days → 0      (expired, no penalty)
+  //
+  // Seen penalty schedule (seen but not chosen, via recentlySeenWeights):
+  //   weight × -2.5    (weight 1.0 last night → -2.5; weight 0.25 last month → -0.625)
+  //   Falls back to flat -2.5 when only recentlySeen Set is supplied.
 
-  const recentChosenIds = new Set(history.slice(0, 8).map((h) => h.meal.id));
-  if (recentChosenIds.has(meal.id)) {
-    score -= 4;
-  } else if (recentlySeen?.has(meal.id)) {
-    score -= 2.5;
-  } else if (sessionShown.has(meal.id)) {
-    // Soft penalty for meals already shown as the active card this session.
-    // Lighter than cross-session suppression (-2.5) so strong matches can
-    // still surface, but meaningful enough to push repeated cards down a band.
-    score -= 1.5;
+  const _now = Date.now();
+  let appliedHistoryPenalty = false;
+  for (const entry of history) {
+    if (entry.meal.id !== meal.id) continue;
+    const ageDays = (_now - new Date(entry.chosenAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (ageDays < 1)        { score -= 4.0; }
+    else if (ageDays < 7)   { score -= 3.0; }
+    else if (ageDays < 30)  { score -= 1.5; }
+    // ≥ 30 days: no penalty — entry has expired
+    appliedHistoryPenalty = true;
+    break; // first (most recent) match is sufficient
+  }
+
+  if (!appliedHistoryPenalty) {
+    if (recentlySeenWeights?.has(meal.id)) {
+      // Time-decayed seen penalty
+      score -= 2.5 * (recentlySeenWeights.get(meal.id) ?? 1);
+    } else if (recentlySeen?.has(meal.id)) {
+      // Legacy flat penalty (shared-mode / old callers)
+      score -= 2.5;
+    } else if (sessionShown.has(meal.id)) {
+      // Soft in-session penalty — lighter than cross-session suppression
+      score -= 1.5;
+    }
   }
 
   // ── Pantry mode boost + reason ────────────────────────────────────────────
@@ -1001,10 +1076,48 @@ export function scoreMeal(
 }
 
 /**
+ * Phase 3 — Scores every meal and returns ScoredMeal[].
+ *
+ * Extracted from rankMeals() so that composeDeck() in deck-composer.ts can
+ * consume scored meals directly without re-implementing the scoring loop.
+ * rankMeals() calls this internally — all existing call sites are unaffected.
+ *
+ * Accepts the same parameters as rankMeals() plus the optional Phase 1A
+ * recentlySeenWeights map.
+ */
+export function scoreAllMeals(
+  meals: Meal[],
+  prefs: UserPreferences | null,
+  savedMeals: Meal[],
+  history: HistoryEntry[],
+  pantryMode = false,
+  tasteProfile?: TasteProfile,
+  recentlySeen?: Set<string>,
+  flavorProfile?: FlavorProfile,
+  favorites: Meal[] = [],
+  selectedIngredients: string[] = [],
+  context: WhoFor = "solo",
+  sessionShown: Set<string> = new Set(),
+  vibe: string | null = null,
+  cookMode: SessionCookMode = "either",
+  sessionVibeMode: SessionVibeMode = "mix-it-up",
+  recentlySeenWeights?: Map<string, number>,
+): ScoredMeal[] {
+  return meals.map((meal) => {
+    const { score, reason, vibeScore, behaviorScore } = scoreMeal(
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen,
+      flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe,
+      cookMode, sessionVibeMode, recentlySeenWeights,
+    );
+    return { meal, score, reason, vibeScore, behaviorScore };
+  });
+}
+
+/**
  * Score, sort, and present a list of meals with controlled variety.
  *
  * Algorithm:
- *   1. Score every meal (personalization + freshness penalties).
+ *   1. Score every meal via scoreAllMeals() (personalization + freshness penalties).
  *   2. Sort all meals descending by score — no hard pool cap.
  *   3. Shuffle within 1-point score bands so the deck order feels fresh each
  *      session without reordering clearly better matches above worse ones.
@@ -1019,6 +1132,10 @@ export function scoreMeal(
  * strong options rather than letting the same few dominate every pass.
  *
  * Call this once when a filter is selected — not on every render.
+ *
+ * NOTE: When THREE_ZONE_DECK feature flag is on, buildDeck() calls
+ * scoreAllMeals() + composeDeck() instead. rankMeals() remains the path
+ * for shared-mode (rankMealsForSharedSession) and nudge re-ranking.
  */
 export function rankMeals(
   meals: Meal[],
@@ -1040,12 +1157,11 @@ export function rankMeals(
   if (meals.length === 0) return [];
 
   // 1. Score every meal — behaviorScore and vibeScore tracked separately for dev logging
-  const scored = meals.map((meal) => {
-    const { score, reason, vibeScore, behaviorScore } = scoreMeal(
-      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode
-    );
-    return { meal, score, reason, vibeScore, behaviorScore };
-  });
+  const scored = scoreAllMeals(
+    meals, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen,
+    flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe,
+    cookMode, sessionVibeMode,
+  );
 
   // 2. Sort by score descending — all meals ranked, no artificial cutoff
   scored.sort((a, b) => b.score - a.score);

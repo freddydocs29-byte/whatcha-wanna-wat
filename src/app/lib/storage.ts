@@ -20,6 +20,28 @@ export type TasteProfile = {
   dislikedTags: Record<string, number>;   // tag → cumulative negative signal
   likedCategories: Record<string, number>; // category → cumulative positive signal
   interactionCount: number;               // total pass + save + choose events
+  // Phase 1B — used by getDecayedTasteProfile() to apply time-decay at read-time.
+  // Written on every updateTasteProfile() call; never sent to scoring in raw form.
+  lastUpdatedAt?: string;                 // ISO timestamp of last write
+};
+
+// ── Phase 2 — Archetype tracking ─────────────────────────────────────────────
+//
+// Tracks the (cuisine × category × key-tags) fingerprint of every chosen meal
+// so Zone 1 of the deck can suppress recently-overused meal archetypes even when
+// the specific meal ID hasn't been chosen before.
+
+/** One chosen-meal archetype entry. Stored without importing scoring.ts (no circular dep). */
+export type ArchetypeEntry = {
+  mealId: string;
+  cuisine: string;    // primary cuisine from MEAL_CUISINES, provided by caller
+  category: string;   // meal.category
+  keyTags: string[];  // first 2 tags sorted — fingerprint component
+  chosenAt: string;   // ISO timestamp
+};
+
+export type ArchetypeHistory = {
+  entries: ArchetypeEntry[]; // newest first, capped at 20
 };
 
 /**
@@ -51,6 +73,10 @@ const FLAVOR_KEY = "wwe_flavor_profile";
 // Legacy key — only read during one-time migration, never written again.
 const FAVORITES_KEY = "wwe_favorites";
 const LAST_DECIDE_KEY = "wwe_last_decide_pick";
+// Phase 2 — archetype suppression history
+const ARCHETYPE_KEY = "wwe_archetype_history";
+// Phase 4C — challenger mode session counter
+const CHALLENGER_KEY = "wwe_challenger_count";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -263,6 +289,9 @@ export function updateTasteProfile(meal: Meal, signal: "pass" | "save" | "choose
     profile.likedCategories[meal.category] = (profile.likedCategories[meal.category] ?? 0) + weight;
   }
 
+  // Phase 1B — record write time so getDecayedTasteProfile() can apply decay
+  profile.lastUpdatedAt = new Date().toISOString();
+
   localStorage.setItem(TASTE_KEY, JSON.stringify(profile));
 
   // Debounce Supabase sync — batch rapid swipes into a single write
@@ -286,6 +315,52 @@ export function hasFlavorProfile(): boolean {
   return getFlavorProfile() !== null;
 }
 
+// ── Phase 1B — Decayed taste profile ─────────────────────────────────────────
+
+/**
+ * Returns a read-time-transformed TasteProfile with two improvements applied:
+ *
+ *   1. Time-decay — signals written >30 days ago are multiplied by 0.75;
+ *      >90 days by 0.25.  Starts conservatively so existing users don't feel
+ *      like the app "forgot" them overnight.
+ *
+ *   2. Logged in scoring.ts (log₂ per-tag) — this function returns the raw
+ *      counts; the log transform is applied inside scoreMeal() so the same
+ *      data is still useful for debug logging.
+ *
+ * The raw profile stored in localStorage is never modified.
+ * Reverts cleanly: pass the result of getTasteProfile() instead.
+ */
+export function getDecayedTasteProfile(): TasteProfile {
+  const raw = getTasteProfile();
+  if (!raw.lastUpdatedAt) return raw; // no timestamp yet → no decay
+
+  const ageDays =
+    (Date.now() - new Date(raw.lastUpdatedAt).getTime()) / (1000 * 60 * 60 * 24);
+
+  let multiplier = 1.0;
+  if (ageDays > 90) multiplier = 0.25;
+  else if (ageDays > 30) multiplier = 0.75;
+
+  if (multiplier === 1.0) return raw; // still fresh — skip allocation
+
+  const decay = (rec: Record<string, number>): Record<string, number> => {
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(rec)) out[k] = v * multiplier;
+    return out;
+  };
+
+  return {
+    likedTags: decay(raw.likedTags),
+    dislikedTags: decay(raw.dislikedTags),
+    likedCategories: decay(raw.likedCategories),
+    interactionCount: raw.interactionCount,
+    lastUpdatedAt: raw.lastUpdatedAt,
+  };
+}
+
+// ── Seen-session helpers ──────────────────────────────────────────────────────
+
 type SeenSession = {
   mealIds: string[];
   seenAt: string;
@@ -302,6 +377,131 @@ export function getRecentlySeenIds(sessionCount = 3): Set<string> {
   const ids = new Set<string>();
   sessions.slice(0, sessionCount).forEach((s) => s.mealIds.forEach((id) => ids.add(id)));
   return ids;
+}
+
+/**
+ * Phase 1A — Returns a weight map (meal ID → 0.0–1.0) based on how recently
+ * each meal appeared in a past session.  Weights decay with session age so
+ * last-night's deck is penalised harder than last-month's.
+ *
+ * Weight schedule:
+ *   < 1 day   → 1.0  (very recent — full -2.5 penalty in scoreMeal)
+ *   < 7 days  → 0.65
+ *   < 30 days → 0.25
+ *   ≥ 30 days → omitted (no entry in map, no penalty)
+ *
+ * Reverts cleanly: scoreMeal() falls back to the flat Set<string> path when
+ * recentlySeenWeights is undefined.
+ */
+export function getRecentlySeenWithWeights(sessionCount = 5): Map<string, number> {
+  const sessions = read<SeenSession[]>(SEEN_KEY, []);
+  const weights = new Map<string, number>();
+  const now = Date.now();
+
+  sessions.slice(0, sessionCount).forEach((s) => {
+    const ageDays = (now - new Date(s.seenAt).getTime()) / (1000 * 60 * 60 * 24);
+
+    let weight: number;
+    if (ageDays < 1) weight = 1.0;
+    else if (ageDays < 7) weight = 0.65;
+    else if (ageDays < 30) weight = 0.25;
+    else return; // too old — no weight
+
+    s.mealIds.forEach((id) => {
+      // Keep the highest weight if a meal appeared in multiple sessions
+      if ((weights.get(id) ?? 0) < weight) weights.set(id, weight);
+    });
+  });
+
+  return weights;
+}
+
+/**
+ * Phase 6 — Returns the most recent SeenSession entry, or null.
+ * Used by the deck-level overlap check to compare the new deck's top-10
+ * against last session's top-10 before finalising composition.
+ */
+export function getLastSeenSession(): SeenSession | null {
+  const sessions = read<SeenSession[]>(SEEN_KEY, []);
+  return sessions[0] ?? null;
+}
+
+// ── Phase 2 — Archetype history ───────────────────────────────────────────────
+
+export function getArchetypeHistory(): ArchetypeHistory {
+  return read<ArchetypeHistory>(ARCHETYPE_KEY, { entries: [] });
+}
+
+/**
+ * Records the archetype of a chosen meal.
+ * Call this alongside addToHistory() whenever the user confirms a choice.
+ *
+ * @param meal        - The chosen meal (used for category + tags).
+ * @param mealCuisine - Primary cuisine string from MEAL_CUISINES[meal.id];
+ *                      provided by the caller (deck/page.tsx) to avoid a
+ *                      circular import between storage.ts and scoring.ts.
+ */
+export function addToArchetypeHistory(meal: Meal, mealCuisine: string): void {
+  if (typeof window === "undefined") return;
+  const history = getArchetypeHistory();
+  const entry: ArchetypeEntry = {
+    mealId: meal.id,
+    cuisine: mealCuisine,
+    category: meal.category,
+    keyTags: [...meal.tags].sort().slice(0, 2),
+    chosenAt: new Date().toISOString(),
+  };
+  const updated = [entry, ...history.entries].slice(0, 20);
+  localStorage.setItem(ARCHETYPE_KEY, JSON.stringify({ entries: updated }));
+}
+
+/**
+ * Returns the set of archetype fingerprints that were chosen more than
+ * `threshold` times within the last `windowDays` days.
+ *
+ * Fingerprint format: "cuisine|category|tag1+tag2"
+ *
+ * Used by composeDeck() to gate meals out of Zone 1 when their style has
+ * been over-represented in recent sessions.
+ */
+export function getOverexposedArchetypes(
+  windowDays = 7,
+  threshold = 2,
+): Set<string> {
+  const { entries } = getArchetypeHistory();
+  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const counts: Record<string, number> = {};
+
+  for (const e of entries) {
+    if (new Date(e.chosenAt).getTime() < cutoff) continue;
+    const fp = `${e.cuisine}|${e.category}|${e.keyTags.join("+")}`;
+    counts[fp] = (counts[fp] ?? 0) + 1;
+  }
+
+  return new Set(
+    Object.entries(counts)
+      .filter(([, n]) => n > threshold)
+      .map(([fp]) => fp),
+  );
+}
+
+// ── Phase 4C — Challenger session counter ─────────────────────────────────────
+
+/** Returns how many deck-builds have occurred since the last challenger session. */
+export function getChallengerSessionCount(): number {
+  return read<number>(CHALLENGER_KEY, 0);
+}
+
+/** Increments the challenger counter. Call once per deck build when not in challenger mode. */
+export function incrementChallengerCount(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CHALLENGER_KEY, JSON.stringify(getChallengerSessionCount() + 1));
+}
+
+/** Resets the challenger counter after challenger mode fires. */
+export function resetChallengerCount(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CHALLENGER_KEY, JSON.stringify(0));
 }
 
 /**
