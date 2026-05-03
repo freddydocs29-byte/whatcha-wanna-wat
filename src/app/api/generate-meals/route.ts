@@ -62,6 +62,8 @@ interface PromptContext {
   previousAIMealNames: string[];
   /** Names of static Zone 1 meals already placed — model avoids near-duplicates. */
   existingDeckNames: string[];
+  /** When true, prompt emphasizes mutual appeal for two users who must agree. */
+  isSharedSession: boolean;
 }
 
 function buildPrompt(ctx: PromptContext): string {
@@ -140,8 +142,17 @@ Examples: "Seafood" excludes fish, shrimp, sushi, poke, ceviche. "Beef" excludes
       ? `These meals are already in the user's deck — avoid exact or near-identical duplicates: ${ctx.existingDeckNames.join(", ")}. Similar-category or same-cuisine meals are fine.`
       : "";
 
+  // Shared session hint — mutual appeal for two users who must both agree
+  const sharedHint = ctx.isSharedSession
+    ? `SHARED SESSION: These meals will be shown to TWO people who must mutually agree on one. ` +
+      `Prioritize meals with broad, universal appeal that satisfy both palates simultaneously. ` +
+      `Favor balanced, crowd-pleasing flavors over niche or polarizing choices. ` +
+      `Their combined preferences are listed above — lean toward overlap.`
+    : "";
+
   // Assemble soft hints block — only include non-empty lines
   const softHints = [
+    sharedHint,
     timeHint,
     cuisineHint,
     cookHint,
@@ -311,6 +322,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       sessionSeed = "",
       previousAIMealNames = [],
       existingDeckNames = [],
+      isSharedSession = false,
     } = body as {
       preferences?: { cuisines?: string[]; dislikedFoods?: string[]; spiceLevel?: string; cookOrOrder?: string };
       partnerPreferences?: { cuisines?: string[]; dislikedFoods?: string[] } | null;
@@ -325,6 +337,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       sessionSeed?: string;
       previousAIMealNames?: string[];
       existingDeckNames?: string[];
+      isSharedSession?: boolean;
     };
 
     // Union both users' hard NOs so neither partner sees a blocked ingredient
@@ -362,6 +375,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       sessionSeed: typeof sessionSeed === "string" ? sessionSeed : "",
       previousAIMealNames: Array.isArray(previousAIMealNames) ? previousAIMealNames : [],
       existingDeckNames: Array.isArray(existingDeckNames) ? existingDeckNames : [],
+      isSharedSession: Boolean(isSharedSession),
     };
 
     const MODEL = "gpt-4o-mini";

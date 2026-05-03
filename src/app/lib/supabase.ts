@@ -25,7 +25,8 @@ export type Session = {
   guest_user_id: string | null;
   status: "waiting" | "active" | "matched";
   locked_meal_id: string | null;
-  deck_meal_ids: string[] | null;
+  /** Ordered deck entries: string IDs for static meals, Meal objects for AI-generated meals. */
+  deck_meal_ids: (string | Record<string, unknown>)[] | null;
   vibe: string | null;
   created_at: string;
   updated_at: string;

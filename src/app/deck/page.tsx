@@ -325,8 +325,11 @@ function DeckContent() {
 
       if (cancelled) return;
 
-      const ids: string[] = data?.deck_meal_ids ?? [];
-      if (ids.length === 0) {
+      // deck_meal_ids contains either string IDs (static meals) or inline Meal
+      // objects (AI-generated, stored by buildSharedDeckForSession so both users
+      // see identical meals and match detection works across the session).
+      const rawEntries = (data?.deck_meal_ids ?? []) as (string | Record<string, unknown>)[];
+      if (rawEntries.length === 0) {
         retries++;
         if (retries >= MAX_RETRIES) {
           // Host hasn't saved the deck after ~20 s — surface a clear error.
@@ -338,18 +341,40 @@ function DeckContent() {
         return;
       }
 
-      // Restore meal objects from stored IDs. Both users' hard NOs were already
-      // applied at deck-build time (server-side UNION), so no client-side
-      // filtering is needed — both users see the exact same deck.
-      const orderedMeals: Meal[] = ids
-        .map((id) => meals.find((m) => m.id === id))
+      // Restore meal objects. String entries are looked up in the static catalog;
+      // object entries are AI meals stored inline and used directly.
+      // Both users' hard NOs were already applied at deck-build time — no client-side
+      // filtering needed; both users see the exact same deck.
+      const orderedMeals: Meal[] = rawEntries
+        .map((entry) => {
+          if (typeof entry === "string") {
+            return meals.find((m) => m.id === entry) ?? null;
+          }
+          // Inline AI meal — validate minimal shape before trusting
+          if (
+            entry &&
+            typeof entry === "object" &&
+            typeof entry.id === "string" &&
+            typeof entry.name === "string"
+          ) {
+            return entry as unknown as Meal;
+          }
+          return null;
+        })
         .filter((m): m is Meal => !!m);
+
       const userCuisines = getPreferences()?.cuisines ?? [];
       const userLearnedWeights = getTasteProfile();
       const ordered: RankedMeal[] = orderedMeals.map((meal) => ({
         meal,
         reason: getSharedReason(meal, userCuisines, userLearnedWeights),
       }));
+
+      // Track shared AI meal IDs so cards display the correct "Fresh idea" label
+      const sharedAIIds = new Set(orderedMeals.filter((m) => m.aiGenerated).map((m) => m.id));
+      if (sharedAIIds.size > 0) {
+        setAiMealIds(sharedAIIds);
+      }
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
       setSharedLoading(false);

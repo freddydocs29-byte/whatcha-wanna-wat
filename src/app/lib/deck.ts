@@ -12,7 +12,7 @@
  * buildSharedDeck  (sync, localStorage-only)
  *   Legacy fallback — kept for safety but no longer called in normal flow.
  */
-import { meals } from "../data/meals";
+import { meals, type Meal } from "../data/meals";
 import { rankMeals, rankMealsForSharedSession, scoreAllMealsForSharedSession, hardGate } from "./scoring";
 import type { UserProfileForScoring } from "./scoring";
 import { supabase } from "./supabase";
@@ -62,6 +62,60 @@ function mergeTasteProfiles(
   };
 }
 
+// ── Shared AI meal fetcher ────────────────────────────────────────────────────
+
+/**
+ * Calls /api/generate-meals with combined preferences from both session users.
+ * Returns an empty array on any failure — AI enrichment is best-effort.
+ *
+ * Must be called from a browser context (client component) so the relative
+ * fetch URL resolves correctly.
+ */
+async function fetchSharedAIMeals(params: {
+  hostCuisines: string[];
+  guestCuisines: string[];
+  combinedHardNos: string[];
+  zone1Names: string[];
+  recentlySeenNames: string[];
+  vibeMode: string;
+  count: number;
+  sessionSeed: string;
+}): Promise<Meal[]> {
+  try {
+    const resp = await fetch("/api/generate-meals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        preferences: {
+          cuisines: params.hostCuisines,
+          dislikedFoods: params.combinedHardNos,
+          spiceLevel: "any",
+          cookOrOrder: "either",
+        },
+        // Pass guest cuisines via partnerPreferences so the server unions them
+        partnerPreferences: {
+          cuisines: params.guestCuisines,
+          dislikedFoods: [], // hard NOs already merged into combinedHardNos
+        },
+        isSharedSession: true,
+        pantryIngredients: [],
+        timeBucket: new Date().getHours() < 14 ? "morning" : "dinner",
+        vibeMode: params.vibeMode,
+        recentlySeenNames: params.recentlySeenNames,
+        count: params.count,
+        existingDeckNames: params.zone1Names,
+        previousAIMealNames: [],
+        sessionSeed: params.sessionSeed,
+      }),
+    });
+    if (!resp.ok) return [];
+    const data: { meals?: Meal[] } = await resp.json();
+    return data.meals ?? [];
+  } catch {
+    return [];
+  }
+}
+
 // ── Primary shared-deck builder ───────────────────────────────────────────────
 
 /**
@@ -78,16 +132,18 @@ export async function buildSharedDeckForSession(
   sessionId: string,
   hostUserId: string,
   guestUserId: string,
-): Promise<string[]> {
+): Promise<(string | Meal)[]> {
   // 1. Check whether the deck was already built (another client may have won)
   const { data: sessionRow } = await supabase
     .from("sessions")
-    .select("deck_meal_ids")
+    .select("deck_meal_ids, vibe")
     .eq("id", sessionId)
     .single();
 
-  const existingIds = sessionRow?.deck_meal_ids as string[] | null;
-  if (existingIds?.length) return existingIds;
+  const existingDeck = sessionRow?.deck_meal_ids as (string | Meal)[] | null;
+  if (existingDeck?.length) return existingDeck;
+
+  const sessionVibeMode = (sessionRow?.vibe as string) ?? "mix-it-up";
 
   // 2. Fetch both profiles in one query
   const { data: profiles } = await supabase
@@ -125,7 +181,7 @@ export async function buildSharedDeckForSession(
   //    combined via min(scoreA, scoreB) * 1.5 + overlap bonuses.
   //    Phase 5: when SHARED_THREE_ZONE_DECK is on, feed scores into composeDeck()
   //    for zone-based layout instead of the legacy tiered sort.
-  let mealIds: string[];
+  let deckEntries: (string | Meal)[];
 
   if (FEATURES.SHARED_THREE_ZONE_DECK) {
     const scoredMeals = scoreAllMealsForSharedSession(
@@ -138,10 +194,11 @@ export async function buildSharedDeckForSession(
     // Stored as flat weight 0.9 (high but below the 1.0 cap) since Supabase profiles
     // don't carry timestamps — this is conservative but correct.
     const combinedSeenWeights = new Map<string, number>();
-    for (const id of [
+    const allRecentlySeenIds = [
       ...(hostProfile?.recently_seen_meal_ids ?? []),
       ...(guestProfile?.recently_seen_meal_ids ?? []),
-    ]) {
+    ];
+    for (const id of allRecentlySeenIds) {
       combinedSeenWeights.set(id, 0.9);
     }
 
@@ -152,28 +209,88 @@ export async function buildSharedDeckForSession(
       lastSessionTopTen: [],            // cross-session overlap check is solo-only
     });
 
-    mealIds = composed.map((r) => r.meal.id);
+    // ── AI enrichment: Zone 1 stays static, AI fills Zone 2+ ─────────────────
+    const ZONE1_SIZE = 5;
+    const ZONE2_SIZE = 9;
+
+    const zone1 = composed.slice(0, ZONE1_SIZE);
+    const zone1Ids = new Set(zone1.map((r) => r.meal.id));
+    const zone1Names = zone1.map((r) => r.meal.name);
+
+    // Recently seen names from both users — soft avoidance hint for AI
+    const recentlySeenNames = [...new Set(allRecentlySeenIds)]
+      .map((id) => meals.find((m) => m.id === id)?.name)
+      .filter((n): n is string => !!n)
+      .slice(0, 12);
+
+    // Deterministic seed derived from session ID so retries get the same seed
+    const sessionSeed = sessionId.slice(0, 8);
+
+    const rawAIMeals = await fetchSharedAIMeals({
+      hostCuisines: hostProfile?.favorite_cuisines ?? [],
+      guestCuisines: guestProfile?.favorite_cuisines ?? [],
+      combinedHardNos,
+      zone1Names,
+      recentlySeenNames,
+      vibeMode: sessionVibeMode,
+      count: 14,
+      sessionSeed,
+    });
+
+    // Assign stable IDs so both users get the same meal IDs for match detection
+    const aiMeals: Meal[] = rawAIMeals.map((meal, i) => ({
+      ...meal,
+      id: `shared-ai-${sessionId.slice(0, 8)}-${i}`,
+      aiGenerated: true as const,
+    }));
+
+    // Zone 2: AI-first (up to 9 slots), static mutual matches backfill remainder
+    const aiZone2 = aiMeals.slice(0, ZONE2_SIZE);
+    const aiZone2Ids = new Set(aiZone2.map((m) => m.id));
+
+    const staticZone2 = composed
+      .slice(ZONE1_SIZE, ZONE1_SIZE + ZONE2_SIZE)
+      .filter((r) => !zone1Ids.has(r.meal.id) && !aiZone2Ids.has(r.meal.id))
+      .slice(0, ZONE2_SIZE - aiZone2.length);
+
+    // Zone 3: remaining AI overflow + static tail
+    const aiZone3 = aiMeals.slice(ZONE2_SIZE);
+    const zone2AllIds = new Set([
+      ...aiZone2.map((m) => m.id),
+      ...staticZone2.map((r) => r.meal.id),
+    ]);
+    const staticZone3 = composed
+      .slice(ZONE1_SIZE + ZONE2_SIZE)
+      .filter((r) => !zone1Ids.has(r.meal.id) && !zone2AllIds.has(r.meal.id));
+
+    deckEntries = [
+      ...zone1.map((r) => r.meal.id),       // Zone 1: static mutual matches (string IDs)
+      ...aiZone2,                             // Zone 2: AI meals (Meal objects)
+      ...staticZone2.map((r) => r.meal.id),  // Zone 2 backfill: static (string IDs)
+      ...aiZone3,                             // Zone 3: AI overflow (Meal objects)
+      ...staticZone3.map((r) => r.meal.id),  // Zone 3 tail: static (string IDs)
+    ];
   } else {
     const ranked = rankMealsForSharedSession(
       eligibleMeals,
       hostScoringProfile,
       guestScoringProfile,
     );
-    mealIds = ranked.map((r) => r.meal.id);
+    deckEntries = ranked.map((r) => r.meal.id);
   }
 
   // 7. Atomically save — only writes if deck_meal_ids is still NULL
   //     This prevents duplicate decks when both clients trigger simultaneously.
   const { data: updated, error: updateError } = await supabase
     .from("sessions")
-    .update({ deck_meal_ids: mealIds, updated_at: new Date().toISOString() })
+    .update({ deck_meal_ids: deckEntries, updated_at: new Date().toISOString() })
     .eq("id", sessionId)
     .is("deck_meal_ids", null)
     .select("deck_meal_ids")
     .single();
 
-  if (!updateError && (updated?.deck_meal_ids as string[] | null)?.length) {
-    return updated!.deck_meal_ids as string[];
+  if (!updateError && (updated?.deck_meal_ids as (string | Meal)[] | null)?.length) {
+    return updated!.deck_meal_ids as (string | Meal)[];
   }
 
   // Another client won the race — load what they saved
@@ -183,7 +300,7 @@ export async function buildSharedDeckForSession(
     .eq("id", sessionId)
     .single();
 
-  return (raceWinner?.deck_meal_ids as string[]) ?? mealIds;
+  return (raceWinner?.deck_meal_ids as (string | Meal)[]) ?? deckEntries;
 }
 
 // ── Legacy sync builder (localStorage-only) ───────────────────────────────────
