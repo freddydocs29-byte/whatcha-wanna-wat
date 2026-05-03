@@ -266,18 +266,37 @@ function transformMeal(raw: RawAIMeal, hardNos: string[]): Meal | null {
 
 // ── Route handler ────────────────────────────────────────────────────────────
 
+// Debug logging that fires in all environments (including Vercel production).
+// Remove once the root cause is identified.
+function dbg(...args: unknown[]) {
+  console.log("[generate-meals]", ...args);
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  dbg("POST called");
+
   // OPENAI_API_KEY is never sent to the client — only available in server runtime.
   const apiKey = process.env.OPENAI_API_KEY;
+  dbg("OPENAI_API_KEY present:", !!apiKey);
   if (!apiKey) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[generate-meals] OPENAI_API_KEY is not set");
-    }
-    return NextResponse.json({ meals: [] });
+    console.error("[generate-meals] OPENAI_API_KEY is missing — cannot generate meals");
+    return NextResponse.json(
+      { error: "OPENAI_API_KEY is not configured on the server" },
+      { status: 500 }
+    );
   }
 
+  let body: Record<string, unknown>;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch (err) {
+    console.error("[generate-meals] Failed to parse request body:", err);
+    return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+  }
+
+  dbg("request body:", JSON.stringify(body));
+
+  try {
     const {
       preferences = {},
       partnerPreferences = null,
@@ -326,6 +345,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Phase A: raised cap from 12 to 16 to accommodate Zone 2 (9 slots) + Zone 3 tail.
     const safeCount = Math.min(Math.max(1, Number(count) || 10), 16);
 
+    dbg("safeCount:", safeCount, "hardNos:", hardNos, "vibeMode:", vibeMode);
+
     const promptContext: PromptContext = {
       hardNos,
       cuisines,
@@ -343,10 +364,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       existingDeckNames: Array.isArray(existingDeckNames) ? existingDeckNames : [],
     };
 
+    const MODEL = "gpt-4o-mini";
+    dbg("calling OpenAI model:", MODEL);
+
     const openai = new OpenAI({ apiKey });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: MODEL,
       temperature: 0.85,
       max_tokens: 3000,
       response_format: { type: "json_object" },
@@ -361,37 +385,47 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
+    dbg("raw model output (first 500 chars):", raw.slice(0, 500));
 
     let parsed: { meals?: unknown[] };
     try {
       parsed = JSON.parse(raw);
-    } catch {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[generate-meals] Failed to parse OpenAI response:", raw.slice(0, 200));
-      }
-      return NextResponse.json({ meals: [] });
+    } catch (parseErr) {
+      console.error("[generate-meals] JSON.parse failed:", parseErr, "| raw:", raw.slice(0, 300));
+      return NextResponse.json(
+        { error: "Model returned invalid JSON", raw: raw.slice(0, 300) },
+        { status: 502 }
+      );
     }
 
     const rawMeals = Array.isArray(parsed.meals) ? parsed.meals : [];
-    const meals: Meal[] = rawMeals
-      .map((m) => transformMeal(m as RawAIMeal, hardNos))
-      .filter((m): m is Meal => m !== null);
+    dbg("parsed meal count:", rawMeals.length);
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        `[generate-meals] ✓ ${meals.length}/${rawMeals.length} meals generated` +
-          ` · pantry: [${pantryIngredients.join(", ")}]` +
-          ` · hardNos: [${hardNos.join(", ")}]` +
-          ` · vibe: ${vibeMode}`
+    const transformed: (Meal | null)[] = rawMeals.map((m) => transformMeal(m as RawAIMeal, hardNos));
+    const hardNoRejected = transformed.filter((m) => m === null).length;
+    const meals: Meal[] = transformed.filter((m): m is Meal => m !== null);
+
+    dbg(
+      `transformed: ${meals.length} kept, ${hardNoRejected} rejected by transformMeal/hardNO` +
+        ` · pantry: [${(Array.isArray(pantryIngredients) ? pantryIngredients : []).join(", ")}]` +
+        ` · hardNos: [${hardNos.join(", ")}]` +
+        ` · vibe: ${vibeMode}`
+    );
+
+    if (meals.length === 0) {
+      console.warn(
+        "[generate-meals] 0 meals survived after filtering — rawMeals:", rawMeals.length,
+        "hardNoRejected:", hardNoRejected,
+        "raw:", raw.slice(0, 300)
       );
     }
 
     return NextResponse.json({ meals });
   } catch (err) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[generate-meals] Error:", err);
-    }
-    // Always return 200 with empty meals — client handles empty gracefully
-    return NextResponse.json({ meals: [] });
+    console.error("[generate-meals] Unhandled error:", err);
+    return NextResponse.json(
+      { error: "Meal generation failed", detail: String(err) },
+      { status: 500 }
+    );
   }
 }
