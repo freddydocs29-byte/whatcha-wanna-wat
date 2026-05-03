@@ -149,6 +149,27 @@ function buildDeck(
     cookMode, sessionVibeMode, recentlySeenWeights,
   );
 
+  if (process.env.NODE_ENV === "development") {
+    const sortedForLog = scored.slice().sort((a, b) => b.score - a.score);
+    console.log("[deck] ── Top 10 BEFORE curation ──────────────────────");
+    sortedForLog.slice(0, 10).forEach((s, i) =>
+      console.log(`  ${String(i + 1).padStart(2)}. ${s.meal.name.padEnd(32)} score: ${s.score.toFixed(2)}`),
+    );
+    const suppressed = scored
+      .filter((s) => (recentlySeenWeights.get(s.meal.id) ?? 0) > 0)
+      .sort((a, b) => (recentlySeenWeights.get(b.meal.id) ?? 0) - (recentlySeenWeights.get(a.meal.id) ?? 0));
+    if (suppressed.length > 0) {
+      console.log(`[deck] Recency-suppressed meals: ${suppressed.length} total (showing up to 10)`);
+      suppressed.slice(0, 10).forEach((s) =>
+        console.log(
+          `       ${s.meal.name.padEnd(32)} recency weight: ${(recentlySeenWeights.get(s.meal.id) ?? 0).toFixed(2)}  final score: ${s.score.toFixed(2)}`,
+        ),
+      );
+    } else {
+      console.log("[deck] No recency-suppressed meals (no recently seen history)");
+    }
+  }
+
   const overexposedArchetypes = FEATURES.ARCHETYPE_SUPPRESSION
     ? getOverexposedArchetypes()
     : new Set<string>();
@@ -156,12 +177,21 @@ function buildDeck(
   const lastSession = getLastSeenSession();
   const lastSessionTopTen = lastSession?.mealIds.slice(0, 10) ?? [];
 
-  return composeDeck(scored, {
+  const composed = composeDeck(scored, {
     overexposedArchetypes,
     recentlyChosenIds,
     recentlySeenWeights,
     lastSessionTopTen,
   });
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[deck] ── Top 10 AFTER curation ───────────────────────");
+    composed.slice(0, 10).forEach((r, i) =>
+      console.log(`  ${String(i + 1).padStart(2)}. [Zone ${i < 5 ? 1 : i < 14 ? 2 : 3}] ${r.meal.name}`),
+    );
+  }
+
+  return composed;
 }
 
 /**
@@ -831,7 +861,9 @@ function DeckContent() {
       // ── Merge AI meals into the deck ───────────────────────────────────────
       let merged: RankedMeal[];
       if (FEATURES.THREE_ZONE_DECK) {
-        // Phase 3/4A: AI fills Zone 3 (positions 14+), Zones 1+2 stay untouched
+        // Phase 3/4A: AI fills the deck tail. Zone 1 (0–4) stays untouched.
+        // Two AI meals are spliced into Zone 2 (at positions 5 and 10) so users
+        // encounter AI suggestions before card 14 — without disrupting the anchors.
         const ZONE_BOUNDARY = 14; // zone1(5) + zone2(9)
         const zone12 = baseStaticDeck.slice(0, ZONE_BOUNDARY);
         const zone12Ids = new Set(zone12.map((r) => r.meal.id));
@@ -839,9 +871,24 @@ function DeckContent() {
         const staticZone3 = baseStaticDeck
           .slice(ZONE_BOUNDARY)
           .filter((r) => !freshAI.some((a) => a.meal.id === r.meal.id));
-        merged = [...zone12, ...freshAI, ...staticZone3];
+
+        // Splice up to 2 AI meals into Zone 2 (positions 5 and 10) so they appear
+        // early enough that users actually see them. Remaining AI fills the tail.
+        const [earlyAI1, earlyAI2, ...tailAI] = freshAI;
+        const deckWithEarlyAI = [...zone12];
+        if (earlyAI1) deckWithEarlyAI.splice(5, 0, earlyAI1);
+        if (earlyAI2) deckWithEarlyAI.splice(Math.min(10, deckWithEarlyAI.length), 0, earlyAI2);
+        merged = [...deckWithEarlyAI, ...tailAI, ...staticZone3];
+
         if (process.env.NODE_ENV === "development") {
-          console.log(`[AI] Zone 3 fill: ${freshAI.length} AI meals at positions 14+`);
+          const earlyCount = (earlyAI1 ? 1 : 0) + (earlyAI2 ? 1 : 0);
+          console.log(
+            `[AI] Merged ${freshAI.length} AI meals: ${earlyCount} early (pos 5/10) + ${tailAI.length} tail (pos 16+)`,
+          );
+          freshAI.forEach((r, i) => {
+            const pos = i === 0 ? 5 : i === 1 ? 10 : 14 + i;
+            console.log(`  AI[${i}] ~pos ${pos}: ${r.meal.name} — ${r.meal.aiLabel ?? "Fresh idea"}`);
+          });
         }
       } else {
         // Legacy: interleave AI meals throughout the deck
@@ -995,10 +1042,36 @@ function DeckContent() {
     const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
     recordSeenSession(ranked.map((r) => r.meal.id));
     deckRecordedRef.current = true;
+
+    if (process.env.NODE_ENV === "development") {
+      const prevTop10Ids = new Set(rankedMeals.slice(0, 10).map((r) => r.meal.id));
+      const overlapCount = ranked.slice(0, 10).filter((r) => prevTop10Ids.has(r.meal.id)).length;
+      console.log(
+        `[deck] Refresh — top-10 overlap with prev deck: ${overlapCount}/10 (${(overlapCount * 10).toFixed(0)}%)`,
+      );
+    }
+
     setRankedMeals(ranked.slice(0, DECK_SIZE));
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
+
+    // The useEffect that normally triggers AI enrichment won't re-fire on refresh
+    // because its deps [pantryMode, selectedIngredients, cookMode, sessionVibeMode]
+    // don't change. Call enrichDeckWithAI directly with recomputed cuisine gaps.
+    if (FEATURES.AI_ALWAYS_ON) {
+      let refreshCuisineGaps: string[] = [];
+      if (FEATURES.AI_DIVERSIFIER) {
+        const zone12 = ranked.slice(0, 14);
+        const zone12Cuisines = new Set(zone12.map((r) => MEAL_CUISINES[r.meal.id]?.[0] ?? "Other"));
+        const prefs = getPreferences();
+        const eligible = hardGate(meals, prefs?.dislikedFoods ?? []);
+        const allCuisines = new Set(eligible.map((m) => MEAL_CUISINES[m.id]?.[0] ?? "Other"));
+        refreshCuisineGaps = [...allCuisines].filter((c) => !zone12Cuisines.has(c));
+      }
+      cuisineGapsRef.current = refreshCuisineGaps;
+      void enrichDeckWithAI(ranked.slice(0, DECK_SIZE), selectedIngredients, refreshCuisineGaps, challengerModeRef.current);
+    }
   }
 
   // Shared-mode refresh: delete all swipes, clear the deck, return to the lobby so

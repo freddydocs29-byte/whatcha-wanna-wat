@@ -215,6 +215,7 @@ function fillWithCuisineBudget(
 ): ScoredMeal[] {
   const result: ScoredMeal[] = [];
   const cuisineCounts: Record<string, number> = {};
+  const skippedNames: string[] = [];
 
   for (const s of candidates) {
     if (result.length >= size) break;
@@ -223,6 +224,8 @@ function fillWithCuisineBudget(
     if (count < maxPerCuisine) {
       result.push(s);
       cuisineCounts[cuisine] = count + 1;
+    } else {
+      skippedNames.push(`${s.meal.name} (${cuisine})`);
     }
   }
 
@@ -236,6 +239,16 @@ function fillWithCuisineBudget(
         usedIds.add(s.meal.id);
       }
     }
+  }
+
+  if (process.env.NODE_ENV === "development" && skippedNames.length > 0) {
+    const cappedCuisines = Object.entries(cuisineCounts)
+      .filter(([, count]) => count >= maxPerCuisine)
+      .map(([cuisine, count]) => `${cuisine}(${count}/${maxPerCuisine})`);
+    console.log(
+      `[deck] Cuisine cap (max ${maxPerCuisine}/cuisine): capped [${cappedCuisines.join(", ")}]` +
+        ` — skipped ${skippedNames.length} meals: ${skippedNames.slice(0, 5).join(", ")}${skippedNames.length > 5 ? "…" : ""}`,
+    );
   }
 
   return result;
