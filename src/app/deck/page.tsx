@@ -294,6 +294,9 @@ function DeckContent() {
   // True when the current user's own 'yes' swipe triggered the match,
   // meaning we still need to advance the card if they click "Pick something else"
   const matchPendingAdvanceRef = useRef(false);
+  // Mirror of rankedMeals kept in a ref so the poll closure can look up AI meals
+  // without a stale-closure issue (poll's dep array is [sessionId] only).
+  const rankedMealsRef = useRef<RankedMeal[]>([]);
 
   function setMatchedMeal(meal: Meal | null) {
     matchedMealRef.current = meal;
@@ -302,6 +305,12 @@ function DeckContent() {
       trackEvent("match_found", { mealId: meal.id, sessionId });
     }
   }
+
+  // Keep rankedMealsRef in sync so the poll closure (dep: [sessionId]) can
+  // look up AI meals without capturing a stale snapshot.
+  useEffect(() => {
+    rankedMealsRef.current = rankedMeals;
+  }, [rankedMeals]);
 
   useEffect(() => {
     setUserId(getUserId());
@@ -471,16 +480,26 @@ function DeckContent() {
           .eq("id", sessionId)
           .single();
         if (sessionData?.status === "matched") {
-          // The other user already confirmed the match — navigate this user
-          // to the locked screen even if they are on the waiting/end-of-deck
-          // screen and never saw the match modal.
+          // The other user already confirmed the match. Show the match popup
+          // to this user first so they see the result before landing on locked.
           if (sessionData.locked_meal_id && !matchedMealRef.current) {
-            router.push(`/locked?mealId=${sessionData.locked_meal_id}`);
+            const found =
+              meals.find((m) => m.id === sessionData.locked_meal_id) ??
+              rankedMealsRef.current.find((rm) => rm.meal.id === sessionData.locked_meal_id)?.meal;
+            if (found) {
+              matchPendingAdvanceRef.current = false;
+              setMatchedMeal(found);
+            } else {
+              // Meal not resolvable (edge case) — navigate directly
+              router.push(`/locked?mealId=${sessionData.locked_meal_id}`);
+            }
           }
           return;
         }
 
-        const found = meals.find((m) => m.id === mealId);
+        const found =
+          meals.find((m) => m.id === mealId) ??
+          rankedMealsRef.current.find((rm) => rm.meal.id === mealId)?.meal;
         if (found) {
           matchPendingAdvanceRef.current = false; // Detected via poll, not own swipe
           setMatchedMeal(found);
