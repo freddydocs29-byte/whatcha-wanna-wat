@@ -15,6 +15,7 @@ import { getUserId } from "../lib/identity";
 import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type NudgeTrigger } from "../lib/session-signals";
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
+import { SharedDeckBuilding } from "../components/SharedDeckBuilding";
 import { trackEvent } from "../lib/analytics";
 
 const SWIPE_THRESHOLD = 100;
@@ -284,6 +285,10 @@ function DeckContent() {
   // ── Shared-session state ────────────────────────────────────────────────────
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
   const [sharedError, setSharedError] = useState(false);
+  // showBuildingScreen: replaced the plain loading spinner with the animated
+  // "building deck" experience. Stays true until the component calls onComplete
+  // (min ~6.5 s elapsed AND deck ready, or the 28 s hard fallback fires).
+  const [showBuildingScreen, setShowBuildingScreen] = useState(!!sessionId);
   const [userId, setUserId] = useState<string>("");
   const [bothDone, setBothDone] = useState(false);
   const [sharedRefreshing, setSharedRefreshing] = useState(false);
@@ -1491,6 +1496,20 @@ function DeckContent() {
     }
   }
 
+  // ── Shared deck building screen ───────────────────────────────────────────
+  // Shown while the shared deck loads. Enforces a minimum display time (~6.5 s)
+  // so the animation plays through before transitioning to the actual deck.
+  // isReady becomes true once sharedLoading clears (success OR error), so on
+  // error the animation still plays to completion before the error screen shows.
+  if (sessionId && showBuildingScreen) {
+    return (
+      <SharedDeckBuilding
+        isReady={!sharedLoading}
+        onComplete={() => setShowBuildingScreen(false)}
+      />
+    );
+  }
+
   // ── Shared deck error screen ──────────────────────────────────────────────
   if (sessionId && sharedError) {
     return (
@@ -1506,18 +1525,6 @@ function DeckContent() {
         >
           Back to home
         </button>
-      </main>
-    );
-  }
-
-  // ── Shared deck loading screen ────────────────────────────────────────────
-  if (sessionId && sharedLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#080808] text-white">
-        <div className="flex flex-col items-center gap-3">
-          <span className="h-2 w-2 animate-ping rounded-full bg-white/40" />
-          <p className="text-sm text-white/35">Loading shared deck…</p>
-        </div>
       </main>
     );
   }
