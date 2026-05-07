@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, getSharedReason, getTimeBucket, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { rankMeals, hardGate, getSharedReason, getTimeBucket, getSessionRejectionAdjustment, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
@@ -14,7 +14,8 @@ import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type 
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
 import { trackEvent } from "../lib/analytics";
-import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn } from "../lib/session-tracking";
+import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
+import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -97,6 +98,8 @@ function buildDeck(
   sessionShown: Set<string> = new Set(),
   cookMode: SessionCookMode = "either",
   sessionVibeMode: SessionVibeMode = "mix-it-up",
+  rejectionReasons: string[] = [],
+  recentlyRejectedCategories: string[] = [],
 ): RankedMeal[] {
   const prefs = getPreferences();
   const savedMeals = getSavedMeals();
@@ -109,7 +112,7 @@ function buildDeck(
   const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
 
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode, rejectionReasons, recentlyRejectedCategories);
   }
 
   function fill(deck: RankedMeal[], candidates: Meal[]): RankedMeal[] {
@@ -195,6 +198,20 @@ function DeckContent() {
   const lastAiContextKeyRef = useRef<string | null>(null);
   // Swipe-fatigue trigger fires once per deck, not per render cycle
   const swipeFatigueFiredRef = useRef(false);
+  // ── Rejection reason capture ──────────────────────────────────────────────
+  // passStreakRef: consecutive passes since last acceptance or sheet trigger
+  // totalPassesRef: session total, never resets
+  // rejectionCaptureCountRef: how many times the sheet has shown (cap: 3)
+  // rejectionReasonsRef: always-current mirror of rejectionReasons state
+  // recentlyPassedCategoriesRef: last ≤3 passed meal categories (for not_feeling_it)
+  const passStreakRef = useRef(0);
+  const totalPassesRef = useRef(0);
+  const rejectionCaptureCountRef = useRef(0);
+  const [rejectionReasons, setRejectionReasons] = useState<string[]>([]);
+  const rejectionReasonsRef = useRef<string[]>([]);
+  const recentlyPassedCategoriesRef = useRef<string[]>([]);
+  const pendingRejectionSheetRef = useRef(false);
+  const [showRejectionSheet, setShowRejectionSheet] = useState(false);
   // ── Shared-session state ────────────────────────────────────────────────────
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
   const [sharedError, setSharedError] = useState(false);
@@ -462,7 +479,7 @@ function DeckContent() {
       const id = rankedMeals[i]?.meal?.id;
       if (id) sessionShownRef.current.add(id);
     }
-    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
     if (!deckRecordedRef.current) {
       recordSeenSession(ranked.map((r) => r.meal.id));
       deckRecordedRef.current = true;
@@ -608,7 +625,7 @@ function DeckContent() {
     // In solo mode rebuild from scratch so scoring is fresh.
     const source = sessionId
       ? rankedMeals
-      : buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
+      : buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
     const topN = Math.max(3, Math.ceil(source.length * 0.35));
     setRankedMeals(source.slice(0, topN));
     setCurrentIndex(0);
@@ -955,7 +972,7 @@ function DeckContent() {
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
     lastAiContextKeyRef.current = null; // allow re-trigger after explicit Fresh Ideas
-    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
+    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
     recordSeenSession(staticDeck.map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(staticDeck.slice(0, DECK_SIZE));
@@ -974,7 +991,7 @@ function DeckContent() {
     lastAiContextKeyRef.current = null; // allow freshness re-evaluation on next deck
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
-    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode);
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
     recordSeenSession(ranked.map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(ranked.slice(0, DECK_SIZE));
@@ -1010,6 +1027,29 @@ function DeckContent() {
         ...(sessionId ? { sessionId } : {}),
       });
       updateTasteProfile(meal, "pass");
+
+      // ── Rejection-reason capture: track streaks (solo only, cap 3) ────────
+      if (!sessionId) {
+        passStreakRef.current += 1;
+        totalPassesRef.current += 1;
+
+        // Keep last 3 passed categories for the "not_feeling_it" signal
+        recentlyPassedCategoriesRef.current = [
+          ...recentlyPassedCategoriesRef.current.slice(-2),
+          meal.category,
+        ];
+
+        // Trigger sheet after 3 consecutive passes, max 3 times total per session
+        const STREAK_THRESHOLD = 3;
+        const CAP = 3;
+        if (
+          passStreakRef.current >= STREAK_THRESHOLD &&
+          rejectionCaptureCountRef.current < CAP &&
+          !pendingRejectionSheetRef.current
+        ) {
+          pendingRejectionSheetRef.current = true;
+        }
+      }
 
       // ── Progressive onboarding: track avoid signals (solo only) ──────────
       if (!sessionId) {
@@ -1105,6 +1145,9 @@ function DeckContent() {
     // Mark closed before the timeout so the unmount cleanup doesn't double-fire
     trackingClosedRef.current = true;
 
+    // Choosing resets the pass streak (user found something they want)
+    passStreakRef.current = 0;
+
     // Brief flash moment before the exit animation fires
     setIsChoosing(true);
     setTimeout(() => {
@@ -1156,6 +1199,14 @@ function DeckContent() {
           setActiveNudge(nudge);
           trackEvent("nudge_shown", { nudgeType: nudge.type, nudgeSignal: nudge.signal });
         }, 150);
+      }
+
+      // Show rejection-reason sheet if queued (after nudge so they don't overlap).
+      if (pendingRejectionSheetRef.current && !pendingNudgeRef.current) {
+        pendingRejectionSheetRef.current = false;
+        rejectionCaptureCountRef.current += 1;
+        passStreakRef.current = 0; // reset streak so it won't re-fire immediately
+        setTimeout(() => setShowRejectionSheet(true), 200);
       }
     }
   }
@@ -1234,6 +1285,54 @@ function DeckContent() {
         setRankedMeals([...rankedMeals.slice(0, currentIndex), ...reranked]);
       }
     }
+  }
+
+  // ── Rejection-reason sheet handlers ──────────────────────────────────────
+
+  function handleRejectionSelect(reason: RejectionReason) {
+    setShowRejectionSheet(false);
+
+    // Merge reason (deduplicated) into session state
+    const next = rejectionReasonsRef.current.includes(reason)
+      ? rejectionReasonsRef.current
+      : [...rejectionReasonsRef.current, reason];
+    rejectionReasonsRef.current = next;
+    setRejectionReasons(next);
+
+    trackEvent("rejection_reason_selected", { reason, totalReasons: next.length });
+
+    // Re-rank remaining deck cards with the updated rejection adjustment
+    const remaining = rankedMeals.slice(currentIndex).map((rm) => rm.meal);
+    if (remaining.length > 0) {
+      const history = getHistory();
+      const reranked = rankMeals(
+        remaining,
+        getPreferences(),
+        getSavedMeals(),
+        history,
+        pantryMode,
+        getTasteProfile(),
+        getRecentlySeenIds(),
+        getFlavorProfile() ?? undefined,
+        getFavorites(),
+        selectedIngredients,
+        "solo",
+        sessionShownRef.current,
+        null,
+        cookMode,
+        sessionVibeMode,
+        next,
+        recentlyPassedCategoriesRef.current,
+      );
+      setRankedMeals([...rankedMeals.slice(0, currentIndex), ...reranked]);
+    }
+  }
+
+  function handleRejectionDismiss() {
+    setShowRejectionSheet(false);
+    // Don't penalise the user for dismissing — just reset streak so the sheet
+    // doesn't re-trigger on the very next swipe.
+    passStreakRef.current = 0;
   }
 
   // ── Shared deck error screen ──────────────────────────────────────────────
@@ -1947,6 +2046,13 @@ function DeckContent() {
 
       {/* ── Learning confirmation toast ──────────────────────────────────────── */}
       <LearningToast message={toastMessage} onDone={() => setToastMessage(null)} />
+
+      {/* ── Rejection-reason capture sheet ──────────────────────────────────── */}
+      <RejectionReasonSheet
+        visible={showRejectionSheet}
+        onSelect={handleRejectionSelect}
+        onDismiss={handleRejectionDismiss}
+      />
 
       {/* ── Ingredient sheet backdrop ─────────────────────────────────────── */}
       <AnimatePresence>

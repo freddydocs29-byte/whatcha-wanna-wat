@@ -1001,6 +1001,77 @@ export function scoreMeal(
 }
 
 /**
+ * Computes a score delta for a meal based on rejection reasons captured this
+ * session. Called after rankMeals so the adjustment is additive on top of the
+ * existing preference + behavior score — existing weights are not changed.
+ *
+ * Reasons and their effects:
+ *   too_heavy          → −2.0 for heavy/rich/indulgent/creamy meals; +1.0 for light/fresh
+ *   had_recently       → −2.0 additional if meal appears in the last 14 days of history
+ *                        (wider window than the default 8-entry cap in scoreMeal)
+ *   missing_ingredients → +1.5 for pantry-friendly/easy; −1.0 for complex/elaborate meals
+ *   not_feeling_it     → −1.0 if meal's category matches the most common of the last
+ *                        2–3 passed meal categories (recentlyRejectedCategories)
+ *
+ * Multiple reasons stack. Delta is purely additive; existing scoring is untouched.
+ */
+export function getSessionRejectionAdjustment(
+  meal: Meal,
+  rejectionReasons: string[],
+  history: HistoryEntry[],
+  recentlyRejectedCategories: string[] = [],
+): number {
+  if (rejectionReasons.length === 0) return 0;
+
+  let delta = 0;
+  const cat = meal.category.toLowerCase();
+  const hasTag = (...ts: string[]) =>
+    ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
+
+  if (rejectionReasons.includes("too_heavy")) {
+    const isHeavy =
+      hasTag("heavy", "rich", "indulgent", "creamy") ||
+      ["comfort food", "rich", "indulgent", "creamy"].some((t) => cat.includes(t));
+    const isLight =
+      hasTag("light", "fresh", "lean", "salad", "nutritious") ||
+      ["healthy", "fresh", "light"].some((t) => cat.includes(t));
+    if (isHeavy) delta -= 2.0;
+    if (isLight) delta += 1.0;
+  }
+
+  if (rejectionReasons.includes("had_recently")) {
+    const cutoffMs = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const recentIds = new Set(
+      history
+        .filter((h) => new Date(h.chosenAt).getTime() >= cutoffMs)
+        .map((h) => h.meal.id),
+    );
+    if (recentIds.has(meal.id)) delta -= 2.0;
+  }
+
+  if (rejectionReasons.includes("missing_ingredients")) {
+    const isPantryFriendly = hasTag(
+      "pantry-friendly", "pantry staple", "easy", "minimal", "no-cook option",
+    );
+    const isComplex = hasTag("complex", "elaborate", "requires-shopping", "medium effort");
+    if (isPantryFriendly) delta += 1.5;
+    if (isComplex) delta -= 1.0;
+  }
+
+  if (rejectionReasons.includes("not_feeling_it") && recentlyRejectedCategories.length > 0) {
+    // Most common category across the last 2–3 rejected meals
+    const counts: Record<string, number> = {};
+    for (const c of recentlyRejectedCategories) {
+      counts[c] = (counts[c] ?? 0) + 1;
+    }
+    const primaryCategory = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (primaryCategory && meal.category === primaryCategory) delta -= 1.0;
+  }
+
+  return delta;
+}
+
+/**
  * Score, sort, and present a list of meals with controlled variety.
  *
  * Algorithm:
@@ -1035,7 +1106,9 @@ export function rankMeals(
   sessionShown: Set<string> = new Set(),
   vibe: string | null = null,
   cookMode: SessionCookMode = "either",
-  sessionVibeMode: SessionVibeMode = "mix-it-up"
+  sessionVibeMode: SessionVibeMode = "mix-it-up",
+  rejectionReasons: string[] = [],
+  recentlyRejectedCategories: string[] = [],
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
@@ -1044,7 +1117,10 @@ export function rankMeals(
     const { score, reason, vibeScore, behaviorScore } = scoreMeal(
       meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode
     );
-    return { meal, score, reason, vibeScore, behaviorScore };
+    const rejAdj = rejectionReasons.length > 0
+      ? getSessionRejectionAdjustment(meal, rejectionReasons, history, recentlyRejectedCategories)
+      : 0;
+    return { meal, score: score + rejAdj, reason, vibeScore, behaviorScore };
   });
 
   // 2. Sort by score descending — all meals ranked, no artificial cutoff
