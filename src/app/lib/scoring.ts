@@ -1,6 +1,20 @@
 import { type Meal } from "../data/meals";
 import { type UserPreferences, type HistoryEntry, type TasteProfile, type FlavorProfile } from "./storage";
 import { type SoftAvoid } from "./supabase";
+import { type SessionContext } from "./session-tracking";
+
+/**
+ * Rich context stored with each rejection reason. Captures which meal was on
+ * screen when the rejection sheet fired so downstream scoring can apply
+ * category/cuisine/tag-level penalties specific to that meal.
+ */
+export type RejectionEntry = {
+  reason: string;        // "too_heavy" | "had_recently" | "not_feeling_it" | "missing_ingredients"
+  mealId: string;
+  category: string;
+  cuisine: string[];
+  tags: string[];
+};
 
 const PANTRY_FRIENDLY_TAGS = ["Easy", "Pantry staple", "No-cook option", "Meal-prep friendly"];
 const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
@@ -369,20 +383,25 @@ export const MEAL_CUISINES: Record<string, string[]> = {
  * Score a single meal and return the most relevant reason to surface.
  *
  * Scores (additive):
- *   +4      cuisine match        — meal matches a preferred cuisine from onboarding
+ *   +2      cuisine match        — meal matches a preferred cuisine from onboarding (was +4)
  *   +2      saved category       — user saved a meal in the same category
  *   +1      saved tag overlap    — meal shares ≥1 tag with any saved meal
  *   +2      spice match (hot)    — user likes hot food and meal is bold/flavorful
  *   +1      spice match (medium) — user is ok with heat and meal is bold/flavorful
  *   +1      adventurous boost    — no kids at table and meal is bold/fresh/elevated
- *   -4      recent history       — meal was chosen in the last 8 sessions
- *   -2.5    recently seen        — meal appeared in a deck in the last 3 sessions (but wasn't chosen)
+ *
+ * Recency penalties (time-based; highest-priority signal):
+ *   -5.0    chosen < 2 days ago
+ *   -3.0    chosen < 7 days ago
+ *   -1.0    chosen < 30 days ago
+ *    0      chosen ≥ 30 days ago
+ *   -2.5    recently seen        — meal appeared in a deck in the last 3 sessions (not chosen)
  *   -1.5    session shown        — meal was the active card during this visit (in-memory only)
  *
- * Taste profile signals (scale 0→1 over 15 interactions; zero effect early on):
- *   up to +3  liked tag boost    — meal tags overlap with tags from saved/chosen meals
- *   up to +1.5 liked category    — meal's category matches previously liked categories
- *   up to −1.5 disliked tag      — meal tags overlap with tags from passed meals
+ * Taste profile signals (scale 0→1 over 8 interactions; activates quickly):
+ *   up to +4.0 liked tag boost    — meal tags overlap with tags from saved/chosen meals (was +3)
+ *   up to +2.0 liked category     — meal's category matches previously liked categories (was +1.5)
+ *   up to −1.5 disliked tag       — meal tags overlap with tags from passed meals
  *
  * Full Flavor Profile signals (explicit stated preferences; active when set):
  *   ±1        adventurousness    — adventurous/familiar preference vs meal category
@@ -455,7 +474,7 @@ export function scoreMeal(
     const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
     const matchedCuisine = mealCuisines.find((c) => prefs.cuisines.includes(c));
     if (matchedCuisine) {
-      score += 4;
+      score += 2.0;
       setReason(`You listed ${matchedCuisine} as a favorite`);
     }
 
@@ -556,22 +575,22 @@ export function scoreMeal(
   // dominate early and learned behavior gradually gains weight.
 
   if (tasteProfile && tasteProfile.interactionCount > 0) {
-    // Scale reaches 1.0 at 15 interactions (was 20) — learned behavior matters sooner,
-    // ensuring repeat-like signals dominate within a few sessions of use.
-    const behaviorScale = Math.min(1, tasteProfile.interactionCount / 15);
+    // Scale reaches 1.0 at 8 interactions — learned behavior activates quickly so
+    // real signals dominate onboarding defaults within the first session or two.
+    const behaviorScale = Math.min(1, tasteProfile.interactionCount / 8);
 
-    // Liked tag boost: +1 per matching tag, capped at +3 (was +2)
+    // Liked tag boost: +1 per matching tag, capped at +4.0
     const likedTagMatches = meal.tags.filter(
       (t) => (tasteProfile.likedTags[t] ?? 0) > 0
     ).length;
-    const tagBoost = Math.min(3, likedTagMatches) * behaviorScale;
+    const tagBoost = Math.min(4.0, likedTagMatches) * behaviorScale;
     score += tagBoost;
     behaviorScore += tagBoost;
 
-    // Liked category boost: +1.5 (was +1) if this category appeared in saves/chooses
+    // Liked category boost: +2.0 if this category appeared in saves/chooses
     const likesCategory = (tasteProfile.likedCategories[meal.category] ?? 0) > 0;
     if (likesCategory) {
-      const catBoost = 1.5 * behaviorScale;
+      const catBoost = 2.0 * behaviorScale;
       score += catBoost;
       behaviorScore += catBoost;
     }
@@ -669,16 +688,31 @@ export function scoreMeal(
     }
   }
 
-  // ── History / seen penalties ──────────────────────────────────────────────
+  // ── Recency penalties (highest-priority signal) ───────────────────────────
   //
-  // Chosen meals get -4 to strongly suppress recently-eaten meals.
-  // Looking back 8 entries ensures suppression lasts several sessions, not
-  // just the next visit. Meals shown but not chosen get -2.5 so they rotate
-  // out meaningfully — strong enough to break the "same 5 meals" cycle.
+  // Time-based decay: meals eaten very recently get a heavy penalty that
+  // fades as time passes. After 30 days there is no penalty at all.
+  // This is the strongest single signal — it overrides preference matching.
+  //
+  //   < 2 days  → -5.0  (just had it — strongly suppress)
+  //   < 7 days  → -3.0  (had it this week)
+  //   < 30 days → -1.0  (ate it recently but not fresh in memory)
+  //   ≥ 30 days →  0    (fair game again)
+  //
+  // Meals shown but not chosen get -2.5 so they rotate out meaningfully.
+  // Session-shown (this visit only) gets -1.5 as a soft shuffle signal.
 
-  const recentChosenIds = new Set(history.slice(0, 8).map((h) => h.meal.id));
-  if (recentChosenIds.has(meal.id)) {
-    score -= 4;
+  const recentEntry = history.find((h) => h.meal.id === meal.id);
+  if (recentEntry) {
+    const daysAgo = (Date.now() - new Date(recentEntry.chosenAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysAgo < 2) {
+      score -= 5.0;
+    } else if (daysAgo < 7) {
+      score -= 3.0;
+    } else if (daysAgo < 30) {
+      score -= 1.0;
+    }
+    // ≥ 30 days: no penalty
   } else if (recentlySeen?.has(meal.id)) {
     score -= 2.5;
   } else if (sessionShown.has(meal.id)) {
@@ -1002,6 +1036,66 @@ export function scoreMeal(
 }
 
 /**
+ * Infers a score delta for a meal based on the current time/day context.
+ * Pure signal — no user input required. Derived entirely from when the user
+ * opened the app (mealPeriod + dayType + effortBias from inferSessionContext).
+ *
+ * Adjustments:
+ *   latenight weekday:  prepTime >30min −1.5; comfort/easy/quick tag +1.0; elevated/fresh/bold cat −0.5
+ *   friday:             comfort/indulgent tag/cat +0.75; healthy/light tag/cat −0.25
+ *   weekend:            elevated/fresh/adventurous cat +0.75; quick/easy tag −0.25
+ *   sunday:             comfort/homestyle tag/cat +1.0; elevated/bold cat −0.5
+ *   effortBias=low:     prepTime ≤20min +1.0; prepTime >45min −2.0
+ */
+export function getContextScore(meal: Meal, ctx: SessionContext): number {
+  let delta = 0;
+  const cat = meal.category.toLowerCase();
+  const hasTags = (...ts: string[]) =>
+    ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
+
+  // Parse prep time from tags like "20 min"
+  let mealMinutes: number | null = null;
+  for (const tag of meal.tags) {
+    const m = tag.match(/^(\d+)\s*min$/i);
+    if (m) { mealMinutes = parseInt(m[1]); break; }
+  }
+
+  // Late-night weekday — people want low-effort, comforting food
+  if (ctx.mealPeriod === "latenight" && ctx.dayType === "weekday") {
+    if (mealMinutes !== null && mealMinutes > 30) delta -= 1.5;
+    if (hasTags("comfort", "easy", "quick") || cat.includes("comfort")) delta += 1.0;
+    if (["elevated", "fresh", "bold"].some((t) => cat.includes(t))) delta -= 0.5;
+  }
+
+  // Friday — treat yourself mood
+  if (ctx.dayType === "friday") {
+    if (hasTags("comfort", "indulgent") || cat.includes("comfort") || cat.includes("indulgent")) delta += 0.75;
+    if (hasTags("healthy", "light") || ["healthy", "fresh"].some((t) => cat.includes(t))) delta -= 0.25;
+  }
+
+  // Weekend — they have time; favor ambitious or fresh options
+  if (ctx.dayType === "weekend") {
+    if (["elevated", "fresh", "adventurous"].some((t) => cat.includes(t)) ||
+        hasTags("elevated", "fresh", "adventurous")) delta += 0.75;
+    if (hasTags("quick", "easy")) delta -= 0.25; // they have time — deprioritize speed shortcuts
+  }
+
+  // Sunday — comfort / homestyle cooking energy
+  if (ctx.dayType === "sunday") {
+    if (hasTags("comfort", "homestyle") || cat.includes("comfort")) delta += 1.0;
+    if (["elevated", "bold"].some((t) => cat.includes(t))) delta -= 0.5;
+  }
+
+  // Low effort bias (latenight weekday) — strongly deprioritize long cooks
+  if (ctx.effortBias === "low") {
+    if (mealMinutes !== null && mealMinutes <= 20) delta += 1.0;
+    if (mealMinutes !== null && mealMinutes > 45) delta -= 2.0;
+  }
+
+  return delta;
+}
+
+/**
  * Computes a score delta for a meal based on rejection reasons captured this
  * session. Called after rankMeals so the adjustment is additive on top of the
  * existing preference + behavior score — existing weights are not changed.
@@ -1018,18 +1112,19 @@ export function scoreMeal(
  */
 export function getSessionRejectionAdjustment(
   meal: Meal,
-  rejectionReasons: string[],
+  rejectionEntries: RejectionEntry[],
   history: HistoryEntry[],
-  recentlyRejectedCategories: string[] = [],
 ): number {
-  if (rejectionReasons.length === 0) return 0;
+  if (rejectionEntries.length === 0) return 0;
 
   let delta = 0;
   const cat = meal.category.toLowerCase();
   const hasTag = (...ts: string[]) =>
     ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
 
-  if (rejectionReasons.includes("too_heavy")) {
+  const reasons = rejectionEntries.map((e) => e.reason);
+
+  if (reasons.includes("too_heavy")) {
     const isHeavy =
       hasTag("heavy", "rich", "indulgent", "creamy") ||
       ["comfort food", "rich", "indulgent", "creamy"].some((t) => cat.includes(t));
@@ -1040,17 +1135,12 @@ export function getSessionRejectionAdjustment(
     if (isLight) delta += 1.0;
   }
 
-  if (rejectionReasons.includes("had_recently")) {
-    const cutoffMs = Date.now() - 14 * 24 * 60 * 60 * 1000;
-    const recentIds = new Set(
-      history
-        .filter((h) => new Date(h.chosenAt).getTime() >= cutoffMs)
-        .map((h) => h.meal.id),
-    );
-    if (recentIds.has(meal.id)) delta -= 2.0;
+  if (reasons.includes("had_recently")) {
+    // Recency penalty handles this signal — no additional adjustment needed
+    // (scoreMeal's time-based recency logic already penalises recently-eaten meals)
   }
 
-  if (rejectionReasons.includes("missing_ingredients")) {
+  if (reasons.includes("missing_ingredients")) {
     const isPantryFriendly = hasTag(
       "pantry-friendly", "pantry staple", "easy", "minimal", "no-cook option",
     );
@@ -1059,14 +1149,16 @@ export function getSessionRejectionAdjustment(
     if (isComplex) delta -= 1.0;
   }
 
-  if (rejectionReasons.includes("not_feeling_it") && recentlyRejectedCategories.length > 0) {
-    // Most common category across the last 2–3 rejected meals
-    const counts: Record<string, number> = {};
-    for (const c of recentlyRejectedCategories) {
-      counts[c] = (counts[c] ?? 0) + 1;
-    }
-    const primaryCategory = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
-    if (primaryCategory && meal.category === primaryCategory) delta -= 1.0;
+  // not_feeling_it: apply -0.75 for each entry whose rejected meal's category,
+  // cuisine, or tags overlap with this meal. Each entry represents a distinct
+  // "mood" rejection so penalties can stack (capped by session CAP of 3 entries).
+  const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
+  for (const entry of rejectionEntries) {
+    if (entry.reason !== "not_feeling_it") continue;
+    const catMatch = meal.category === entry.category;
+    const cuisineMatch = entry.cuisine.some((c) => mealCuisines.includes(c));
+    const tagMatch = entry.tags.some((t) => meal.tags.includes(t));
+    if (catMatch || cuisineMatch || tagMatch) delta -= 0.75;
   }
 
   return delta;
@@ -1140,9 +1232,9 @@ export function rankMeals(
   vibe: string | null = null,
   cookMode: SessionCookMode = "either",
   sessionVibeMode: SessionVibeMode = "mix-it-up",
-  rejectionReasons: string[] = [],
-  recentlyRejectedCategories: string[] = [],
+  rejectionEntries: RejectionEntry[] = [],
   softAvoids: SoftAvoid[] = [],
+  sessionContext?: SessionContext,
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
@@ -1151,14 +1243,39 @@ export function rankMeals(
     const { score, reason, vibeScore, behaviorScore } = scoreMeal(
       meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode
     );
-    const rejAdj = rejectionReasons.length > 0
-      ? getSessionRejectionAdjustment(meal, rejectionReasons, history, recentlyRejectedCategories)
+    const rejAdj = rejectionEntries.length > 0
+      ? getSessionRejectionAdjustment(meal, rejectionEntries, history)
       : 0;
+    const contextAdj = sessionContext ? getContextScore(meal, sessionContext) : 0;
     const softAvoidPenalty = checkSoftAvoidPenalty(meal, softAvoids);
-    return { meal, score: score + rejAdj + softAvoidPenalty, reason, vibeScore, behaviorScore };
+    return { meal, score: score + rejAdj + contextAdj + softAvoidPenalty, reason, vibeScore, behaviorScore };
   });
 
   // 2. Sort by score descending — all meals ranked, no artificial cutoff
+  scored.sort((a, b) => b.score - a.score);
+
+  // 2b. Cuisine diversity rule: if 3+ of the top 5 share a primary cuisine,
+  //     apply -0.75 to the 3rd+ occurrence in that cluster and re-sort.
+  //     Prevents the deck opening with the same cuisine repeated back-to-back.
+  const top5 = scored.slice(0, 5);
+  const cuisineHitsTop5: Record<string, number> = {};
+  for (const s of top5) {
+    const c = MEAL_CUISINES[s.meal.id]?.[0] ?? "Other";
+    cuisineHitsTop5[c] = (cuisineHitsTop5[c] ?? 0) + 1;
+  }
+  for (const [cuisine, count] of Object.entries(cuisineHitsTop5)) {
+    if (count >= 3) {
+      let seen = 0;
+      for (const s of scored.slice(0, 5)) {
+        const c = MEAL_CUISINES[s.meal.id]?.[0] ?? "Other";
+        if (c === cuisine) {
+          seen++;
+          if (seen >= 3) s.score -= 0.75; // penalise 3rd, 4th, 5th in the cluster
+        }
+      }
+    }
+  }
+  // Re-sort after diversity adjustment
   scored.sort((a, b) => b.score - a.score);
 
   // Dev logging — base preference, learned behavior, session selector, and final score

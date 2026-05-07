@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, getSharedReason, getTimeBucket, getSessionRejectionAdjustment, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { rankMeals, hardGate, getSharedReason, getTimeBucket, MEAL_CUISINES, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
@@ -100,8 +100,7 @@ function buildDeck(
   sessionShown: Set<string> = new Set(),
   cookMode: SessionCookMode = "either",
   sessionVibeMode: SessionVibeMode = "mix-it-up",
-  rejectionReasons: string[] = [],
-  recentlyRejectedCategories: string[] = [],
+  rejectionEntries: RejectionEntry[] = [],
   softAvoids: SoftAvoid[] = [],
 ): RankedMeal[] {
   const prefs = getPreferences();
@@ -111,11 +110,12 @@ function buildDeck(
   const tasteProfile = getTasteProfile();
   const flavorProfile = getFlavorProfile() ?? undefined;
   const favorites = getFavorites();
+  const sessionContext = inferSessionContext(new Date());
 
   const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
 
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode, rejectionReasons, recentlyRejectedCategories, softAvoids);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode, rejectionEntries, softAvoids, sessionContext);
   }
 
   function fill(deck: RankedMeal[], candidates: Meal[]): RankedMeal[] {
@@ -137,37 +137,37 @@ function buildDeck(
 /**
  * Merge AI-ranked meals into the static deck by inserting them at regular
  * intervals. Skips any AI meal whose ID already exists in the static deck.
- * Inserts at positions 2, 5, 9, 13, 17 (0-indexed) so AI meals appear
- * throughout the deck rather than only at the end.
+ * Zone layout:
+ *   Zone 1 (0–4):   static scored meals only — AI never appears here
+ *   Zone 2 (5–13):  static first; AI backfills only if static deck runs short
+ *   Zone 3 (14+):   static tail followed by all remaining AI meals
+ *
+ * Static personalized meals always lead. AI explores in the tail.
  */
 function interleaveAI(staticDeck: RankedMeal[], aiDeck: RankedMeal[]): RankedMeal[] {
   const staticIds = new Set(staticDeck.map((r) => r.meal.id));
   const uniqueAI = aiDeck.filter((r) => !staticIds.has(r.meal.id));
   if (uniqueAI.length === 0) return staticDeck;
 
-  const result: RankedMeal[] = [...staticDeck];
-  // Insert positions spread evenly through a 20-card deck
-  const insertAt = [2, 5, 9, 13, 17];
-  let aiIndex = 0;
-  let offset = 0; // each insertion shifts subsequent indices by 1
+  // Zone 1 (0–4): static only
+  const zone1 = staticDeck.slice(0, 5);
 
-  for (const pos of insertAt) {
-    if (aiIndex >= uniqueAI.length) break;
-    const target = pos + offset;
-    if (target <= result.length) {
-      result.splice(target, 0, uniqueAI[aiIndex++]);
-    } else {
-      result.push(uniqueAI[aiIndex++]);
+  // Zone 2 (5–13, up to 9 slots): static first; AI backfills if static is short
+  const zone2Static = staticDeck.slice(5, 14);
+  let aiConsumed = 0;
+  const zone2Backfill: RankedMeal[] = [];
+  if (zone2Static.length < 9) {
+    const needed = 9 - zone2Static.length;
+    while (aiConsumed < uniqueAI.length && zone2Backfill.length < needed) {
+      zone2Backfill.push(uniqueAI[aiConsumed++]);
     }
-    offset++;
   }
+  const zone2 = [...zone2Static, ...zone2Backfill];
 
-  // Any remaining AI meals go at the end
-  while (aiIndex < uniqueAI.length) {
-    result.push(uniqueAI[aiIndex++]);
-  }
+  // Zone 3 (14+): static tail, then all remaining AI meals
+  const zone3 = [...staticDeck.slice(14), ...uniqueAI.slice(aiConsumed)];
 
-  return result;
+  return [...zone1, ...zone2, ...zone3];
 }
 
 function DeckContent() {
@@ -210,10 +210,11 @@ function DeckContent() {
   const passStreakRef = useRef(0);
   const totalPassesRef = useRef(0);
   const rejectionCaptureCountRef = useRef(0);
-  const [rejectionReasons, setRejectionReasons] = useState<string[]>([]);
-  const rejectionReasonsRef = useRef<string[]>([]);
+  const [rejectionReasons, setRejectionReasons] = useState<RejectionEntry[]>([]);
+  const rejectionReasonsRef = useRef<RejectionEntry[]>([]);
   const recentlyPassedCategoriesRef = useRef<string[]>([]);
   const pendingRejectionSheetRef = useRef(false);
+  const pendingRejectionMealRef = useRef<Meal | null>(null);
   const [showRejectionSheet, setShowRejectionSheet] = useState(false);
   // ── Shared-session state ────────────────────────────────────────────────────
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
@@ -542,7 +543,7 @@ function DeckContent() {
       const id = rankedMeals[i]?.meal?.id;
       if (id) sessionShownRef.current.add(id);
     }
-    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
     if (!deckRecordedRef.current) {
       recordSeenSession(ranked.map((r) => r.meal.id));
       deckRecordedRef.current = true;
@@ -707,7 +708,7 @@ function DeckContent() {
     // In solo mode rebuild from scratch so scoring is fresh.
     const source = sessionId
       ? rankedMeals
-      : buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
+      : buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
     const topN = Math.max(3, Math.ceil(source.length * 0.35));
     setRankedMeals(source.slice(0, topN));
     setCurrentIndex(0);
@@ -926,6 +927,9 @@ function DeckContent() {
         null,
         cookMode,
         sessionVibeMode,
+        rejectionReasonsRef.current,
+        softAvoidsRef.current,
+        inferSessionContext(new Date()),
       );
 
       // ── Interleave AI meals into the static deck ───────────────────────────
@@ -1013,6 +1017,9 @@ function DeckContent() {
         null,
         cookMode,
         sessionVibeMode,
+        rejectionReasonsRef.current,
+        softAvoidsRef.current,
+        inferSessionContext(new Date()),
       );
 
       // Splice AI meals into the remaining (unseen) portion of the deck only.
@@ -1054,7 +1061,7 @@ function DeckContent() {
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
     lastAiContextKeyRef.current = null; // allow re-trigger after explicit Fresh Ideas
-    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
+    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
     recordSeenSession(staticDeck.map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(staticDeck.slice(0, DECK_SIZE));
@@ -1073,7 +1080,7 @@ function DeckContent() {
     lastAiContextKeyRef.current = null; // allow freshness re-evaluation on next deck
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
-    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
     recordSeenSession(ranked.map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(ranked.slice(0, DECK_SIZE));
@@ -1130,6 +1137,7 @@ function DeckContent() {
           !pendingRejectionSheetRef.current
         ) {
           pendingRejectionSheetRef.current = true;
+          pendingRejectionMealRef.current = meal; // capture meal context for RejectionEntry
         }
       }
 
@@ -1374,8 +1382,8 @@ function DeckContent() {
           cookMode,
           sessionVibeMode,
           rejectionReasonsRef.current,
-          recentlyPassedCategoriesRef.current,
           updated,
+          inferSessionContext(new Date()),
         );
         setRankedMeals([...rankedMeals.slice(0, currentIndex), ...reranked]);
       }
@@ -1410,6 +1418,9 @@ function DeckContent() {
           null,
           cookMode,
           sessionVibeMode,
+          rejectionReasonsRef.current,
+          softAvoidsRef.current,
+          inferSessionContext(new Date()),
         );
         setRankedMeals([...rankedMeals.slice(0, currentIndex), ...reranked]);
       }
@@ -1421,10 +1432,23 @@ function DeckContent() {
   function handleRejectionSelect(reason: RejectionReason) {
     setShowRejectionSheet(false);
 
-    // Merge reason (deduplicated) into session state
-    const next = rejectionReasonsRef.current.includes(reason)
+    // Build a rich RejectionEntry from the meal that triggered the streak
+    const mealCtx = pendingRejectionMealRef.current;
+    const entry: RejectionEntry = {
+      reason,
+      mealId: mealCtx?.id ?? "",
+      category: mealCtx?.category ?? "",
+      cuisine: mealCtx ? (MEAL_CUISINES[mealCtx.id] ?? []) : [],
+      tags: mealCtx?.tags ?? [],
+    };
+
+    // Deduplicate by reason+mealId so the same rejection isn't applied twice
+    const alreadyStored = rejectionReasonsRef.current.some(
+      (e) => e.reason === entry.reason && e.mealId === entry.mealId,
+    );
+    const next = alreadyStored
       ? rejectionReasonsRef.current
-      : [...rejectionReasonsRef.current, reason];
+      : [...rejectionReasonsRef.current, entry];
     rejectionReasonsRef.current = next;
     setRejectionReasons(next);
 
@@ -1451,7 +1475,8 @@ function DeckContent() {
         cookMode,
         sessionVibeMode,
         next,
-        recentlyPassedCategoriesRef.current,
+        softAvoidsRef.current,
+        inferSessionContext(new Date()),
       );
       setRankedMeals([...rankedMeals.slice(0, currentIndex), ...reranked]);
     }
