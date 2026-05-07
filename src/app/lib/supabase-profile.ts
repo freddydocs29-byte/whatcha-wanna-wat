@@ -211,6 +211,66 @@ export async function fetchBehavioralSignalsBatch(
 }
 
 /**
+ * Syncs the local taste profile and history into user_behavioral_signals.
+ * Fire-and-forget — never throws, never blocks the user flow.
+ */
+export async function syncBehavioralSignalsToSupabase(userId: string): Promise<void> {
+  // Step 1: upsert base signals from taste profile
+  try {
+    const local = localStorage.getItem("wwe_taste_profile");
+    if (!local) return;
+
+    const profile = JSON.parse(local) as {
+      likedTags?: Record<string, number>;
+      dislikedTags?: Record<string, number>;
+      likedCategories?: Record<string, number>;
+    };
+
+    const { error } = await supabase
+      .from("user_behavioral_signals")
+      .upsert(
+        {
+          user_id: userId,
+          liked_tags: profile.likedTags ?? {},
+          disliked_tags: profile.dislikedTags ?? {},
+          liked_categories: profile.likedCategories ?? {},
+          recently_chosen: [],
+          last_updated: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+    if (error) console.warn("[sync] behavioral signals upsert failed:", error.message);
+  } catch (err) {
+    console.warn("[sync] behavioral signals upsert error:", err);
+    return;
+  }
+
+  // Step 2: update recently_chosen from history (last 30 entries)
+  try {
+    const historyRaw = localStorage.getItem("wwe_history");
+    const history = historyRaw
+      ? (JSON.parse(historyRaw) as Array<{ meal: { id: string }; chosenAt: string }>)
+      : [];
+
+    const recentlyChosen = history.slice(-30).map((entry) => ({
+      meal_id: entry.meal.id,
+      chosen_at: entry.chosenAt,
+    }));
+
+    const { error } = await supabase
+      .from("user_behavioral_signals")
+      .update({
+        recently_chosen: recentlyChosen,
+        last_updated: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+    if (error) console.warn("[sync] recently_chosen update failed:", error.message);
+  } catch (err) {
+    console.warn("[sync] recently_chosen update error:", err);
+  }
+}
+
+/**
  * Persists the flat list of recently-seen meal IDs for the recency penalty.
  * Called after each deck build.
  */

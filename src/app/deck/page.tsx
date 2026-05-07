@@ -16,8 +16,9 @@ import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
 import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
-import { fetchSoftAvoids, upsertSoftAvoids } from "../lib/supabase-profile";
+import { fetchSoftAvoids, upsertSoftAvoids, syncBehavioralSignalsToSupabase } from "../lib/supabase-profile";
 import { type SoftAvoid } from "../lib/supabase";
+import { detectRituals, getRitualLabel, isRitualSuppressed, recordRitualRejection, type RitualDetection } from "../lib/rituals";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -371,6 +372,21 @@ function DeckContent() {
     const poll = async () => {
       if (matchedMealRef.current) return; // Already showing match modal
 
+      // Check session status first — catches "Just decide for us" (which writes
+      // directly to sessions without inserting a swipe) and the case where the
+      // other user already confirmed a mutual-swipe match.
+      const { data: sessionData } = await supabase
+        .from("sessions")
+        .select("status, locked_meal_id")
+        .eq("id", sessionId)
+        .single();
+      if (sessionData?.status === "matched") {
+        if (sessionData.locked_meal_id && !matchedMealRef.current) {
+          router.push(`/locked?mealId=${sessionData.locked_meal_id}`);
+        }
+        return;
+      }
+
       const { data: swipeData } = await supabase
         .from("swipes")
         .select("meal_id, user_id")
@@ -389,22 +405,6 @@ function DeckContent() {
       for (const [mealId, voters] of Object.entries(mealVoters)) {
         if (voters.size < 2) continue;
         if (rejectedMatchIdsRef.current.has(mealId)) continue;
-
-        // Confirm session is still active before triggering
-        const { data: sessionData } = await supabase
-          .from("sessions")
-          .select("status, locked_meal_id")
-          .eq("id", sessionId)
-          .single();
-        if (sessionData?.status === "matched") {
-          // The other user already confirmed the match — navigate this user
-          // to the locked screen even if they are on the waiting/end-of-deck
-          // screen and never saw the match modal.
-          if (sessionData.locked_meal_id && !matchedMealRef.current) {
-            router.push(`/locked?mealId=${sessionData.locked_meal_id}`);
-          }
-          return;
-        }
 
         const found = meals.find((m) => m.id === mealId);
         if (found) {
@@ -461,8 +461,24 @@ function DeckContent() {
   const [activeNudge, setActiveNudge] = useState<NudgeTrigger | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // ── Ritual detection refs ─────────────────────────────────────────────────
+  // Stores the ritual result once detectRituals() completes (async on mount).
+  const ritualDetectionRef = useRef<RitualDetection | null>(null);
+  // Tracks whether position 0 in the current deck is a proactively surfaced ritual.
+  // Used to record rejections correctly in handlePass.
+  const isRitualPosition0Ref = useRef(false);
+  // Mirror of currentIndex as a ref so async ritual callbacks can read it without
+  // stale closure issues.
+  const currentIndexRef = useRef(0);
+
   // Track the last meal id we fired card_seen for so we don't double-fire.
   const lastSeenMealIdRef = useRef<string | null>(null);
+
+  // Keep currentIndexRef in sync so async callbacks (ritual injection) read a
+  // current value instead of the stale closure captured at effect creation.
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   useEffect(() => {
     if (isChangeMeal) setExistingMeal(getTodaysPick());
@@ -495,6 +511,66 @@ function DeckContent() {
         // Some expired — persist the cleaned array
         void upsertSoftAvoids(userId, active);
       }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Ritual detection (async, non-blocking, solo only) ─────────────────────
+  //
+  // Runs once on mount. If a qualifying ritual is found for the current context,
+  // it is injected at position 0 of the deck — but only if the user hasn't
+  // started swiping yet (currentIndex === 0).
+  //
+  // Application threshold: confidence >= 0.6 AND daysSinceLastServed >= 5.
+  // Hard gate safety: the ritual meal is re-checked against current hard NOs
+  // before placement. Preferences can change; rituals must never violate them.
+  useEffect(() => {
+    if (sessionId) return; // shared mode: skip
+    const userId = getUserId();
+    if (!userId) return;
+
+    detectRituals(userId).then((rituals) => {
+      const ctx = inferSessionContext(new Date());
+      const contextKey = `${ctx.dayType}-${ctx.mealPeriod}`;
+
+      const matching = rituals.find(
+        (r) =>
+          r.context === contextKey &&
+          r.confidence >= 0.6 &&
+          r.daysSinceLastServed >= 5 &&
+          !isRitualSuppressed(r.context, r.mealId),
+      );
+
+      if (!matching) return;
+
+      // Hard gate safety: re-check current restrictions before surfacing
+      const currentPrefs = getPreferences();
+      const ritualMealObj = meals.find((m) => m.id === matching.mealId);
+      if (!ritualMealObj) return;
+      const gated = hardGate([ritualMealObj], currentPrefs?.dislikedFoods ?? []);
+      if (gated.length === 0) {
+        if (process.env.NODE_ENV === "development") {
+          console.log(`[rituals] skipped ${matching.mealId} — fails current hard gate`);
+        }
+        return;
+      }
+
+      // Store the active ritual so handlePass can record rejections
+      ritualDetectionRef.current = matching;
+
+      // Inject at position 0 only if the user hasn't started swiping yet.
+      // setRankedMeals functional update safely reads the current deck state.
+      if (currentIndexRef.current > 0) return;
+
+      const label = getRitualLabel(matching.context);
+      const ritualEntry: RankedMeal = { meal: ritualMealObj, reason: label };
+
+      setRankedMeals((prev) => {
+        if (prev.length === 0) return prev; // deck not built yet — no-op
+        // Remove the ritual meal from wherever it sits in the scored deck
+        const without = prev.filter((r) => r.meal.id !== matching.mealId);
+        isRitualPosition0Ref.current = true;
+        return [ritualEntry, ...without].slice(0, DECK_SIZE);
+      });
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -574,7 +650,26 @@ function DeckContent() {
       recordSeenSession(ranked.map((r) => r.meal.id));
       deckRecordedRef.current = true;
     }
-    setRankedMeals(ranked.slice(0, DECK_SIZE));
+
+    // ── Ritual injection ─────────────────────────────────────────────────────
+    // If detectRituals() has already resolved and stored a result, inject the
+    // ritual meal at position 0 now (before setRankedMeals). Hard gate re-check
+    // already ran inside the detection effect; we just apply the result here.
+    // Reset the position-0 flag each deck rebuild since deck order changes.
+    isRitualPosition0Ref.current = false;
+    const pendingRitual = ritualDetectionRef.current;
+    let deckToSet = ranked.slice(0, DECK_SIZE);
+    if (pendingRitual) {
+      const ritualMealObj = meals.find((m) => m.id === pendingRitual.mealId);
+      if (ritualMealObj) {
+        const label = getRitualLabel(pendingRitual.context);
+        const without = deckToSet.filter((r) => r.meal.id !== pendingRitual.mealId);
+        deckToSet = [{ meal: ritualMealObj, reason: label }, ...without].slice(0, DECK_SIZE);
+        isRitualPosition0Ref.current = true;
+      }
+    }
+
+    setRankedMeals(deckToSet);
     setCurrentIndex(0);
     x.set(0);
     setExitX(null);
@@ -1226,6 +1321,21 @@ function DeckContent() {
         }
       }
 
+      // ── Ritual rejection tracking (solo only) ────────────────────────────
+      // If position 0 was a proactively surfaced ritual, record the rejection.
+      // After 2 rejections in this context, the ritual is suppressed for 30 days.
+      if (!sessionId && currentIndex === 0 && isRitualPosition0Ref.current) {
+        const ritual = ritualDetectionRef.current;
+        if (ritual && meal.id === ritual.mealId) {
+          const suppressed = recordRitualRejection(ritual.context, ritual.mealId);
+          if (suppressed) {
+            // Clear the ritual so it doesn't re-inject on deck rebuilds
+            ritualDetectionRef.current = null;
+            isRitualPosition0Ref.current = false;
+          }
+        }
+      }
+
       // Save 'no' swipe in shared mode — fire-and-forget, no match check needed
       if (sessionId && userId) {
         supabase.from("swipes").insert({
@@ -1328,6 +1438,9 @@ function DeckContent() {
           }
         });
         addToHistory(chosenMeal);
+        syncBehavioralSignalsToSupabase(getUserId()).catch((err) =>
+          console.warn("[sync] behavioral signals failed:", err),
+        );
 
         // Soft avoid self-clear: if user accepted a meal whose category is in
         // soft avoids, the pattern is over — remove that entry immediately.

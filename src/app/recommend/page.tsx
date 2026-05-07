@@ -26,6 +26,12 @@ import { trackEvent } from "../lib/analytics";
 import { fetchSoftAvoids } from "../lib/supabase-profile";
 import { getUserId } from "../lib/identity";
 import { type SoftAvoid } from "../lib/supabase";
+import {
+  detectRituals,
+  getRitualLabel,
+  isRitualSuppressed,
+  recordRitualRejection,
+} from "../lib/rituals";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -111,9 +117,13 @@ export default function RecommendPage() {
   const trackingSessionIdRef = useRef<string | null>(null);
   const openedAtRef = useRef<Date>(new Date());
   const sessionCtxRef = useRef<SessionContext>(inferSessionContext(new Date()));
+  // Populated when a ritual is injected at position 0 — read synchronously in
+  // handlePass to call recordRitualRejection before the deck page mounts.
+  const ritualRef = useRef<{ context: string; mealId: string } | null>(null);
 
   useEffect(() => {
     const userId = getUserId();
+
     const softAvoidsPromise = userId
       ? fetchSoftAvoids(userId).then((avoids) => {
           const now = new Date().toISOString();
@@ -121,8 +131,40 @@ export default function RecommendPage() {
         })
       : Promise.resolve([] as SoftAvoid[]);
 
-    softAvoidsPromise.then((softAvoids) => {
-      const deck = composeDeck(softAvoids);
+    // detectRituals runs in parallel with fetchSoftAvoids — no extra loading delay.
+    const ritualsPromise = userId
+      ? detectRituals(userId)
+      : Promise.resolve([]);
+
+    Promise.all([softAvoidsPromise, ritualsPromise]).then(([softAvoids, rituals]) => {
+      const baseDeck = composeDeck(softAvoids);
+
+      // Check whether a ritual qualifies for the current context
+      const ctx = inferSessionContext(new Date());
+      const contextKey = `${ctx.dayType}-${ctx.mealPeriod}`;
+      const matching = rituals.find(
+        (r) =>
+          r.context === contextKey &&
+          r.confidence >= 0.6 &&
+          r.daysSinceLastServed >= 5 &&
+          !isRitualSuppressed(r.context, r.mealId),
+      );
+
+      let deck = baseDeck;
+
+      if (matching) {
+        // Hard gate safety: re-check current restrictions before surfacing
+        const currentPrefs = getPreferences();
+        const ritualMeal = meals.find((m) => m.id === matching.mealId);
+        if (ritualMeal && hardGate([ritualMeal], currentPrefs?.dislikedFoods ?? []).length > 0) {
+          // Store so handlePass can call recordRitualRejection synchronously
+          ritualRef.current = { context: matching.context, mealId: matching.mealId };
+          const label = getRitualLabel(matching.context);
+          const without = baseDeck.filter((r) => r.meal.id !== matching.mealId);
+          deck = [{ meal: ritualMeal, reason: label }, ...without].slice(0, DECK_SIZE);
+        }
+      }
+
       setSessionDeck(deck);
       setIsLoading(false);
       trackEvent("recommend_screen_opened", { deckSize: deck.length });
@@ -135,7 +177,12 @@ export default function RecommendPage() {
 
   const meal = sessionDeck[0]?.meal ?? null;
   const ctx = sessionCtxRef.current;
-  const contextLine = meal ? generateContextLine(meal, ctx) : "";
+  // When position 0 is a ritual card, ritualRef is set before setSessionDeck fires,
+  // so this read is always current during the re-render triggered by that state update.
+  const isRitualCard = meal != null && ritualRef.current?.mealId === meal.id;
+  const contextLine = isRitualCard
+    ? getRitualLabel(ritualRef.current!.context)
+    : (meal ? generateContextLine(meal, ctx) : "");
   const imgSrc = !imgError && meal?.image ? meal.image : FALLBACK_IMAGE;
 
   function handleChoose() {
@@ -160,6 +207,16 @@ export default function RecommendPage() {
 
   function handlePass() {
     if (!meal || isAnimating) return;
+
+    // Synchronous ritual rejection tracking — must run before the 280ms timeout
+    // so localStorage is written before the deck page mounts and reads it.
+    const ritual = ritualRef.current;
+    if (ritual && meal.id === ritual.mealId) {
+      recordRitualRejection(ritual.context, ritual.mealId);
+      // Clear the ref so a re-render during the animation doesn't re-trigger
+      ritualRef.current = null;
+    }
+
     trackEvent("meal_passed", {
       mealId: meal.id,
       source: "single_recommend",

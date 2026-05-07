@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase, Session } from "../../lib/supabase";
 import { getUserId } from "../../lib/identity";
 import { buildSharedDeckForSession } from "../../lib/deck";
-import { upsertProfilePreferences } from "../../lib/supabase-profile";
+import { upsertProfilePreferences, syncBehavioralSignalsToSupabase } from "../../lib/supabase-profile";
 import type { SessionVibeMode, CookingIntent } from "../../lib/scoring";
 import {
   hasCompletedOnboarding,
@@ -185,6 +185,9 @@ export default function SessionPage() {
     setSession(s);
     setRole("guest");
     setJoining(false);
+    syncBehavioralSignalsToSupabase(myId).catch((err) =>
+      console.warn("[sync] behavioral signals failed:", err),
+    );
     trackEvent("shared_session_joined", { sessionId });
     // Deck generation is deferred — host triggers it explicitly by clicking "Start swiping"
   }, [sessionId, loadSession, generateDeckIfNeeded]);
@@ -250,6 +253,9 @@ export default function SessionPage() {
   // cooking_intent is already in the DB from the question step — no need to re-write it here.
   async function handleStartSwiping() {
     if (!session) return;
+    syncBehavioralSignalsToSupabase(getUserId()).catch((err) =>
+      console.warn("[sync] behavioral signals failed:", err),
+    );
     // Persist the vibe so deck build and guest screen both reflect it
     await supabase
       .from("sessions")
