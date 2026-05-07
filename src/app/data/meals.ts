@@ -11,6 +11,8 @@ export type Meal = {
   aiGenerated?: boolean;
   /** User-facing label shown on the card for AI-generated meals. */
   aiLabel?: "Fresh idea" | "Made from your pantry";
+  /** Visual archetype used for image selection — AI-generated meals only. */
+  archetype?: "bowl" | "pasta" | "handheld" | "flatbread" | "salad" | "stir_fry" | "plated_protein" | "comfort_plate" | "soup" | "breakfast" | "loaded_plate" | "vegetarian";
 };
 
 export const meals: Meal[] = [

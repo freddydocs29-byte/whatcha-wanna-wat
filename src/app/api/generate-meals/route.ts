@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { Meal } from "../../data/meals";
+import { resolveAIImage } from "../../lib/archetype-images";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -207,16 +208,23 @@ REQUIRED JSON STRUCTURE:
       "ingredients": ["Chicken", "Rice"],
       "estimatedTimeMinutes": 25,
       "cuisine": "Asian",
-      "aiLabel": "Fresh idea"
+      "aiLabel": "Fresh idea",
+      "archetype": "bowl"
     }
   ]
 }
 
 LABEL RULE: Set "aiLabel" to "Made from your pantry" if the meal uses 2+ pantry ingredients; otherwise "Fresh idea".
-TIME TAG: Include exactly one time tag in the tags array: "15 min", "20 min", "25 min", "30 min", "35 min", "40 min", or "45 min".`;
+TIME TAG: Include exactly one time tag in the tags array: "15 min", "20 min", "25 min", "30 min", "35 min", "40 min", or "45 min".
+ARCHETYPE RULE: Set "archetype" to the value that best matches how the meal LOOKS visually — judge by presentation, not ingredients or cuisine. You MUST always include this field. Choose EXACTLY one from: bowl | pasta | handheld | flatbread | salad | stir_fry | plated_protein | comfort_plate | soup | breakfast | loaded_plate | vegetarian. Examples: burrito bowl → bowl, tacos → handheld, pizza → flatbread, grilled salmon + veg → plated_protein, mac and cheese → comfort_plate, pancakes → breakfast, nachos → loaded_plate, roasted veg plate → vegetarian.`;
 }
 
 // ── Response validation ──────────────────────────────────────────────────────
+
+const VALID_ARCHETYPES = new Set([
+  "bowl", "pasta", "handheld", "flatbread", "salad", "stir_fry",
+  "plated_protein", "comfort_plate", "soup", "breakfast", "loaded_plate", "vegetarian",
+]);
 
 type RawAIMeal = {
   id?: unknown;
@@ -228,6 +236,7 @@ type RawAIMeal = {
   estimatedTimeMinutes?: unknown;
   cuisine?: unknown;
   aiLabel?: unknown;
+  archetype?: unknown;
 };
 
 function transformMeal(raw: RawAIMeal, hardNos: string[]): Meal | null {
@@ -256,6 +265,11 @@ function transformMeal(raw: RawAIMeal, hardNos: string[]): Meal | null {
   const aiLabel: Meal["aiLabel"] =
     rawLabel === "Made from your pantry" ? "Made from your pantry" : "Fresh idea";
 
+  const rawArchetype = typeof raw.archetype === "string" ? raw.archetype.trim() : "";
+  const archetype = VALID_ARCHETYPES.has(rawArchetype)
+    ? (rawArchetype as NonNullable<Meal["archetype"]>)
+    : undefined;
+
   const meal: Meal = {
     id,
     name: raw.name.trim(),
@@ -264,10 +278,14 @@ function transformMeal(raw: RawAIMeal, hardNos: string[]): Meal | null {
     tags,
     ingredients,
     whyItFits: typeof raw.cuisine === "string" && raw.cuisine ? `${raw.cuisine} inspired` : "Fresh idea for tonight",
-    image: FALLBACK_IMAGE,
+    image: FALLBACK_IMAGE, // will be replaced below after archetype is attached
     aiGenerated: true,
     aiLabel,
+    ...(archetype !== undefined && { archetype }),
   };
+
+  // Resolve image from archetype pool (stable per meal id)
+  meal.image = resolveAIImage(meal);
 
   // Server-side hard-NO safety pass
   if (violatesHardNo(meal, hardNos)) return null;
