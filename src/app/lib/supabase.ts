@@ -27,6 +27,7 @@ export type Session = {
   locked_meal_id: string | null;
   deck_meal_ids: string[] | null;
   vibe: string | null;
+  cooking_intent: "cooking" | "ordering" | "either" | null;
   created_at: string;
   updated_at: string;
   expires_at: string;
@@ -83,6 +84,17 @@ export type SoftAvoid = {
   expiresAt: string;
   /** Cross-session pass count at the time the nudge fired — used for score weighting. */
   strength: number;
+};
+
+/** Consolidated behavioral learning store — one row per user. */
+export type UserBehavioralSignals = {
+  user_id: string;
+  liked_tags: Record<string, number>;
+  disliked_tags: Record<string, number>;
+  liked_categories: Record<string, number>;
+  /** Last 30 accepted meals with timestamps, for time-based recency penalties. */
+  recently_chosen: Array<{ meal_id: string; chosen_at: string }>;
+  last_updated: string;
 };
 
 export type Profile = {

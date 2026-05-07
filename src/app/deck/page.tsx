@@ -1115,6 +1115,48 @@ function DeckContent() {
     setExitX(null);
   }
 
+  // "Just decide for us" — takes position 0 from the shared deck (the group's
+  // top-scored meal) and locks it in immediately without waiting for a mutual swipe.
+  // Both users are routed to the same /locked screen via the match-polling mechanism.
+  async function handleJustDecide() {
+    const topMeal = rankedMeals[0]?.meal;
+    if (!topMeal || !sessionId) return;
+
+    trackEvent("just_decide_tapped", { mealId: topMeal.id, sessionId, positionInDeck: 0 });
+
+    // Close tracking session before navigation
+    trackingClosedRef.current = true;
+    trackingSessionPromiseRef.current?.then((tsId) => {
+      if (tsId && trackingOpenedAtRef.current) {
+        void recordDecision({
+          trackingSessionId: tsId,
+          meal: topMeal,
+          outcome: "accepted",
+          positionInDeck: 0,
+          isAiGenerated: aiMealIds.has(topMeal.id),
+        });
+        void closeTrackingSession({
+          trackingSessionId: tsId,
+          resolved: true,
+          swipeCount: trackingSwipeCountRef.current,
+          openedAt: trackingOpenedAtRef.current,
+        });
+      }
+    });
+
+    await supabase
+      .from("sessions")
+      .update({
+        status: "matched",
+        locked_meal_id: topMeal.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+
+    addToHistory(topMeal);
+    router.push(`/locked?mealId=${topMeal.id}`);
+  }
+
   // Shared-mode refresh: delete all swipes, clear the deck, return to the lobby so
   // the host can pick a new vibe and generate a fresh deck.  The other user's
   // both-done poller detects the cleared deck_meal_ids and follows automatically.
@@ -2127,6 +2169,19 @@ function DeckContent() {
               className="text-sm text-white/35 transition hover:text-white/60"
             >
               Keep {existingMeal.meal.name}
+            </button>
+          </div>
+        )}
+
+        {/* Just decide — shared sessions only. Takes position 0 from the group deck. */}
+        {sessionId && (
+          <div className="mt-3 flex justify-center">
+            <button
+              onClick={() => void handleJustDecide()}
+              disabled={isExiting || isChoosing || rankedMeals.length === 0}
+              className="text-[13px] text-white/25 transition hover:text-white/50 disabled:opacity-0"
+            >
+              Just decide for us
             </button>
           </div>
         )}

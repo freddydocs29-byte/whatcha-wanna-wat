@@ -12,11 +12,11 @@
  * buildSharedDeck  (sync, localStorage-only)
  *   Legacy fallback — kept for safety but no longer called in normal flow.
  */
-import { meals } from "../data/meals";
+import { meals, type Meal } from "../data/meals";
 import { rankMeals, rankMealsForSharedSession, hardGate } from "./scoring";
-import type { UserProfileForScoring } from "./scoring";
+import type { UserProfileForScoring, CookingIntent } from "./scoring";
 import { supabase } from "./supabase";
-import type { UserPreferences, TasteProfile } from "./storage";
+import type { UserPreferences, TasteProfile, HistoryEntry } from "./storage";
 import {
   getPreferences,
   getSavedMeals,
@@ -26,6 +26,7 @@ import {
   getFlavorProfile,
   getFavorites,
 } from "./storage";
+import { fetchBehavioralSignalsBatch } from "./supabase-profile";
 
 // ── Merge helpers ─────────────────────────────────────────────────────────────
 
@@ -77,24 +78,46 @@ export async function buildSharedDeckForSession(
   hostUserId: string,
   guestUserId: string,
 ): Promise<string[]> {
-  // 1. Check whether the deck was already built (another client may have won)
+  // 1. Check whether the deck was already built (another client may have won).
+  //    Also read cooking_intent so deck scoring reflects the host's choice.
   const { data: sessionRow } = await supabase
     .from("sessions")
-    .select("deck_meal_ids")
+    .select("deck_meal_ids, cooking_intent")
     .eq("id", sessionId)
     .single();
 
   const existingIds = sessionRow?.deck_meal_ids as string[] | null;
   if (existingIds?.length) return existingIds;
 
-  // 2. Fetch both profiles in one query
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, hard_no_foods, favorite_cuisines, learned_weights, recently_seen_meal_ids")
-    .in("user_id", [hostUserId, guestUserId]);
+  const cookingIntent = (sessionRow?.cooking_intent as CookingIntent | null) ?? "either";
 
+  // 2. Fetch both profiles + behavioral signals in parallel
+  const [profilesResult, behavioralSignalsMap] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("user_id, hard_no_foods, favorite_cuisines, learned_weights, recently_seen_meal_ids")
+      .in("user_id", [hostUserId, guestUserId]),
+    fetchBehavioralSignalsBatch([hostUserId, guestUserId]),
+  ]);
+
+  const profiles = profilesResult.data;
   const hostProfile = profiles?.find((p) => p.user_id === hostUserId) ?? null;
   const guestProfile = profiles?.find((p) => p.user_id === guestUserId) ?? null;
+
+  // Convert recently_chosen [{meal_id, chosen_at}] → HistoryEntry[] for time-based penalties
+  const toHistory = (
+    chosen: Array<{ meal_id: string; chosen_at: string }> | null | undefined,
+  ): HistoryEntry[] => {
+    if (!chosen?.length) return [];
+    const mealMap = new Map<string, Meal>(meals.map((m) => [m.id, m]));
+    return chosen.flatMap((c) => {
+      const m = mealMap.get(c.meal_id);
+      return m ? [{ meal: m, chosenAt: c.chosen_at }] : [];
+    });
+  };
+
+  const hostSignals  = behavioralSignalsMap.get(hostUserId);
+  const guestSignals = behavioralSignalsMap.get(guestUserId);
 
   // 3. Combine hard NOs — UNION: excluded if EITHER user has a hard NO
   const combinedHardNos: string[] = [
@@ -109,22 +132,62 @@ export async function buildSharedDeckForSession(
     cuisines: hostProfile?.favorite_cuisines ?? [],
     learnedWeights: (hostProfile?.learned_weights as TasteProfile | null) ?? null,
     recentlySeen: new Set(hostProfile?.recently_seen_meal_ids ?? []),
+    chosenHistory: toHistory(hostSignals?.recently_chosen),
   };
   const guestScoringProfile: UserProfileForScoring = {
     cuisines: guestProfile?.favorite_cuisines ?? [],
     learnedWeights: (guestProfile?.learned_weights as TasteProfile | null) ?? null,
     recentlySeen: new Set(guestProfile?.recently_seen_meal_ids ?? []),
+    chosenHistory: toHistory(guestSignals?.recently_chosen),
   };
 
-  // 5. Hard gate — remove any meal that violates EITHER user's hard NOs
+  // 5a. Calculate dominance weight from shared session history.
+  //     dominanceA = sessions where host initiated / total sessions together.
+  //     weightA = 0.5 + (dominanceA - 0.5) × 0.3, capped to [0.35, 0.65].
+  //     First shared session (no history): equal weights 0.5 / 0.5.
+  let weightA = 0.5;
+  let weightB = 0.5;
+  try {
+    const [{ count: totalTogether }, { count: hostInitiated }] = await Promise.all([
+      supabase
+        .from("sessions")
+        .select("*", { count: "exact", head: true })
+        .neq("id", sessionId)
+        .neq("status", "waiting")
+        .or(
+          `and(host_user_id.eq.${hostUserId},guest_user_id.eq.${guestUserId}),` +
+          `and(host_user_id.eq.${guestUserId},guest_user_id.eq.${hostUserId})`,
+        ),
+      supabase
+        .from("sessions")
+        .select("*", { count: "exact", head: true })
+        .neq("id", sessionId)
+        .neq("status", "waiting")
+        .eq("host_user_id", hostUserId)
+        .eq("guest_user_id", guestUserId),
+    ]);
+
+    if ((totalTogether ?? 0) > 0) {
+      const dominanceA = (hostInitiated ?? 0) / totalTogether!;
+      weightA = Math.min(0.65, Math.max(0.35, 0.5 + (dominanceA - 0.5) * 0.3));
+      weightB = 1 - weightA;
+    }
+  } catch {
+    // Non-critical — fall back to equal weights
+  }
+
+  // 5b. Hard gate — remove any meal that violates EITHER user's hard NOs
   const eligibleMeals = hardGate(meals, combinedHardNos);
 
   // 6. Rank using mutual-fit scoring: each user scored independently,
-  //    combined via min(scoreA, scoreB) * 1.5 + overlap bonuses
+  //    combined via weighted average + overlap bonuses + cooking intent boosts
   const ranked = rankMealsForSharedSession(
     eligibleMeals,
     hostScoringProfile,
     guestScoringProfile,
+    weightA,
+    weightB,
+    cookingIntent,
   );
 
   const mealIds = ranked.map((r) => r.meal.id);

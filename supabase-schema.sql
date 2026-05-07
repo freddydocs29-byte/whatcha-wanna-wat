@@ -28,6 +28,8 @@ create table sessions (
   status         text        not null default 'waiting' check (status in ('waiting', 'active', 'matched')),
   locked_meal_id text,
   deck_meal_ids  jsonb,                                 -- ordered array of meal IDs for the shared deck
+  vibe           text,                                  -- SessionVibeMode chosen by host
+  cooking_intent text        check (cooking_intent in ('cooking', 'ordering', 'either')),
   created_at     timestamptz default now(),
   updated_at     timestamptz default now(),
   expires_at     timestamptz default (now() + interval '24 hours')
@@ -109,6 +111,36 @@ create policy "MVP open access" on user_sessions for all using (true) with check
 
 create index user_sessions_user_id    on user_sessions (user_id);
 create index user_sessions_opened_at  on user_sessions (opened_at desc);
+
+-- ─── User Behavioral Signals ─────────────────────────────────────────────────
+-- One row per user. Consolidated behavioral learning store — synced from the
+-- client on every meal acceptance. Shared sessions read recently_chosen here
+-- to apply time-based recency penalties (< 2 days, < 7 days, < 30 days) that
+-- require timestamps, unlike the flat recently_seen_meal_ids in profiles.
+--
+-- liked_tags / disliked_tags / liked_categories mirror profiles.learned_weights
+-- and are written here for consolidated access in cross-device shared sessions.
+-- recently_chosen: [{meal_id, chosen_at}] — last 30 accepted meals with timestamps.
+
+create table if not exists user_behavioral_signals (
+  user_id           text        primary key,
+  liked_tags        jsonb       not null default '{}',
+  disliked_tags     jsonb       not null default '{}',
+  liked_categories  jsonb       not null default '{}',
+  recently_chosen   jsonb       not null default '[]',
+  last_updated      timestamptz not null default now()
+);
+
+alter table user_behavioral_signals enable row level security;
+create policy "MVP open access" on user_behavioral_signals for all using (true) with check (true);
+
+create index user_behavioral_signals_user_id on user_behavioral_signals (user_id);
+
+-- ─── Sessions schema additions ────────────────────────────────────────────────
+-- Run these ALTER TABLE statements if the sessions table already exists:
+-- ALTER TABLE sessions ADD COLUMN IF NOT EXISTS vibe text;
+-- ALTER TABLE sessions ADD COLUMN IF NOT EXISTS cooking_intent text
+--   check (cooking_intent in ('cooking', 'ordering', 'either'));
 
 -- ─── Decisions ────────────────────────────────────────────────────────────────
 -- One row per meal outcome within a user_session.

@@ -1,6 +1,6 @@
 import { Meal } from "../data/meals";
 import { getUserId } from "./identity";
-import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen } from "./supabase-profile";
+import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertBehavioralSignals } from "./supabase-profile";
 
 export type HistoryEntry = {
   meal: Meal;
@@ -204,7 +204,16 @@ export function clearTodaysPick(): void {
 export function addToHistory(meal: Meal): void {
   const entry: HistoryEntry = { meal, chosenAt: new Date().toISOString() };
   const current = getHistory();
-  localStorage.setItem(HISTORY_KEY, JSON.stringify([entry, ...current]));
+  const updated = [entry, ...current];
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+
+  // Sync recently_chosen timestamps to Supabase so shared sessions can apply
+  // time-based recency penalties (< 2 days, < 7 days, < 30 days).
+  const recentlyChosen = updated.slice(0, 30).map((h) => ({
+    meal_id: h.meal.id,
+    chosen_at: h.chosenAt,
+  }));
+  upsertBehavioralSignals(getUserId(), { recentlyChosen }).catch(() => {});
 }
 
 export function getPreferences(): UserPreferences | null {
@@ -269,7 +278,14 @@ export function updateTasteProfile(meal: Meal, signal: "pass" | "save" | "choose
   if (_tasteProfileSyncTimer) clearTimeout(_tasteProfileSyncTimer);
   const snapshot = profile;
   _tasteProfileSyncTimer = setTimeout(() => {
-    upsertLearnedWeights(getUserId(), snapshot).catch(() => {});
+    const uid = getUserId();
+    upsertLearnedWeights(uid, snapshot).catch(() => {});
+    // Also write to consolidated behavioral signals table for cross-device shared sessions
+    upsertBehavioralSignals(uid, {
+      likedTags: snapshot.likedTags,
+      dislikedTags: snapshot.dislikedTags,
+      likedCategories: snapshot.likedCategories,
+    }).catch(() => {});
   }, 500);
 }
 

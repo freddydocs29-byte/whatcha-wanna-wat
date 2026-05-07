@@ -7,7 +7,7 @@ import { supabase, Session } from "../../lib/supabase";
 import { getUserId } from "../../lib/identity";
 import { buildSharedDeckForSession } from "../../lib/deck";
 import { upsertProfilePreferences } from "../../lib/supabase-profile";
-import type { SessionVibeMode } from "../../lib/scoring";
+import type { SessionVibeMode, CookingIntent } from "../../lib/scoring";
 import {
   hasCompletedOnboarding,
   savePreferences,
@@ -50,13 +50,10 @@ type ViewerRole = "host" | "guest" | "full" | "unknown";
 
 const POLL_INTERVAL_MS = 3000;
 
-const VIBE_OPTIONS: { value: SessionVibeMode; label: string }[] = [
-  { value: "mix-it-up",     label: "Mix It Up" },
-  { value: "comfort-food",  label: "Comfort Food" },
-  { value: "quick-easy",    label: "Quick & Easy" },
-  { value: "healthy",       label: "Healthy" },
-  { value: "something-new", label: "Something New" },
-  { value: "kid-friendly",  label: "Kid Friendly" },
+const COOKING_INTENT_OPTIONS: { value: CookingIntent; label: string; sub: string }[] = [
+  { value: "cooking",  label: "Cooking",      sub: "We'll make it at home" },
+  { value: "ordering", label: "Ordering",     sub: "Delivery or takeout" },
+  { value: "either",   label: "Either works", sub: "No preference" },
 ];
 
 export default function SessionPage() {
@@ -71,6 +68,8 @@ export default function SessionPage() {
   const [buildingDeck, setBuildingDeck] = useState(false);
   const [completingSetup, setCompletingSetup] = useState(false);
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
+  const [selectedCookingIntent, setSelectedCookingIntent] = useState<CookingIntent>("either");
+  const [cookingIntentStep, setCookingIntentStep] = useState<"pending" | "done">("pending");
 
   // Guard so generateDeckIfNeeded only fires once per session load
   const deckTriggeredRef = useRef(false);
@@ -110,6 +109,7 @@ export default function SessionPage() {
     if (myId === s.host_user_id) {
       setRole("host");
       if (s.vibe) setSelectedVibe(s.vibe as SessionVibeMode);
+      if (s.cooking_intent) setSelectedCookingIntent(s.cooking_intent);
     } else if (myId === s.guest_user_id) {
       setRole("guest");
     } else if (s.guest_user_id !== null) {
@@ -201,6 +201,14 @@ export default function SessionPage() {
     }
   }, [role, session, joining, needsSetup, joinSession]);
 
+  // Auto-advance cooking intent step after 20 s if both are connected and neither has acted
+  useEffect(() => {
+    const isConnected = session?.status === "active" || session?.status === "matched";
+    if (!isConnected || cookingIntentStep !== "pending") return;
+    const timer = setTimeout(() => setCookingIntentStep("done"), 20_000);
+    return () => clearTimeout(timer);
+  }, [session?.status, cookingIntentStep]);
+
   // Poll for changes:
   // - Host: detect when guest joins (status: waiting → active)
   // - Both: detect when deck is ready (deck_meal_ids populated)
@@ -222,33 +230,39 @@ export default function SessionPage() {
     };
   }, [role, session?.status, session?.deck_meal_ids, loadSession]);
 
-  // Saves the host's vibe choice to the session row so the guest can read it.
-  // Fire-and-forget — requires a `vibe` column on the sessions table.
-  async function handleVibeChange(vibe: SessionVibeMode) {
-    setSelectedVibe(vibe);
-    supabase
+  // Persists cooking intent selection and advances past the question step.
+  // Called by both host and guest — last write wins (both are present, it's a quick choice).
+  async function handleCookingIntentSelect(intent: CookingIntent) {
+    setSelectedCookingIntent(intent);
+    const { error: err } = await supabase
       .from("sessions")
-      .update({ vibe, updated_at: new Date().toISOString() })
-      .eq("id", sessionId)
-      .then(({ error: err }) => {
-        if (err) console.warn("[session] vibe save failed:", err.message);
-      });
+      .update({ cooking_intent: intent, updated_at: new Date().toISOString() })
+      .eq("id", sessionId);
+    if (err) console.warn("[session] cooking intent save failed:", err.message);
+    setCookingIntentStep("done");
   }
 
-  // Host locks the chosen vibe, generates the shared deck, then enters the deck page.
-  // This is the explicit gate that controls when the guest can start swiping.
+  function handleCookingIntentSkip() {
+    setCookingIntentStep("done");
+  }
+
+  // Host locks the chosen vibe, generates the shared deck, then enters.
+  // cooking_intent is already in the DB from the question step — no need to re-write it here.
   async function handleStartSwiping() {
     if (!session) return;
-    // Persist the vibe choice so deck page and guest screen both reflect it
+    // Persist the vibe so deck build and guest screen both reflect it
     await supabase
       .from("sessions")
-      .update({ vibe: selectedVibe, updated_at: new Date().toISOString() })
+      .update({
+        vibe: selectedVibe,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", sessionId);
     // Build the shared deck (safe to call even if already built — returns early)
     if (!session.deck_meal_ids?.length) {
       await generateDeckIfNeeded(session);
     }
-    trackEvent("shared_deck_started", { sessionId, vibe: selectedVibe });
+    trackEvent("shared_deck_started", { sessionId, vibe: selectedVibe, cookingIntent: selectedCookingIntent });
     router.push(`/deck?sessionId=${sessionId}&vibe=${selectedVibe}`);
   }
 
@@ -523,8 +537,10 @@ export default function SessionPage() {
     );
   }
 
-  // ── Guest: waiting for host to pick vibe / generate deck ─────────────────
+  // ── Guest: waiting for deck / cooking intent question ────────────────────
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
+    const guestBothConnected = session?.status === "active" || session?.status === "matched";
+
     return (
       <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
         <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
@@ -547,21 +563,67 @@ export default function SessionPage() {
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              <div className="flex items-center gap-2.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
-                </span>
-                <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                  Waiting
-                </p>
-              </div>
-              <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
-                Hang tight…
-              </h1>
-              <p className="mt-3 text-sm leading-6 text-white/55">
-                Waiting for the host to start the deck.
-              </p>
+              {guestBothConnected && cookingIntentStep === "pending" ? (
+                <>
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-white/70" />
+                    <p className="text-xs font-medium uppercase tracking-widest text-white/50">
+                      Both connected
+                    </p>
+                  </div>
+                  <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
+                    Quick question
+                  </h1>
+                  <p className="mt-3 text-sm leading-6 text-white/55">
+                    Cooking or ordering tonight?
+                  </p>
+                  <div className="mt-5 grid grid-cols-3 gap-3">
+                    {COOKING_INTENT_OPTIONS.map(({ value, label, sub }) => {
+                      const emojis: Record<CookingIntent, string> = { cooking: "🍳", ordering: "📱", either: "🤷" };
+                      const isActive = selectedCookingIntent === value;
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => void handleCookingIntentSelect(value)}
+                          className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-4 text-center transition-all duration-150 active:scale-[0.97] ${
+                            isActive
+                              ? "border-white/30 bg-white/[0.12] text-white/90"
+                              : "border-white/[0.07] bg-white/[0.03] text-white/35 hover:border-white/15 hover:text-white/55"
+                          }`}
+                        >
+                          <span className="text-2xl">{emojis[value]}</span>
+                          <span className="text-xs font-semibold tracking-[-0.01em]">{label}</span>
+                          <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-white/45" : "text-white/20"}`}>{sub}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={handleCookingIntentSkip}
+                    className="mt-4 w-full text-center text-xs text-white/30 transition hover:text-white/50"
+                  >
+                    Skip
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
+                    </span>
+                    <p className="text-xs font-medium uppercase tracking-widest text-white/50">
+                      Waiting
+                    </p>
+                  </div>
+                  <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
+                    Hang tight…
+                  </h1>
+                  <p className="mt-3 text-sm leading-6 text-white/55">
+                    Waiting for the host to start the deck.
+                  </p>
+                </>
+              )}
             </div>
 
             <p className="text-center text-[11px] text-white/20">
@@ -576,7 +638,6 @@ export default function SessionPage() {
   // ── Guest: deck ready — show intentional entry screen ────────────────────
   if (role === "guest" && !!(session?.deck_meal_ids?.length)) {
     const guestVibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;
-    const vibeLabel = VIBE_OPTIONS.find((v) => v.value === guestVibe)?.label ?? "Mix It Up";
 
     return (
       <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
@@ -612,16 +673,6 @@ export default function SessionPage() {
               <p className="mt-3 text-sm leading-6 text-white/55">
                 We&apos;ll use both profiles to build your shared deck.
               </p>
-
-              {/* Vibe — read-only, set by host */}
-              <div className="mt-5 flex flex-wrap gap-2">
-                <span className="text-[11px] font-medium uppercase tracking-widest text-white/30">
-                  Vibe
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.06] px-3 py-1 text-xs text-white/60">
-                  {vibeLabel}
-                </span>
-              </div>
 
               <button
                 onClick={() => router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`)}
@@ -731,49 +782,45 @@ export default function SessionPage() {
               </button>
             </div>
 
-            {/* Vibe — editable while waiting for guest, locked once both are connected */}
-            {!deckReady && (
+            {/* Cooking intent question — shown to both users immediately after both connect */}
+            {bothConnected && !deckReady && cookingIntentStep === "pending" && (
               <div className="mt-5">
-                {!bothConnected ? (
-                  <>
-                    <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-white/30">
-                      Vibe
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {VIBE_OPTIONS.map(({ value, label }) => {
-                        const isActive = selectedVibe === value;
-                        return (
-                          <button
-                            key={value}
-                            onClick={() => handleVibeChange(value)}
-                            className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors duration-150 active:scale-[0.96] ${
-                              isActive
-                                ? "border-white/30 bg-white/[0.14] text-white/90"
-                                : "border-white/[0.08] bg-transparent text-white/35 hover:border-white/18 hover:text-white/60"
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-medium uppercase tracking-widest text-white/30">
-                      Vibe
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-white/[0.1] bg-white/[0.06] px-3 py-1 text-xs text-white/60">
-                      {VIBE_OPTIONS.find((v) => v.value === selectedVibe)?.label ?? "Mix It Up"}
-                    </span>
-                  </div>
-                )}
+                <p className="mb-4 text-sm font-medium text-white/55">
+                  Cooking or ordering tonight?
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {COOKING_INTENT_OPTIONS.map(({ value, label, sub }) => {
+                    const emojis: Record<CookingIntent, string> = { cooking: "🍳", ordering: "📱", either: "🤷" };
+                    const isActive = selectedCookingIntent === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => void handleCookingIntentSelect(value)}
+                        className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-4 text-center transition-all duration-150 active:scale-[0.97] ${
+                          isActive
+                            ? "border-white/30 bg-white/[0.12] text-white/90"
+                            : "border-white/[0.07] bg-white/[0.03] text-white/35 hover:border-white/15 hover:text-white/55"
+                        }`}
+                      >
+                        <span className="text-2xl">{emojis[value]}</span>
+                        <span className="text-xs font-semibold tracking-[-0.01em]">{label}</span>
+                        <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-white/45" : "text-white/20"}`}>{sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={handleCookingIntentSkip}
+                  className="mt-4 w-full text-center text-xs text-white/30 transition hover:text-white/50"
+                >
+                  Skip
+                </button>
               </div>
             )}
 
-            {/* Start swiping — shown once both users are connected.
-                First click generates the deck (locked to the chosen vibe) then enters. */}
-            {bothConnected && (
+            {/* Start swiping — shown once both users are connected and cooking intent step is done.
+                First click generates the deck then enters. */}
+            {bothConnected && cookingIntentStep === "done" && (
               <button
                 onClick={handleStartSwiping}
                 disabled={buildingDeck}

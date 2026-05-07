@@ -173,7 +173,8 @@ export default function Home() {
           host_user_id: hostId,
           status: "waiting",
           expires_at: expiresAt,
-          vibe: null,
+          vibe: "mix-it-up",
+          cooking_intent: "either",
         })
         .select()
         .single();

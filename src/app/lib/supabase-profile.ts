@@ -5,7 +5,7 @@
  * Call them without await from synchronous storage helpers.
  */
 
-import { supabase, type Profile, type SoftAvoid } from "./supabase";
+import { supabase, type Profile, type SoftAvoid, type UserBehavioralSignals } from "./supabase";
 
 // ─── Types (mirrored from storage.ts to avoid circular imports) ───────────────
 
@@ -145,6 +145,69 @@ export async function upsertSoftAvoids(
   } catch (err) {
     console.error("[profile] unexpected upsert soft_avoids error:", err);
   }
+}
+
+// ─── Behavioral signals ───────────────────────────────────────────────────────
+
+type BehavioralSignalFields = {
+  likedTags?: Record<string, number>;
+  dislikedTags?: Record<string, number>;
+  likedCategories?: Record<string, number>;
+  recentlyChosen?: Array<{ meal_id: string; chosen_at: string }>;
+};
+
+/**
+ * Upserts behavioral learning signals to user_behavioral_signals.
+ * Only the fields provided are written — omitted fields are left untouched
+ * via Supabase's upsert merge behaviour.
+ */
+export async function upsertBehavioralSignals(
+  userId: string,
+  signals: BehavioralSignalFields,
+): Promise<void> {
+  try {
+    const payload: Record<string, unknown> = {
+      user_id: userId,
+      last_updated: new Date().toISOString(),
+    };
+    if (signals.likedTags !== undefined)      payload.liked_tags       = signals.likedTags;
+    if (signals.dislikedTags !== undefined)   payload.disliked_tags    = signals.dislikedTags;
+    if (signals.likedCategories !== undefined) payload.liked_categories = signals.likedCategories;
+    if (signals.recentlyChosen !== undefined) payload.recently_chosen  = signals.recentlyChosen;
+
+    const { error } = await supabase
+      .from("user_behavioral_signals")
+      .upsert(payload);
+    if (error) console.error("[behavioral] upsert error:", error.message);
+  } catch (err) {
+    console.error("[behavioral] unexpected upsert error:", err);
+  }
+}
+
+/**
+ * Fetches behavioral signals for a list of user IDs.
+ * Returns a map of userId → UserBehavioralSignals. Missing users are absent.
+ */
+export async function fetchBehavioralSignalsBatch(
+  userIds: string[],
+): Promise<Map<string, UserBehavioralSignals>> {
+  const result = new Map<string, UserBehavioralSignals>();
+  try {
+    const { data, error } = await supabase
+      .from("user_behavioral_signals")
+      .select("user_id, liked_tags, disliked_tags, liked_categories, recently_chosen, last_updated")
+      .in("user_id", userIds);
+    if (error) {
+      console.error("[behavioral] fetch error:", error.message);
+      return result;
+    }
+    for (const row of data ?? []) {
+      result.set(row.user_id, row as UserBehavioralSignals);
+    }
+  } catch (err) {
+    console.error("[behavioral] unexpected fetch error:", err);
+  }
+  return result;
 }
 
 /**

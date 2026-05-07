@@ -33,6 +33,12 @@ export type UserProfileForScoring = {
   cuisines: string[];
   learnedWeights: TasteProfile | null;
   recentlySeen: Set<string>;
+  /**
+   * Time-stamped acceptance history from user_behavioral_signals.recently_chosen.
+   * Used for time-based recency penalties (< 2 days → -5.0, < 7 → -3.0, < 30 → -1.0).
+   * Solo sessions use localStorage history; shared sessions populate this from Supabase.
+   */
+  chosenHistory?: HistoryEntry[];
 };
 
 // ── Hard gate ─────────────────────────────────────────────────────────────────
@@ -1429,14 +1435,14 @@ function scoreForUser(meal: Meal, profile: UserProfileForScoring): number {
   const { score } = scoreMeal(
     meal,
     prefs,
-    [],        // savedMeals — not available in Supabase profiles
-    [],        // history — not available in Supabase profiles
-    false,     // no pantry mode
+    [],                                  // savedMeals — not available in Supabase profiles
+    profile.chosenHistory ?? [],          // history — from user_behavioral_signals.recently_chosen
+    false,                               // no pantry mode
     profile.learnedWeights ?? undefined,
     profile.recentlySeen,
-    undefined, // flavorProfile — not available in Supabase profiles
-    [],        // favorites — not available in Supabase profiles
-    [],        // no ingredient filter
+    undefined,                           // flavorProfile — not available in Supabase profiles
+    [],                                  // favorites — not available in Supabase profiles
+    [],                                  // no ingredient filter
     "solo",    // score each user independently; mutual formula handles the partnership
     new Set(), // fresh session — nothing card-shown yet
     null,      // no vibe filter in shared mode
@@ -1507,12 +1513,18 @@ function computeOverlapBonus(
  * Returns individual scores (for logging/debugging) plus the combined
  * mutualScore and overlap metadata.
  *
+ * weightA / weightB: dominance weights derived from shared session history.
+ * Default 0.5 / 0.5 (first shared session or no history).
+ * Weights are bounded [0.35, 0.65] so neither person fully dominates.
+ *
  * Exported so it can be unit-tested independently of the full ranking pipeline.
  */
 export function scoreMealMutual(
   meal: Meal,
   profileA: UserProfileForScoring,
   profileB: UserProfileForScoring,
+  weightA = 0.5,
+  weightB = 0.5,
 ): {
   mutualScore: number;
   userAScore: number;
@@ -1544,8 +1556,11 @@ export function scoreMealMutual(
     profileA.recentlySeen.has(meal.id) && profileB.recentlySeen.has(meal.id)
       ? -1.0 : 0;
 
+  // Weighted average replaces min() — gives fair weight to whichever user has
+  // historically initiated more sessions (the "choosier" partner gets slightly
+  // more pull), while still ensuring neither person is fully ignored.
   const mutualScore =
-    Math.min(userAScore, userBScore) * 1.5
+    (userAScore * weightA) + (userBScore * weightB)
     + overlapBonus
     + crowdBonus
     + bothSeenPenalty;
@@ -1570,6 +1585,46 @@ export function scoreMealMutual(
   return { mutualScore, userAScore, userBScore, reason, overlapReasons };
 }
 
+/** Cooking intent set by the host at session start — affects shared score boosts. */
+export type CookingIntent = "cooking" | "ordering" | "either";
+
+/**
+ * Returns a score delta for a meal based on the host's cooking intent.
+ *
+ *   cooking:  pantry-friendly tag +2.0 | minimal-ingredients tag +1.5
+ *             prep time ≤ 30 min +1.0 | prep time > 45 min -1.5
+ *   ordering: no adjustment
+ *   either:   pantry-friendly +0.5 (mild nudge)
+ */
+function getCookingIntentBoost(meal: Meal, intent: CookingIntent): number {
+  if (intent === "ordering") return 0;
+
+  const hasTags = (...ts: string[]) =>
+    ts.some((t) => meal.tags.some((tag) => tag.toLowerCase().includes(t.toLowerCase())));
+
+  // Parse prep time from tags like "30 min"
+  let mealMinutes: number | null = null;
+  for (const tag of meal.tags) {
+    const m = tag.match(/^(\d+)\s*min$/i);
+    if (m) { mealMinutes = parseInt(m[1]); break; }
+  }
+
+  const isPantryFriendly = hasTags("Pantry staple", "Pantry-friendly", "No-cook option", "Pantry");
+  const isMinimalIngredients = hasTags("Minimal ingredients", "Easy", "Simple");
+
+  if (intent === "either") {
+    return isPantryFriendly ? 0.5 : 0;
+  }
+
+  // cooking intent
+  let boost = 0;
+  if (isPantryFriendly)      boost += 2.0;
+  if (isMinimalIngredients)  boost += 1.5;
+  if (mealMinutes !== null && mealMinutes <= 30) boost += 1.0;
+  if (mealMinutes !== null && mealMinutes > 45)  boost -= 1.5;
+  return boost;
+}
+
 /**
  * Ranks meals for a shared session using mutual-fit scoring.
  *
@@ -1578,11 +1633,12 @@ export function scoreMealMutual(
  * fairly and independently before being combined.
  *
  * Pipeline:
- *   1. Score every eligible meal with scoreMealMutual
- *   2. Sort descending by mutualScore
- *   3. Log top 10 in development (name + per-user scores + overlap reasons)
- *   4. bandShuffle within 1-point bands — same variety as solo mode
- *   5. spreadByCuisine — prevents same-cuisine runs
+ *   1. Score every eligible meal with scoreMealMutual (weighted average)
+ *   2. Apply cooking-intent score boosts (from host's "Cooking or ordering?" answer)
+ *   3. Sort descending by mutualScore
+ *   4. Log top 10 in development (name + per-user scores + overlap reasons)
+ *   5. bandShuffle within 1-point bands — same variety as solo mode
+ *   6. spreadByCuisine — prevents same-cuisine runs
  *
  * Hard gates must be applied by the caller before passing meals in.
  * Solo mode (rankMeals) is completely unaffected by this function.
@@ -1591,13 +1647,17 @@ export function rankMealsForSharedSession(
   meals: Meal[],
   profileA: UserProfileForScoring,
   profileB: UserProfileForScoring,
+  weightA = 0.5,
+  weightB = 0.5,
+  cookingIntent: CookingIntent = "either",
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
   const scored = meals.map((meal) => {
     const { mutualScore, userAScore, userBScore, reason, overlapReasons } =
-      scoreMealMutual(meal, profileA, profileB);
-    return { meal, score: mutualScore, userAScore, userBScore, reason, overlapReasons };
+      scoreMealMutual(meal, profileA, profileB, weightA, weightB);
+    const intentBoost = getCookingIntentBoost(meal, cookingIntent);
+    return { meal, score: mutualScore + intentBoost, userAScore, userBScore, reason, overlapReasons };
   });
 
   // Sort by mutual score descending
