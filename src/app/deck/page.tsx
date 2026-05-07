@@ -10,12 +10,14 @@ import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
 import { getUserId } from "../lib/identity";
-import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type NudgeTrigger } from "../lib/session-signals";
+import { getAvoidSignals, getPreferSignals, checkTriggers, checkCrossSessionNudge, type NudgeTrigger, type NudgeCandidate } from "../lib/session-signals";
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
-import { trackEvent } from "../lib/analytics";
+import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
 import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
+import { fetchSoftAvoids, upsertSoftAvoids } from "../lib/supabase-profile";
+import { type SoftAvoid } from "../lib/supabase";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -100,6 +102,7 @@ function buildDeck(
   sessionVibeMode: SessionVibeMode = "mix-it-up",
   rejectionReasons: string[] = [],
   recentlyRejectedCategories: string[] = [],
+  softAvoids: SoftAvoid[] = [],
 ): RankedMeal[] {
   const prefs = getPreferences();
   const savedMeals = getSavedMeals();
@@ -112,7 +115,7 @@ function buildDeck(
   const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
 
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode, rejectionReasons, recentlyRejectedCategories);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode, rejectionReasons, recentlyRejectedCategories, softAvoids);
   }
 
   function fill(deck: RankedMeal[], candidates: Meal[]): RankedMeal[] {
@@ -444,6 +447,13 @@ function DeckContent() {
   const passSignalsRef = useRef<Record<string, number>>({});
   const likeSignalsRef = useRef<Record<string, number>>({});
   const firedTriggersRef = useRef<Set<string>>(new Set());
+  // Cross-session nudge candidates: loaded on mount from analytics_events.
+  const nudgeCandidatesRef = useRef<NudgeCandidate[]>([]);
+  // Deduplication: if the rejection sheet fired this session, suppress the nudge.
+  const rejectionSheetFiredRef = useRef(false);
+  // Soft avoids: persisted score penalties loaded from Supabase on mount.
+  const softAvoidsRef = useRef<SoftAvoid[]>([]);
+  const [softAvoids, setSoftAvoids] = useState<SoftAvoid[]>([]);
   // Nudge queued during a swipe exit — shown after the animation completes.
   const pendingNudgeRef = useRef<NudgeTrigger | null>(null);
   const [activeNudge, setActiveNudge] = useState<NudgeTrigger | null>(null);
@@ -470,6 +480,59 @@ function DeckContent() {
     });
   }, [currentIndex, rankedMeals, sessionId]);
 
+  // Load soft avoids from Supabase on mount and clean up any expired entries.
+  useEffect(() => {
+    const userId = getUserId();
+    if (!userId) return;
+    fetchSoftAvoids(userId).then((avoids) => {
+      const now = new Date().toISOString();
+      const active = avoids.filter((sa) => sa.expiresAt > now);
+      softAvoidsRef.current = active;
+      setSoftAvoids(active);
+      if (active.length < avoids.length) {
+        // Some expired — persist the cleaned array
+        void upsertSoftAvoids(userId, active);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load cross-session nudge candidates on mount.
+  // Queries analytics_events for session_category_passes in the last 30 days,
+  // aggregates by signal (client-side), and keeps signals that appeared in
+  // 3+ distinct sessions.
+  useEffect(() => {
+    const userId = getUserId();
+    if (!userId || sessionId) return; // nudge is solo-only
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    supabase
+      .from("analytics_events")
+      .select("properties")
+      .eq("user_id", userId)
+      .eq("event_name", "session_category_passes")
+      .gte("created_at", since)
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        // Count distinct session IDs per category
+        const sessionsByCategory: Record<string, Set<string>> = {};
+        for (const row of data) {
+          const props = row.properties as {
+            categories?: string[];
+            sessionId?: string;
+          };
+          const cats = props?.categories ?? [];
+          const sid = props?.sessionId ?? `__no_session_${Math.random()}`;
+          for (const cat of cats) {
+            if (!sessionsByCategory[cat]) sessionsByCategory[cat] = new Set();
+            sessionsByCategory[cat].add(sid);
+          }
+        }
+        const candidates: NudgeCandidate[] = Object.entries(sessionsByCategory)
+          .filter(([, sessions]) => sessions.size >= 3)
+          .map(([signal, sessions]) => ({ signal, crossSessionCount: sessions.size }));
+        nudgeCandidatesRef.current = candidates;
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Builds the solo deck on mount and whenever pantry/ingredients/session
   // selectors change. Shared decks are loaded in their own effect and never
   // re-ranked from local state.
@@ -479,7 +542,7 @@ function DeckContent() {
       const id = rankedMeals[i]?.meal?.id;
       if (id) sessionShownRef.current.add(id);
     }
-    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
     if (!deckRecordedRef.current) {
       recordSeenSession(ranked.map((r) => r.meal.id));
       deckRecordedRef.current = true;
@@ -555,10 +618,13 @@ function DeckContent() {
   // Close the tracking session when the user navigates away without choosing.
   // The trackingClosedRef guard prevents double-fire when acceptance already
   // closed the session before the component unmounts.
+  // Also writes session_category_passes so the next session can build nudge candidates.
   useEffect(() => {
     return () => {
       if (trackingClosedRef.current) return;
       trackingClosedRef.current = true;
+      const userId = getUserId();
+      const ctx = inferSessionContext(new Date());
       trackingSessionPromiseRef.current?.then((tsId) => {
         if (!tsId || !trackingOpenedAtRef.current) return;
         void closeTrackingSession({
@@ -567,6 +633,13 @@ function DeckContent() {
           swipeCount: trackingSwipeCountRef.current,
           openedAt: trackingOpenedAtRef.current,
         });
+        if (userId && Object.keys(passSignalsRef.current).length > 0) {
+          writeSessionCategoryPasses(userId, passSignalsRef.current, {
+            trackingSessionId: tsId,
+            mealPeriod: ctx.mealPeriod,
+            dayType: ctx.dayType,
+          });
+        }
       });
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -577,6 +650,8 @@ function DeckContent() {
     function onBeforeUnload() {
       if (trackingClosedRef.current) return;
       trackingClosedRef.current = true;
+      const userId = getUserId();
+      const ctx = inferSessionContext(new Date());
       trackingSessionPromiseRef.current?.then((tsId) => {
         if (!tsId || !trackingOpenedAtRef.current) return;
         void closeTrackingSession({
@@ -585,6 +660,13 @@ function DeckContent() {
           swipeCount: trackingSwipeCountRef.current,
           openedAt: trackingOpenedAtRef.current,
         });
+        if (userId && Object.keys(passSignalsRef.current).length > 0) {
+          writeSessionCategoryPasses(userId, passSignalsRef.current, {
+            trackingSessionId: tsId,
+            mealPeriod: ctx.mealPeriod,
+            dayType: ctx.dayType,
+          });
+        }
       });
     }
     window.addEventListener("beforeunload", onBeforeUnload);
@@ -625,7 +707,7 @@ function DeckContent() {
     // In solo mode rebuild from scratch so scoring is fresh.
     const source = sessionId
       ? rankedMeals
-      : buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
+      : buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
     const topN = Math.max(3, Math.ceil(source.length * 0.35));
     setRankedMeals(source.slice(0, topN));
     setCurrentIndex(0);
@@ -972,7 +1054,7 @@ function DeckContent() {
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
     lastAiContextKeyRef.current = null; // allow re-trigger after explicit Fresh Ideas
-    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
+    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
     recordSeenSession(staticDeck.map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(staticDeck.slice(0, DECK_SIZE));
@@ -991,7 +1073,7 @@ function DeckContent() {
     lastAiContextKeyRef.current = null; // allow freshness re-evaluation on next deck
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
-    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current);
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, recentlyPassedCategoriesRef.current, softAvoidsRef.current);
     recordSeenSession(ranked.map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(ranked.slice(0, DECK_SIZE));
@@ -1052,18 +1134,17 @@ function DeckContent() {
       }
 
       // ── Progressive onboarding: track avoid signals (solo only) ──────────
-      if (!sessionId) {
+      if (!sessionId && !rejectionSheetFiredRef.current) {
         for (const sig of getAvoidSignals(meal)) {
           passSignalsRef.current[sig] = (passSignalsRef.current[sig] ?? 0) + 1;
         }
-        const nudge = checkTriggers(
+        const nudge = checkCrossSessionNudge(
           passSignalsRef.current,
-          likeSignalsRef.current,
+          nudgeCandidatesRef.current,
           firedTriggersRef.current,
         );
         if (nudge) {
           firedTriggersRef.current.add(nudge.signal);
-          markNudgeFired(nudge.signal);
           // Queue to display after the exit animation completes
           pendingNudgeRef.current = nudge;
         }
@@ -1094,7 +1175,7 @@ function DeckContent() {
       // ── Progressive onboarding: track prefer signals (solo only) ─────────
       // handleSave doesn't use triggerExit so we show the nudge immediately
       // rather than queuing it through onAnimationComplete.
-      if (!sessionId) {
+      if (!sessionId && !rejectionSheetFiredRef.current) {
         for (const sig of getPreferSignals(meal)) {
           likeSignalsRef.current[sig] = (likeSignalsRef.current[sig] ?? 0) + 1;
         }
@@ -1105,7 +1186,6 @@ function DeckContent() {
         );
         if (nudge) {
           firedTriggersRef.current.add(nudge.signal);
-          markNudgeFired(nudge.signal);
           setActiveNudge(nudge);
           trackEvent("nudge_shown", { nudgeType: nudge.type, nudgeSignal: nudge.signal });
         }
@@ -1172,6 +1252,23 @@ function DeckContent() {
           }
         });
         addToHistory(chosenMeal);
+
+        // Soft avoid self-clear: if user accepted a meal whose category is in
+        // soft avoids, the pattern is over — remove that entry immediately.
+        if (softAvoidsRef.current.length > 0) {
+          const acceptedSignals = getAvoidSignals(chosenMeal);
+          if (acceptedSignals.length > 0) {
+            const filtered = softAvoidsRef.current.filter(
+              (sa) => !acceptedSignals.includes(sa.category),
+            );
+            if (filtered.length < softAvoidsRef.current.length) {
+              softAvoidsRef.current = filtered;
+              const userId = getUserId();
+              if (userId) void upsertSoftAvoids(userId, filtered);
+            }
+          }
+        }
+
         router.push(`/locked?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
       });
     }, 240);
@@ -1206,6 +1303,7 @@ function DeckContent() {
         pendingRejectionSheetRef.current = false;
         rejectionCaptureCountRef.current += 1;
         passStreakRef.current = 0; // reset streak so it won't re-fire immediately
+        rejectionSheetFiredRef.current = true; // suppress nudge for rest of session
         setTimeout(() => setShowRejectionSheet(true), 200);
       }
     }
@@ -1220,6 +1318,7 @@ function DeckContent() {
       trackEvent(yes ? "nudge_accepted" : "nudge_dismissed", {
         nudgeType: nudge.type,
         nudgeSignal: nudge.signal,
+        source: yes ? "dial_it_back" : "just_not_tonight",
       });
     }
     // Nudges are solo-only; shared decks are fixed and can't be rebuilt here.
@@ -1228,32 +1327,62 @@ function DeckContent() {
     // Show a brief confirmation so the user knows the app learned something.
     const msg =
       nudge.type === "avoid"
-        ? `Got it — we'll avoid ${nudge.signal.toLowerCase()} going forward`
+        ? `Got it — we'll dial back ${nudge.signal.toLowerCase()} for a while`
         : `Nice — we'll show more ${nudge.signal}`;
     setToastMessage(msg);
 
-    const prefs = getPreferences();
-    if (!prefs) return;
-
     if (nudge.type === "avoid") {
-      // Guard against duplicate entries
-      if (prefs.dislikedFoods.includes(nudge.signal)) return;
-      const updatedPrefs = {
-        ...prefs,
-        dislikedFoods: [...prefs.dislikedFoods, nudge.signal],
+      // Soft avoid: score penalty for 60 days, not a hard exclusion.
+      // Find the candidate's crossSessionCount for the strength field.
+      const candidate = nudgeCandidatesRef.current.find((c) => c.signal === nudge.signal);
+      const strength = candidate?.crossSessionCount ?? 3;
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+      const newEntry: SoftAvoid = {
+        category: nudge.signal,
+        ingredient: nudge.signal,
+        addedAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        strength,
       };
-      savePreferences(updatedPrefs);
+      // Guard against duplicate entries for the same signal
+      const without = softAvoidsRef.current.filter((sa) => sa.category !== nudge.signal);
+      const updated = [...without, newEntry];
+      softAvoidsRef.current = updated;
+      setSoftAvoids(updated);
+      const userId = getUserId();
+      if (userId) void upsertSoftAvoids(userId, updated);
 
-      // Filter the NEW hard-NO out of the remaining deck in-place so the
-      // user doesn't need to restart — they just keep swiping.
-      const filteredRemaining = rankedMeals
-        .slice(currentIndex)
-        .filter(
-          (rm) => hardGate([rm.meal], updatedPrefs.dislikedFoods).length > 0,
+      // Re-score remaining deck so the soft avoid penalty takes effect immediately
+      const remaining = rankedMeals.slice(currentIndex).map((rm) => rm.meal);
+      if (remaining.length > 0) {
+        const prefs = getPreferences();
+        const reranked = rankMeals(
+          remaining,
+          prefs,
+          getSavedMeals(),
+          getHistory(),
+          pantryMode,
+          getTasteProfile(),
+          getRecentlySeenIds(),
+          getFlavorProfile() ?? undefined,
+          getFavorites(),
+          selectedIngredients,
+          "solo",
+          sessionShownRef.current,
+          null,
+          cookMode,
+          sessionVibeMode,
+          rejectionReasonsRef.current,
+          recentlyPassedCategoriesRef.current,
+          updated,
         );
-      setRankedMeals([...rankedMeals.slice(0, currentIndex), ...filteredRemaining]);
+        setRankedMeals([...rankedMeals.slice(0, currentIndex), ...reranked]);
+      }
     } else {
       // prefer: add cuisine to favorites
+      const prefs = getPreferences();
+      if (!prefs) return;
       if (prefs.cuisines.includes(nudge.signal)) return;
       const updatedPrefs = {
         ...prefs,

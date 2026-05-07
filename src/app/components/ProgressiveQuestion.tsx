@@ -73,25 +73,30 @@ export function ProgressiveQuestion({ nudge, onAnswer }: Props) {
             {/* Sub-copy */}
             <p className="mt-1.5 text-xs leading-5 text-white/35">
               {nudge.type === "avoid"
-                ? "We'll filter it out of your future decks."
+                ? "We'll dial it back — not cut it out completely."
                 : "We'll prioritize it in your next deck."}
             </p>
 
             {/* Actions */}
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => onAnswer(false)}
-                className="rounded-full border border-white/[0.08] bg-white/[0.05] py-3.5 text-sm text-white/50 transition hover:bg-white/[0.09] active:scale-[0.97]"
-              >
-                Not always
-              </button>
+            <div className="mt-5 flex flex-col items-center gap-3">
               <button
                 onClick={() => onAnswer(true)}
-                className="rounded-full bg-white py-3.5 text-sm font-semibold text-black transition hover:opacity-95 active:scale-[0.97]"
+                className="w-full rounded-full bg-white py-3.5 text-sm font-semibold text-black transition hover:opacity-95 active:scale-[0.97]"
               >
-                Yes, please
+                Yeah, dial it back
+              </button>
+              <button
+                onClick={() => onAnswer(false)}
+                className="text-sm text-white/40 transition hover:text-white/60 active:scale-[0.97] py-1"
+              >
+                Just not tonight
               </button>
             </div>
+
+            {/* Reversibility hint */}
+            <p className="mt-4 text-center text-[11px] text-white/20">
+              You can always adjust this in settings
+            </p>
           </motion.div>
         </>
       )}

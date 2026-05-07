@@ -5,7 +5,7 @@
  * Call them without await from synchronous storage helpers.
  */
 
-import { supabase, type Profile } from "./supabase";
+import { supabase, type Profile, type SoftAvoid } from "./supabase";
 
 // ─── Types (mirrored from storage.ts to avoid circular imports) ───────────────
 
@@ -102,6 +102,48 @@ export async function upsertLearnedWeights(
     if (error) console.error("[profile] upsert weights error:", error.message);
   } catch (err) {
     console.error("[profile] unexpected upsert weights error:", err);
+  }
+}
+
+/**
+ * Fetches the soft_avoids array for the given user.
+ * Returns an empty array on any error so callers can treat it as safe.
+ */
+export async function fetchSoftAvoids(userId: string): Promise<SoftAvoid[]> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("soft_avoids")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) {
+      console.error("[profile] fetch soft_avoids error:", error.message);
+      return [];
+    }
+    return (data?.soft_avoids as SoftAvoid[]) ?? [];
+  } catch (err) {
+    console.error("[profile] unexpected fetch soft_avoids error:", err);
+    return [];
+  }
+}
+
+/**
+ * Persists the full soft_avoids array for the given user.
+ * Fire-and-forget safe.
+ */
+export async function upsertSoftAvoids(
+  userId: string,
+  softAvoids: SoftAvoid[],
+): Promise<void> {
+  try {
+    const { error } = await supabase.from("profiles").upsert({
+      user_id: userId,
+      soft_avoids: softAvoids,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) console.error("[profile] upsert soft_avoids error:", error.message);
+  } catch (err) {
+    console.error("[profile] unexpected upsert soft_avoids error:", err);
   }
 }
 

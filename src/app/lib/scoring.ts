@@ -1,5 +1,6 @@
 import { type Meal } from "../data/meals";
 import { type UserPreferences, type HistoryEntry, type TasteProfile, type FlavorProfile } from "./storage";
+import { type SoftAvoid } from "./supabase";
 
 const PANTRY_FRIENDLY_TAGS = ["Easy", "Pantry staple", "No-cook option", "Meal-prep friendly"];
 const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
@@ -1071,6 +1072,38 @@ export function getSessionRejectionAdjustment(
   return delta;
 }
 
+// ── Soft avoid penalty ────────────────────────────────────────────────────────
+
+/**
+ * Returns -3.0 if any non-expired soft avoid entry matches this meal's
+ * ingredient/category signals; 0 otherwise.
+ *
+ * Matching uses the same keyword logic as getAvoidSignals in session-signals.ts
+ * (meal id + name + ingredients text). A strong penalty but not an exclusion —
+ * the meal can still appear if the deck is thin or other signals strongly
+ * favour it.
+ */
+const SOFT_AVOID_KEYWORDS: Record<string, string[]> = {
+  Beef: ["beef", "steak", "burger", "meatloaf", "meatball", "bolognese", "ribeye", "rendang", "brisket", "ground beef"],
+  Pork: ["pork", "bacon", "ham", "sausage", "pepperoni", "ribs", "hot dog", "prosciutto", "chorizo"],
+  Seafood: ["seafood", "fish", "shrimp", "salmon", "tuna", "crab", "lobster", "scallop", "sushi", "poke", "ceviche"],
+  Chicken: ["chicken", "poultry", "coq"],
+};
+
+function checkSoftAvoidPenalty(meal: Meal, softAvoids: SoftAvoid[]): number {
+  if (softAvoids.length === 0) return 0;
+  const now = Date.now();
+  const activeSoftAvoids = softAvoids.filter((sa) => new Date(sa.expiresAt).getTime() > now);
+  if (activeSoftAvoids.length === 0) return 0;
+
+  const text = [meal.id, meal.name, ...(meal.ingredients ?? [])].join(" ").toLowerCase();
+  for (const sa of activeSoftAvoids) {
+    const keywords = SOFT_AVOID_KEYWORDS[sa.category] ?? SOFT_AVOID_KEYWORDS[sa.ingredient];
+    if (keywords?.some((kw) => text.includes(kw))) return -3.0;
+  }
+  return 0;
+}
+
 /**
  * Score, sort, and present a list of meals with controlled variety.
  *
@@ -1109,6 +1142,7 @@ export function rankMeals(
   sessionVibeMode: SessionVibeMode = "mix-it-up",
   rejectionReasons: string[] = [],
   recentlyRejectedCategories: string[] = [],
+  softAvoids: SoftAvoid[] = [],
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
@@ -1120,7 +1154,8 @@ export function rankMeals(
     const rejAdj = rejectionReasons.length > 0
       ? getSessionRejectionAdjustment(meal, rejectionReasons, history, recentlyRejectedCategories)
       : 0;
-    return { meal, score: score + rejAdj, reason, vibeScore, behaviorScore };
+    const softAvoidPenalty = checkSoftAvoidPenalty(meal, softAvoids);
+    return { meal, score: score + rejAdj + softAvoidPenalty, reason, vibeScore, behaviorScore };
   });
 
   // 2. Sort by score descending — all meals ranked, no artificial cutoff

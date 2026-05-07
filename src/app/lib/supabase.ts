@@ -71,6 +71,20 @@ export type Decision = {
   is_ai_generated: boolean;
 };
 
+/**
+ * A soft-avoid entry — a temporary score penalty applied to a meal category
+ * or ingredient group. Added when the user confirms the cross-session nudge.
+ * Expires after 60 days and self-clears if the user accepts a matching meal.
+ */
+export type SoftAvoid = {
+  category: string;
+  ingredient: string;
+  addedAt: string;
+  expiresAt: string;
+  /** Cross-session pass count at the time the nudge fired — used for score weighting. */
+  strength: number;
+};
+
 export type Profile = {
   user_id: string;
   display_name: string | null;
@@ -84,6 +98,7 @@ export type Profile = {
     interactionCount: number;
   } | null;
   recently_seen_meal_ids: string[];
+  soft_avoids: SoftAvoid[];
   created_at: string;
   updated_at: string;
 };

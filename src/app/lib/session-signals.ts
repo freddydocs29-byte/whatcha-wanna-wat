@@ -60,9 +60,26 @@ export type NudgeTrigger = {
   question: string;
 };
 
-// ── Threshold ─────────────────────────────────────────────────────────────────
+/**
+ * A candidate for the cross-session avoid nudge.
+ * Built on session start by querying analytics_events.
+ */
+export type NudgeCandidate = {
+  signal: string;
+  /** Number of distinct sessions in the last 30 days where this was passed on. */
+  crossSessionCount: number;
+};
 
+// ── Thresholds ────────────────────────────────────────────────────────────────
+
+/** Legacy in-session threshold (still used for prefer/cuisine nudges). */
 export const TRIGGER_THRESHOLD = 3;
+/**
+ * Minimum in-session passes before the cross-session avoid nudge can fire.
+ * Higher than TRIGGER_THRESHOLD — the user needs to be clearly in browsing
+ * mode, not just being selective on a couple of cards.
+ */
+export const CROSS_SESSION_IN_SESSION_THRESHOLD = 4;
 
 // ── Signal extraction ─────────────────────────────────────────────────────────
 
@@ -161,4 +178,51 @@ export function checkTriggers(
   }
 
   return null;
+}
+
+// ── Cross-session avoid nudge ─────────────────────────────────────────────────
+
+/**
+ * Evaluates whether the cross-session avoid nudge should fire.
+ *
+ * Unlike checkTriggers, this does NOT use in-session thresholds as the sole
+ * gate. It requires:
+ *   1. The user has passed 4+ times on this signal in the current session
+ *      (they're clearly not in the mood, not just being picky).
+ *   2. The signal appears as a nudgeCandidate — meaning it was passed on
+ *      across 3+ different sessions in the last 30 days (a real pattern).
+ *   3. No nudge has fired yet this session.
+ *
+ * Returns the strongest candidate (highest crossSessionCount) that qualifies,
+ * or null if nothing qualifies.
+ *
+ * No cooldown check — cross-session recurrence is self-managed by soft avoids
+ * and session deduplication.
+ */
+export function checkCrossSessionNudge(
+  passSignals: Record<string, number>,
+  nudgeCandidates: NudgeCandidate[],
+  firedThisSession: Set<string>,
+): NudgeTrigger | null {
+  // One nudge per session
+  if (firedThisSession.size > 0) return null;
+  if (nudgeCandidates.length === 0) return null;
+
+  // Find the strongest qualifying candidate
+  let best: NudgeCandidate | null = null;
+  for (const candidate of nudgeCandidates) {
+    const inSessionCount = passSignals[candidate.signal] ?? 0;
+    if (inSessionCount < CROSS_SESSION_IN_SESSION_THRESHOLD) continue;
+    if (!best || candidate.crossSessionCount > best.crossSessionCount) {
+      best = candidate;
+    }
+  }
+
+  if (!best) return null;
+
+  return {
+    type: "avoid",
+    signal: best.signal,
+    question: `Not really feeling ${best.signal.toLowerCase()} lately?`,
+  };
 }
