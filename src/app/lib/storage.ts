@@ -1,6 +1,6 @@
 import { Meal } from "../data/meals";
 import { getUserId } from "./identity";
-import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertBehavioralSignals } from "./supabase-profile";
+import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertBehavioralSignals, upsertNoveltyBias } from "./supabase-profile";
 
 export type HistoryEntry = {
   meal: Meal;
@@ -9,7 +9,18 @@ export type HistoryEntry = {
 
 export type UserPreferences = {
   cuisines: string[];
-  dislikedFoods: string[];
+  /**
+   * Dietary constraints from onboarding Step 1 (Vegetarian, Vegan, Gluten-free,
+   * Dairy-free, Halal, Kosher). Maps to hardGate via DIETARY_RESTRICTION_MAP in
+   * scoring.ts — kept separate from hardNoFoods because they feed different systems.
+   */
+  dietaryRestrictions: string[];
+  /**
+   * Protein / ingredient hard NOs from onboarding Step 1 (No pork, No seafood,
+   * No beef) and profile-page edits. Passed directly to hardGate after label
+   * normalisation via HARD_NO_LABEL_MAP in scoring.ts.
+   */
+  hardNoFoods: string[];
   spiceLevel: "mild" | "medium" | "hot" | "any";
   cookOrOrder: "cook" | "order" | "either";
   kidFriendly: boolean | null;
@@ -48,6 +59,7 @@ const ONBOARDING_KEY = "wwe_onboarding_done";
 const TASTE_KEY = "wwe_taste_profile";
 const SEEN_KEY = "wwe_seen_sessions";
 const FLAVOR_KEY = "wwe_flavor_profile";
+const NOVELTY_BIAS_KEY = "wwe_novelty_bias";
 // Legacy key — only read during one-time migration, never written again.
 const FAVORITES_KEY = "wwe_favorites";
 const LAST_DECIDE_KEY = "wwe_last_decide_pick";
@@ -217,14 +229,52 @@ export function addToHistory(meal: Meal): void {
 }
 
 export function getPreferences(): UserPreferences | null {
-  return read<UserPreferences | null>(PREFS_KEY, null);
+  const raw = read<Record<string, unknown> | null>(PREFS_KEY, null);
+  if (!raw) return null;
+
+  // Migrate old format: single dislikedFoods array → separate dietaryRestrictions + hardNoFoods.
+  // Old values (Seafood, Dairy, Gluten / Pasta, etc.) were all hard-NO style labels,
+  // so they migrate into hardNoFoods. dietaryRestrictions starts empty.
+  if ("dislikedFoods" in raw && !("hardNoFoods" in raw)) {
+    const migrated: UserPreferences = {
+      cuisines: (raw.cuisines as string[]) ?? [],
+      dietaryRestrictions: [],
+      hardNoFoods: (raw.dislikedFoods as string[]) ?? [],
+      spiceLevel: (raw.spiceLevel as UserPreferences["spiceLevel"]) ?? "any",
+      cookOrOrder: (raw.cookOrOrder as UserPreferences["cookOrOrder"]) ?? "either",
+      kidFriendly: (raw.kidFriendly as boolean | null) ?? null,
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(migrated));
+    }
+    return migrated;
+  }
+
+  return raw as UserPreferences;
 }
 
 export function savePreferences(prefs: UserPreferences): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-  // Fire-and-forget sync to Supabase
-  upsertProfilePreferences(getUserId(), prefs).catch(() => {});
+  // Fire-and-forget sync to Supabase — dietary_restrictions and hard_no_foods are
+  // written as separate columns so the two systems stay distinct.
+  upsertProfilePreferences(getUserId(), {
+    cuisines: prefs.cuisines,
+    dietaryRestrictions: prefs.dietaryRestrictions,
+    hardNoFoods: prefs.hardNoFoods,
+  }).catch(() => {});
+}
+
+/** Returns the user's novelty bias (0–1). Defaults to 0.5 (mix of both) if not set. */
+export function getNoveltyBias(): number {
+  return read<number>(NOVELTY_BIAS_KEY, 0.5);
+}
+
+/** Persists the novelty bias from onboarding Step 3 to localStorage and Supabase. */
+export function saveNoveltyBias(value: number): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(NOVELTY_BIAS_KEY, JSON.stringify(value));
+  upsertNoveltyBias(getUserId(), value).catch(() => {});
 }
 
 export function markOnboardingDone(): void {

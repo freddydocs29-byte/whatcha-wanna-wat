@@ -31,7 +31,7 @@ const HARD_NO_KEYWORDS: Record<string, string[]> = {
   Seafood: ["seafood", "fish", "shrimp", "salmon", "tuna", "crab", "lobster", "scallop", "cod", "sushi", "poke", "ceviche", "prawn", "clam", "oyster", "lox"],
   Chicken: ["chicken", "poultry", "coq"],
   Dairy: ["cheese", "butter", "cream", "milk", "yogurt", "ricotta", "mozzarella", "parmesan", "alfredo", "cheddar"],
-  "Gluten / Pasta": ["pasta", "noodle", "spaghetti", "linguine", "penne", "fettuccine", "lasagna", "gnocchi", "ramen", "pizza", "bread", "toast", "sandwich", "tortilla", "burrito", "taco", "waffle", "pancake", "flatbread", "bun", "roll", "biscuit", "pita", "wrap"],
+  "Gluten / Pasta": ["pasta", "noodle", "spaghetti", "linguine", "penne", "fettuccine", "lasagna", "gnocchi", "ramen", "pizza", "bread", "toast", "sandwich", "tortilla", "burrito", "taco", "waffle", "pancake", "flatbread", "bun", "roll", "biscuit", "pita", "wrap", "flour", "wheat"],
 };
 
 function violatesHardNo(meal: Meal, hardNos: string[]): boolean {
@@ -226,8 +226,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       recentlySeenNames = [],
       count = 10,
     } = body as {
-      preferences?: { cuisines?: string[]; dislikedFoods?: string[]; spiceLevel?: string; cookOrOrder?: string };
-      partnerPreferences?: { cuisines?: string[]; dislikedFoods?: string[] } | null;
+      preferences?: { cuisines?: string[]; hardNos?: string[]; spiceLevel?: string; cookOrOrder?: string };
+      partnerPreferences?: { cuisines?: string[]; hardNos?: string[] } | null;
       pantryIngredients?: string[];
       timeBucket?: "morning" | "dinner";
       cookMode?: string;
@@ -239,8 +239,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Union both users' hard NOs so neither partner sees a blocked ingredient
     const hardNos = [
       ...new Set([
-        ...(preferences.dislikedFoods ?? []),
-        ...(partnerPreferences?.dislikedFoods ?? []),
+        ...(preferences.hardNos ?? []),
+        ...(partnerPreferences?.hardNos ?? []),
       ]),
     ];
 

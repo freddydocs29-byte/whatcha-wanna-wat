@@ -18,7 +18,10 @@ type TasteProfile = {
 
 type PreferenceFields = {
   cuisines: string[];
-  dislikedFoods: string[];
+  /** Dietary constraints (Vegetarian, Vegan, Gluten-free, etc.) — stored separately from hard NOs. */
+  dietaryRestrictions: string[];
+  /** Protein / ingredient hard NOs (No pork, No seafood, No beef, etc.) */
+  hardNoFoods: string[];
 };
 
 // ─── Fetch / create ───────────────────────────────────────────────────────────
@@ -75,13 +78,32 @@ export async function upsertProfilePreferences(
     const { error } = await supabase.from("profiles").upsert({
       user_id: userId,
       favorite_cuisines: prefs.cuisines,
-      dietary_restrictions: prefs.dislikedFoods,
-      hard_no_foods: prefs.dislikedFoods,
+      // dietary_restrictions and hard_no_foods are separate concepts — never write the same value to both.
+      dietary_restrictions: prefs.dietaryRestrictions,
+      hard_no_foods: prefs.hardNoFoods,
       updated_at: new Date().toISOString(),
     });
     if (error) console.error("[profile] upsert prefs error:", error.message);
   } catch (err) {
     console.error("[profile] unexpected upsert prefs error:", err);
+  }
+}
+
+/**
+ * Persists novelty_bias from onboarding Step 3.
+ * NOTE: requires a `novelty_bias float` column on the profiles table.
+ * Run: ALTER TABLE profiles ADD COLUMN IF NOT EXISTS novelty_bias float;
+ */
+export async function upsertNoveltyBias(userId: string, value: number): Promise<void> {
+  try {
+    const { error } = await supabase.from("profiles").upsert({
+      user_id: userId,
+      novelty_bias: value,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) console.error("[profile] upsert novelty_bias error:", error.message);
+  } catch (err) {
+    console.error("[profile] unexpected upsert novelty_bias error:", err);
   }
 }
 

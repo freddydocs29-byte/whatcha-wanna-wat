@@ -17,8 +17,8 @@ import type { UserPreferences } from "./storage";
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface AIMealRequest {
-  preferences: Pick<UserPreferences, "cuisines" | "dislikedFoods" | "spiceLevel" | "cookOrOrder">;
-  partnerPreferences: { cuisines: string[]; dislikedFoods: string[] } | null;
+  preferences: { cuisines: string[]; hardNos: string[]; spiceLevel: UserPreferences["spiceLevel"]; cookOrOrder: UserPreferences["cookOrOrder"] };
+  partnerPreferences: { cuisines: string[]; hardNos: string[] } | null;
   pantryIngredients: string[];
   timeBucket: "morning" | "dinner";
   cookMode: "cook" | "order" | "either";
@@ -39,10 +39,10 @@ interface CacheEntry {
 
 function getCacheKey(req: AIMealRequest): string {
   const pantry = [...req.pantryIngredients].sort().join(",");
-  const nos = [...req.preferences.dislikedFoods].sort().join(",");
+  const nos = [...req.preferences.hardNos].sort().join(",");
   const cuisines = [...req.preferences.cuisines].sort().join(",");
   const partner = req.partnerPreferences
-    ? [...(req.partnerPreferences.dislikedFoods)].sort().join(",")
+    ? [...(req.partnerPreferences.hardNos)].sort().join(",")
     : "";
   // Include vibeMode + timeBucket so context shifts get fresh results
   return `${CACHE_PREFIX}${pantry}|${nos}|${cuisines}|${partner}|${req.timeBucket}|${req.vibeMode}`;
@@ -99,7 +99,7 @@ export async function fetchAIMeals(req: AIMealRequest): Promise<Meal[]> {
     console.log(
       `[ai-meals] Calling /api/generate-meals` +
         ` · pantry: [${req.pantryIngredients.join(", ")}]` +
-        ` · hardNos: [${req.preferences.dislikedFoods.join(", ")}]` +
+        ` · hardNos: [${req.preferences.hardNos.join(", ")}]` +
         ` · vibe: ${req.vibeMode}` +
         ` · time: ${req.timeBucket}`
     );

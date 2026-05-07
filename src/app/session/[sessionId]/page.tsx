@@ -286,7 +286,8 @@ export default function SessionPage() {
     setCompletingSetup(true);
     const prefs: UserPreferences = {
       cuisines: guestCuisines,
-      dislikedFoods: guestHardNos.filter((f) => f !== "None of these"),
+      dietaryRestrictions: [],
+      hardNoFoods: guestHardNos.filter((f) => f !== "None of these"),
       spiceLevel: guestSpice ?? "any",
       cookOrOrder: "either",
       kidFriendly: null,
@@ -296,7 +297,8 @@ export default function SessionPage() {
     // Sync to Supabase before joining so deck generation can read this profile
     await upsertProfilePreferences(getUserId(), {
       cuisines: prefs.cuisines,
-      dislikedFoods: prefs.dislikedFoods,
+      dietaryRestrictions: prefs.dietaryRestrictions,
+      hardNoFoods: prefs.hardNoFoods,
     });
     setCompletingSetup(false);
     setNeedsSetup(false);

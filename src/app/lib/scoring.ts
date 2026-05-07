@@ -85,8 +85,50 @@ const HARD_NO_KEYWORDS: Record<string, string[]> = {
     "focaccia", "bread", "toast", "sandwich", "sub", "bagel",
     "tortilla", "burrito", "taco", "waffle", "pancake",
     "flatbread", "bun", "roll", "biscuit", "pita", "wrap",
+    "flour", "wheat",
   ],
 };
+
+/**
+ * Maps new-style dietary restriction labels (onboarding Step 1) to their
+ * HARD_NO_KEYWORDS category key. Only Gluten-free and Dairy-free map to hardGate
+ * exclusions. Vegetarian / Vegan / Halal / Kosher have no keyword-list entry yet.
+ */
+const DIETARY_RESTRICTION_MAP: Record<string, string> = {
+  "Gluten-free": "Gluten / Pasta",
+  "Dairy-free": "Dairy",
+};
+
+/**
+ * Maps new-style hard-NO labels (onboarding Step 1, e.g. "No pork") to their
+ * HARD_NO_KEYWORDS category key. Old-format values ("Pork", "Seafood", etc.)
+ * fall through unchanged since they are already valid keys.
+ */
+const HARD_NO_LABEL_MAP: Record<string, string> = {
+  "No pork": "Pork",
+  "No seafood": "Seafood",
+  "No beef": "Beef",
+};
+
+/**
+ * Returns the union of all hard-gate category keys implied by a user's preferences.
+ *
+ * Handles both old-format labels ("Seafood", "Gluten / Pasta") and new-format labels
+ * ("No seafood", "Gluten-free"). The result is always a deduplicated list of valid
+ * HARD_NO_KEYWORDS keys ready to pass to hardGate().
+ *
+ * Import this in every hardGate() call site instead of reading prefs directly.
+ */
+export function getAllHardNos(prefs: UserPreferences | null): string[] {
+  if (!prefs) return [];
+  // Dietary restrictions → keyword list key (only Gluten-free and Dairy-free map)
+  const mappedDietary = prefs.dietaryRestrictions
+    .map((d) => DIETARY_RESTRICTION_MAP[d] ?? null)
+    .filter((v): v is string => v !== null);
+  // Hard-NO labels → keyword list key (new-format normalized; old-format passed through)
+  const mappedHardNos = prefs.hardNoFoods.map((h) => HARD_NO_LABEL_MAP[h] ?? h);
+  return [...new Set([...mappedDietary, ...mappedHardNos])];
+}
 
 /** Returns true if this meal should be removed for the given hard-NO category. */
 function mealViolatesHardNO(meal: Meal, dislikedFoods: string[]): boolean {
@@ -144,9 +186,9 @@ export function getTimeBucket(hourOverride?: number): "morning" | "dinner" {
  * deck.
  *
  * Fields read: meal.id, meal.name, meal.ingredients
- * Enforces:    UserPreferences.dislikedFoods + current time of day
+ * Enforces:    UserPreferences.hardNoFoods + dietary_restrictions (via getAllHardNos) + current time of day
  *
- * Shared-mode usage: call with the UNION of both users' dislikedFoods so
+ * Shared-mode usage: call with the UNION of both users' hard NOs so
  * that a meal is excluded if EITHER participant has it as a hard NO.
  *
  * hourOverride (0-23) is accepted for testing; omit in production code.
@@ -462,7 +504,8 @@ export function scoreMeal(
   sessionShown: Set<string> = new Set(),
   vibe: string | null = null,
   cookMode: SessionCookMode = "either",
-  sessionVibeMode: SessionVibeMode = "mix-it-up"
+  sessionVibeMode: SessionVibeMode = "mix-it-up",
+  noveltyBias?: number,
 ): { score: number; reason: string; vibeScore: number; behaviorScore: number } {
   let score = 0;
   let vibeScore = 0;    // tracks session-selector contribution for dev logging
@@ -691,6 +734,48 @@ export function scoreMeal(
     } else if (flavorProfile.cookingConfidence === "confident") {
       if (cat.includes("elevated")) score += 1;
       if (hasTags("Medium effort")) score += 0.5;
+    }
+  }
+
+  // ── Novelty bias ──────────────────────────────────────────────────────────────
+  //
+  // Set during onboarding Step 3. Fades as behavioral data accumulates:
+  //   effectiveNoveltyBias = noveltyBias × (1 − behaviorScale)
+  //   At 8+ interactions behaviorScale = 1.0 → effectiveNoveltyBias = 0.
+  //   Behavioral affinity takes over completely; this signal becomes irrelevant.
+  //
+  //   ≥ 0.7 (loves new things): adventurous/elevated/bold/fresh → +0.75; comfort/familiar/classic → −0.25
+  //   ≤ 0.3 (likes what they know): comfort/familiar/classic → +0.75; bold/elevated → −0.5
+  //   0.3–0.7 (mix of both): no adjustment
+
+  if (noveltyBias !== undefined) {
+    const behaviorScaleForNovelty =
+      tasteProfile && tasteProfile.interactionCount > 0
+        ? Math.min(1, tasteProfile.interactionCount / 8)
+        : 0;
+    const effectiveNoveltyBias = noveltyBias * (1 - behaviorScaleForNovelty);
+
+    if (effectiveNoveltyBias > 0) {
+      const ncat = meal.category.toLowerCase();
+      const isAdventurous =
+        ["bold flavors", "elevated", "fresh"].some((c) => ncat.includes(c)) ||
+        meal.tags.some((t) =>
+          ["bold", "adventurous", "elevated", "fresh"].some((k) => t.toLowerCase().includes(k))
+        );
+      const isFamiliar =
+        ["comfort food", "classic italian", "crowd pleaser"].some((c) => ncat.includes(c)) ||
+        meal.tags.some((t) =>
+          ["comfort", "familiar", "classic"].some((k) => t.toLowerCase().includes(k))
+        );
+
+      if (effectiveNoveltyBias >= 0.7) {
+        if (isAdventurous) score += 0.75;
+        if (isFamiliar) score -= 0.25;
+      } else if (effectiveNoveltyBias <= 0.3) {
+        if (isFamiliar) score += 0.75;
+        if (isAdventurous) score -= 0.5;
+      }
+      // 0.3 < effectiveNoveltyBias < 0.7: no adjustment (mix of both)
     }
   }
 
@@ -1200,6 +1285,29 @@ function checkSoftAvoidPenalty(meal: Meal, softAvoids: SoftAvoid[]): number {
   return 0;
 }
 
+// ── Cold-start meal lists ─────────────────────────────────────────────────────
+//
+// Used for users with < 8 interactions (behaviorScale < 1.0) who have no
+// behavioral signal yet. Reliable meals get a fading boost; polarizing meals
+// get a penalty until the user has shown their taste.
+//
+// Both lists are hardcoded until the decisions table has 50+ shown events per meal.
+// See TODO in rankMeals for the deferred SQL-based acceptance_rate approach.
+
+const COLD_START_RELIABLE_MEALS = new Set([
+  // Broadly appealing, consistently accepted across diverse users
+  "tacos", "burgers", "mac-and-cheese", "grilled-cheese", "pasta-pomodoro",
+  "quesadillas", "margherita-pizza", "butter-chicken", "fried-rice",
+  "bbq-chicken", "caesar-salad", "grain-bowl", "chicken-noodle-soup",
+  "spaghetti-bolognese", "pad-thai", "chicken-wrap", "chicken-stir-fry",
+]);
+
+const COLD_START_POLARIZING_MEALS = new Set([
+  // Divisive in early testing — great for adventurous users, confusing for new ones
+  "beef-rendang", "dan-dan-noodles", "thai-larb", "mapo-beef",
+  "cold-soba", "gado-gado", "shrimp-bisque",
+]);
+
 /**
  * Score, sort, and present a list of meals with controlled variety.
  *
@@ -1239,13 +1347,14 @@ export function rankMeals(
   rejectionEntries: RejectionEntry[] = [],
   softAvoids: SoftAvoid[] = [],
   sessionContext?: SessionContext,
+  noveltyBias?: number,
 ): RankedMeal[] {
   if (meals.length === 0) return [];
 
   // 1. Score every meal — behaviorScore and vibeScore tracked separately for dev logging
   const scored = meals.map((meal) => {
     const { score, reason, vibeScore, behaviorScore } = scoreMeal(
-      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode
+      meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode, noveltyBias
     );
     const rejAdj = rejectionEntries.length > 0
       ? getSessionRejectionAdjustment(meal, rejectionEntries, history)
@@ -1254,6 +1363,39 @@ export function rankMeals(
     const softAvoidPenalty = checkSoftAvoidPenalty(meal, softAvoids);
     return { meal, score: score + rejAdj + contextAdj + softAvoidPenalty, reason, vibeScore, behaviorScore };
   });
+
+  // 1b. Cold-start boost and disaster penalty ─────────────────────────────────
+  //
+  // For users with < 8 interactions (behaviorScale < 1.0) who have no behavioral
+  // signal, reliable crowd-pleasers get a fading boost and polarizing meals get
+  // a suppression penalty until the user's taste is known.
+  //
+  //   coldStartBoost = 1.5 × (1 − behaviorScale) — full +1.5 at 0 interactions, 0 at 8+
+  //   disasterPenalty = −2.0, applied when behaviorScale < 0.5 (< 4 interactions)
+  //
+  // TODO: [DEFERRED] Replace COLD_START_RELIABLE_MEALS / COLD_START_POLARIZING_MEALS
+  //   with a SQL query against the decisions table once it has 50+ shown events per meal.
+  //   Preferred: acceptance_rate = accepted / shown  (requires card_seen event tracking)
+  //   Fallback:  acceptance_rate = accepted / acted-on  (if shown events are unreliable)
+  //   Define the denominator clearly in code when implementing.
+
+  const coldStartBehaviorScale = tasteProfile
+    ? Math.min(1, tasteProfile.interactionCount / 8)
+    : 0;
+
+  if (coldStartBehaviorScale < 1.0) {
+    const coldStartBoost = 1.5 * (1 - coldStartBehaviorScale);
+    const applyDisasterPenalty = coldStartBehaviorScale < 0.5;
+
+    for (const s of scored) {
+      if (COLD_START_RELIABLE_MEALS.has(s.meal.id)) {
+        s.score += coldStartBoost;
+      }
+      if (applyDisasterPenalty && COLD_START_POLARIZING_MEALS.has(s.meal.id)) {
+        s.score -= 2.0;
+      }
+    }
+  }
 
   // 2. Sort by score descending — all meals ranked, no artificial cutoff
   scored.sort((a, b) => b.score - a.score);
@@ -1426,7 +1568,8 @@ function spreadByCuisine<T extends { meal: Meal }>(sorted: T[]): T[] {
 function scoreForUser(meal: Meal, profile: UserProfileForScoring): number {
   const prefs: UserPreferences = {
     cuisines: profile.cuisines,
-    dislikedFoods: [], // already hard-gated before this is called
+    dietaryRestrictions: [], // already hard-gated before this is called
+    hardNoFoods: [],
     spiceLevel: "any",
     cookOrOrder: "either",
     kidFriendly: null,

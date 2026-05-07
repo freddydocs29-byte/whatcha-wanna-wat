@@ -8,7 +8,7 @@
  *   1. Supabase empty, local has data  → upload local to Supabase
  *   2. Local empty, Supabase has data  → hydrate local from Supabase
  *   3. Both have data                  → merge carefully (see per-field rules below)
- *        cuisines / dislikedFoods : union (never drop a preference from either side)
+ *        cuisines / dietaryRestrictions / hardNoFoods : union (never drop a preference from either side)
  *        learned_weights (TasteProfile): per-key max to prevent double-counting
  *                                        while preserving any extra signal from either side
  *        recently_seen_meal_ids  : union, deduplicated, capped at MAX_SEEN_IDS
@@ -139,7 +139,8 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
         // fields not stored in Supabase (spiceLevel etc.).
         savePreferences({
           cuisines: profile.favorite_cuisines,
-          dislikedFoods: profile.dietary_restrictions,
+          dietaryRestrictions: profile.dietary_restrictions ?? [],
+          hardNoFoods: profile.hard_no_foods ?? [],
           spiceLevel: "any",
           cookOrOrder: "either",
           kidFriendly: null,
@@ -152,17 +153,21 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
         const mergedCuisines = [
           ...new Set([...localPrefs.cuisines, ...profile.favorite_cuisines]),
         ];
-        const mergedDisliked = [
-          ...new Set([...localPrefs.dislikedFoods, ...profile.dietary_restrictions]),
+        const mergedDietary = [
+          ...new Set([...localPrefs.dietaryRestrictions, ...(profile.dietary_restrictions ?? [])]),
+        ];
+        const mergedHardNos = [
+          ...new Set([...localPrefs.hardNoFoods, ...(profile.hard_no_foods ?? [])]),
         ];
 
         const localChanged =
           mergedCuisines.length > localPrefs.cuisines.length ||
-          mergedDisliked.length > localPrefs.dislikedFoods.length;
+          mergedDietary.length > localPrefs.dietaryRestrictions.length ||
+          mergedHardNos.length > localPrefs.hardNoFoods.length;
 
         if (localChanged) {
           // savePreferences writes to localStorage AND fires the Supabase sync.
-          savePreferences({ ...localPrefs, cuisines: mergedCuisines, dislikedFoods: mergedDisliked });
+          savePreferences({ ...localPrefs, cuisines: mergedCuisines, dietaryRestrictions: mergedDietary, hardNoFoods: mergedHardNos });
         }
         // If local was already a superset of remote, nothing to do —
         // the next savePreferences call from onboarding/profile will keep Supabase current.

@@ -103,6 +103,8 @@ export type Profile = {
   dietary_restrictions: string[];
   hard_no_foods: string[];
   favorite_cuisines: string[];
+  /** Novelty bias from onboarding Step 3 (0.2 = familiar, 0.5 = mix, 0.8 = adventurous). */
+  novelty_bias: number | null;
   learned_weights: {
     likedTags: Record<string, number>;
     dislikedTags: Record<string, number>;

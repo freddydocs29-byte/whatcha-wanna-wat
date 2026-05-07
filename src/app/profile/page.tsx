@@ -3,9 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
-import { getPreferences, savePreferences, getTasteProfile, getFlavorProfile, type UserPreferences, type TasteProfile, type FlavorProfile } from "../lib/storage";
+import { getPreferences, savePreferences, getTasteProfile, type UserPreferences, type TasteProfile } from "../lib/storage";
 
 // ── Option data ───────────────────────────────────────────────────────────────
 
@@ -124,116 +123,6 @@ function RadioCard({
   );
 }
 
-// ── Flavor profile section ────────────────────────────────────────────────
-
-const FLAVOR_LABELS: {
-  key: keyof FlavorProfile;
-  values: Record<string, { label: string; emoji: string }>;
-}[] = [
-  {
-    key: "adventurousness",
-    values: {
-      familiar: { label: "Familiar", emoji: "🏠" },
-      balanced: { label: "Balanced", emoji: "⚖️" },
-      adventurous: { label: "Adventurous", emoji: "🌍" },
-    },
-  },
-  {
-    key: "timeAvailable",
-    values: {
-      quick: { label: "Quick nights", emoji: "⚡" },
-      normal: { label: "Normal time", emoji: "🕐" },
-      relaxed: { label: "Takes its time", emoji: "🍷" },
-    },
-  },
-  {
-    key: "energyLevel",
-    values: {
-      low: { label: "Low energy", emoji: "😴" },
-      medium: { label: "Medium energy", emoji: "😊" },
-      high: { label: "High energy", emoji: "💪" },
-    },
-  },
-  {
-    key: "budgetSensitivity",
-    values: {
-      frugal: { label: "Frugal", emoji: "💰" },
-      moderate: { label: "Moderate budget", emoji: "💳" },
-      generous: { label: "Generous", emoji: "🎁" },
-    },
-  },
-  {
-    key: "cookingConfidence",
-    values: {
-      beginner: { label: "Beginner", emoji: "🌱" },
-      intermediate: { label: "Getting there", emoji: "🔪" },
-      confident: { label: "Confident cook", emoji: "👨‍🍳" },
-    },
-  },
-];
-
-function FlavorProfileSection({
-  flavorProfile,
-  onBuild,
-}: {
-  flavorProfile: FlavorProfile | null;
-  onBuild: () => void;
-}) {
-  return (
-    <section className="mt-8">
-      <SectionLabel>Full flavor profile</SectionLabel>
-      <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm leading-6 text-white/60">
-            {flavorProfile
-              ? "Active and shaping your recommendations."
-              : "Not set yet. Deeper preferences improve recommendation quality."}
-          </p>
-          <span
-            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] ${
-              flavorProfile
-                ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300/70"
-                : "border-white/10 bg-white/[0.05] text-white/30"
-            }`}
-          >
-            {flavorProfile ? "Active" : "Incomplete"}
-          </span>
-        </div>
-
-        {flavorProfile && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {FLAVOR_LABELS.map(({ key, values }) => {
-              const val = flavorProfile[key];
-              const meta = values[val];
-              if (!meta) return null;
-              return (
-                <span
-                  key={key}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-white/55"
-                >
-                  <span>{meta.emoji}</span>
-                  <span>{meta.label}</span>
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        <button
-          onClick={onBuild}
-          className={`mt-4 w-full rounded-full border py-3 text-sm transition hover:opacity-80 active:scale-[0.99] ${
-            flavorProfile
-              ? "border-white/10 bg-white/[0.05] text-white/40"
-              : "border-white/15 bg-white/[0.07] font-medium text-white/70"
-          }`}
-        >
-          {flavorProfile ? "Update flavor profile" : "Build your flavor profile"}
-        </button>
-      </div>
-    </section>
-  );
-}
-
 // ── Taste profile section ─────────────────────────────────────────────────────
 
 function buildSummary(profile: TasteProfile): string {
@@ -347,17 +236,14 @@ function TasteProfileSection({ profile }: { profile: TasteProfile }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const router = useRouter();
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [tasteProfile, setTasteProfile] = useState<TasteProfile | null>(null);
-  const [flavorProfile, setFlavorProfile] = useState<FlavorProfile | null>(null);
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setPrefs(getPreferences());
     setTasteProfile(getTasteProfile());
-    setFlavorProfile(getFlavorProfile());
   }, []);
 
   function update(partial: Partial<UserPreferences>) {
@@ -383,13 +269,13 @@ export default function ProfilePage() {
   function toggleDisliked(label: string) {
     if (!prefs) return;
     if (label === "None of these") {
-      update({ dislikedFoods: [] });
+      update({ hardNoFoods: [] });
       return;
     }
-    const next = prefs.dislikedFoods.includes(label)
-      ? prefs.dislikedFoods.filter((f) => f !== label)
-      : [...prefs.dislikedFoods, label];
-    update({ dislikedFoods: next });
+    const next = prefs.hardNoFoods.includes(label)
+      ? prefs.hardNoFoods.filter((f) => f !== label)
+      : [...prefs.hardNoFoods, label];
+    update({ hardNoFoods: next });
   }
 
   if (!prefs) return null;
@@ -468,8 +354,8 @@ export default function ProfilePage() {
               {DISLIKED_FOODS.map((f) => {
                 const selected =
                   f.label === "None of these"
-                    ? prefs.dislikedFoods.length === 0
-                    : prefs.dislikedFoods.includes(f.label);
+                    ? prefs.hardNoFoods.length === 0
+                    : prefs.hardNoFoods.includes(f.label);
                 return (
                   <Chip
                     key={f.label}
@@ -538,12 +424,6 @@ export default function ProfilePage() {
               })}
             </div>
           </section>
-
-          {/* ── Full flavor profile ──────────────────────────────────── */}
-          <FlavorProfileSection
-            flavorProfile={flavorProfile}
-            onBuild={() => router.push("/flavor-profile")}
-          />
 
           <div className="mt-auto pt-10">
             <BottomNav />

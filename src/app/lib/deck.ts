@@ -13,7 +13,7 @@
  *   Legacy fallback — kept for safety but no longer called in normal flow.
  */
 import { meals, type Meal } from "../data/meals";
-import { rankMeals, rankMealsForSharedSession, hardGate } from "./scoring";
+import { rankMeals, rankMealsForSharedSession, hardGate, getAllHardNos } from "./scoring";
 import type { UserProfileForScoring, CookingIntent } from "./scoring";
 import { supabase } from "./supabase";
 import type { UserPreferences, TasteProfile, HistoryEntry } from "./storage";
@@ -228,7 +228,7 @@ export function buildSharedDeck(): string[] {
   const flavorProfile = getFlavorProfile() ?? undefined;
   const favorites = getFavorites();
 
-  const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
+  const eligibleMeals = hardGate(meals, getAllHardNos(prefs));
 
   const ranked = rankMeals(
     eligibleMeals,

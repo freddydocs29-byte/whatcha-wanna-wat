@@ -4,8 +4,8 @@ import { useRef, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
-import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, getSharedReason, getTimeBucket, MEAL_CUISINES, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getNoveltyBias, type UserPreferences, type HistoryEntry } from "../lib/storage";
+import { rankMeals, hardGate, getAllHardNos, getSharedReason, getTimeBucket, MEAL_CUISINES, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
@@ -113,10 +113,11 @@ function buildDeck(
   const favorites = getFavorites();
   const sessionContext = inferSessionContext(new Date());
 
-  const eligibleMeals = hardGate(meals, prefs?.dislikedFoods ?? []);
+  const eligibleMeals = hardGate(meals, getAllHardNos(prefs));
+  const noveltyBias = getNoveltyBias();
 
   function rank(pool: Meal[]): RankedMeal[] {
-    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode, rejectionEntries, softAvoids, sessionContext);
+    return rankMeals(pool, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, "solo", sessionShown, null, cookMode, sessionVibeMode, rejectionEntries, softAvoids, sessionContext, noveltyBias);
   }
 
   function fill(deck: RankedMeal[], candidates: Meal[]): RankedMeal[] {
@@ -546,7 +547,7 @@ function DeckContent() {
       const currentPrefs = getPreferences();
       const ritualMealObj = meals.find((m) => m.id === matching.mealId);
       if (!ritualMealObj) return;
-      const gated = hardGate([ritualMealObj], currentPrefs?.dislikedFoods ?? []);
+      const gated = hardGate([ritualMealObj], getAllHardNos(currentPrefs));
       if (gated.length === 0) {
         if (process.env.NODE_ENV === "development") {
           console.log(`[rituals] skipped ${matching.mealId} — fails current hard gate`);
@@ -998,7 +999,7 @@ function DeckContent() {
       const aiRaw = await fetchAIMeals({
         preferences: {
           cuisines: prefs?.cuisines ?? [],
-          dislikedFoods: prefs?.dislikedFoods ?? [],
+          hardNos: getAllHardNos(prefs),
           spiceLevel: prefs?.spiceLevel ?? "any",
           cookOrOrder: prefs?.cookOrOrder ?? "either",
         },
@@ -1014,7 +1015,7 @@ function DeckContent() {
       if (aiRaw.length === 0) return; // Nothing came back — silent fallback
 
       // ── Double hardGate: server already filtered, client confirms ──────────
-      const gated = hardGate(aiRaw, prefs?.dislikedFoods ?? []);
+      const gated = hardGate(aiRaw, getAllHardNos(prefs));
       if (gated.length === 0) return;
 
       // Track IDs for the "Fresh idea" / "Made from your pantry" label
@@ -1091,7 +1092,7 @@ function DeckContent() {
       const aiRaw = await fetchAIMeals({
         preferences: {
           cuisines: prefs?.cuisines ?? [],
-          dislikedFoods: prefs?.dislikedFoods ?? [],
+          hardNos: getAllHardNos(prefs),
           spiceLevel: prefs?.spiceLevel ?? "any",
           cookOrOrder: prefs?.cookOrOrder ?? "either",
         },
@@ -1106,7 +1107,7 @@ function DeckContent() {
 
       if (aiRaw.length === 0) return;
 
-      const gated = hardGate(aiRaw, prefs?.dislikedFoods ?? []);
+      const gated = hardGate(aiRaw, getAllHardNos(prefs));
       if (gated.length === 0) return;
 
       setAiMealIds((prev) => {
