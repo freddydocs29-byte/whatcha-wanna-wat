@@ -1042,8 +1042,8 @@ export function scoreMeal(
  *
  * Adjustments:
  *   latenight weekday:  prepTime >30min −1.5; comfort/easy/quick tag +1.0; elevated/fresh/bold cat −0.5
- *   friday:             comfort/indulgent tag/cat +0.75; healthy/light tag/cat −0.25
- *   weekend:            elevated/fresh/adventurous cat +0.75; quick/easy tag −0.25
+ *   friday:             comfort/indulgent tag/cat +0.75 (no penalty for healthy/light)
+ *   weekend:            elevated/fresh/adventurous cat +0.75 (no penalty for quick/easy)
  *   sunday:             comfort/homestyle tag/cat +1.0; elevated/bold cat −0.5
  *   effortBias=low:     prepTime ≤20min +1.0; prepTime >45min −2.0
  */
@@ -1067,17 +1067,15 @@ export function getContextScore(meal: Meal, ctx: SessionContext): number {
     if (["elevated", "fresh", "bold"].some((t) => cat.includes(t))) delta -= 0.5;
   }
 
-  // Friday — treat yourself mood
+  // Friday — small comfort/indulgent boost; healthy/light remains valid
   if (ctx.dayType === "friday") {
     if (hasTags("comfort", "indulgent") || cat.includes("comfort") || cat.includes("indulgent")) delta += 0.75;
-    if (hasTags("healthy", "light") || ["healthy", "fresh"].some((t) => cat.includes(t))) delta -= 0.25;
   }
 
-  // Weekend — they have time; favor ambitious or fresh options
+  // Weekend — small elevated/fresh/adventurous boost; quick/easy remains valid
   if (ctx.dayType === "weekend") {
     if (["elevated", "fresh", "adventurous"].some((t) => cat.includes(t)) ||
         hasTags("elevated", "fresh", "adventurous")) delta += 0.75;
-    if (hasTags("quick", "easy")) delta -= 0.25; // they have time — deprioritize speed shortcuts
   }
 
   // Sunday — comfort / homestyle cooking energy
