@@ -41,6 +41,36 @@ export type Swipe = {
   created_at: string;
 };
 
+export type UserSession = {
+  id: string;
+  user_id: string;
+  opened_at: string;
+  closed_at: string | null;
+  meal_period: "breakfast" | "lunch" | "dinner" | "latenight";
+  day_type: "weekday" | "friday" | "weekend" | "sunday";
+  resolved: boolean;
+  swipe_count: number;
+  time_to_decision_seconds: number | null;
+  returned_within_10min: boolean | null;
+  is_group_session: boolean;
+  group_session_id: string | null;
+};
+
+export type Decision = {
+  id: string;
+  session_id: string;
+  user_id: string;
+  meal_id: string;
+  meal_name: string;
+  meal_period: "breakfast" | "lunch" | "dinner" | "latenight";
+  day_type: "weekday" | "friday" | "weekend" | "sunday";
+  outcome: "accepted" | "rejected" | "abandoned";
+  rejection_reason: string | null;
+  position_in_deck: number;
+  decided_at: string;
+  is_ai_generated: boolean;
+};
+
 export type Profile = {
   user_id: string;
   display_name: string | null;

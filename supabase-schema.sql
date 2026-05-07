@@ -81,3 +81,58 @@ create index analytics_events_created_at on analytics_events (created_at desc);
 -- Reads are locked down — only service-role queries should read analytics.
 alter table analytics_events enable row level security;
 create policy "MVP analytics insert" on analytics_events for insert using (true) with check (true);
+
+-- ─── User Sessions ────────────────────────────────────────────────────────────
+-- One row per user × deck interaction (solo or group).
+-- Tracks engagement: swipe count, time-to-decision, resolution, and whether the
+-- user returned within 10 minutes (a strong "regret / second-thoughts" signal).
+-- Note: "user_sessions" is distinct from the group pairing "sessions" table above.
+-- group_session_id links to the shared sessions table when is_group_session=true.
+
+create table if not exists user_sessions (
+  id                       uuid        default gen_random_uuid() primary key,
+  user_id                  text        not null,
+  opened_at                timestamptz not null default now(),
+  closed_at                timestamptz,
+  meal_period              text        not null check (meal_period in ('breakfast','lunch','dinner','latenight')),
+  day_type                 text        not null check (day_type in ('weekday','friday','weekend','sunday')),
+  resolved                 boolean     not null default false,
+  swipe_count              integer     not null default 0,
+  time_to_decision_seconds integer,
+  returned_within_10min    boolean,
+  is_group_session         boolean     not null default false,
+  group_session_id         uuid        references sessions(id) on delete set null
+);
+
+alter table user_sessions enable row level security;
+create policy "MVP open access" on user_sessions for all using (true) with check (true);
+
+create index user_sessions_user_id    on user_sessions (user_id);
+create index user_sessions_opened_at  on user_sessions (opened_at desc);
+
+-- ─── Decisions ────────────────────────────────────────────────────────────────
+-- One row per meal outcome within a user_session.
+-- Currently written only for accepted outcomes; schema supports rejected/abandoned
+-- for future per-pass tracking without requiring a migration.
+
+create table if not exists decisions (
+  id               uuid        default gen_random_uuid() primary key,
+  session_id       uuid        not null references user_sessions(id) on delete cascade,
+  user_id          text        not null,
+  meal_id          text        not null,
+  meal_name        text        not null,
+  meal_period      text        not null check (meal_period in ('breakfast','lunch','dinner','latenight')),
+  day_type         text        not null check (day_type in ('weekday','friday','weekend','sunday')),
+  outcome          text        not null check (outcome in ('accepted','rejected','abandoned')),
+  rejection_reason text,
+  position_in_deck integer     not null,
+  decided_at       timestamptz not null default now(),
+  is_ai_generated  boolean     not null default false
+);
+
+alter table decisions enable row level security;
+create policy "MVP open access" on decisions for all using (true) with check (true);
+
+create index decisions_session_id  on decisions (session_id);
+create index decisions_user_id     on decisions (user_id);
+create index decisions_decided_at  on decisions (decided_at desc);

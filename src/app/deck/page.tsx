@@ -14,6 +14,7 @@ import { getAvoidSignals, getPreferSignals, checkTriggers, markNudgeFired, type 
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
 import { trackEvent } from "../lib/analytics";
+import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn } from "../lib/session-tracking";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 15;
@@ -220,6 +221,12 @@ function DeckContent() {
     setUserId(getUserId());
   }, []);
 
+  // Check whether the user returned within 10 minutes of a resolved session.
+  // Reads a token written to localStorage on acceptance and updates the DB row.
+  useEffect(() => {
+    checkAndMarkReturn();
+  }, []);
+
   // Load the host-defined shared deck from the session row.
   // Both users fetch the same stored order — no local re-ranking.
   // Retries up to 10 times (every 2 s) before showing an error state.
@@ -266,6 +273,15 @@ function DeckContent() {
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
       setSharedLoading(false);
+
+      // Start tracking session once the shared deck is ready
+      if (!trackingSessionPromiseRef.current) {
+        trackingOpenedAtRef.current = new Date();
+        trackingSessionPromiseRef.current = createTrackingSession({
+          isGroupSession: true,
+          groupSessionId: sessionId ?? undefined,
+        });
+      }
     };
 
     load();
@@ -383,6 +399,18 @@ function DeckContent() {
 
   // ────────────────────────────────────────────────────────────────────────────
 
+  // ── Session tracking refs ────────────────────────────────────────────────────
+  // Promise storing the user_sessions row ID created at deck mount.
+  // Stored as a Promise so the DB insert runs in parallel with deck rendering.
+  const trackingSessionPromiseRef = useRef<Promise<string | null> | null>(null);
+  // Wall-clock time the deck opened — used to compute time_to_decision_seconds.
+  const trackingOpenedAtRef = useRef<Date | null>(null);
+  // Running count of left/right swipes; written to DB when the session closes.
+  const trackingSwipeCountRef = useRef(0);
+  // Guard — prevents the unmount cleanup from closing a session that was already
+  // closed by an acceptance path.
+  const trackingClosedRef = useRef(false);
+
   const afterExitRef = useRef<(() => void) | null>(null);
   // In-memory set of meal IDs that were the active card during this visit.
   // Populated before each re-rank so context/pantry switches apply a soft
@@ -444,6 +472,13 @@ function DeckContent() {
     x.set(0);
     setExitX(null);
 
+    // Start tracking session on first deck build (guard prevents re-fire on
+    // pantry/vibe changes which also run this effect)
+    if (!trackingSessionPromiseRef.current) {
+      trackingOpenedAtRef.current = new Date();
+      trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false });
+    }
+
     // ── Deterministic AI freshness trigger ──────────────────────────────────
     // shouldGenerateAI() inspects the static deck quality and returns whether
     // AI enrichment is warranted and why. Each unique (ingredients, vibe, reason)
@@ -499,6 +534,45 @@ function DeckContent() {
       ...(sessionId ? { sessionId } : {}),
     });
   }, [currentIndex, rankedMeals.length, sessionId]);
+
+  // Close the tracking session when the user navigates away without choosing.
+  // The trackingClosedRef guard prevents double-fire when acceptance already
+  // closed the session before the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (trackingClosedRef.current) return;
+      trackingClosedRef.current = true;
+      trackingSessionPromiseRef.current?.then((tsId) => {
+        if (!tsId || !trackingOpenedAtRef.current) return;
+        void closeTrackingSession({
+          trackingSessionId: tsId,
+          resolved: false,
+          swipeCount: trackingSwipeCountRef.current,
+          openedAt: trackingOpenedAtRef.current,
+        });
+      });
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Best-effort close on browser/tab close (beforeunload fires but the browser
+  // may kill async work before the fetch completes).
+  useEffect(() => {
+    function onBeforeUnload() {
+      if (trackingClosedRef.current) return;
+      trackingClosedRef.current = true;
+      trackingSessionPromiseRef.current?.then((tsId) => {
+        if (!tsId || !trackingOpenedAtRef.current) return;
+        void closeTrackingSession({
+          trackingSessionId: tsId,
+          resolved: false,
+          swipeCount: trackingSwipeCountRef.current,
+          openedAt: trackingOpenedAtRef.current,
+        });
+      });
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function dismissHint() {
     if (!showSwipeHint) return;
@@ -634,6 +708,27 @@ function DeckContent() {
   async function handleMatchConfirm() {
     if (!matchedMeal || !sessionId) return;
     trackEvent("match_confirmed", { mealId: matchedMeal.id, sessionId });
+
+    // Record acceptance — fire-and-forget
+    trackingClosedRef.current = true;
+    trackingSessionPromiseRef.current?.then((tsId) => {
+      if (tsId && trackingOpenedAtRef.current) {
+        void recordDecision({
+          trackingSessionId: tsId,
+          meal: matchedMeal,
+          outcome: "accepted",
+          positionInDeck: currentIndex,
+          isAiGenerated: aiMealIds.has(matchedMeal.id),
+        });
+        void closeTrackingSession({
+          trackingSessionId: tsId,
+          resolved: true,
+          swipeCount: trackingSwipeCountRef.current,
+          openedAt: trackingOpenedAtRef.current,
+        });
+      }
+    });
+
     await supabase
       .from("sessions")
       .update({
@@ -906,6 +1001,7 @@ function DeckContent() {
   function handlePass() {
     dismissHint();
     if (meal) {
+      trackingSwipeCountRef.current += 1;
       trackEvent("card_swiped_no", {
         mealId: meal.id,
         swipeIndex: currentIndex,
@@ -983,6 +1079,8 @@ function DeckContent() {
     if (!meal || isChoosing || isExiting) return;
     dismissHint();
 
+    trackingSwipeCountRef.current += 1;
+
     // ── Shared session path ──
     if (sessionId) {
       handleSharedChoose(meal);
@@ -1004,11 +1102,32 @@ function DeckContent() {
       navigator.vibrate([12, 60, 8]);
     }
 
+    // Mark closed before the timeout so the unmount cleanup doesn't double-fire
+    trackingClosedRef.current = true;
+
     // Brief flash moment before the exit animation fires
     setIsChoosing(true);
     setTimeout(() => {
       setIsChoosing(false);
       triggerExit("right", () => {
+        // Record acceptance — fire-and-forget, does not block navigation
+        trackingSessionPromiseRef.current?.then((tsId) => {
+          if (tsId && trackingOpenedAtRef.current) {
+            void recordDecision({
+              trackingSessionId: tsId,
+              meal: chosenMeal,
+              outcome: "accepted",
+              positionInDeck: currentIndex,
+              isAiGenerated: aiMealIds.has(chosenMeal.id),
+            });
+            void closeTrackingSession({
+              trackingSessionId: tsId,
+              resolved: true,
+              swipeCount: trackingSwipeCountRef.current,
+              openedAt: trackingOpenedAtRef.current,
+            });
+          }
+        });
         addToHistory(chosenMeal);
         router.push(`/locked?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
       });
