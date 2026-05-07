@@ -11,10 +11,11 @@ create table if not exists profiles (
   dietary_restrictions   jsonb       not null default '[]',  -- dislikedFoods e.g. ["Seafood","Dairy"]
   hard_no_foods          jsonb       not null default '[]',  -- strict never-show list (same as above for MVP)
   favorite_cuisines      jsonb       not null default '[]',  -- preferred cuisines e.g. ["Italian","Asian"]
-  learned_weights        jsonb,                              -- TasteProfile: likedTags/dislikedTags/likedCategories/interactionCount
-  recently_seen_meal_ids jsonb       not null default '[]',  -- flat list of recently shown meal IDs (recency penalty)
-  created_at             timestamptz not null default now(),
-  updated_at             timestamptz not null default now()
+  learned_weights              jsonb,                              -- TasteProfile: likedTags/dislikedTags/likedCategories/interactionCount
+  recently_seen_meal_ids       jsonb       not null default '[]',  -- flat list of recently shown meal IDs (recency penalty)
+  pantry_ingredient_counts     jsonb       not null default '{}',  -- {ingredient: useCount} — built from pantry_ingredients_selected events
+  created_at                   timestamptz not null default now(),
+  updated_at                   timestamptz not null default now()
 );
 
 -- RLS: open access for MVP (tighten when real auth is added)

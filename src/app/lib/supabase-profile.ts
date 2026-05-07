@@ -311,3 +311,40 @@ export async function upsertRecentlySeen(
     console.error("[profile] unexpected upsert seen error:", err);
   }
 }
+
+/**
+ * Increments per-ingredient use counts in pantry_ingredient_counts.
+ * Read-then-write (safe for solo users with no concurrent sessions).
+ * Never throws — logs warning on error and returns silently.
+ */
+export async function upsertPantryIngredientCounts(
+  userId: string,
+  ingredients: string[],
+): Promise<void> {
+  if (ingredients.length === 0) return;
+  try {
+    const { data, error: readError } = await supabase
+      .from("profiles")
+      .select("pantry_ingredient_counts")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (readError) {
+      console.warn("[profile] read pantry counts error:", readError.message);
+      return;
+    }
+    const existing: Record<string, number> =
+      (data?.pantry_ingredient_counts as Record<string, number>) ?? {};
+    const merged = { ...existing };
+    for (const ing of ingredients) {
+      merged[ing] = (merged[ing] ?? 0) + 1;
+    }
+    const { error: writeError } = await supabase.from("profiles").upsert({
+      user_id: userId,
+      pantry_ingredient_counts: merged,
+      updated_at: new Date().toISOString(),
+    });
+    if (writeError) console.warn("[profile] upsert pantry counts error:", writeError.message);
+  } catch (err) {
+    console.warn("[profile] unexpected pantry counts error:", err);
+  }
+}

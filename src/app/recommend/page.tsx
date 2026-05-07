@@ -163,7 +163,7 @@ export default function RecommendPage() {
           ritualRef.current = { context: matching.context, mealId: matching.mealId };
           const label = getRitualLabel(matching.context);
           const without = baseDeck.filter((r) => r.meal.id !== matching.mealId);
-          deck = [{ meal: ritualMeal, reason: label }, ...without].slice(0, DECK_SIZE);
+          deck = [{ meal: ritualMeal, reason: label, pantryMatchCount: 0 }, ...without].slice(0, DECK_SIZE);
         }
       }
 

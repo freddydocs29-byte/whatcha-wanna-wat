@@ -19,7 +19,7 @@ export type RejectionEntry = {
 const PANTRY_FRIENDLY_TAGS = ["Easy", "Pantry staple", "No-cook option", "Meal-prep friendly"];
 const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
 
-export type RankedMeal = { meal: Meal; reason: string };
+export type RankedMeal = { meal: Meal; reason: string; pantryMatchCount: number };
 export type WhoFor = "solo" | "partner" | "family";
 export type SessionCookMode = "cook" | "order" | "either";
 export type SessionVibeMode = "mix-it-up" | "comfort-food" | "quick-easy" | "healthy" | "something-new" | "kid-friendly";
@@ -506,7 +506,7 @@ export function scoreMeal(
   cookMode: SessionCookMode = "either",
   sessionVibeMode: SessionVibeMode = "mix-it-up",
   noveltyBias?: number,
-): { score: number; reason: string; vibeScore: number; behaviorScore: number } {
+): { score: number; reason: string; vibeScore: number; behaviorScore: number; pantryMatchCount: number } {
   let score = 0;
   let vibeScore = 0;    // tracks session-selector contribution for dev logging
   let behaviorScore = 0; // tracks learned-behavior contribution for dev logging
@@ -833,17 +833,45 @@ export function scoreMeal(
   }
 
   // ── Ingredient boost ──────────────────────────────────────────────────────
-  if (selectedIngredients.length > 0 && meal.ingredients) {
-    let pantryScore = 0;
+  let pantryMatchCount = 0;
+
+  if (pantryMode && selectedIngredients.length > 0 && meal.ingredients) {
     let matchCount = 0;
     for (const ing of selectedIngredients) {
-      if (meal.ingredients.includes(ing)) {
-        pantryScore += 2;
-        matchCount++;
+      const ingLower = ing.toLowerCase();
+      const matched = meal.ingredients.some(
+        (mi) => mi.toLowerCase().includes(ingLower),
+      );
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `[pantry match] ing="${ing}" vs meal.ingredients=`,
+          meal.ingredients,
+          `→ matched=${matched}`,
+        );
       }
+      if (matched) matchCount++;
     }
-    if (matchCount >= 2) pantryScore += 2;
-    score += Math.min(pantryScore, 6);
+    pantryMatchCount = matchCount;
+
+    // Graduated scale — removes the old flat +2-per-match + flat bonus approach
+    let pantryScore = 0;
+    if (matchCount === 1) pantryScore = 2.0;
+    else if (matchCount === 2) pantryScore = 4.5;
+    else if (matchCount >= 3) pantryScore = Math.min(2.0 * matchCount, 6.0);
+    score += pantryScore;
+
+    // Core match bonus: +2.0 if a selected ingredient appears in the meal name
+    // or its first ingredient. Applied after the graduated cap — not subject to 6.0 ceiling.
+    const mealNameLower = meal.name.toLowerCase();
+    const firstIngredient = meal.ingredients[0]?.toLowerCase() ?? "";
+    const hasCoreMatch = selectedIngredients.some((ing) => {
+      const ingLower = ing.toLowerCase();
+      return mealNameLower.includes(ingLower) || firstIngredient.includes(ingLower);
+    });
+    if (hasCoreMatch) score += 2.0;
+
+    // No-match mild penalty: meal has none of what you have on hand
+    if (matchCount === 0) score -= 1.0;
   }
 
   // ── Context adjustments ───────────────────────────────────────────────────
@@ -1123,7 +1151,7 @@ export function scoreMeal(
     vibeScore += sessionVibeScore;
   }
 
-  return { score, reason: topReason ?? meal.whyItFits, vibeScore, behaviorScore };
+  return { score, reason: topReason ?? meal.whyItFits, vibeScore, behaviorScore, pantryMatchCount };
 }
 
 /**
@@ -1353,7 +1381,7 @@ export function rankMeals(
 
   // 1. Score every meal — behaviorScore and vibeScore tracked separately for dev logging
   const scored = meals.map((meal) => {
-    const { score, reason, vibeScore, behaviorScore } = scoreMeal(
+    const { score, reason, vibeScore, behaviorScore, pantryMatchCount } = scoreMeal(
       meal, prefs, savedMeals, history, pantryMode, tasteProfile, recentlySeen, flavorProfile, favorites, selectedIngredients, context, sessionShown, vibe, cookMode, sessionVibeMode, noveltyBias
     );
     const rejAdj = rejectionEntries.length > 0
@@ -1361,7 +1389,7 @@ export function rankMeals(
       : 0;
     const contextAdj = sessionContext ? getContextScore(meal, sessionContext) : 0;
     const softAvoidPenalty = checkSoftAvoidPenalty(meal, softAvoids);
-    return { meal, score: score + rejAdj + contextAdj + softAvoidPenalty, reason, vibeScore, behaviorScore };
+    return { meal, score: score + rejAdj + contextAdj + softAvoidPenalty, reason, vibeScore, behaviorScore, pantryMatchCount };
   });
 
   // 1b. Cold-start boost and disaster penalty ─────────────────────────────────
@@ -1451,7 +1479,7 @@ export function rankMeals(
   // 4. Spread cuisines so no single cuisine dominates consecutive slots
   const diversified = spreadByCuisine(shuffled);
 
-  return diversified.map((s) => ({ meal: s.meal, reason: s.reason }));
+  return diversified.map((s) => ({ meal: s.meal, reason: s.reason, pantryMatchCount: s.pantryMatchCount }));
 }
 
 /**
@@ -1874,7 +1902,7 @@ export function rankMealsForSharedSession(
     ...shuffleTier(fallback),
   ];
 
-  return ordered.map((s) => ({ meal: s.meal, reason: s.reason }));
+  return ordered.map((s) => ({ meal: s.meal, reason: s.reason, pantryMatchCount: 0 }));
 }
 
 /**

@@ -16,7 +16,8 @@ import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
 import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
-import { fetchSoftAvoids, upsertSoftAvoids, syncBehavioralSignalsToSupabase } from "../lib/supabase-profile";
+import { fetchSoftAvoids, upsertSoftAvoids, syncBehavioralSignalsToSupabase, upsertPantryIngredientCounts } from "../lib/supabase-profile";
+import { getPantryIngredientOrder, type PantryIngredientTiers } from "../lib/pantry";
 import { type SoftAvoid } from "../lib/supabase";
 import { detectRituals, getRitualLabel, isRitualSuppressed, recordRitualRejection, type RitualDetection } from "../lib/rituals";
 
@@ -184,6 +185,7 @@ function DeckContent() {
   const [pantryMode, setPantryMode] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [showIngredientSheet, setShowIngredientSheet] = useState(false);
+  const [pantryIngredientTiers, setPantryIngredientTiers] = useState<PantryIngredientTiers>({ tier1: [], tier2: [], tier3: [] });
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [cookMode, setCookMode] = useState<SessionCookMode>("either");
@@ -293,6 +295,7 @@ function DeckContent() {
       const ordered: RankedMeal[] = orderedMeals.map((meal) => ({
         meal,
         reason: getSharedReason(meal, userCuisines, userLearnedWeights),
+        pantryMatchCount: 0,
       }));
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
@@ -475,6 +478,14 @@ function DeckContent() {
   // Track the last meal id we fired card_seen for so we don't double-fire.
   const lastSeenMealIdRef = useRef<string | null>(null);
 
+  // Pantry analytics: tracks whether a meal was accepted during a pantry session
+  // so the cleanup effect can distinguish acceptance vs. abandon.
+  const pantryMealAcceptedRef = useRef(false);
+  // Refs that mirror pantry state so the unmount cleanup effect can read
+  // current values without a stale closure (effects with [] deps capture at mount).
+  const pantryModeRef = useRef(pantryMode);
+  const selectedIngredientsRef = useRef(selectedIngredients);
+
   // Keep currentIndexRef in sync so async callbacks (ritual injection) read a
   // current value instead of the stale closure captured at effect creation.
   useEffect(() => {
@@ -563,7 +574,7 @@ function DeckContent() {
       if (currentIndexRef.current > 0) return;
 
       const label = getRitualLabel(matching.context);
-      const ritualEntry: RankedMeal = { meal: ritualMealObj, reason: label };
+      const ritualEntry: RankedMeal = { meal: ritualMealObj, reason: label, pantryMatchCount: 0 };
 
       setRankedMeals((prev) => {
         if (prev.length === 0) return prev; // deck not built yet — no-op
@@ -628,7 +639,7 @@ function DeckContent() {
         const mealMap = new Map(meals.map((m) => [m.id, m]));
         const ordered: RankedMeal[] = ids.flatMap((id) => {
           const m = mealMap.get(id);
-          return m ? [{ meal: m, reason: "" }] : [];
+          return m ? [{ meal: m, reason: "", pantryMatchCount: 0 }] : [];
         });
         setRankedMeals(ordered.slice(0, DECK_SIZE));
         setCurrentIndex(parseInt(startAtParam ?? "0") || 0);
@@ -665,7 +676,7 @@ function DeckContent() {
       if (ritualMealObj) {
         const label = getRitualLabel(pendingRitual.context);
         const without = deckToSet.filter((r) => r.meal.id !== pendingRitual.mealId);
-        deckToSet = [{ meal: ritualMealObj, reason: label }, ...without].slice(0, DECK_SIZE);
+        deckToSet = [{ meal: ritualMealObj, reason: label, pantryMatchCount: 0 }, ...without].slice(0, DECK_SIZE);
         isRitualPosition0Ref.current = true;
       }
     }
@@ -767,6 +778,43 @@ function DeckContent() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep pantry refs in sync with state so the unmount cleanup reads current values.
+  useEffect(() => { pantryModeRef.current = pantryMode; }, [pantryMode]);
+  useEffect(() => { selectedIngredientsRef.current = selectedIngredients; }, [selectedIngredients]);
+
+  // Load ingredient frequency tiers when pantry activates so the sheet can
+  // reorder chips by how often each ingredient has been selected historically.
+  useEffect(() => {
+    if (!pantryMode) return;
+    const uid = getUserId();
+    if (!uid) return;
+    const allIngredients = Object.values(PANTRY_INGREDIENTS).flat();
+    getPantryIngredientOrder(uid, allIngredients).then(setPantryIngredientTiers);
+  }, [pantryMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pantry session analytics: fires when the component unmounts without an acceptance.
+  // Covers navigate-away, back button, and session close with pantry active.
+  useEffect(() => {
+    return () => {
+      if (
+        pantryModeRef.current &&
+        selectedIngredientsRef.current.length > 0 &&
+        !pantryMealAcceptedRef.current
+      ) {
+        const ctx = inferSessionContext(new Date());
+        trackEvent("pantry_ingredients_selected", {
+          ingredients: selectedIngredientsRef.current,
+          meal_period: ctx.mealPeriod,
+          day_type: ctx.dayType,
+          resulted_in_acceptance: false,
+          match_count_of_accepted_meal: null,
+        });
+        const uid = getUserId();
+        if (uid) void upsertPantryIngredientCounts(uid, selectedIngredientsRef.current);
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Best-effort close on browser/tab close (beforeunload fires but the browser
   // may kill async work before the fetch completes).
   useEffect(() => {
@@ -810,6 +858,7 @@ function DeckContent() {
   const current = rankedMeals[currentIndex];
   const meal = current?.meal;
   const reason = current?.reason ?? "";
+  const pantryMatchCount = current?.pantryMatchCount ?? 0;
   const nextMeal = rankedMeals[currentIndex + 1]?.meal;
   const isExiting = exitX !== null;
 
@@ -1402,6 +1451,21 @@ function DeckContent() {
       deckSize: totalCount,
       mode: "solo",
     });
+
+    if (pantryMode && selectedIngredients.length > 0) {
+      const ctx = inferSessionContext(new Date());
+      trackEvent("pantry_ingredients_selected", {
+        ingredients: selectedIngredients,
+        meal_period: ctx.mealPeriod,
+        day_type: ctx.dayType,
+        resulted_in_acceptance: true,
+        match_count_of_accepted_meal: pantryMatchCount,
+      });
+      const uid = getUserId();
+      if (uid) void upsertPantryIngredientCounts(uid, selectedIngredients);
+      pantryMealAcceptedRef.current = true;
+    }
+
     updateTasteProfile(chosenMeal, "choose");
 
     // Haptic feedback: firm tap + soft echo
@@ -2201,6 +2265,15 @@ function DeckContent() {
                     ))}
                   </div>
 
+                  {pantryMode && pantryMatchCount >= 2 && (
+                    <p
+                      className="text-xs text-white/60"
+                      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}
+                    >
+                      {pantryMatchCount >= 3 ? "You've got this" : "You've got most of this"}
+                    </p>
+                  )}
+
                   {reason && (
                     <p
                       className="text-xs text-white/60"
@@ -2413,11 +2486,45 @@ function DeckContent() {
 
             {/* Ingredient chips */}
             <div className="max-h-[52vh] space-y-4 overflow-y-auto scrollbar-hide">
-              {Object.entries(PANTRY_INGREDIENTS).map(([category, items]) => (
-                <div key={category}>
-                  <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-white/25">
-                    {category}
-                  </p>
+              {(() => {
+                const { tier1, tier2, tier3 } = pantryIngredientTiers;
+                const hasTierData = tier1.length > 0 || tier2.length > 0;
+
+                // New user or no history: fall back to default category grouping
+                if (!hasTierData) {
+                  return Object.entries(PANTRY_INGREDIENTS).map(([category, items]) => (
+                    <div key={category}>
+                      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-white/25">
+                        {category}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {items.map((name) => {
+                          const selected = selectedIngredients.includes(name);
+                          const limitReached = !selected && selectedIngredients.length >= 5;
+                          return (
+                            <button
+                              key={name}
+                              onClick={() => toggleIngredient(name)}
+                              disabled={limitReached}
+                              className={`rounded-full border px-3 py-1.5 text-xs transition-colors duration-150 ${
+                                selected
+                                  ? "border-amber-400/50 bg-amber-400/[0.15] text-amber-200"
+                                  : limitReached
+                                  ? "border-white/[0.05] bg-white/[0.03] text-white/20 cursor-not-allowed"
+                                  : "border-white/[0.07] bg-white/[0.05] text-white/45 hover:border-white/15 hover:text-white/65 active:scale-[0.96]"
+                              }`}
+                            >
+                              {name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                }
+
+                // Returning user: render tier1 → separator → tier2 → separator → tier3
+                const renderChips = (items: string[]) => (
                   <div className="flex flex-wrap gap-2">
                     {items.map((name) => {
                       const selected = selectedIngredients.includes(name);
@@ -2440,8 +2547,22 @@ function DeckContent() {
                       );
                     })}
                   </div>
-                </div>
-              ))}
+                );
+
+                return (
+                  <>
+                    {tier1.length > 0 && renderChips(tier1)}
+                    {tier1.length > 0 && (tier2.length > 0 || tier3.length > 0) && (
+                      <div className="border-t border-white/[0.06]" />
+                    )}
+                    {tier2.length > 0 && renderChips(tier2)}
+                    {tier2.length > 0 && tier3.length > 0 && (
+                      <div className="border-t border-white/[0.06]" />
+                    )}
+                    {tier3.length > 0 && renderChips([...tier3].sort())}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Done */}
