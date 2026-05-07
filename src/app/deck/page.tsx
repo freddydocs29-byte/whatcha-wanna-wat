@@ -187,6 +187,7 @@ function DeckContent() {
   const [cookMode, setCookMode] = useState<SessionCookMode>("either");
   const vibeParam = searchParams.get("vibe") as SessionVibeMode | null;
   const [sessionVibeMode, setSessionVibeMode] = useState<SessionVibeMode>(vibeParam ?? "mix-it-up");
+  const startAtParam = searchParams.get("startAt");
   const [isChoosing, setIsChoosing] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
@@ -539,6 +540,31 @@ function DeckContent() {
   // re-ranked from local state.
   useEffect(() => {
     if (sessionId) return;
+
+    // Hand-off from the recommend screen: use the pre-composed deck so meals
+    // the user already saw (positions 0 and 1) are not shown again.
+    if (typeof window !== "undefined") {
+      const raw = sessionStorage.getItem("wwe_recommend_deck");
+      if (raw) {
+        sessionStorage.removeItem("wwe_recommend_deck");
+        const ids: string[] = JSON.parse(raw);
+        const mealMap = new Map(meals.map((m) => [m.id, m]));
+        const ordered: RankedMeal[] = ids.flatMap((id) => {
+          const m = mealMap.get(id);
+          return m ? [{ meal: m, reason: "" }] : [];
+        });
+        setRankedMeals(ordered.slice(0, DECK_SIZE));
+        setCurrentIndex(parseInt(startAtParam ?? "0") || 0);
+        x.set(0);
+        setExitX(null);
+        if (!trackingSessionPromiseRef.current) {
+          trackingOpenedAtRef.current = new Date();
+          trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false });
+        }
+        return;
+      }
+    }
+
     for (let i = 0; i <= currentIndex && i < rankedMeals.length; i++) {
       const id = rankedMeals[i]?.meal?.id;
       if (id) sessionShownRef.current.add(id);
@@ -1188,7 +1214,7 @@ function DeckContent() {
           likeSignalsRef.current[sig] = (likeSignalsRef.current[sig] ?? 0) + 1;
         }
         const nudge = checkTriggers(
-          passSignalsRef.current,
+          {}, // avoid nudge is cross-session only; don't fire it on save
           likeSignalsRef.current,
           firedTriggersRef.current,
         );
@@ -1777,37 +1803,6 @@ function DeckContent() {
             Swipe left to pass, right to choose, or use the buttons below.
           </p>
         </section>
-
-        {/* Vibe selector — solo: interactive; shared: read-only (locked by host) */}
-        <div className="mt-4 flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
-          {(["mix-it-up", "comfort-food", "quick-easy", "healthy", "something-new", "kid-friendly"] as SessionVibeMode[]).map((mode) => {
-            const label =
-              mode === "mix-it-up" ? "Mix It Up" :
-              mode === "comfort-food" ? "Comfort Food" :
-              mode === "quick-easy" ? "Quick & Easy" :
-              mode === "healthy" ? "Healthy" :
-              mode === "something-new" ? "Something New" :
-              "Kid Friendly";
-            const isActive = sessionVibeMode === mode;
-            const isReadOnly = !!sessionId;
-            return (
-              <button
-                key={mode}
-                disabled={isReadOnly}
-                onClick={() => !isReadOnly && setSessionVibeMode(mode)}
-                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 ${
-                  isActive
-                    ? "border-white/25 bg-white/[0.12] text-white/80"
-                    : isReadOnly
-                    ? "border-white/[0.05] bg-transparent text-white/20 cursor-default"
-                    : "border-white/[0.07] bg-transparent text-white/30 hover:border-white/15 hover:text-white/55 active:scale-[0.96]"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
 
         {/* Pantry bar + Fresh Ideas row — solo only */}
         {!sessionId && (

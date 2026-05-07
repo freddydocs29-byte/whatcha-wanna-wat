@@ -126,14 +126,6 @@ export function isOnCooldown(signal: string): boolean {
   return !!ts && Date.now() - ts < COOLDOWN_MS;
 }
 
-/** Records the current timestamp as the last fire time for this signal. */
-export function markNudgeFired(signal: string): void {
-  if (typeof window === "undefined") return;
-  const cd = getCooldowns();
-  cd[signal] = Date.now();
-  localStorage.setItem(COOLDOWN_KEY, JSON.stringify(cd));
-}
-
 // ── Trigger check ─────────────────────────────────────────────────────────────
 
 /**
