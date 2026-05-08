@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { type Meal } from "../data/meals";
 import { getPreferences, getSavedMeals, type UserPreferences } from "../lib/storage";
-import { MEAL_CUISINES } from "../lib/scoring";
+
 
 function buildReasons(
   meal: Meal,
@@ -28,9 +28,7 @@ function buildReasons(
 
   // 2. Cuisine match — personal and specific
   if (prefs && reasons.length < 3) {
-    const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
-    const matched = mealCuisines.find((c) => prefs.cuisines.includes(c));
-    if (matched) add(`Matches your ${matched} preference`);
+    if (prefs.cuisines.includes(meal.cuisine)) add(`Matches your ${meal.cuisine} preference`);
   }
 
   // 3. Kid-friendly preference

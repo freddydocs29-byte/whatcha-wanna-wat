@@ -7,6 +7,12 @@ import type { Meal } from "../../data/meals";
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
 
+const VALID_CUISINES = new Set([
+  "Italian", "Mexican", "Japanese", "Chinese", "Thai", "Indian", "Korean",
+  "Vietnamese", "Mediterranean", "Middle Eastern", "American", "French",
+  "Greek", "Breakfast", "Indonesian", "Spanish", "Caribbean", "Moroccan",
+]);
+
 const VALID_CATEGORIES = new Set([
   "Comfort food",
   "Quick & casual",
@@ -133,7 +139,7 @@ REQUIRED JSON STRUCTURE — return exactly this shape:
       "tags": ["20 min", "Easy"],
       "ingredients": ["Chicken", "Rice"],
       "estimatedTimeMinutes": 25,
-      "cuisine": "Asian",
+      "cuisine": "one of: Italian | Mexican | Japanese | Chinese | Thai | Indian | Korean | Vietnamese | Mediterranean | Middle Eastern | American | French | Greek | Breakfast | Indonesian | Spanish | Caribbean | Moroccan",
       "aiLabel": "Made from your pantry"
     }
   ]
@@ -157,7 +163,7 @@ type RawAIMeal = {
   aiLabel?: unknown;
 };
 
-function transformMeal(raw: RawAIMeal, hardNos: string[]): Meal | null {
+function transformMeal(raw: RawAIMeal, hardNos: string[], fallbackCuisine = "American"): Meal | null {
   if (typeof raw.name !== "string" || !raw.name.trim()) return null;
   if (typeof raw.description !== "string" || !raw.description.trim()) return null;
 
@@ -183,14 +189,20 @@ function transformMeal(raw: RawAIMeal, hardNos: string[]): Meal | null {
   const aiLabel: Meal["aiLabel"] =
     rawLabel === "Made from your pantry" ? "Made from your pantry" : "Fresh idea";
 
+  const cuisine =
+    typeof raw.cuisine === "string" && VALID_CUISINES.has(raw.cuisine)
+      ? raw.cuisine
+      : fallbackCuisine;
+
   const meal: Meal = {
     id,
     name: raw.name.trim(),
     description: raw.description.trim(),
     category,
+    cuisine,
     tags,
     ingredients,
-    whyItFits: typeof raw.cuisine === "string" && raw.cuisine ? `${raw.cuisine} inspired` : "Fresh idea for tonight",
+    whyItFits: `${cuisine} inspired`,
     image: FALLBACK_IMAGE,
     aiGenerated: true,
     aiLabel,
@@ -295,8 +307,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const rawMeals = Array.isArray(parsed.meals) ? parsed.meals : [];
+    const fallback = cuisines[0] ?? "American";
     const meals: Meal[] = rawMeals
-      .map((m) => transformMeal(m as RawAIMeal, hardNos))
+      .map((m) => transformMeal(m as RawAIMeal, hardNos, fallback))
       .filter((m): m is Meal => m !== null);
 
     if (process.env.NODE_ENV === "development") {

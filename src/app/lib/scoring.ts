@@ -216,216 +216,6 @@ export function hardGate(meals: Meal[], dislikedFoods: string[], hourOverride?: 
   return filtered;
 }
 
-/**
- * Maps each meal ID to the cuisine(s) it belongs to.
- * Used to match against the user's preferred cuisines from onboarding.
- */
-export const MEAL_CUISINES: Record<string, string[]> = {
-  // Original 8
-  "chicken-alfredo": ["Italian"],
-  tacos: ["Mexican"],
-  "sushi-bowl": ["Japanese", "Asian"],
-  burgers: ["American"],
-  "pasta-pomodoro": ["Italian"],
-  "thai-curry": ["Asian"],
-  "grain-bowl": ["Mediterranean"],
-  "grilled-salmon": ["Mediterranean", "American"],
-  // New 17
-  "mac-and-cheese": ["American"],
-  quesadillas: ["Mexican"],
-  ramen: ["Japanese", "Asian"],
-  "butter-chicken": ["Indian"],
-  shakshuka: ["Middle Eastern", "Mediterranean"],
-  "poke-bowl": ["Japanese", "Asian"],
-  "margherita-pizza": ["Italian"],
-  "fried-rice": ["Asian"],
-  "falafel-wrap": ["Middle Eastern"],
-  "ribeye-steak": ["American"],
-  "chicken-stir-fry": ["Asian"],
-  "mushroom-risotto": ["Italian"],
-  "lamb-chops": ["Mediterranean"],
-  chili: ["American"],
-  "veggie-curry": ["Indian", "Asian"],
-  "caesar-salad": ["American"],
-  "bbq-chicken": ["American"],
-  // Expansion 75
-  "breakfast-burrito": ["American", "Mexican"],
-  "avocado-toast": ["American"],
-  "grilled-cheese": ["American"],
-  "chicken-wrap": ["American"],
-  "scrambled-eggs": ["American"],
-  nachos: ["Mexican", "American"],
-  "french-toast": ["American"],
-  pancakes: ["American"],
-  "veggie-wrap": ["Mediterranean"],
-  "hot-dogs": ["American"],
-  "bacon-egg-cheese": ["American"],
-  "tuna-melt": ["American"],
-  "loaded-fries": ["American"],
-  "beef-stew": ["American"],
-  "chicken-pot-pie": ["American"],
-  meatloaf: ["American"],
-  "chicken-noodle-soup": ["American"],
-  "loaded-baked-potato": ["American"],
-  "spaghetti-bolognese": ["Italian"],
-  "potato-soup": ["American"],
-  "french-onion-soup": ["French"],
-  "shepherds-pie": ["American"],
-  "chicken-casserole": ["American"],
-  "korean-bbq-bowl": ["Korean", "Asian"],
-  "tikka-masala": ["Indian"],
-  "pad-thai": ["Asian"],
-  "kung-pao-chicken": ["Asian"],
-  "jerk-chicken": ["Caribbean"],
-  bibimbap: ["Korean", "Asian"],
-  "dan-dan-noodles": ["Asian"],
-  "mango-curry": ["Indian", "Asian"],
-  "spicy-miso-ramen": ["Japanese", "Asian"],
-  "peri-peri-chicken": ["Mediterranean"],
-  "teriyaki-salmon": ["Japanese", "Asian"],
-  "lettuce-wrap-bowls": ["Asian"],
-  "shrimp-stir-fry": ["Asian"],
-  "lentil-soup": ["Mediterranean", "Middle Eastern"],
-  "buddha-bowl": ["American", "Mediterranean"],
-  "veggie-omelette": ["American", "Mediterranean"],
-  "stuffed-peppers": ["American", "Mediterranean"],
-  "baked-lemon-chicken": ["American", "Mediterranean"],
-  "tuna-salad": ["American"],
-  "black-bean-bowl": ["Mexican", "American"],
-  "coq-au-vin": ["French"],
-  "sea-bass": ["Mediterranean", "American"],
-  "duck-breast": ["French"],
-  "beef-tenderloin": ["American", "French"],
-  "seared-scallops": ["American", "French"],
-  "stuffed-mushrooms": ["Italian", "Mediterranean"],
-  carbonara: ["Italian"],
-  "beef-lasagna": ["Italian"],
-  "chicken-piccata": ["Italian"],
-  gnocchi: ["Italian"],
-  "penne-arrabbiata": ["Italian"],
-  bruschetta: ["Italian"],
-  "greek-salad": ["Mediterranean"],
-  "hummus-plate": ["Middle Eastern", "Mediterranean"],
-  moussaka: ["Mediterranean"],
-  tabbouleh: ["Middle Eastern", "Mediterranean"],
-  "chicken-souvlaki": ["Mediterranean"],
-  "spanish-tortilla": ["Mediterranean"],
-  "vietnamese-spring-rolls": ["Asian"],
-  "shrimp-ceviche": ["Mexican"],
-  "caprese-salad": ["Italian"],
-  "cold-sesame-noodles": ["Asian"],
-  "mango-shrimp-bowl": ["Asian"],
-  "nicoise-salad": ["French", "Mediterranean"],
-  "pulled-pork-sandwich": ["American"],
-  "chicken-wings": ["American"],
-  "fish-tacos": ["Mexican", "American"],
-  "sloppy-joes": ["American"],
-  "chicken-tenders": ["American"],
-  "breakfast-for-dinner": ["American"],
-  "garlic-butter-shrimp": ["American", "Mediterranean"],
-  "steak-frites": ["French", "American"],
-  // Expansion 100
-  "blt-sandwich": ["American"],
-  "club-sandwich": ["American"],
-  "breakfast-hash": ["American"],
-  waffles: ["American"],
-  "mini-pizzas": ["Italian", "American"],
-  cheesesteak: ["American"],
-  "egg-salad-sandwich": ["American"],
-  "chicken-salad-wrap": ["American"],
-  "bagel-lox": ["American"],
-  "hash-browns": ["American"],
-  "miso-rice": ["Japanese", "Asian"],
-  congee: ["Asian"],
-  "pan-fried-gyoza": ["Japanese", "Asian"],
-  "tomato-soup": ["American"],
-  "pot-roast": ["American"],
-  "chicken-dumplings": ["American"],
-  "biscuits-gravy": ["American"],
-  "beef-vegetable-soup": ["American"],
-  "tuna-noodle": ["American"],
-  "stuffed-cabbage": ["American"],
-  "corn-chowder": ["American"],
-  "sausage-pasta": ["Italian", "American"],
-  "broccoli-cheddar-soup": ["American"],
-  "white-bean-soup": ["Italian", "American"],
-  "red-beans-rice": ["American"],
-  "szechuan-beef": ["Asian"],
-  "moroccan-chicken": ["Mediterranean"],
-  "massaman-curry": ["Asian"],
-  "birria-tacos": ["Mexican"],
-  "beef-pho": ["Asian"],
-  "drunken-noodles": ["Asian"],
-  "harissa-chicken": ["Mediterranean"],
-  "chipotle-bowl": ["Mexican", "American"],
-  "mapo-beef": ["Asian"],
-  "lamb-shawarma": ["Middle Eastern", "Mediterranean"],
-  "chicken-mole": ["Mexican"],
-  "green-shakshuka": ["Middle Eastern", "Mediterranean"],
-  "beef-rendang": ["Asian"],
-  "tamarind-shrimp": ["Asian"],
-  "detox-chicken-soup": ["American"],
-  "veggie-stir-fry": ["Asian"],
-  "kale-chickpea-salad": ["Mediterranean", "American"],
-  "salmon-tacos": ["Mexican", "American"],
-  "chickpea-spinach-soup": ["Mediterranean"],
-  "shrimp-avocado-bowl": ["American"],
-  "roasted-veggie-bowl": ["American", "Mediterranean"],
-  "spinach-egg-cups": ["American"],
-  "tuna-rice-bowl": ["American"],
-  "baked-salmon-veg": ["American"],
-  "white-chicken-chili": ["American"],
-  "avocado-chicken-salad": ["American"],
-  "poached-eggs-toast": ["American"],
-  "spinach-frittata": ["Italian", "Mediterranean"],
-  "shrimp-scampi": ["Italian", "American"],
-  "beef-bourguignon": ["French"],
-  "pan-seared-fish": ["American", "French"],
-  "chicken-marsala": ["Italian"],
-  "seafood-linguine": ["Italian"],
-  "steak-au-poivre": ["French"],
-  "shrimp-bisque": ["French", "American"],
-  "rack-of-lamb": ["Mediterranean", "French"],
-  "truffle-pasta": ["Italian"],
-  "seafood-cakes": ["American"],
-  "cacio-e-pepe": ["Italian"],
-  "pasta-amatriciana": ["Italian"],
-  "osso-buco": ["Italian"],
-  puttanesca: ["Italian"],
-  minestrone: ["Italian"],
-  saltimbocca: ["Italian"],
-  "cheese-ravioli": ["Italian"],
-  "focaccia-bread": ["Italian"],
-  fattoush: ["Middle Eastern", "Mediterranean"],
-  mujaddara: ["Middle Eastern", "Mediterranean"],
-  "baba-ghanoush": ["Middle Eastern", "Mediterranean"],
-  "foul-medames": ["Middle Eastern", "Mediterranean"],
-  sabich: ["Middle Eastern", "Mediterranean"],
-  "turkish-eggs": ["Mediterranean"],
-  lahmacun: ["Mediterranean"],
-  spanakopita: ["Mediterranean"],
-  "banh-mi": ["Asian"],
-  "prawn-cocktail": ["American"],
-  gazpacho: ["Mediterranean"],
-  "smoked-salmon-plate": ["American"],
-  "gado-gado": ["Asian"],
-  "cold-soba": ["Japanese", "Asian"],
-  "thai-larb": ["Asian"],
-  "cobb-salad": ["American"],
-  "mushroom-spinach-salad": ["American", "Mediterranean"],
-  "cold-noodle-salad": ["Asian"],
-  sliders: ["American"],
-  "pizza-rolls": ["Italian", "American"],
-  "corn-dogs": ["American"],
-  "bbq-ribs": ["American"],
-  "chicken-parmesan": ["Italian", "American"],
-  "meatball-subs": ["Italian", "American"],
-  "buffalo-chicken-dip": ["American"],
-  "southern-fried-chicken": ["American"],
-  "shrimp-boil": ["American"],
-  "fried-chicken-sandwich": ["American"],
-  "pigs-in-blankets": ["American"],
-};
 
 /**
  * Score a single meal and return the most relevant reason to surface.
@@ -520,11 +310,9 @@ export function scoreMeal(
 
   if (prefs) {
     // Cuisine match (+3) — highest reason priority
-    const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
-    const matchedCuisine = mealCuisines.find((c) => prefs.cuisines.includes(c));
-    if (matchedCuisine) {
+    if (meal.cuisine && prefs.cuisines.includes(meal.cuisine)) {
       score += 2.0;
-      setReason(`You listed ${matchedCuisine} as a favorite`);
+      setReason(`You listed ${meal.cuisine} as a favorite`);
     }
 
     // Spice / bold flavor match (+2 for hot, +1 for medium)
@@ -1269,11 +1057,10 @@ export function getSessionRejectionAdjustment(
   // not_feeling_it: apply -0.75 for each entry whose rejected meal's category,
   // cuisine, or tags overlap with this meal. Each entry represents a distinct
   // "mood" rejection so penalties can stack (capped by session CAP of 3 entries).
-  const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
   for (const entry of rejectionEntries) {
     if (entry.reason !== "not_feeling_it") continue;
     const catMatch = meal.category === entry.category;
-    const cuisineMatch = entry.cuisine.some((c) => mealCuisines.includes(c));
+    const cuisineMatch = entry.cuisine.includes(meal.cuisine);
     const tagMatch = entry.tags.some((t) => meal.tags.includes(t));
     if (catMatch || cuisineMatch || tagMatch) delta -= 0.75;
   }
@@ -1434,14 +1221,14 @@ export function rankMeals(
   const top5 = scored.slice(0, 5);
   const cuisineHitsTop5: Record<string, number> = {};
   for (const s of top5) {
-    const c = MEAL_CUISINES[s.meal.id]?.[0] ?? "Other";
+    const c = s.meal.cuisine ?? "Other";
     cuisineHitsTop5[c] = (cuisineHitsTop5[c] ?? 0) + 1;
   }
   for (const [cuisine, count] of Object.entries(cuisineHitsTop5)) {
     if (count >= 3) {
       let seen = 0;
       for (const s of scored.slice(0, 5)) {
-        const c = MEAL_CUISINES[s.meal.id]?.[0] ?? "Other";
+        const c = s.meal.cuisine ?? "Other";
         if (c === cuisine) {
           seen++;
           if (seen >= 3) s.score -= 0.75; // penalise 3rd, 4th, 5th in the cluster
@@ -1533,7 +1320,7 @@ function spreadByCuisine<T extends { meal: Meal }>(sorted: T[]): T[] {
   if (sorted.length <= 3) return sorted;
 
   const primaryCuisine = (meal: Meal): string =>
-    MEAL_CUISINES[meal.id]?.[0] ?? "Other";
+    meal.cuisine ?? "Other";
 
   const result: T[] = [];
   const remaining = [...sorted];
@@ -1639,12 +1426,9 @@ function computeOverlapBonus(
   let bonus = 0;
   const reasons: string[] = [];
 
-  const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
-
   // Both users listed this cuisine in their favorite_cuisines
-  const sharedCuisine = mealCuisines.find(
-    (c) => profileA.cuisines.includes(c) && profileB.cuisines.includes(c),
-  );
+  const sharedCuisine = (profileA.cuisines.includes(meal.cuisine) && profileB.cuisines.includes(meal.cuisine))
+    ? meal.cuisine : undefined;
   if (sharedCuisine) {
     bonus += 2.0;
     reasons.push(`both like ${sharedCuisine}`);
@@ -1925,9 +1709,7 @@ export function getSharedReason(
   cuisines: string[],
   learnedWeights: TasteProfile | null,
 ): string {
-  const mealCuisines = MEAL_CUISINES[meal.id] ?? [];
-  const matchedCuisine = mealCuisines.find((c) => cuisines.includes(c));
-  if (matchedCuisine) return `You both might enjoy ${matchedCuisine}`;
+  if (cuisines.includes(meal.cuisine)) return `You both might enjoy ${meal.cuisine}`;
 
   if (learnedWeights) {
     const likedTagMatches = meal.tags.filter(

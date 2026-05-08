@@ -15,7 +15,6 @@
  */
 
 import { type Meal } from "../data/meals";
-import { MEAL_CUISINES } from "./scoring";
 
 // ── Avoid signals (food types → hard_no_foods) ────────────────────────────────
 //
@@ -102,7 +101,7 @@ export function getAvoidSignals(meal: Meal): string[] {
  * set). Used to detect "prefer more of X" patterns from saves/likes.
  */
 export function getPreferSignals(meal: Meal): string[] {
-  return (MEAL_CUISINES[meal.id] ?? []).filter((c) => PREFERRED_CUISINES.has(c));
+  return [meal.cuisine].filter((c) => PREFERRED_CUISINES.has(c));
 }
 
 // ── Cooldown ──────────────────────────────────────────────────────────────────

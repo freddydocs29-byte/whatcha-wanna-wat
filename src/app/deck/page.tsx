@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getNoveltyBias, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, getAllHardNos, getSharedReason, getTimeBucket, MEAL_CUISINES, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { rankMeals, hardGate, getAllHardNos, getSharedReason, getTimeBucket, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
@@ -1683,7 +1683,7 @@ function DeckContent() {
       reason,
       mealId: mealCtx?.id ?? "",
       category: mealCtx?.category ?? "",
-      cuisine: mealCtx ? (MEAL_CUISINES[mealCtx.id] ?? []) : [],
+      cuisine: mealCtx ? [mealCtx.cuisine] : [],
       tags: mealCtx?.tags ?? [],
     };
 

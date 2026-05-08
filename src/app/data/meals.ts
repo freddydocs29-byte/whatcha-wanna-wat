@@ -2,6 +2,7 @@ export type Meal = {
   id: string;
   name: string;
   category: string;
+  cuisine: string;
   description: string;
   tags: string[];
   ingredients?: string[];
@@ -19,6 +20,7 @@ export const meals: Meal[] = [
     id: "chicken-alfredo",
     name: "Chicken Alfredo",
     category: "Comfort food",
+    cuisine: "Italian",
     description:
       "Creamy, easy, familiar, and feels like a strong low-effort dinner pick.",
     tags: ["25 min", "Kid-friendly", "Easy"],
@@ -31,6 +33,7 @@ export const meals: Meal[] = [
     id: "tacos",
     name: "Street Tacos",
     category: "Quick & casual",
+    cuisine: "Mexican",
     description:
       "Fast, customizable, and everyone can build their own. Hard to go wrong.",
     tags: ["20 min", "Crowd pleaser", "Easy"],
@@ -43,6 +46,7 @@ export const meals: Meal[] = [
     id: "sushi-bowl",
     name: "Sushi Bowl",
     category: "Fresh",
+    cuisine: "Japanese",
     description:
       "All the sushi vibes without the rolling. Rice, fish, avocado, done.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -55,6 +59,7 @@ export const meals: Meal[] = [
     id: "burgers",
     name: "Smash Burgers",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Crispy edges, juicy center. The kind of burger that earns its reputation.",
     tags: ["30 min", "Grill night", "Indulgent"],
@@ -67,6 +72,7 @@ export const meals: Meal[] = [
     id: "pasta-pomodoro",
     name: "Pasta Pomodoro",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Simple tomato sauce, fresh basil, good pasta. Underrated every time.",
     tags: ["20 min", "Pantry staple", "Easy"],
@@ -79,6 +85,7 @@ export const meals: Meal[] = [
     id: "thai-curry",
     name: "Thai Green Curry",
     category: "Bold flavors",
+    cuisine: "Thai",
     description:
       "Coconut milk, green curry paste, vegetables or chicken. Warming and complex.",
     tags: ["35 min", "Flavorful", "Medium effort"],
@@ -91,6 +98,7 @@ export const meals: Meal[] = [
     id: "grain-bowl",
     name: "Grain Bowl",
     category: "Healthy",
+    cuisine: "Mediterranean",
     description:
       "Quinoa or farro, roasted veggies, tahini drizzle. Solid and satisfying.",
     tags: ["30 min", "Meal-prep friendly", "Nutritious"],
@@ -103,6 +111,7 @@ export const meals: Meal[] = [
     id: "grilled-salmon",
     name: "Grilled Salmon",
     category: "Elevated",
+    cuisine: "American",
     description:
       "Lemon, garlic, olive oil. Simple prep, impressive results, 20 minutes.",
     tags: ["20 min", "Protein-packed", "Elegant"],
@@ -117,6 +126,7 @@ export const meals: Meal[] = [
     id: "mac-and-cheese",
     name: "Mac & Cheese",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Creamy, cheesy, universally loved. The ultimate no-argument weeknight dinner.",
     tags: ["20 min", "Kid-friendly", "Easy"],
@@ -129,6 +139,7 @@ export const meals: Meal[] = [
     id: "quesadillas",
     name: "Quesadillas",
     category: "Quick & casual",
+    cuisine: "Mexican",
     description:
       "Crispy outside, melty inside. Done in 15 minutes with whatever's in the fridge.",
     tags: ["15 min", "Kid-friendly", "Easy"],
@@ -141,6 +152,7 @@ export const meals: Meal[] = [
     id: "ramen",
     name: "Tonkotsu Ramen",
     category: "Bold flavors",
+    cuisine: "Japanese",
     description:
       "Rich broth, soft-boiled egg, tender chashu. Comfort in a bowl with real depth.",
     tags: ["30 min", "Flavorful", "Medium effort"],
@@ -153,6 +165,7 @@ export const meals: Meal[] = [
     id: "butter-chicken",
     name: "Butter Chicken",
     category: "Bold flavors",
+    cuisine: "Indian",
     description:
       "Silky tomato-cream sauce, tender chicken, warm spices. Best with naan.",
     tags: ["40 min", "Flavorful", "Medium effort"],
@@ -165,6 +178,7 @@ export const meals: Meal[] = [
     id: "shakshuka",
     name: "Shakshuka",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Eggs poached in spiced tomato sauce. One pan, big flavor, deceptively easy.",
     tags: ["25 min", "Vegetarian", "Easy"],
@@ -177,6 +191,7 @@ export const meals: Meal[] = [
     id: "poke-bowl",
     name: "Poke Bowl",
     category: "Fresh",
+    cuisine: "Japanese",
     description:
       "Ahi tuna, rice, avocado, edamame. Fresh and colorful, no cooking required.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -189,6 +204,7 @@ export const meals: Meal[] = [
     id: "margherita-pizza",
     name: "Margherita Pizza",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "San Marzano tomatoes, fresh mozzarella, basil. Simple and always right.",
     tags: ["25 min", "Kid-friendly", "Crowd pleaser"],
@@ -201,6 +217,7 @@ export const meals: Meal[] = [
     id: "fried-rice",
     name: "Fried Rice",
     category: "Quick & casual",
+    cuisine: "Chinese",
     description:
       "Day-old rice, egg, soy, scallions. The best use of leftovers in your fridge.",
     tags: ["20 min", "Easy", "Crowd pleaser"],
@@ -213,6 +230,7 @@ export const meals: Meal[] = [
     id: "falafel-wrap",
     name: "Falafel Wrap",
     category: "Fresh",
+    cuisine: "Middle Eastern",
     description:
       "Crispy falafel, hummus, fresh veg, tahini. Light, filling, and plant-based.",
     tags: ["20 min", "Vegetarian", "Light"],
@@ -225,6 +243,7 @@ export const meals: Meal[] = [
     id: "ribeye-steak",
     name: "Ribeye Steak",
     category: "Elevated",
+    cuisine: "American",
     description:
       "Butter-basted, cast iron seared. Simple technique, serious result.",
     tags: ["25 min", "Protein-packed", "Grill night"],
@@ -237,6 +256,7 @@ export const meals: Meal[] = [
     id: "chicken-stir-fry",
     name: "Chicken Stir-Fry",
     category: "Healthy",
+    cuisine: "Chinese",
     description:
       "Crisp vegetables, tender chicken, savory sauce over steamed rice. Fast and balanced.",
     tags: ["20 min", "Easy", "Light"],
@@ -249,6 +269,7 @@ export const meals: Meal[] = [
     id: "mushroom-risotto",
     name: "Mushroom Risotto",
     category: "Elevated",
+    cuisine: "Italian",
     description:
       "Arborio rice, white wine, parmesan, mixed mushrooms. Rich and deeply savory.",
     tags: ["40 min", "Medium effort", "Elegant"],
@@ -261,6 +282,7 @@ export const meals: Meal[] = [
     id: "lamb-chops",
     name: "Lamb Chops",
     category: "Elevated",
+    cuisine: "Mediterranean",
     description:
       "Herb-marinated, pan-seared lamb. Restaurant feel at home, manageable effort.",
     tags: ["30 min", "Protein-packed", "Elegant"],
@@ -273,6 +295,7 @@ export const meals: Meal[] = [
     id: "chili",
     name: "Classic Chili",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Beef, beans, tomatoes, chili powder. Set it going and it gets better by the hour.",
     tags: ["45 min", "Crowd pleaser", "Medium effort"],
@@ -285,6 +308,7 @@ export const meals: Meal[] = [
     id: "veggie-curry",
     name: "Vegetable Curry",
     category: "Bold flavors",
+    cuisine: "Indian",
     description:
       "Chickpeas, cauliflower, coconut milk, warming spices. Hearty and plant-based.",
     tags: ["30 min", "Vegetarian", "Flavorful"],
@@ -297,6 +321,7 @@ export const meals: Meal[] = [
     id: "caesar-salad",
     name: "Chicken Caesar",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Grilled chicken, romaine, parmesan, classic dressing. Light enough to not feel guilty.",
     tags: ["15 min", "Easy", "Light"],
@@ -309,6 +334,7 @@ export const meals: Meal[] = [
     id: "bbq-chicken",
     name: "BBQ Chicken",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Smoky, saucy, falling off the bone. Works every time for every kind of crowd.",
     tags: ["35 min", "Crowd pleaser", "Grill night"],
@@ -325,6 +351,7 @@ export const meals: Meal[] = [
     id: "breakfast-burrito",
     name: "Breakfast Burrito",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Scrambled eggs, cheese, and sausage wrapped tight in a warm tortilla. Portable and satisfying any time of day.",
     tags: ["15 min", "Kid-friendly", "Easy"],
@@ -337,6 +364,7 @@ export const meals: Meal[] = [
     id: "avocado-toast",
     name: "Avocado Toast",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Smashed avocado on toasted bread with a fried egg and chili flakes. Trendy for a reason.",
     tags: ["15 min", "Vegetarian", "Light"],
@@ -349,6 +377,7 @@ export const meals: Meal[] = [
     id: "grilled-cheese",
     name: "Grilled Cheese",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Buttery, golden, melty. The sandwich that has never let anyone down.",
     tags: ["15 min", "Kid-friendly", "Easy"],
@@ -361,6 +390,7 @@ export const meals: Meal[] = [
     id: "chicken-wrap",
     name: "Chicken Wrap",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Sliced chicken, crisp romaine, cheddar, and ranch in a flour tortilla. Fast lunch energy.",
     tags: ["15 min", "Protein-packed", "Easy"],
@@ -373,6 +403,7 @@ export const meals: Meal[] = [
     id: "scrambled-eggs",
     name: "Scrambled Eggs & Toast",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Soft, buttery eggs on toasted bread. The breakfast that works for every meal of the day.",
     tags: ["15 min", "Easy", "Pantry staple"],
@@ -385,6 +416,7 @@ export const meals: Meal[] = [
     id: "nachos",
     name: "Loaded Nachos",
     category: "Quick & casual",
+    cuisine: "Mexican",
     description:
       "Tortilla chips layered with melted cheese, beans, jalapeños, and salsa. Built for sharing.",
     tags: ["20 min", "Kid-friendly", "Crowd pleaser"],
@@ -397,6 +429,7 @@ export const meals: Meal[] = [
     id: "french-toast",
     name: "French Toast",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Thick-cut bread soaked in egg custard, pan-fried until golden. Weekend breakfast upgrade.",
     tags: ["20 min", "Kid-friendly", "Easy"],
@@ -409,6 +442,7 @@ export const meals: Meal[] = [
     id: "pancakes",
     name: "Pancakes",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Fluffy, golden, stacked tall. The one breakfast everyone can agree on.",
     tags: ["20 min", "Kid-friendly", "Crowd pleaser"],
@@ -421,6 +455,7 @@ export const meals: Meal[] = [
     id: "veggie-wrap",
     name: "Veggie Hummus Wrap",
     category: "Quick & casual",
+    cuisine: "Mediterranean",
     description:
       "Hummus, roasted peppers, spinach, and feta in a whole wheat wrap. Fresh and filling.",
     tags: ["15 min", "Vegetarian", "Light"],
@@ -433,6 +468,7 @@ export const meals: Meal[] = [
     id: "hot-dogs",
     name: "Classic Hot Dogs",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Grilled sausage in a toasted bun with your choice of toppings. The original quick win.",
     tags: ["15 min", "Kid-friendly", "Easy"],
@@ -445,6 +481,7 @@ export const meals: Meal[] = [
     id: "bacon-egg-cheese",
     name: "Bacon Egg & Cheese",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Crispy bacon, fried egg, melted cheese on a toasted roll. Classic diner energy at home.",
     tags: ["15 min", "Easy", "Protein-packed"],
@@ -457,6 +494,7 @@ export const meals: Meal[] = [
     id: "tuna-melt",
     name: "Tuna Melt",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Tuna salad, melted cheese, crispy toasted bread. A diner classic made at home in minutes.",
     tags: ["15 min", "Easy", "Pantry staple"],
@@ -469,6 +507,7 @@ export const meals: Meal[] = [
     id: "loaded-fries",
     name: "Loaded Fries",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Crispy fries topped with melted cheese, bacon bits, and chives. The ultimate snack dinner.",
     tags: ["25 min", "Indulgent", "Crowd pleaser"],
@@ -483,6 +522,7 @@ export const meals: Meal[] = [
     id: "beef-stew",
     name: "Beef Stew",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Slow-simmered beef, potatoes, and carrots in rich broth. Cold-weather food done right.",
     tags: ["45 min", "Meal-prep friendly", "Medium effort"],
@@ -495,6 +535,7 @@ export const meals: Meal[] = [
     id: "chicken-pot-pie",
     name: "Chicken Pot Pie",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Flaky crust over creamy chicken and vegetable filling. Pure nostalgia in a dish.",
     tags: ["45 min", "Crowd pleaser", "Medium effort"],
@@ -507,6 +548,7 @@ export const meals: Meal[] = [
     id: "meatloaf",
     name: "Classic Meatloaf",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Glazed ground beef loaf with mashed potatoes. The weeknight dinner of champions.",
     tags: ["45 min", "Kid-friendly", "Medium effort"],
@@ -519,6 +561,7 @@ export const meals: Meal[] = [
     id: "chicken-noodle-soup",
     name: "Chicken Noodle Soup",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Tender chicken, noodles, celery, and carrots in clear broth. The universal fix.",
     tags: ["35 min", "Easy", "Nutritious"],
@@ -531,6 +574,7 @@ export const meals: Meal[] = [
     id: "loaded-baked-potato",
     name: "Loaded Baked Potato",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Fluffy potato loaded with cheese, sour cream, bacon, and chives. A full meal on its own.",
     tags: ["40 min", "Kid-friendly", "Easy"],
@@ -543,6 +587,7 @@ export const meals: Meal[] = [
     id: "spaghetti-bolognese",
     name: "Spaghetti Bolognese",
     category: "Comfort food",
+    cuisine: "Italian",
     description:
       "Slow-cooked meat sauce over spaghetti. The Italian Sunday dinner that became a weeknight staple.",
     tags: ["40 min", "Crowd pleaser", "Medium effort"],
@@ -555,6 +600,7 @@ export const meals: Meal[] = [
     id: "potato-soup",
     name: "Creamy Potato Soup",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Silky potato soup with bacon, cheddar, and chives. Simple to make, impossible to stop eating.",
     tags: ["30 min", "Easy", "Indulgent"],
@@ -567,6 +613,7 @@ export const meals: Meal[] = [
     id: "french-onion-soup",
     name: "French Onion Soup",
     category: "Comfort food",
+    cuisine: "French",
     description:
       "Caramelized onions in rich broth, topped with a crouton and melted Gruyère. Patience rewarded.",
     tags: ["45 min", "Elegant", "Medium effort"],
@@ -579,6 +626,7 @@ export const meals: Meal[] = [
     id: "shepherds-pie",
     name: "Shepherd's Pie",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Seasoned ground beef, peas, and carrots under a buttery mash. Stick-to-your-ribs comfort.",
     tags: ["45 min", "Crowd pleaser", "Medium effort"],
@@ -591,6 +639,7 @@ export const meals: Meal[] = [
     id: "chicken-casserole",
     name: "Chicken Rice Casserole",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Chicken, rice, and mushrooms baked together in a creamy sauce. One pan, done deal.",
     tags: ["40 min", "Meal-prep friendly", "Easy"],
@@ -605,6 +654,7 @@ export const meals: Meal[] = [
     id: "korean-bbq-bowl",
     name: "Korean BBQ Bowl",
     category: "Bold flavors",
+    cuisine: "Korean",
     description:
       "Marinated bulgogi beef, sticky rice, pickled vegetables, and sesame. Layered and deeply satisfying.",
     tags: ["30 min", "Flavorful", "Medium effort"],
@@ -617,6 +667,7 @@ export const meals: Meal[] = [
     id: "tikka-masala",
     name: "Chicken Tikka Masala",
     category: "Bold flavors",
+    cuisine: "Indian",
     description:
       "Charred chicken in a creamy spiced tomato sauce. The Indian dish the whole world can't get enough of.",
     tags: ["40 min", "Flavorful", "Medium effort"],
@@ -629,6 +680,7 @@ export const meals: Meal[] = [
     id: "pad-thai",
     name: "Pad Thai",
     category: "Bold flavors",
+    cuisine: "Thai",
     description:
       "Rice noodles, shrimp, eggs, peanuts, and tamarind. The dish that got you into Thai food.",
     tags: ["25 min", "Flavorful", "Medium effort"],
@@ -641,6 +693,7 @@ export const meals: Meal[] = [
     id: "kung-pao-chicken",
     name: "Kung Pao Chicken",
     category: "Bold flavors",
+    cuisine: "Chinese",
     description:
       "Diced chicken, peanuts, dried chilies, and Sichuan peppercorns. Numbing heat with serious depth.",
     tags: ["25 min", "Flavorful", "Medium effort"],
@@ -653,6 +706,7 @@ export const meals: Meal[] = [
     id: "jerk-chicken",
     name: "Jerk Chicken",
     category: "Bold flavors",
+    cuisine: "Caribbean",
     description:
       "Scotch bonnet marinade, allspice, and thyme — char-grilled. Caribbean heat you won't forget.",
     tags: ["35 min", "Flavorful", "Grill night"],
@@ -665,6 +719,7 @@ export const meals: Meal[] = [
     id: "bibimbap",
     name: "Bibimbap",
     category: "Bold flavors",
+    cuisine: "Korean",
     description:
       "Rice topped with seasoned vegetables, beef, a runny egg, and gochujang. Mix it all together.",
     tags: ["30 min", "Nutritious", "Medium effort"],
@@ -677,6 +732,7 @@ export const meals: Meal[] = [
     id: "dan-dan-noodles",
     name: "Dan Dan Noodles",
     category: "Bold flavors",
+    cuisine: "Chinese",
     description:
       "Wheat noodles in chili oil sauce with seasoned pork and scallions. Numbingly good.",
     tags: ["25 min", "Flavorful", "Medium effort"],
@@ -689,6 +745,7 @@ export const meals: Meal[] = [
     id: "mango-curry",
     name: "Mango Chicken Curry",
     category: "Bold flavors",
+    cuisine: "Indian",
     description:
       "Sweet mango, spiced coconut milk, and tender chicken. Tropical and warming at once.",
     tags: ["35 min", "Flavorful", "Medium effort"],
@@ -701,6 +758,7 @@ export const meals: Meal[] = [
     id: "spicy-miso-ramen",
     name: "Spicy Miso Ramen",
     category: "Bold flavors",
+    cuisine: "Japanese",
     description:
       "Miso broth loaded with chili oil, corn, mushrooms, and ramen noodles. Warmth in a bowl.",
     tags: ["30 min", "Flavorful", "Easy"],
@@ -713,6 +771,7 @@ export const meals: Meal[] = [
     id: "peri-peri-chicken",
     name: "Peri Peri Chicken",
     category: "Bold flavors",
+    cuisine: "Mediterranean",
     description:
       "Portuguese-style flame-grilled chicken in spicy peri-peri sauce. Bright, fiery, and addictive.",
     tags: ["35 min", "Flavorful", "Grill night"],
@@ -727,6 +786,7 @@ export const meals: Meal[] = [
     id: "teriyaki-salmon",
     name: "Teriyaki Salmon Bowl",
     category: "Healthy",
+    cuisine: "Japanese",
     description:
       "Glazed salmon over brown rice with steamed broccoli and edamame. Clean, fast, satisfying.",
     tags: ["20 min", "Protein-packed", "Nutritious"],
@@ -739,6 +799,7 @@ export const meals: Meal[] = [
     id: "lettuce-wrap-bowls",
     name: "Lettuce Wrap Bowls",
     category: "Healthy",
+    cuisine: "Chinese",
     description:
       "Seasoned ground meat in crisp butter lettuce cups with garlic and ginger. Low-carb and fresh.",
     tags: ["20 min", "Light", "Easy"],
@@ -751,6 +812,7 @@ export const meals: Meal[] = [
     id: "shrimp-stir-fry",
     name: "Shrimp Stir-Fry",
     category: "Healthy",
+    cuisine: "Chinese",
     description:
       "Tender shrimp, snap peas, bell peppers, and garlic sauce over steamed rice. Fast and high-protein.",
     tags: ["20 min", "Protein-packed", "Easy"],
@@ -763,6 +825,7 @@ export const meals: Meal[] = [
     id: "lentil-soup",
     name: "Lentil Soup",
     category: "Healthy",
+    cuisine: "Middle Eastern",
     description:
       "Red lentils, cumin, tomatoes, and lemon. Hearty plant-based protein that surprises every time.",
     tags: ["30 min", "Vegetarian", "Nutritious"],
@@ -775,6 +838,7 @@ export const meals: Meal[] = [
     id: "buddha-bowl",
     name: "Buddha Bowl",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Roasted chickpeas, kale, quinoa, cucumber, and tahini drizzle. Nourishing and colorful.",
     tags: ["30 min", "Vegetarian", "Nutritious"],
@@ -787,6 +851,7 @@ export const meals: Meal[] = [
     id: "veggie-omelette",
     name: "Veggie Omelette",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Fluffy eggs, sautéed peppers, spinach, and feta. Light enough for any meal of the day.",
     tags: ["15 min", "Easy", "Protein-packed"],
@@ -799,6 +864,7 @@ export const meals: Meal[] = [
     id: "stuffed-peppers",
     name: "Stuffed Bell Peppers",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Bell peppers filled with seasoned rice, ground beef, and tomato sauce. Complete and colorful.",
     tags: ["40 min", "Meal-prep friendly", "Medium effort"],
@@ -811,6 +877,7 @@ export const meals: Meal[] = [
     id: "baked-lemon-chicken",
     name: "Baked Lemon Herb Chicken",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Chicken thighs roasted with lemon, garlic, and herbs. Reliable, clean, and satisfying.",
     tags: ["35 min", "Easy", "Protein-packed"],
@@ -823,6 +890,7 @@ export const meals: Meal[] = [
     id: "tuna-salad",
     name: "Tuna Salad Plate",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Classic tuna salad over mixed greens with tomatoes and cucumber. No-cook protein that keeps.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -835,6 +903,7 @@ export const meals: Meal[] = [
     id: "black-bean-bowl",
     name: "Black Bean Bowl",
     category: "Healthy",
+    cuisine: "Mexican",
     description:
       "Seasoned black beans, rice, shredded cabbage, corn, and lime. Simple, filling, and vegetarian.",
     tags: ["20 min", "Vegetarian", "Meal-prep friendly"],
@@ -849,6 +918,7 @@ export const meals: Meal[] = [
     id: "coq-au-vin",
     name: "Coq au Vin",
     category: "Elevated",
+    cuisine: "French",
     description:
       "Chicken braised in red wine with mushrooms, pearl onions, and bacon. French bistro at home.",
     tags: ["45 min", "Elegant", "Medium effort"],
@@ -861,6 +931,7 @@ export const meals: Meal[] = [
     id: "sea-bass",
     name: "Pan-Seared Sea Bass",
     category: "Elevated",
+    cuisine: "Mediterranean",
     description:
       "Crispy-skinned sea bass with capers, lemon butter, and wilted spinach. Elegant and light.",
     tags: ["25 min", "Elegant", "Protein-packed"],
@@ -873,6 +944,7 @@ export const meals: Meal[] = [
     id: "duck-breast",
     name: "Duck Breast",
     category: "Elevated",
+    cuisine: "French",
     description:
       "Score, sear, rest. Crispy skin, rosy interior, served with a cherry reduction.",
     tags: ["30 min", "Elegant", "Medium effort"],
@@ -885,6 +957,7 @@ export const meals: Meal[] = [
     id: "beef-tenderloin",
     name: "Beef Tenderloin",
     category: "Elevated",
+    cuisine: "American",
     description:
       "Perfectly seared center-cut tenderloin with herb butter. The special occasion steak.",
     tags: ["25 min", "Elegant", "Protein-packed"],
@@ -897,6 +970,7 @@ export const meals: Meal[] = [
     id: "seared-scallops",
     name: "Seared Scallops",
     category: "Elevated",
+    cuisine: "American",
     description:
       "Golden crust, translucent center, finished with brown butter and capers. Elegant simplicity.",
     tags: ["15 min", "Elegant", "Easy"],
@@ -909,6 +983,7 @@ export const meals: Meal[] = [
     id: "stuffed-mushrooms",
     name: "Stuffed Portobello Mushrooms",
     category: "Elevated",
+    cuisine: "Italian",
     description:
       "Large portobellos filled with spinach, sun-dried tomatoes, and goat cheese. Elegant and vegetarian.",
     tags: ["25 min", "Vegetarian", "Elegant"],
@@ -923,6 +998,7 @@ export const meals: Meal[] = [
     id: "carbonara",
     name: "Pasta Carbonara",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Spaghetti, guanciale, egg yolks, and pecorino. No cream needed. The Roman way.",
     tags: ["20 min", "Indulgent", "Medium effort"],
@@ -935,6 +1011,7 @@ export const meals: Meal[] = [
     id: "beef-lasagna",
     name: "Beef Lasagna",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Layers of pasta, bolognese, béchamel, and parmesan. The Sunday project that feeds everyone.",
     tags: ["45 min", "Crowd pleaser", "Medium effort"],
@@ -947,6 +1024,7 @@ export const meals: Meal[] = [
     id: "chicken-piccata",
     name: "Chicken Piccata",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Thin chicken cutlets in lemon-caper butter sauce. Light, tangy, and restaurant-quality fast.",
     tags: ["20 min", "Elegant", "Easy"],
@@ -959,6 +1037,7 @@ export const meals: Meal[] = [
     id: "gnocchi",
     name: "Gnocchi with Brown Butter",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Pillowy potato gnocchi in sage brown butter with parmesan. Rich and comforting.",
     tags: ["25 min", "Indulgent", "Easy"],
@@ -971,6 +1050,7 @@ export const meals: Meal[] = [
     id: "penne-arrabbiata",
     name: "Penne Arrabbiata",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Penne in a fiery tomato-garlic sauce. Simple, spicy, and satisfying.",
     tags: ["20 min", "Flavorful", "Easy"],
@@ -983,6 +1063,7 @@ export const meals: Meal[] = [
     id: "bruschetta",
     name: "Bruschetta al Pomodoro",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Toasted bread, fresh tomatoes, basil, garlic, and good olive oil. Better than it has any right to be.",
     tags: ["15 min", "Vegetarian", "Easy"],
@@ -997,6 +1078,7 @@ export const meals: Meal[] = [
     id: "greek-salad",
     name: "Greek Salad",
     category: "Mediterranean",
+    cuisine: "Greek",
     description:
       "Tomatoes, cucumber, olives, feta, and red onion with oregano. The salad that tastes like a vacation.",
     tags: ["15 min", "Vegetarian", "No-cook option"],
@@ -1009,6 +1091,7 @@ export const meals: Meal[] = [
     id: "hummus-plate",
     name: "Hummus Plate",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Silky hummus, warm pita, olives, and crudités. The snack meal that becomes dinner.",
     tags: ["15 min", "Vegetarian", "No-cook option"],
@@ -1021,6 +1104,7 @@ export const meals: Meal[] = [
     id: "moussaka",
     name: "Moussaka",
     category: "Mediterranean",
+    cuisine: "Greek",
     description:
       "Layered eggplant, spiced ground beef, and béchamel. Greek comfort food at its most indulgent.",
     tags: ["45 min", "Indulgent", "Medium effort"],
@@ -1033,6 +1117,7 @@ export const meals: Meal[] = [
     id: "tabbouleh",
     name: "Tabbouleh",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Bulgur wheat, parsley, mint, tomatoes, and lemon. Light and herbaceous, a perfect standalone.",
     tags: ["15 min", "Vegetarian", "Light"],
@@ -1045,6 +1130,7 @@ export const meals: Meal[] = [
     id: "chicken-souvlaki",
     name: "Chicken Souvlaki",
     category: "Mediterranean",
+    cuisine: "Greek",
     description:
       "Grilled chicken skewers with lemon, oregano, tzatziki, and warm pita. Greek street food at home.",
     tags: ["30 min", "Protein-packed", "Grill night"],
@@ -1057,6 +1143,7 @@ export const meals: Meal[] = [
     id: "spanish-tortilla",
     name: "Spanish Tortilla",
     category: "Mediterranean",
+    cuisine: "Spanish",
     description:
       "Thick egg and potato omelette, golden on the outside and custardy within. Spanish simplicity.",
     tags: ["25 min", "Vegetarian", "Easy"],
@@ -1071,6 +1158,7 @@ export const meals: Meal[] = [
     id: "vietnamese-spring-rolls",
     name: "Vietnamese Spring Rolls",
     category: "Fresh",
+    cuisine: "Vietnamese",
     description:
       "Rice paper rolls with shrimp, vermicelli, herbs, and peanut sauce. Light and addictive.",
     tags: ["20 min", "No-cook option", "Light"],
@@ -1083,6 +1171,7 @@ export const meals: Meal[] = [
     id: "shrimp-ceviche",
     name: "Shrimp Ceviche",
     category: "Fresh",
+    cuisine: "Mexican",
     description:
       "Shrimp cured in lime juice with tomatoes, cilantro, and avocado. Bright and completely refreshing.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -1095,6 +1184,7 @@ export const meals: Meal[] = [
     id: "caprese-salad",
     name: "Caprese Salad",
     category: "Fresh",
+    cuisine: "Italian",
     description:
       "Ripe tomatoes, fresh mozzarella, basil, and olive oil. Italian summer in three ingredients.",
     tags: ["15 min", "Vegetarian", "No-cook option"],
@@ -1107,6 +1197,7 @@ export const meals: Meal[] = [
     id: "cold-sesame-noodles",
     name: "Cold Sesame Noodles",
     category: "Fresh",
+    cuisine: "Chinese",
     description:
       "Noodles in sesame-peanut sauce, cucumber, scallions, and chili oil. Room temperature and deeply savory.",
     tags: ["15 min", "Vegetarian", "Easy"],
@@ -1119,6 +1210,7 @@ export const meals: Meal[] = [
     id: "mango-shrimp-bowl",
     name: "Mango Shrimp Bowl",
     category: "Fresh",
+    cuisine: "American",
     description:
       "Grilled shrimp, fresh mango, rice, and lime crema. Tropical bowl energy in 20 minutes.",
     tags: ["20 min", "Light", "Easy"],
@@ -1131,6 +1223,7 @@ export const meals: Meal[] = [
     id: "nicoise-salad",
     name: "Niçoise Salad",
     category: "Fresh",
+    cuisine: "French",
     description:
       "Green beans, potatoes, olives, hard-boiled eggs, and a mustardy vinaigrette. The French composed salad.",
     tags: ["25 min", "Nutritious", "Easy"],
@@ -1145,6 +1238,7 @@ export const meals: Meal[] = [
     id: "pulled-pork-sandwich",
     name: "Pulled Pork Sandwich",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Slow-cooked pulled pork, tangy BBQ sauce, and coleslaw on a brioche bun. Nobody walks away unhappy.",
     tags: ["45 min", "Indulgent", "Crowd pleaser"],
@@ -1157,6 +1251,7 @@ export const meals: Meal[] = [
     id: "chicken-wings",
     name: "Chicken Wings",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Crispy wings in buffalo or honey garlic sauce. The universal crowd pleaser that disappears instantly.",
     tags: ["35 min", "Crowd pleaser", "Indulgent"],
@@ -1169,6 +1264,7 @@ export const meals: Meal[] = [
     id: "fish-tacos",
     name: "Fish Tacos",
     category: "Crowd pleaser",
+    cuisine: "Mexican",
     description:
       "Battered fish, crunchy slaw, and chipotle mayo in corn tortillas. Coastal energy wherever you are.",
     tags: ["25 min", "Light", "Easy"],
@@ -1181,6 +1277,7 @@ export const meals: Meal[] = [
     id: "sloppy-joes",
     name: "Sloppy Joes",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Loose ground beef in a tangy tomato sauce on a soft bun. Messy, fun, and universally loved.",
     tags: ["20 min", "Kid-friendly", "Easy"],
@@ -1193,6 +1290,7 @@ export const meals: Meal[] = [
     id: "chicken-tenders",
     name: "Chicken Tenders",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Crispy breaded chicken strips with dipping sauces. Kid-approved and adult-enjoyed.",
     tags: ["25 min", "Kid-friendly", "Easy"],
@@ -1205,6 +1303,7 @@ export const meals: Meal[] = [
     id: "breakfast-for-dinner",
     name: "Breakfast for Dinner",
     category: "Crowd pleaser",
+    cuisine: "Breakfast",
     description:
       "Eggs, bacon, pancakes, and toast. When dinner needs to be fun and everyone needs to agree.",
     tags: ["25 min", "Kid-friendly", "Crowd pleaser"],
@@ -1217,6 +1316,7 @@ export const meals: Meal[] = [
     id: "garlic-butter-shrimp",
     name: "Garlic Butter Shrimp",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Shrimp sautéed in garlic butter with white wine and parsley. Simple elegance that feeds a crowd.",
     tags: ["15 min", "Easy", "Crowd pleaser"],
@@ -1229,6 +1329,7 @@ export const meals: Meal[] = [
     id: "steak-frites",
     name: "Steak Frites",
     category: "Crowd pleaser",
+    cuisine: "French",
     description:
       "Seared steak with crispy hand-cut fries and herb butter. The French brasserie classic.",
     tags: ["30 min", "Indulgent", "Medium effort"],
@@ -1245,6 +1346,7 @@ export const meals: Meal[] = [
     id: "blt-sandwich",
     name: "BLT Sandwich",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Crispy bacon, ripe tomatoes, and lettuce stacked on toasted bread. The sandwich that earned its initials.",
     tags: ["15 min", "Kid-friendly", "Easy"],
@@ -1257,6 +1359,7 @@ export const meals: Meal[] = [
     id: "club-sandwich",
     name: "Club Sandwich",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Triple-decker with chicken, bacon, and tomato on toasted bread. The diner classic that's somehow still underrated.",
     tags: ["20 min", "Easy", "Protein-packed"],
@@ -1269,6 +1372,7 @@ export const meals: Meal[] = [
     id: "breakfast-hash",
     name: "Breakfast Hash",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Crispy potatoes, bacon, and eggs scrambled together in one pan. The breakfast that doubles as dinner.",
     tags: ["25 min", "Easy", "Kid-friendly"],
@@ -1281,6 +1385,7 @@ export const meals: Meal[] = [
     id: "waffles",
     name: "Waffles",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Golden, crispy-edged waffles with maple syrup. The weekend breakfast upgrade from pancakes.",
     tags: ["20 min", "Kid-friendly", "Crowd pleaser"],
@@ -1293,6 +1398,7 @@ export const meals: Meal[] = [
     id: "mini-pizzas",
     name: "English Muffin Pizzas",
     category: "Quick & casual",
+    cuisine: "Italian",
     description:
       "Toasted muffins with tomato sauce, mozzarella, and whatever toppings are around. Quick, fun, personal.",
     tags: ["15 min", "Kid-friendly", "Easy"],
@@ -1305,6 +1411,7 @@ export const meals: Meal[] = [
     id: "cheesesteak",
     name: "Philly Cheesesteak",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Thin-sliced steak, melted cheese, and sautéed onions in a hoagie roll. The sandwich Philly got right.",
     tags: ["25 min", "Indulgent", "Easy"],
@@ -1317,6 +1424,7 @@ export const meals: Meal[] = [
     id: "egg-salad-sandwich",
     name: "Egg Salad Sandwich",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Classic egg salad on toasted bread with a little crunch and celery. The underrated lunch ready in minutes.",
     tags: ["15 min", "Easy", "Pantry staple"],
@@ -1329,6 +1437,7 @@ export const meals: Meal[] = [
     id: "chicken-salad-wrap",
     name: "Chicken Salad Wrap",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Creamy chicken salad with celery and herbs wrapped in a flour tortilla. Lunch done efficiently.",
     tags: ["15 min", "Easy", "Protein-packed"],
@@ -1341,6 +1450,7 @@ export const meals: Meal[] = [
     id: "bagel-lox",
     name: "Bagel & Lox",
     category: "Quick & casual",
+    cuisine: "American",
     description:
       "Cream cheese, smoked salmon, capers, and red onion on a toasted bagel. The breakfast worth getting out of bed for.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -1353,6 +1463,7 @@ export const meals: Meal[] = [
     id: "hash-browns",
     name: "Hash Browns & Eggs",
     category: "Quick & casual",
+    cuisine: "Breakfast",
     description:
       "Shredded crispy hash browns alongside fried eggs. The diner breakfast without leaving the house.",
     tags: ["20 min", "Easy", "Kid-friendly"],
@@ -1365,6 +1476,7 @@ export const meals: Meal[] = [
     id: "miso-rice",
     name: "Miso Soup & Rice Bowl",
     category: "Quick & casual",
+    cuisine: "Japanese",
     description:
       "Silky miso broth with tofu and scallions over steamed rice. Simple Japanese comfort in under 20 minutes.",
     tags: ["15 min", "Easy", "Light"],
@@ -1377,6 +1489,7 @@ export const meals: Meal[] = [
     id: "congee",
     name: "Savory Rice Congee",
     category: "Quick & casual",
+    cuisine: "Chinese",
     description:
       "Slow-simmered rice porridge topped with soft egg, ginger, and scallions. Asian comfort in a bowl.",
     tags: ["25 min", "Easy", "Nutritious"],
@@ -1389,6 +1502,7 @@ export const meals: Meal[] = [
     id: "pan-fried-gyoza",
     name: "Pan-Fried Gyoza",
     category: "Quick & casual",
+    cuisine: "Japanese",
     description:
       "Crispy-bottomed, steamed-top dumplings filled with seasoned pork and cabbage. The bite-sized crowd pleaser.",
     tags: ["25 min", "Easy", "Crowd pleaser"],
@@ -1403,6 +1517,7 @@ export const meals: Meal[] = [
     id: "tomato-soup",
     name: "Creamy Tomato Soup",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Rich blended tomato soup with a drizzle of cream and fresh basil. Pairs perfectly with grilled cheese.",
     tags: ["30 min", "Vegetarian", "Easy"],
@@ -1415,6 +1530,7 @@ export const meals: Meal[] = [
     id: "pot-roast",
     name: "Sunday Pot Roast",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Slow-braised beef with potatoes and root vegetables. The Sunday dinner that fills the house with the right smell.",
     tags: ["45 min", "Crowd pleaser", "Medium effort"],
@@ -1427,6 +1543,7 @@ export const meals: Meal[] = [
     id: "chicken-dumplings",
     name: "Chicken & Dumplings",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Tender chicken in rich broth with fluffy dumpling pillows on top. Pure Americana comfort.",
     tags: ["45 min", "Kid-friendly", "Medium effort"],
@@ -1439,6 +1556,7 @@ export const meals: Meal[] = [
     id: "biscuits-gravy",
     name: "Biscuits & Gravy",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Flaky buttery biscuits smothered in creamy sausage gravy. Southern breakfast that can become dinner.",
     tags: ["25 min", "Indulgent", "Easy"],
@@ -1451,6 +1569,7 @@ export const meals: Meal[] = [
     id: "beef-vegetable-soup",
     name: "Beef & Vegetable Soup",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Chunks of beef with mushrooms, carrots, and celery in a deeply savory broth. Stick-to-your-ribs soup.",
     tags: ["45 min", "Nutritious", "Medium effort"],
@@ -1463,6 +1582,7 @@ export const meals: Meal[] = [
     id: "tuna-noodle",
     name: "Tuna Noodle Casserole",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Egg noodles, tuna, cream of mushroom, and cheddar baked to a crispy top. Retro comfort at its finest.",
     tags: ["35 min", "Meal-prep friendly", "Easy"],
@@ -1475,6 +1595,7 @@ export const meals: Meal[] = [
     id: "stuffed-cabbage",
     name: "Stuffed Cabbage Rolls",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Ground beef and rice rolls slow-simmered in a sweet tomato sauce. Eastern European comfort at its best.",
     tags: ["45 min", "Crowd pleaser", "Medium effort"],
@@ -1487,6 +1608,7 @@ export const meals: Meal[] = [
     id: "corn-chowder",
     name: "Corn Chowder",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Creamy chowder thick with sweet corn, potato, and bacon. The bowl that says it's okay to stop today.",
     tags: ["30 min", "Indulgent", "Easy"],
@@ -1499,6 +1621,7 @@ export const meals: Meal[] = [
     id: "sausage-pasta",
     name: "Sausage & Tomato Pasta",
     category: "Comfort food",
+    cuisine: "Italian",
     description:
       "Italian sausage, crushed tomatoes, and pasta in one pan. Fast weeknight dinner with actual depth.",
     tags: ["25 min", "Easy", "Crowd pleaser"],
@@ -1511,6 +1634,7 @@ export const meals: Meal[] = [
     id: "broccoli-cheddar-soup",
     name: "Broccoli Cheddar Soup",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Thick, velvety broccoli soup with sharp cheddar. Comfort in a bowl secretly loaded with vegetables.",
     tags: ["30 min", "Vegetarian", "Easy"],
@@ -1523,6 +1647,7 @@ export const meals: Meal[] = [
     id: "white-bean-soup",
     name: "White Bean & Sausage Soup",
     category: "Comfort food",
+    cuisine: "Italian",
     description:
       "Creamy white beans, Italian sausage, and wilted spinach in herbed broth. Hearty and nearly effortless.",
     tags: ["30 min", "Nutritious", "Easy"],
@@ -1535,6 +1660,7 @@ export const meals: Meal[] = [
     id: "red-beans-rice",
     name: "Red Beans & Rice",
     category: "Comfort food",
+    cuisine: "American",
     description:
       "Creole-style kidney beans and andouille over white rice. New Orleans soul food done simply.",
     tags: ["30 min", "Crowd pleaser", "Easy"],
@@ -1549,6 +1675,7 @@ export const meals: Meal[] = [
     id: "szechuan-beef",
     name: "Szechuan Beef",
     category: "Bold flavors",
+    cuisine: "Chinese",
     description:
       "Thinly sliced beef wok-tossed with Sichuan peppercorns, chilies, and garlic. Numbing, fiery, addictive.",
     tags: ["25 min", "Flavorful", "Medium effort"],
@@ -1561,6 +1688,7 @@ export const meals: Meal[] = [
     id: "moroccan-chicken",
     name: "Moroccan Chicken Tagine",
     category: "Bold flavors",
+    cuisine: "Moroccan",
     description:
       "Slow-braised chicken with preserved lemon, olives, and warm Moroccan spices. North African warmth.",
     tags: ["40 min", "Flavorful", "Medium effort"],
@@ -1573,6 +1701,7 @@ export const meals: Meal[] = [
     id: "massaman-curry",
     name: "Massaman Curry",
     category: "Bold flavors",
+    cuisine: "Thai",
     description:
       "Rich, mild Thai curry with potatoes, peanuts, and coconut milk. Sweet, warm, and deeply comforting.",
     tags: ["40 min", "Flavorful", "Medium effort"],
@@ -1585,6 +1714,7 @@ export const meals: Meal[] = [
     id: "birria-tacos",
     name: "Birria Tacos",
     category: "Bold flavors",
+    cuisine: "Mexican",
     description:
       "Beef braised in dried chiles, dipped in consomé, and crisped on the griddle. Instagram-worthy for a reason.",
     tags: ["45 min", "Flavorful", "Medium effort"],
@@ -1597,6 +1727,7 @@ export const meals: Meal[] = [
     id: "beef-pho",
     name: "Beef Pho",
     category: "Bold flavors",
+    cuisine: "Vietnamese",
     description:
       "Fragrant star anise broth with paper-thin beef, rice noodles, and fresh herbs. Vietnamese warmth in a bowl.",
     tags: ["35 min", "Flavorful", "Medium effort"],
@@ -1609,6 +1740,7 @@ export const meals: Meal[] = [
     id: "drunken-noodles",
     name: "Drunken Noodles",
     category: "Bold flavors",
+    cuisine: "Thai",
     description:
       "Wide rice noodles stir-fried with basil, chilies, and chicken. Bangkok street food with serious wok heat.",
     tags: ["25 min", "Flavorful", "Easy"],
@@ -1621,6 +1753,7 @@ export const meals: Meal[] = [
     id: "harissa-chicken",
     name: "Harissa Roasted Chicken",
     category: "Bold flavors",
+    cuisine: "Moroccan",
     description:
       "Chicken thighs baked in a fiery harissa-tomato sauce with roasted peppers. North African spice done right.",
     tags: ["35 min", "Flavorful", "Grill night"],
@@ -1633,6 +1766,7 @@ export const meals: Meal[] = [
     id: "chipotle-bowl",
     name: "Chipotle Chicken Bowl",
     category: "Bold flavors",
+    cuisine: "Mexican",
     description:
       "Smoky chipotle chicken, cilantro rice, black beans, and salsa. The bowl that inspired a chain, made better at home.",
     tags: ["20 min", "Flavorful", "Easy"],
@@ -1645,6 +1779,7 @@ export const meals: Meal[] = [
     id: "mapo-beef",
     name: "Mapo-Style Ground Beef",
     category: "Bold flavors",
+    cuisine: "Chinese",
     description:
       "Spiced ground beef in a mouth-numbing Sichuan sauce over steamed rice. Weeknight Sichuan that delivers.",
     tags: ["25 min", "Flavorful", "Medium effort"],
@@ -1657,6 +1792,7 @@ export const meals: Meal[] = [
     id: "lamb-shawarma",
     name: "Lamb Shawarma Plate",
     category: "Bold flavors",
+    cuisine: "Middle Eastern",
     description:
       "Warm spiced meat in pita with tahini, tomatoes, and pickles. Middle Eastern street food at home.",
     tags: ["30 min", "Flavorful", "Medium effort"],
@@ -1669,6 +1805,7 @@ export const meals: Meal[] = [
     id: "chicken-mole",
     name: "Chicken Mole",
     category: "Bold flavors",
+    cuisine: "Mexican",
     description:
       "Rich Mexican mole sauce with chocolate, chilies, and warm spices over chicken. Complex, deep, unforgettable.",
     tags: ["45 min", "Flavorful", "Medium effort"],
@@ -1681,6 +1818,7 @@ export const meals: Meal[] = [
     id: "green-shakshuka",
     name: "Green Shakshuka",
     category: "Bold flavors",
+    cuisine: "Middle Eastern",
     description:
       "Eggs poached in a spiced green tomatillo and spinach sauce. A brighter, lighter take on the classic.",
     tags: ["20 min", "Vegetarian", "Easy"],
@@ -1693,6 +1831,7 @@ export const meals: Meal[] = [
     id: "beef-rendang",
     name: "Beef Rendang",
     category: "Bold flavors",
+    cuisine: "Indonesian",
     description:
       "Indonesian slow-cooked beef caramelized in coconut milk and spices until richly glazed. Worth every minute.",
     tags: ["45 min", "Flavorful", "Medium effort"],
@@ -1705,6 +1844,7 @@ export const meals: Meal[] = [
     id: "tamarind-shrimp",
     name: "Tamarind Shrimp",
     category: "Bold flavors",
+    cuisine: "Thai",
     description:
       "Shrimp in a tangy-sweet tamarind sauce with garlic and chilies. Southeast Asian punch in under 30 minutes.",
     tags: ["25 min", "Flavorful", "Easy"],
@@ -1719,6 +1859,7 @@ export const meals: Meal[] = [
     id: "detox-chicken-soup",
     name: "Detox Chicken Soup",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Light chicken broth with spinach, ginger, turmeric, and lemon. Clean and restorative without being boring.",
     tags: ["30 min", "Nutritious", "Easy"],
@@ -1731,6 +1872,7 @@ export const meals: Meal[] = [
     id: "veggie-stir-fry",
     name: "Broccoli & Garlic Stir-Fry",
     category: "Healthy",
+    cuisine: "Chinese",
     description:
       "Broccoli florets wok-fried in garlic sauce and served over steamed rice. Clean, fast, plant-based.",
     tags: ["20 min", "Vegetarian", "Easy"],
@@ -1743,6 +1885,7 @@ export const meals: Meal[] = [
     id: "kale-chickpea-salad",
     name: "Kale & Chickpea Salad",
     category: "Healthy",
+    cuisine: "Mediterranean",
     description:
       "Massaged kale and roasted chickpeas with cherry tomatoes and lemon tahini. A salad that actually fills you up.",
     tags: ["15 min", "Vegetarian", "No-cook option"],
@@ -1755,6 +1898,7 @@ export const meals: Meal[] = [
     id: "salmon-tacos",
     name: "Salmon Tacos",
     category: "Healthy",
+    cuisine: "Mexican",
     description:
       "Blackened salmon in corn tortillas with pickled onions and lime crema. The lighter fish taco made elegant.",
     tags: ["20 min", "Light", "Easy"],
@@ -1767,6 +1911,7 @@ export const meals: Meal[] = [
     id: "chickpea-spinach-soup",
     name: "Chickpea & Spinach Soup",
     category: "Healthy",
+    cuisine: "Mediterranean",
     description:
       "Simmered chickpeas and wilted spinach in a spiced tomato broth. Plant-based protein without compromise.",
     tags: ["25 min", "Vegetarian", "Nutritious"],
@@ -1779,6 +1924,7 @@ export const meals: Meal[] = [
     id: "shrimp-avocado-bowl",
     name: "Shrimp & Avocado Bowl",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Sautéed shrimp over rice with fresh tomatoes and avocado. Clean bowl with high protein and bright flavors.",
     tags: ["20 min", "Light", "Protein-packed"],
@@ -1791,6 +1937,7 @@ export const meals: Meal[] = [
     id: "roasted-veggie-bowl",
     name: "Roasted Vegetable Bowl",
     category: "Healthy",
+    cuisine: "Mediterranean",
     description:
       "Roasted broccoli, peppers, and mushrooms over grains with tahini. The all-vegetable bowl that doesn't feel like a compromise.",
     tags: ["30 min", "Vegetarian", "Nutritious"],
@@ -1803,6 +1950,7 @@ export const meals: Meal[] = [
     id: "spinach-egg-cups",
     name: "Spinach Egg Cups",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Eggs baked in muffin tins with spinach, feta, and bacon bits. Meal-prepped protein for the whole week.",
     tags: ["20 min", "Meal-prep friendly", "Protein-packed"],
@@ -1815,6 +1963,7 @@ export const meals: Meal[] = [
     id: "tuna-rice-bowl",
     name: "Tuna Rice Bowl",
     category: "Healthy",
+    cuisine: "Japanese",
     description:
       "Flaked tuna over seasoned rice with cucumber and scallions. The no-fuss bowl that comes together from pantry basics.",
     tags: ["15 min", "Light", "Easy"],
@@ -1827,6 +1976,7 @@ export const meals: Meal[] = [
     id: "baked-salmon-veg",
     name: "Baked Salmon & Vegetables",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Sheet-pan salmon with lemon, garlic, and roasted broccoli. One pan, minimal cleanup, complete meal.",
     tags: ["25 min", "Protein-packed", "Nutritious"],
@@ -1839,6 +1989,7 @@ export const meals: Meal[] = [
     id: "white-chicken-chili",
     name: "White Chicken Chili",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Chicken and white beans in a creamy green chile broth. A lighter, fresher alternative to classic chili.",
     tags: ["30 min", "Nutritious", "Easy"],
@@ -1851,6 +2002,7 @@ export const meals: Meal[] = [
     id: "avocado-chicken-salad",
     name: "Avocado Chicken Salad",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Shredded chicken with avocado, tomato, and cilantro. Works as a wrap, a bowl, or by itself.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -1863,6 +2015,7 @@ export const meals: Meal[] = [
     id: "poached-eggs-toast",
     name: "Poached Eggs on Toast",
     category: "Healthy",
+    cuisine: "American",
     description:
       "Perfectly poached eggs over buttered toast with wilted spinach. When scrambled feels like settling.",
     tags: ["15 min", "Easy", "Light"],
@@ -1875,6 +2028,7 @@ export const meals: Meal[] = [
     id: "spinach-frittata",
     name: "Spinach Frittata",
     category: "Healthy",
+    cuisine: "Italian",
     description:
       "Oven-finished egg and spinach frittata with feta and onions. Slices like a pie, feeds a crowd, great cold.",
     tags: ["20 min", "Vegetarian", "Easy"],
@@ -1889,6 +2043,7 @@ export const meals: Meal[] = [
     id: "shrimp-scampi",
     name: "Shrimp Scampi",
     category: "Elevated",
+    cuisine: "Italian",
     description:
       "Shrimp in white wine garlic butter over linguine. The Italian-American dish that feels fancy but takes under 25 minutes.",
     tags: ["20 min", "Elegant", "Easy"],
@@ -1901,6 +2056,7 @@ export const meals: Meal[] = [
     id: "beef-bourguignon",
     name: "Beef Bourguignon",
     category: "Elevated",
+    cuisine: "French",
     description:
       "Beef braised in Burgundy wine with mushrooms, pearl onions, and bacon. Julia Child's favorite party trick.",
     tags: ["45 min", "Elegant", "Medium effort"],
@@ -1913,6 +2069,7 @@ export const meals: Meal[] = [
     id: "pan-seared-fish",
     name: "Pan-Seared White Fish",
     category: "Elevated",
+    cuisine: "French",
     description:
       "Delicate white fish with a golden sear, finished in brown butter with wilted spinach. Clean and restaurant-worthy.",
     tags: ["20 min", "Elegant", "Easy"],
@@ -1925,6 +2082,7 @@ export const meals: Meal[] = [
     id: "chicken-marsala",
     name: "Chicken Marsala",
     category: "Elevated",
+    cuisine: "Italian",
     description:
       "Golden chicken cutlets in a Marsala wine and mushroom reduction. Italian-American at its most satisfying.",
     tags: ["25 min", "Elegant", "Easy"],
@@ -1937,6 +2095,7 @@ export const meals: Meal[] = [
     id: "seafood-linguine",
     name: "Seafood Linguine",
     category: "Elevated",
+    cuisine: "Italian",
     description:
       "Linguine with shrimp and cherry tomatoes in white wine and garlic. Coastal Italian in under 30 minutes.",
     tags: ["25 min", "Elegant", "Medium effort"],
@@ -1949,6 +2108,7 @@ export const meals: Meal[] = [
     id: "steak-au-poivre",
     name: "Steak au Poivre",
     category: "Elevated",
+    cuisine: "French",
     description:
       "Pepper-crusted steak in a cognac cream sauce. The French bistro dinner that takes 20 minutes.",
     tags: ["20 min", "Elegant", "Easy"],
@@ -1961,6 +2121,7 @@ export const meals: Meal[] = [
     id: "shrimp-bisque",
     name: "Shrimp Bisque",
     category: "Elevated",
+    cuisine: "French",
     description:
       "Silky cream bisque with shrimp, brandy, and tomato. The starter that becomes the whole meal.",
     tags: ["35 min", "Elegant", "Medium effort"],
@@ -1973,6 +2134,7 @@ export const meals: Meal[] = [
     id: "rack-of-lamb",
     name: "Rack of Lamb",
     category: "Elevated",
+    cuisine: "French",
     description:
       "Herb-crusted rack of lamb roasted to a perfect pink. Dramatic presentation, manageable effort.",
     tags: ["30 min", "Elegant", "Medium effort"],
@@ -1985,6 +2147,7 @@ export const meals: Meal[] = [
     id: "truffle-pasta",
     name: "Truffle Mushroom Pasta",
     category: "Elevated",
+    cuisine: "Italian",
     description:
       "Tagliatelle in a rich mushroom and truffle butter sauce with aged parmesan. Decadence in 20 minutes.",
     tags: ["20 min", "Elegant", "Indulgent"],
@@ -1997,6 +2160,7 @@ export const meals: Meal[] = [
     id: "seafood-cakes",
     name: "Crab-Style Seafood Cakes",
     category: "Elevated",
+    cuisine: "American",
     description:
       "Pan-fried seafood cakes with a crispy exterior, served with remoulade. Elevated starter that works better as dinner.",
     tags: ["25 min", "Elegant", "Medium effort"],
@@ -2011,6 +2175,7 @@ export const meals: Meal[] = [
     id: "cacio-e-pepe",
     name: "Cacio e Pepe",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Just pasta, pecorino, butter, and freshly cracked pepper. Three ingredients, perfect execution.",
     tags: ["15 min", "Elegant", "Easy"],
@@ -2023,6 +2188,7 @@ export const meals: Meal[] = [
     id: "pasta-amatriciana",
     name: "Pasta all'Amatriciana",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Guanciale, San Marzano tomatoes, and pecorino. The Roman pasta that beats your average tomato sauce every time.",
     tags: ["25 min", "Flavorful", "Easy"],
@@ -2035,6 +2201,7 @@ export const meals: Meal[] = [
     id: "osso-buco",
     name: "Osso Buco",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Slow-braised beef shank with gremolata in a rich tomato and wine reduction. The Milanese slow-cook masterpiece.",
     tags: ["45 min", "Elegant", "Medium effort"],
@@ -2047,6 +2214,7 @@ export const meals: Meal[] = [
     id: "puttanesca",
     name: "Pasta Puttanesca",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Olives, capers, anchovies, and tomatoes over spaghetti. The bold pantry pasta with genuine attitude.",
     tags: ["20 min", "Flavorful", "Easy"],
@@ -2059,6 +2227,7 @@ export const meals: Meal[] = [
     id: "minestrone",
     name: "Minestrone Soup",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Thick Italian vegetable and pasta soup with cannellini beans and parmesan rind. Filling and deeply savory.",
     tags: ["30 min", "Vegetarian", "Nutritious"],
@@ -2071,6 +2240,7 @@ export const meals: Meal[] = [
     id: "saltimbocca",
     name: "Saltimbocca",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Chicken with prosciutto and sage pan-finished in white wine and butter. Italian technique in 20 minutes.",
     tags: ["20 min", "Elegant", "Easy"],
@@ -2083,6 +2253,7 @@ export const meals: Meal[] = [
     id: "cheese-ravioli",
     name: "Cheese Ravioli",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Ricotta-stuffed ravioli with butter and sage or simple tomato sauce. The pasta shape that wins every vote.",
     tags: ["20 min", "Kid-friendly", "Easy"],
@@ -2095,6 +2266,7 @@ export const meals: Meal[] = [
     id: "focaccia-bread",
     name: "Focaccia with Caramelized Onions",
     category: "Classic Italian",
+    cuisine: "Italian",
     description:
       "Dimpled olive oil focaccia with rosemary and caramelized onions. The bread that's also a meal.",
     tags: ["30 min", "Vegetarian", "Easy"],
@@ -2109,6 +2281,7 @@ export const meals: Meal[] = [
     id: "fattoush",
     name: "Fattoush Salad",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Toasted pita, tomatoes, cucumber, herbs, and sumac dressing. The Middle Eastern chopped salad with crunch.",
     tags: ["15 min", "Vegetarian", "No-cook option"],
@@ -2121,6 +2294,7 @@ export const meals: Meal[] = [
     id: "mujaddara",
     name: "Mujaddara",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Lentils and rice topped with deeply caramelized onions. A humble Lebanese dish of extraordinary satisfaction.",
     tags: ["30 min", "Vegetarian", "Nutritious"],
@@ -2133,6 +2307,7 @@ export const meals: Meal[] = [
     id: "baba-ghanoush",
     name: "Baba Ganoush Plate",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Smoky eggplant dip with tahini, garlic, and warm pita. A different direction from hummus, equally good.",
     tags: ["15 min", "Vegetarian", "No-cook option"],
@@ -2145,6 +2320,7 @@ export const meals: Meal[] = [
     id: "foul-medames",
     name: "Foul Medames",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Egyptian stewed fava beans with olive oil, lemon, and cumin. The breakfast dish eaten at all hours.",
     tags: ["20 min", "Vegetarian", "Nutritious"],
@@ -2157,6 +2333,7 @@ export const meals: Meal[] = [
     id: "sabich",
     name: "Sabich Sandwich",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Israeli pita sandwich with fried egg, tomatoes, pickled mango, and tahini. Tel Aviv street food at home.",
     tags: ["20 min", "Vegetarian", "Easy"],
@@ -2169,6 +2346,7 @@ export const meals: Meal[] = [
     id: "turkish-eggs",
     name: "Turkish Eggs",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Poached eggs over garlicky yogurt with chili butter. Turkish brunch that's as beautiful as it is fast.",
     tags: ["15 min", "Vegetarian", "Easy"],
@@ -2181,6 +2359,7 @@ export const meals: Meal[] = [
     id: "lahmacun",
     name: "Lahmacun",
     category: "Mediterranean",
+    cuisine: "Middle Eastern",
     description:
       "Turkish spiced meat flatbread with herbs and lemon. The Middle Eastern pizza that's been there longer.",
     tags: ["25 min", "Flavorful", "Easy"],
@@ -2193,6 +2372,7 @@ export const meals: Meal[] = [
     id: "spanakopita",
     name: "Spanakopita",
     category: "Mediterranean",
+    cuisine: "Greek",
     description:
       "Spinach and feta in crispy phyllo pastry. The Greek savory pie that justifies every layer.",
     tags: ["35 min", "Vegetarian", "Medium effort"],
@@ -2207,6 +2387,7 @@ export const meals: Meal[] = [
     id: "banh-mi",
     name: "Bánh Mì Sandwich",
     category: "Fresh",
+    cuisine: "Vietnamese",
     description:
       "Grilled chicken, pickled vegetables, jalapeño, and cilantro in a crusty baguette. Vietnamese flavor fusion.",
     tags: ["20 min", "Flavorful", "Easy"],
@@ -2219,6 +2400,7 @@ export const meals: Meal[] = [
     id: "prawn-cocktail",
     name: "Prawn Cocktail",
     category: "Fresh",
+    cuisine: "American",
     description:
       "Chilled shrimp with classic cocktail sauce and lemon. The dinner party starter that becomes the whole meal.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -2231,6 +2413,7 @@ export const meals: Meal[] = [
     id: "gazpacho",
     name: "Gazpacho",
     category: "Fresh",
+    cuisine: "Spanish",
     description:
       "Blended chilled tomato soup with cucumber, garlic, and sherry vinegar. Spanish summer in a bowl, no heat required.",
     tags: ["15 min", "Vegetarian", "No-cook option"],
@@ -2243,6 +2426,7 @@ export const meals: Meal[] = [
     id: "smoked-salmon-plate",
     name: "Smoked Salmon Plate",
     category: "Fresh",
+    cuisine: "American",
     description:
       "Thinly sliced smoked salmon with capers, red onion, and crème fraîche on dark bread. No cooking needed.",
     tags: ["15 min", "No-cook option", "Light"],
@@ -2255,6 +2439,7 @@ export const meals: Meal[] = [
     id: "gado-gado",
     name: "Gado Gado",
     category: "Fresh",
+    cuisine: "Indonesian",
     description:
       "Indonesian salad of eggs, beans, and greens with a rich peanut sauce. The salad with a sauce that steals the show.",
     tags: ["25 min", "Vegetarian", "Nutritious"],
@@ -2267,6 +2452,7 @@ export const meals: Meal[] = [
     id: "cold-soba",
     name: "Cold Soba Noodles",
     category: "Fresh",
+    cuisine: "Japanese",
     description:
       "Buckwheat noodles chilled in dashi broth with wasabi and scallions. Japanese minimalism at its finest.",
     tags: ["15 min", "Vegetarian", "Light"],
@@ -2279,6 +2465,7 @@ export const meals: Meal[] = [
     id: "thai-larb",
     name: "Thai Larb",
     category: "Fresh",
+    cuisine: "Thai",
     description:
       "Minced meat salad with toasted rice powder, lime, and fresh herbs. Thai flavor intensity in a light form.",
     tags: ["25 min", "Flavorful", "Light"],
@@ -2291,6 +2478,7 @@ export const meals: Meal[] = [
     id: "cobb-salad",
     name: "Cobb Salad",
     category: "Fresh",
+    cuisine: "American",
     description:
       "Grilled chicken, crispy bacon, hard-boiled egg, and tomato over romaine with blue cheese dressing.",
     tags: ["15 min", "Easy", "Protein-packed"],
@@ -2303,6 +2491,7 @@ export const meals: Meal[] = [
     id: "mushroom-spinach-salad",
     name: "Warm Mushroom & Spinach Salad",
     category: "Fresh",
+    cuisine: "American",
     description:
       "Sautéed mushrooms and spinach in garlic butter. The warm salad that works as a side or a solo meal.",
     tags: ["15 min", "Vegetarian", "Easy"],
@@ -2315,6 +2504,7 @@ export const meals: Meal[] = [
     id: "cold-noodle-salad",
     name: "Cold Noodle Salad",
     category: "Fresh",
+    cuisine: "Chinese",
     description:
       "Glass noodles with julienned peppers, spinach, and a tangy sesame dressing. Light, Asian-inspired, satisfying cold.",
     tags: ["15 min", "Vegetarian", "Light"],
@@ -2329,6 +2519,7 @@ export const meals: Meal[] = [
     id: "sliders",
     name: "Mini Beef Sliders",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Two-bite burgers with melted cheese and caramelized onions on soft rolls. The party food that becomes the whole meal.",
     tags: ["25 min", "Kid-friendly", "Crowd pleaser"],
@@ -2341,6 +2532,7 @@ export const meals: Meal[] = [
     id: "pizza-rolls",
     name: "Homemade Pizza Rolls",
     category: "Crowd pleaser",
+    cuisine: "Italian",
     description:
       "Rolled dough filled with cheese, sausage, and tomato sauce, baked until golden. Everyone wants five more.",
     tags: ["25 min", "Kid-friendly", "Easy"],
@@ -2353,6 +2545,7 @@ export const meals: Meal[] = [
     id: "corn-dogs",
     name: "Corn Dogs",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Hot dogs wrapped in sweet cornbread batter, baked or fried until golden. Fairground food, homemade.",
     tags: ["25 min", "Kid-friendly", "Easy"],
@@ -2365,6 +2558,7 @@ export const meals: Meal[] = [
     id: "bbq-ribs",
     name: "BBQ Ribs",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Slow-roasted ribs glazed with sticky BBQ sauce. Messy, communal, and utterly satisfying.",
     tags: ["45 min", "Crowd pleaser", "Grill night"],
@@ -2377,6 +2571,7 @@ export const meals: Meal[] = [
     id: "chicken-parmesan",
     name: "Chicken Parmesan",
     category: "Crowd pleaser",
+    cuisine: "Italian",
     description:
       "Crispy breaded chicken, tomato sauce, and melted mozzarella. The Italian-American dish that never gets old.",
     tags: ["35 min", "Crowd pleaser", "Medium effort"],
@@ -2389,6 +2584,7 @@ export const meals: Meal[] = [
     id: "meatball-subs",
     name: "Meatball Subs",
     category: "Crowd pleaser",
+    cuisine: "Italian",
     description:
       "Juicy beef meatballs in marinara smothered with mozzarella in a toasted hoagie. The game-day essential.",
     tags: ["30 min", "Crowd pleaser", "Easy"],
@@ -2401,6 +2597,7 @@ export const meals: Meal[] = [
     id: "buffalo-chicken-dip",
     name: "Buffalo Chicken Dip",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Hot, creamy, cheesy buffalo chicken in a skillet. Serve with chips or bread and watch it disappear.",
     tags: ["20 min", "Crowd pleaser", "Easy"],
@@ -2413,6 +2610,7 @@ export const meals: Meal[] = [
     id: "southern-fried-chicken",
     name: "Southern Fried Chicken",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Crispy buttermilk-brined fried chicken. The benchmark dish that all other fried chicken aspires to be.",
     tags: ["40 min", "Crowd pleaser", "Medium effort"],
@@ -2425,6 +2623,7 @@ export const meals: Meal[] = [
     id: "shrimp-boil",
     name: "Shrimp Boil",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Old Bay shrimp, andouille, corn, and potatoes boiled together and dumped on the table. Communal eating at its best.",
     tags: ["35 min", "Crowd pleaser", "Grill night"],
@@ -2437,6 +2636,7 @@ export const meals: Meal[] = [
     id: "fried-chicken-sandwich",
     name: "Fried Chicken Sandwich",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Crispy fried chicken thigh, pickles, and slaw in a brioche bun. The sandwich the internet keeps arguing about.",
     tags: ["25 min", "Crowd pleaser", "Indulgent"],
@@ -2449,6 +2649,7 @@ export const meals: Meal[] = [
     id: "pigs-in-blankets",
     name: "Pigs in Blankets",
     category: "Crowd pleaser",
+    cuisine: "American",
     description:
       "Cocktail sausages wrapped in flaky crescent dough, baked until golden. The snack that disappears within minutes.",
     tags: ["20 min", "Kid-friendly", "Easy"],

@@ -69,55 +69,6 @@ const MEALS_BACKUP_PATH = path.resolve(
   __dirname,
   "../src/app/data/meals.backup.ts"
 );
-const SCORING_TS_PATH = path.resolve(__dirname, "../src/app/lib/scoring.ts");
-
-// ── Load cuisine map from scoring.ts source ───────────────────────────────────
-//
-// Read and parse scoring.ts as text rather than importing it, because
-// scoring.ts → storage.ts → supabase.ts creates a client at module load time
-// and throws if NEXT_PUBLIC_SUPABASE_* env vars aren't set.
-
-function loadMealCuisines(): Record<string, string[]> {
-  const src = fs.readFileSync(SCORING_TS_PATH, "utf8");
-
-  const startIdx = src.indexOf("export const MEAL_CUISINES");
-  if (startIdx === -1) {
-    throw new Error("Could not find MEAL_CUISINES in scoring.ts");
-  }
-
-  // Walk balanced braces to extract the full object literal
-  const braceOpen = src.indexOf("{", startIdx);
-  let depth = 0;
-  let braceClose = braceOpen;
-  for (let i = braceOpen; i < src.length; i++) {
-    if (src[i] === "{") depth++;
-    else if (src[i] === "}") {
-      depth--;
-      if (depth === 0) {
-        braceClose = i;
-        break;
-      }
-    }
-  }
-
-  const block = src.substring(braceOpen + 1, braceClose);
-  const result: Record<string, string[]> = {};
-
-  // Match both quoted ("chicken-alfredo") and bare (tacos) key formats
-  const lineRe = /^\s*(?:"([^"]+)"|(\w[\w-]*))\s*:\s*\[([^\]]*)\]/gm;
-  let m: RegExpExecArray | null;
-  while ((m = lineRe.exec(block)) !== null) {
-    const id = (m[1] ?? m[2]).trim();
-    const cuisines = m[3]
-      .split(",")
-      .map((s) => s.trim().replace(/^["']|["']$/g, ""))
-      .filter(Boolean);
-    if (id && cuisines.length > 0) result[id] = cuisines;
-  }
-
-  return result;
-}
-
 // ── Prompt ────────────────────────────────────────────────────────────────────
 
 function buildPrompt(mealName: string): string {
@@ -272,9 +223,6 @@ function writeMealsTs(
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  // Parse cuisine map from scoring.ts source to avoid importing its dep chain
-  const MEAL_CUISINES = loadMealCuisines();
-
   logEnvPresence();
 
   const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -311,10 +259,7 @@ async function main() {
   } else {
     // 4a. Cuisine filter
     if (!USE_ALL_CUISINES) {
-      eligible = eligible.filter((m) => {
-        const mealCuisines = MEAL_CUISINES[m.id] ?? [];
-        return mealCuisines.some((c) => TARGET_CUISINES.includes(c));
-      });
+      eligible = eligible.filter((m) => TARGET_CUISINES.includes(m.cuisine));
     }
 
     // 4b. START_AFTER: drop everything up to and including that ID
@@ -372,7 +317,7 @@ async function main() {
 
   console.log("Meals queued this run:");
   targets.forEach((m, i) => {
-    const cuisines = (MEAL_CUISINES[m.id] ?? []).join(", ") || "—";
+    const cuisines = m.cuisine || "—";
     console.log(
       `  ${String(i + 1).padStart(2)}. ${m.id.padEnd(32)} [${cuisines}]`
     );

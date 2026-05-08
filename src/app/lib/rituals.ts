@@ -25,7 +25,6 @@
 
 import { supabase } from "./supabase";
 import { meals } from "../data/meals";
-import { MEAL_CUISINES } from "./scoring";
 
 export type RitualDetection = {
   /** e.g. "friday-dinner", "weekday-dinner", "sunday-dinner" */
@@ -214,7 +213,7 @@ export async function detectRituals(userId: string): Promise<RitualDetection[]> 
     const mealObj = mealLookup.get(row.meal_id as string);
     if (!mealObj) continue;
 
-    const primaryCuisine = MEAL_CUISINES[mealObj.id]?.[0] ?? "";
+    const primaryCuisine = mealObj.cuisine ?? "";
     if (!primaryCuisine) continue; // can't form a cuisine ritual without cuisine data
 
     const key = `${mealObj.category}:${primaryCuisine}:${mealPeriod}:${dayType}`;
