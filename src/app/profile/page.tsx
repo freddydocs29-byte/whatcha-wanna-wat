@@ -4,9 +4,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import BottomNav from "../components/BottomNav";
-import { getPreferences, savePreferences, getTasteProfile, type UserPreferences, type TasteProfile } from "../lib/storage";
+import {
+  getPreferences,
+  savePreferences,
+  getTasteProfile,
+  getHistory,
+  getNoveltyBias,
+  saveNoveltyBias,
+  type UserPreferences,
+  type TasteProfile,
+  type HistoryEntry,
+} from "../lib/storage";
+import { fetchOrCreateProfile, fetchSoftAvoids } from "../lib/supabase-profile";
+import { detectRituals, getRitualLabel, type RitualDetection } from "../lib/rituals";
+import { getUserId } from "../lib/identity";
+import { type SoftAvoid } from "../lib/supabase";
 
-// ── Option data ───────────────────────────────────────────────────────────────
+// ── Option constants ──────────────────────────────────────────────────────────
 
 const CUISINES = [
   { label: "Italian", emoji: "🍝" },
@@ -29,22 +43,19 @@ const DISLIKED_FOODS = [
   { label: "None of these", emoji: "✓" },
 ];
 
-const SPICE_OPTIONS: { value: UserPreferences["spiceLevel"]; label: string; desc: string; emoji: string }[] = [
-  { value: "mild", label: "Mild", desc: "Keep it gentle, no heat", emoji: "🌿" },
-  { value: "medium", label: "Medium", desc: "Some kick is welcome", emoji: "🌶️" },
-  { value: "hot", label: "Hot", desc: "The hotter the better", emoji: "🔥" },
-  { value: "any", label: "No preference", desc: "Whatever, I'll survive", emoji: "🤷" },
+const DIETARY_OPTIONS = [
+  { label: "Vegetarian", emoji: "🥦" },
+  { label: "Vegan", emoji: "🌱" },
+  { label: "Gluten-free", emoji: "🌾" },
+  { label: "Dairy-free", emoji: "🥛" },
+  { label: "Halal", emoji: "☪️" },
+  { label: "Kosher", emoji: "✡️" },
 ];
 
-const COOK_OPTIONS: { value: UserPreferences["cookOrOrder"]; label: string; desc: string; emoji: string }[] = [
-  { value: "cook", label: "Cooking tonight", desc: "Got the pots ready", emoji: "🍳" },
-  { value: "order", label: "Ordering in", desc: "Not feeling the kitchen", emoji: "📱" },
-  { value: "either", label: "Either works", desc: "I'm flexible tonight", emoji: "⚖️" },
-];
-
-const KID_OPTIONS: { value: string; label: string; desc: string; emoji: string }[] = [
-  { value: "yes", label: "Yeah, there are kids", desc: "Keep it crowd-pleasing", emoji: "👶" },
-  { value: "no", label: "Just adults", desc: "We can get adventurous", emoji: "🙌" },
+const NOVELTY_OPTIONS: { value: number; label: string; desc: string }[] = [
+  { value: 0.2, label: "I like what I know",       desc: "Stick to tried and tested" },
+  { value: 0.5, label: "Mix of both",               desc: "Some variety, some comfort" },
+  { value: 0.8, label: "I love trying new things",  desc: "Surprise me every time" },
 ];
 
 // ── Section header ────────────────────────────────────────────────────────────
@@ -54,6 +65,19 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/30">
       {children}
     </p>
+  );
+}
+
+// ── Divider with label ────────────────────────────────────────────────────────
+
+function DividerLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-12 mb-[-4px] flex items-center gap-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/20">
+        {children}
+      </p>
+      <div className="h-px flex-1 bg-white/[0.06]" />
+    </div>
   );
 }
 
@@ -88,13 +112,11 @@ function Chip({
 // ── Radio card (single-select) ────────────────────────────────────────────────
 
 function RadioCard({
-  emoji,
   label,
   desc,
   selected,
   onSelect,
 }: {
-  emoji: string;
   label: string;
   desc: string;
   selected: boolean;
@@ -109,7 +131,6 @@ function RadioCard({
           : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]"
       }`}
     >
-      <span className="text-2xl">{emoji}</span>
       <div className="flex-1">
         <p className="text-[15px] font-semibold tracking-[-0.03em]">{label}</p>
         <p className="mt-0.5 text-xs text-white/45">{desc}</p>
@@ -123,139 +144,75 @@ function RadioCard({
   );
 }
 
-// ── Taste profile section ─────────────────────────────────────────────────────
+// ── Loading pulse ─────────────────────────────────────────────────────────────
 
-function buildSummary(profile: TasteProfile): string {
-  const topCategories = Object.entries(profile.likedCategories)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 2)
-    .map(([cat]) => cat.toLowerCase());
-
-  const netDislikedTags = Object.entries(profile.dislikedTags)
-    .filter(([tag, count]) => !/^\d+ min$/i.test(tag) && count > (profile.likedTags[tag] ?? 0))
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 1)
-    .map(([tag]) => tag.toLowerCase());
-
-  let sentence = "";
-  if (topCategories.length >= 2) {
-    sentence = `You tend to reach for ${topCategories[0]} and ${topCategories[1]} meals.`;
-  } else if (topCategories.length === 1) {
-    sentence = `You've been gravitating toward ${topCategories[0]} lately.`;
-  } else {
-    sentence = "Keep swiping — still learning your taste.";
-  }
-
-  if (netDislikedTags.length > 0) {
-    sentence += ` You often pass on ${netDislikedTags[0]} options.`;
-  }
-
-  return sentence;
-}
-
-function TasteProfileSection({ profile }: { profile: TasteProfile }) {
-  const hasData = profile.interactionCount >= 3;
-
-  const isTimeTag = (tag: string) => /^\d+ min$/i.test(tag);
-
-  const topLikedTags = Object.entries(profile.likedTags)
-    .filter(([tag, count]) => !isTimeTag(tag) && count > (profile.dislikedTags[tag] ?? 0))
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5)
-    .map(([tag]) => tag);
-
-  const netDislikedTags = Object.entries(profile.dislikedTags)
-    .filter(([tag, count]) => !isTimeTag(tag) && count > (profile.likedTags[tag] ?? 0))
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([tag]) => tag);
-
-  return (
-    <section className="mt-8">
-      <SectionLabel>Your taste profile</SectionLabel>
-
-      <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-        {/* Header row: summary + decision count */}
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm leading-6 text-white/60">
-            {profile.interactionCount === 0
-              ? "Start swiping to let the app learn your taste."
-              : !hasData
-              ? `${profile.interactionCount} decision${profile.interactionCount === 1 ? "" : "s"} in — still learning.`
-              : buildSummary(profile)}
-          </p>
-          {profile.interactionCount > 0 && (
-            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] text-white/30">
-              Learning from {profile.interactionCount} picks
-            </span>
-          )}
-        </div>
-
-        {/* Liked tags */}
-        {hasData && topLikedTags.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
-              Tends to like
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {topLikedTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1 text-xs text-emerald-300/70"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Net disliked tags */}
-        {hasData && netDislikedTags.length > 0 && (
-          <div className="mt-3">
-            <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
-              Tends to pass on
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {netDislikedTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-rose-400/20 bg-rose-400/[0.06] px-3 py-1 text-xs text-rose-300/55"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
+function PulseLine() {
+  return <div className="h-4 w-28 animate-pulse rounded-full bg-white/[0.06]" />;
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
+  // ── Sync state (localStorage — available immediately after mount) ──────────
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [tasteProfile, setTasteProfile] = useState<TasteProfile | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [noveltyBias, setNoveltyBias] = useState<number>(0.5);
+
+  // ── Async state (Supabase) ─────────────────────────────────────────────────
+  const [asyncLoading, setAsyncLoading] = useState(true);
+  const [softAvoids, setSoftAvoids] = useState<SoftAvoid[]>([]);
+  const [rituals, setRituals] = useState<RitualDetection[]>([]);
+
+  // ── Saved toast ────────────────────────────────────────────────────────────
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Sync reads — all available immediately from localStorage
     setPrefs(getPreferences());
     setTasteProfile(getTasteProfile());
+    setHistory(getHistory());
+    setNoveltyBias(getNoveltyBias());
+
+    // Async reads — fire all three in parallel
+    const userId = getUserId();
+    Promise.all([
+      fetchOrCreateProfile(userId),
+      fetchSoftAvoids(userId),
+      detectRituals(userId),
+    ])
+      .then(([profile, avoids, _rituals]) => {
+        // Supabase novelty_bias wins over localStorage value if set
+        if (profile?.novelty_bias != null) {
+          setNoveltyBias(profile.novelty_bias);
+        }
+        const now = Date.now();
+        setSoftAvoids(avoids.filter((sa) => new Date(sa.expiresAt).getTime() > now));
+        setRituals(_rituals.filter((r) => r.confidence >= 0.6));
+      })
+      .catch((err) => {
+        console.warn("[profile] async load error:", err);
+      })
+      .finally(() => {
+        setAsyncLoading(false);
+      });
   }, []);
+
+  // ── Preference update helpers ──────────────────────────────────────────────
+
+  function flashSaved() {
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    setSavedVisible(true);
+    savedTimer.current = setTimeout(() => setSavedVisible(false), 1500);
+  }
 
   function update(partial: Partial<UserPreferences>) {
     if (!prefs) return;
     const next = { ...prefs, ...partial };
     setPrefs(next);
     savePreferences(next);
-
-    // Show "Saved" badge briefly
-    if (savedTimer.current) clearTimeout(savedTimer.current);
-    setSavedVisible(true);
-    savedTimer.current = setTimeout(() => setSavedVisible(false), 1500);
+    flashSaved();
   }
 
   function toggleCuisine(label: string) {
@@ -278,6 +235,55 @@ export default function ProfilePage() {
     update({ hardNoFoods: next });
   }
 
+  function toggleDietary(label: string) {
+    if (!prefs) return;
+    const current = prefs.dietaryRestrictions ?? [];
+    const next = current.includes(label)
+      ? current.filter((d) => d !== label)
+      : [...current, label];
+    update({ dietaryRestrictions: next });
+  }
+
+  function selectNoveltyBias(value: number) {
+    setNoveltyBias(value);
+    saveNoveltyBias(value);
+    flashSaved();
+  }
+
+  // ── Section 2 derived data (sync — from localStorage taste profile) ────────
+
+  const isTimeTag = (tag: string) => /^\d+ min$/i.test(tag);
+
+  const topLikedTags = tasteProfile
+    ? Object.entries(tasteProfile.likedTags)
+        .filter(([tag]) => !isTimeTag(tag))
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([tag]) => tag)
+    : [];
+
+  const topDislikedTags = tasteProfile
+    ? Object.entries(tasteProfile.dislikedTags)
+        .filter(([tag]) => !isTimeTag(tag))
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 2)
+        .map(([tag]) => tag)
+    : [];
+
+  // ── Section 3 derived data (sync — from localStorage history) ─────────────
+
+  const interactionCount = tasteProfile?.interactionCount ?? 0;
+  const mealsTriedCount = new Set(history.map((e) => e.meal.id)).size;
+
+  const topCategory: string | null = (() => {
+    if (history.length < 5) return null;
+    const freq: Record<string, number> = {};
+    for (const e of history) {
+      freq[e.meal.category] = (freq[e.meal.category] ?? 0) + 1;
+    }
+    return Object.entries(freq).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
+  })();
+
   if (!prefs) return null;
 
   return (
@@ -290,10 +296,17 @@ export default function ProfilePage() {
         </div>
 
         <div className="relative z-10 flex min-h-screen flex-col">
-          {/* Header */}
+
+          {/* ── Header ───────────────────────────────────────────────────────── */}
           <header className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 opacity-90">
-              <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
+              <Image
+                src="/logoheader.png"
+                alt="WWE logo"
+                height={18}
+                width={18}
+                className="h-[18px] w-auto"
+              />
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
                 Whatcha Wanna Eat?
               </p>
@@ -307,7 +320,7 @@ export default function ProfilePage() {
             </span>
           </header>
 
-          {/* Title */}
+          {/* ── Page title ───────────────────────────────────────────────────── */}
           <section className="pt-8">
             <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/55 backdrop-blur-md">
               Your preferences
@@ -320,18 +333,13 @@ export default function ProfilePage() {
             </p>
           </section>
 
-          {/* ── Your taste profile ───────────────────────────────────── */}
-          {tasteProfile && <TasteProfileSection profile={tasteProfile} />}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* SECTION 1 — YOUR PREFERENCES                                       */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
 
-          {/* ── Quick-start preferences ─────────────────────────────────── */}
-          <div className="mt-10 mb-[-4px] flex items-center gap-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/20">
-              Quick preferences
-            </p>
-            <div className="h-px flex-1 bg-white/[0.06]" />
-          </div>
+          <DividerLabel>Your preferences</DividerLabel>
 
-          {/* ── What you love ───────────────────────────────────────────── */}
+          {/* What you love */}
           <section className="mt-6">
             <SectionLabel>What you love</SectionLabel>
             <div className="flex flex-wrap gap-3">
@@ -347,9 +355,9 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* ── Hard nos ────────────────────────────────────────────────── */}
+          {/* Hard NOs */}
           <section className="mt-8">
-            <SectionLabel>Hard nos</SectionLabel>
+            <SectionLabel>Hard NOs</SectionLabel>
             <div className="flex flex-wrap gap-3">
               {DISLIKED_FOODS.map((f) => {
                 const selected =
@@ -369,65 +377,164 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* ── Heat level ──────────────────────────────────────────────── */}
+          {/* Dietary restrictions */}
           <section className="mt-8">
-            <SectionLabel>Heat level</SectionLabel>
-            <div className="grid gap-3">
-              {SPICE_OPTIONS.map((opt) => (
-                <RadioCard
-                  key={opt.value}
+            <SectionLabel>Dietary restrictions</SectionLabel>
+            <div className="flex flex-wrap gap-3">
+              {DIETARY_OPTIONS.map((opt) => (
+                <Chip
+                  key={opt.label}
                   emoji={opt.emoji}
                   label={opt.label}
-                  desc={opt.desc}
-                  selected={prefs.spiceLevel === opt.value}
-                  onSelect={() => update({ spiceLevel: opt.value })}
+                  selected={(prefs.dietaryRestrictions ?? []).includes(opt.label)}
+                  onToggle={() => toggleDietary(opt.label)}
                 />
               ))}
             </div>
           </section>
 
-          {/* ── Tonight's plan ───────────────────────────────────────────── */}
+          {/* How adventurous? */}
           <section className="mt-8">
-            <SectionLabel>Tonight&apos;s plan</SectionLabel>
+            <SectionLabel>How adventurous?</SectionLabel>
             <div className="grid gap-3">
-              {COOK_OPTIONS.map((opt) => (
+              {NOVELTY_OPTIONS.map((opt) => (
                 <RadioCard
                   key={opt.value}
-                  emoji={opt.emoji}
                   label={opt.label}
                   desc={opt.desc}
-                  selected={prefs.cookOrOrder === opt.value}
-                  onSelect={() => update({ cookOrOrder: opt.value })}
+                  selected={noveltyBias === opt.value}
+                  onSelect={() => selectNoveltyBias(opt.value)}
                 />
               ))}
             </div>
           </section>
 
-          {/* ── At the table ─────────────────────────────────────────────── */}
-          <section className="mt-8">
-            <SectionLabel>At the table</SectionLabel>
-            <div className="grid gap-3">
-              {KID_OPTIONS.map((opt) => {
-                const selected =
-                  (opt.value === "yes" && prefs.kidFriendly === true) ||
-                  (opt.value === "no" && prefs.kidFriendly === false);
-                return (
-                  <RadioCard
-                    key={opt.value}
-                    emoji={opt.emoji}
-                    label={opt.label}
-                    desc={opt.desc}
-                    selected={selected}
-                    onSelect={() => update({ kidFriendly: opt.value === "yes" })}
-                  />
-                );
-              })}
-            </div>
-          </section>
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* SECTION 2 — WHAT WE'VE LEARNED                                     */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+
+          <DividerLabel>What we&apos;ve learned</DividerLabel>
+
+          {/* Gravitating toward — sync from localStorage, hide if empty */}
+          {topLikedTags.length > 0 && (
+            <section className="mt-6">
+              <SectionLabel>Gravitating toward</SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {topLikedTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1.5 text-xs text-emerald-300/70"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Avoiding lately — sync from localStorage, hide if empty */}
+          {topDislikedTags.length > 0 && (
+            <section className="mt-6">
+              <SectionLabel>Avoiding lately</SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {topDislikedTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-rose-400/20 bg-rose-400/[0.06] px-3 py-1.5 text-xs text-rose-300/55"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Temporarily dialed back — async from Supabase soft_avoids */}
+          {asyncLoading ? (
+            <section className="mt-6">
+              <SectionLabel>Temporarily dialed back</SectionLabel>
+              <PulseLine />
+            </section>
+          ) : softAvoids.length > 0 ? (
+            <section className="mt-6">
+              <SectionLabel>Temporarily dialed back</SectionLabel>
+              <div className="flex flex-col gap-2">
+                {softAvoids.map((sa, i) => {
+                  const daysLeft = Math.ceil(
+                    (new Date(sa.expiresAt).getTime() - Date.now()) / 86400000,
+                  );
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-[14px] border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/55"
+                    >
+                      {sa.category}
+                      <span className="ml-2 text-white/30">
+                        · resets in {daysLeft} day{daysLeft !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
+          {/* Your patterns — async from Supabase decisions, hide if none */}
+          {asyncLoading ? (
+            <section className="mt-6">
+              <SectionLabel>Your patterns</SectionLabel>
+              <PulseLine />
+            </section>
+          ) : rituals.length > 0 ? (
+            <section className="mt-6">
+              <SectionLabel>Your patterns</SectionLabel>
+              <div className="flex flex-col gap-2">
+                {rituals.map((r) => (
+                  <div
+                    key={r.context}
+                    className="rounded-[14px] border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/55"
+                  >
+                    {getRitualLabel(r.context)}
+                    <span className="text-white/30"> · {r.category}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* SECTION 3 — YOUR STATS                                             */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+
+          {interactionCount > 0 && (
+            <>
+              <DividerLabel>Your stats</DividerLabel>
+
+              <section className="mt-6">
+                <div className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06]">
+                  <div className="flex items-center justify-between px-4 py-3.5">
+                    <span className="text-sm text-white/50">Decisions made</span>
+                    <span className="text-sm font-semibold tabular-nums">{interactionCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3.5">
+                    <span className="text-sm text-white/50">Meals tried</span>
+                    <span className="text-sm font-semibold tabular-nums">{mealsTriedCount}</span>
+                  </div>
+                  {topCategory && (
+                    <div className="flex items-center justify-between px-4 py-3.5">
+                      <span className="text-sm text-white/50">Most accepted</span>
+                      <span className="text-sm font-semibold">{topCategory}</span>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
 
           <div className="mt-auto pt-10">
             <BottomNav />
           </div>
+
         </div>
       </div>
     </main>
