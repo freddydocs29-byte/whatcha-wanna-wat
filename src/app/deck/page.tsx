@@ -22,8 +22,8 @@ import { type SoftAvoid } from "../lib/supabase";
 import { detectRituals, getRitualLabel, isRitualSuppressed, recordRitualRejection, type RitualDetection } from "../lib/rituals";
 
 const SWIPE_THRESHOLD = 100;
-const MIN_DECK_SIZE = 15;
-const DECK_SIZE = 20;
+const MIN_DECK_SIZE = 8;
+const DECK_SIZE = 12;
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -867,10 +867,9 @@ function DeckContent() {
   const decisionsMade = currentIndex;
   const progressPct = totalCount > 0 ? Math.min(100, (decisionsMade / totalCount) * 100) : 0;
   const urgencyMessage = (() => {
-    if (sessionId && decisionsMade >= 15) return "Final picks…";
-    if (decisionsMade >= totalCount) return "Time to decide";
-    if (decisionsMade >= 15) return "Almost there";
-    if (decisionsMade >= 6) return "Getting closer";
+    if (decisionsMade >= 10) return "Almost there";
+    if (decisionsMade >= 6)  return "Getting closer";
+    if (decisionsMade >= 3)  return "Finding your pick";
     return "Just getting started";
   })();
 
@@ -2001,9 +2000,6 @@ function DeckContent() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <p className="text-sm text-white/35">
-              {currentIndex + 1}/{rankedMeals.length}
-            </p>
             <button
               onClick={() => router.push("/")}
               className="text-sm text-white/35 transition hover:text-white/60"
@@ -2093,9 +2089,6 @@ function DeckContent() {
         {totalCount > 0 && (
           <div className="mt-4">
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-xs tabular-nums text-white/45">
-                {decisionsMade} / {totalCount} choices
-              </span>
               {sessionId && (
                 <span className="inline-flex items-center gap-1 text-[10px] text-white/35">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
