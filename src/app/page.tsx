@@ -227,7 +227,7 @@ export default function Home() {
   if (!ready) return null;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-6 safe-top">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
@@ -259,14 +259,14 @@ export default function Home() {
 
             {todaysPick ? (
               <>
-                <h1 className="mt-5 text-[52px] font-semibold leading-[0.98] tracking-[-0.06em]">
+                <h1 className="mt-5 font-display font-black text-4xl text-white leading-tight">
                   We&apos;re eating
                   <br />
                   {todaysPick.meal.name}
                   <br />
                   tonight.
                 </h1>
-                <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-white/65">
+                <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-[#8A7F78]">
                   Already decided —{" "}
                   <button
                     onClick={openClearModal}
@@ -284,14 +284,14 @@ export default function Home() {
               </>
             ) : (
               <>
-                <h1 className="mt-5 text-[52px] font-semibold leading-[0.98] tracking-[-0.06em]">
+                <h1 className="mt-5 font-display font-black text-4xl text-white leading-tight">
                   What we
                   <br />
                   eating
                   <br />
                   <AnimatedHeadlineWord />
                 </h1>
-                <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-white/65">
+                <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-[#8A7F78]">
                   Less scrolling, less debating, less &quot;I don&apos;t know.&quot; Let&apos;s land on
                   something good fast.
                 </p>
@@ -307,7 +307,7 @@ export default function Home() {
 
           <div className="mt-8 border-t border-white/[0.07]" />
 
-          <section className="mt-8 rounded-[34px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <section className="mt-8 bg-[#E8621A] rounded-[24px] p-6 text-white">
             {todaysPick ? (
               <>
                 <p className="text-sm text-white/50">You already picked</p>
@@ -326,7 +326,7 @@ export default function Home() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={recordPickIfNew}
-                    className="block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+                    className="block w-full rounded-full bg-white text-[#E8621A] font-black text-base px-8 py-4 text-center transition hover:opacity-95 active:scale-[0.99]"
                   >
                     Cook it
                   </a>
@@ -367,7 +367,7 @@ export default function Home() {
                 <button
                   onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
                   disabled={creatingSession}
-                  className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+                  className="mt-6 block w-full rounded-full bg-white text-[#E8621A] font-black text-base px-8 py-4 text-center transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
                 >
                   {creatingSession ? "Creating…" : "Decide with someone"}
                 </button>
@@ -400,34 +400,34 @@ export default function Home() {
           <div className="mt-6 grid grid-cols-2 gap-3">
             <Link
               href="/saved"
-              className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-md transition active:scale-[0.98] active:bg-white/[0.07]"
+              className="bg-[#2A2420] rounded-[20px] p-5 transition active:scale-[0.98]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm leading-none">🔖</span>
-                  <p className="text-[13px] font-medium text-white/70">Saved</p>
+                  <p className="text-[13px] font-medium text-[#8A7F78]">Saved</p>
                 </div>
                 <p className="text-[20px] font-semibold leading-none tracking-[-0.04em]">
                   {savedCount}
                 </p>
               </div>
-              <p className="mt-2 text-xs text-white/35">Meals you want to come back to</p>
+              <p className="mt-2 text-xs text-[#8A7F78]">Meals you want to come back to</p>
             </Link>
 
             <Link
               href="/history"
-              className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-md transition active:scale-[0.98] active:bg-white/[0.07]"
+              className="bg-[#2A2420] rounded-[20px] p-5 transition active:scale-[0.98]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm leading-none">🕒</span>
-                  <p className="text-[13px] font-medium text-white/70">History</p>
+                  <p className="text-[13px] font-medium text-[#8A7F78]">History</p>
                 </div>
                 <p className="text-[20px] font-semibold leading-none tracking-[-0.04em]">
                   {historyCount}
                 </p>
               </div>
-              <p className="mt-2 text-xs text-white/35">What you&apos;ve been eating lately</p>
+              <p className="mt-2 text-xs text-[#8A7F78]">What you&apos;ve been eating lately</p>
             </Link>
           </div>
 
@@ -435,16 +435,16 @@ export default function Home() {
           {insights.length > 0 && (
             <Link
               href="/profile"
-              className="mt-3 block rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-md transition active:scale-[0.98] active:bg-white/[0.07]"
+              className="mt-3 block bg-[#2A2420] rounded-[20px] p-5 transition active:scale-[0.98]"
             >
-              <p className="text-[11px] uppercase tracking-widest text-white/35">
+              <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase">
                 Lately you&apos;ve been…
               </p>
               <ul className="mt-3 space-y-2.5">
                 {insights.map((insight, i) => (
                   <li
                     key={i}
-                    className="flex items-center gap-2.5 text-sm text-white/70"
+                    className="flex items-center gap-2.5 text-sm text-[#8A7F78]"
                   >
                     <span className="h-1 w-1 shrink-0 rounded-full bg-white/25" />
                     {insight}

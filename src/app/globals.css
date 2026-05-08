@@ -39,3 +39,427 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   WATCHA WANNA EAT? — globals.css  (Tailwind v4)
+   ─────────────────────────────────────────────────────────────────────────────
+
+   HOW TO MERGE WITH YOUR EXISTING FILE:
+   1. Keep your @import "tailwindcss" at the top (already there)
+   2. Keep your existing --background / --foreground dark-mode block
+   3. Keep your .safe-top and .scrollbar-hide utilities
+   4. ADD everything below labeled [BRAND ADD] — it won't conflict
+
+   In v4, all design tokens live in @theme — no tailwind.config.js needed.
+   Delete tailwind.config.js if you have one — it does nothing in v4.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── [BRAND ADD] FONTS ───────────────────────────────────────────────────────
+   Option A (simplest): uncomment this Google Fonts import
+   Option B (recommended): use next/font in layout.tsx (see BRAND_PASS.md §1)
+   ─────────────────────────────────────────────────────────────────────────── */
+/* @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap'); */
+
+/* ── [BRAND ADD] THEME TOKENS ────────────────────────────────────────────────
+   @theme registers tokens as Tailwind utility classes.
+   --color-orange      → bg-orange / text-orange / border-orange
+   --font-display      → font-display
+   --radius-pill       → rounded-pill
+   --shadow-glow-orange→ shadow-glow-orange
+   --animate-match-pop → animate-match-pop
+   ─────────────────────────────────────────────────────────────────────────── */
+@theme {
+
+  /* ── Colors ── */
+
+  /* Primary: orange — CTAs, active states, logo accent */
+  --color-orange:        #E8621A;
+  --color-orange-light:  #F27B35;
+  --color-orange-pale:   #FDF0E8;
+
+  /* Backgrounds: charcoal family */
+  --color-charcoal:      #1C1A18;   /* primary app bg */
+  --color-charcoal-mid:  #2A2420;   /* card surfaces, nav bg */
+  --color-charcoal-soft: #3D3733;   /* borders, subtle surfaces */
+
+  /* Light screens: cream family */
+  --color-cream:         #FAF6F1;
+  --color-cream-dark:    #F0E9DF;
+
+  /* Match moment: green — RESERVED, use ONLY on match screen */
+  --color-match:         #4A7C59;
+  --color-match-light:   #6BAF7A;
+  --color-match-pale:    #EBF4EE;
+
+  /* Text utilities */
+  --color-muted:         #8A7F78;
+  --color-muted-mid:     #5A5350;
+
+  /* ── Fonts ── */
+
+  /* Nunito: display/headings — always 900 for headlines */
+  --font-display: var(--font-nunito);
+
+  /* Manrope: body/UI — 600 labels, 500 body, 400 fine print */
+  --font-body: var(--font-manrope);
+
+  /* If using next/font, override these after layout sets CSS vars: */
+  /* --font-display: var(--font-nunito); */
+  /* --font-body: var(--font-manrope);  */
+
+  /* ── Border Radius ── */
+  /* Brand uses friendly rounded corners — never sharp */
+  --radius-xl:   16px;    /* standard cards */
+  --radius-2xl:  20px;    /* larger cards, modals */
+  --radius-3xl:  24px;    /* swipe cards, hero areas */
+  --radius-4xl:  32px;    /* large hero cards */
+  --radius-pill: 100px;   /* ALL buttons and badges */
+
+  /* ── Shadows ── */
+  --shadow-card:         0 4px 24px rgba(0,0,0,0.24);
+  --shadow-card-lg:      0 20px 60px rgba(0,0,0,0.4);
+  --shadow-swipe:        0 32px 80px rgba(0,0,0,0.5);
+  --shadow-glow-orange:  0 0 40px rgba(232,98,26,0.3);
+  --shadow-glow-match:   0 0 40px rgba(74,124,89,0.35);
+  --shadow-nav:          0 -1px 0 rgba(255,255,255,0.05);
+
+  /* ── Animations ──
+     Format: {keyframe-name} {duration} {easing} {fill-mode}
+     Usage:  className="animate-match-pop"
+     ── */
+  --animate-pulse-soft:    pulse-soft 2.4s ease-in-out infinite;
+  --animate-match-pop:     match-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  --animate-slide-up:      slide-up 0.35s ease-out forwards;
+  --animate-slide-down:    slide-down 0.35s ease-out forwards;
+  --animate-fade-in:       fade-in 0.25s ease-out forwards;
+  --animate-orb-pulse:     orb-pulse 3s ease-in-out infinite;
+  --animate-qmark-resolve: qmark-resolve 1.2s ease-out forwards;
+  --animate-swipe-right:   swipe-right 0.3s ease-in forwards;
+  --animate-swipe-left:    swipe-left 0.3s ease-in forwards;
+}
+
+/* ── [BRAND ADD] KEYFRAMES ───────────────────────────────────────────────────
+   Standard @keyframes — referenced by --animate-* vars above.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(0.96); }
+}
+
+@keyframes match-pop {
+  0%   { transform: scale(0.75); opacity: 0; }
+  60%  { transform: scale(1.06); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes slide-up {
+  0%   { transform: translateY(16px); opacity: 0; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes slide-down {
+  0%   { transform: translateY(-16px); opacity: 0; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.5; }
+  50%       { transform: scale(1.12); opacity: 0.85; }
+}
+
+@keyframes qmark-resolve {
+  0%   { opacity: 0; transform: scale(0.8) translateY(8px); }
+  70%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes swipe-right {
+  0%   { transform: translateX(0) rotate(0deg);     opacity: 1; }
+  100% { transform: translateX(120%) rotate(12deg); opacity: 0; }
+}
+
+@keyframes swipe-left {
+  0%   { transform: translateX(0) rotate(0deg);       opacity: 1; }
+  100% { transform: translateX(-120%) rotate(-12deg); opacity: 0; }
+}
+
+/* ── [BRAND ADD] BASE ────────────────────────────────────────────────────────
+   App-shell defaults.
+   ─────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #1C1A18;
+    color: white;
+    font-family: 'Manrope', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    /* Barely-there orange radial — adds warmth without being obvious */
+    background-image: radial-gradient(
+      ellipse at 25% 0%,
+      rgba(232, 98, 26, 0.08) 0%,
+      transparent 55%
+    );
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Nunito', sans-serif;
+  }
+
+  button {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* ── YOUR EXISTING UTILITIES (keep these as-is) ── */
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 16px);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── [BRAND ADD] COMPONENTS ──────────────────────────────────────────────────
+   Named classes for reuse across JSX. @apply works with any @theme token.
+   ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ─── BUTTONS ──────────────────────────────────────────────── */
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-orange text-white
+           font-display font-black text-base
+           px-8 py-4 rounded-pill
+           shadow-glow-orange
+           transition-all duration-[250ms] ease-out
+           hover:bg-orange-light hover:scale-[1.02]
+           active:scale-95 active:shadow-none
+           select-none;
+  }
+
+  .btn-primary-full {
+    @apply btn-primary w-full;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-white
+           font-display font-bold text-base
+           px-8 py-4 rounded-pill
+           border border-white/20
+           transition-all duration-[250ms] ease-out
+           hover:border-white/40 hover:bg-white/5
+           active:scale-95
+           select-none;
+  }
+
+  .btn-secondary-full {
+    @apply btn-secondary w-full;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           text-muted font-body font-semibold text-sm
+           px-4 py-2 rounded-pill
+           transition-colors duration-[200ms]
+           hover:text-white
+           select-none;
+  }
+
+  /* ─── CARDS ────────────────────────────────────────────────── */
+
+  .card {
+    @apply bg-charcoal-mid rounded-2xl p-5 shadow-card;
+  }
+
+  /* Orange hero card — primary/featured content */
+  .card-hero {
+    @apply bg-orange rounded-3xl p-6 text-white shadow-glow-orange;
+  }
+
+  /* Green match card — ONLY for match moment */
+  .card-match {
+    @apply bg-match rounded-3xl p-6 text-white shadow-glow-match;
+  }
+
+  .card-elevated {
+    @apply bg-charcoal-mid rounded-2xl p-5 shadow-card-lg border border-white/[0.04];
+  }
+
+  /* ─── SWIPE DECK ───────────────────────────────────────────── */
+
+  .swipe-card {
+    @apply relative rounded-3xl overflow-hidden shadow-swipe w-full bg-charcoal-soft;
+    aspect-ratio: 3 / 4;
+  }
+
+  .swipe-card-scrim {
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, transparent 100%);
+  }
+
+  .swipe-indicator-yes {
+    @apply absolute top-8 right-6 z-10 opacity-0
+           font-display font-black text-2xl text-match
+           border-4 border-match rounded-xl px-3 py-1
+           rotate-12 transition-opacity duration-[150ms];
+  }
+
+  .swipe-indicator-no {
+    @apply absolute top-8 left-6 z-10 opacity-0
+           font-display font-black text-2xl text-red-400
+           border-4 border-red-400 rounded-xl px-3 py-1
+           -rotate-12 transition-opacity duration-[150ms];
+  }
+
+  /* ─── TYPOGRAPHY ───────────────────────────────────────────── */
+
+  .label-eyebrow {
+    @apply font-body text-[11px] font-semibold tracking-[0.2em] uppercase text-orange;
+  }
+
+  .wordmark {
+    @apply font-display font-black text-white text-2xl leading-none;
+  }
+  .wordmark span {
+    @apply text-orange;
+  }
+
+  /* ─── BADGES ───────────────────────────────────────────────── */
+
+  .badge-orange {
+    @apply inline-flex items-center bg-orange text-white
+           font-display font-black text-[11px] tracking-wide px-3 py-1 rounded-pill;
+  }
+
+  .badge-match {
+    @apply inline-flex items-center bg-match text-white
+           font-display font-black text-[11px] tracking-wide px-3 py-1 rounded-pill;
+  }
+
+  .badge-dark {
+    @apply inline-flex items-center bg-charcoal-soft text-white/60
+           font-body font-semibold text-[11px] tracking-wide px-3 py-1 rounded-pill;
+  }
+
+  /* ─── NAVIGATION ───────────────────────────────────────────── */
+
+  .nav-bar {
+    @apply fixed bottom-0 left-0 right-0 z-50
+           bg-charcoal-mid border-t border-white/[0.06]
+           flex justify-around items-center px-4 pt-3;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .nav-item {
+    @apply flex flex-col items-center gap-1
+           text-muted font-body text-[10px] font-semibold tracking-wide
+           transition-colors duration-[200ms] min-w-[56px];
+  }
+
+  .nav-item-active {
+    @apply text-orange;
+  }
+
+  /* ─── ONBOARDING CHIPS ─────────────────────────────────────── */
+
+  .option-chip {
+    @apply inline-flex items-center justify-center
+           bg-charcoal-soft text-white/80
+           font-body text-sm font-semibold
+           px-5 py-3 rounded-xl
+           border border-transparent
+           cursor-pointer select-none
+           transition-all duration-[200ms]
+           hover:border-orange/40;
+  }
+
+  .option-chip-selected {
+    @apply bg-orange/15 text-orange border border-orange/60;
+  }
+
+  /* ─── BUILDING DECK ORB ────────────────────────────────────── */
+
+  .deck-orb {
+    @apply relative flex items-center justify-center
+           w-48 h-48 rounded-full bg-orange/20 animate-orb-pulse;
+  }
+
+  .deck-orb-inner {
+    @apply w-24 h-24 rounded-full bg-orange
+           flex items-center justify-center
+           font-display font-black text-4xl text-white shadow-glow-orange;
+  }
+
+  /* ─── MATCH MOMENT ─────────────────────────────────────────── */
+
+  .match-burst {
+    @apply relative flex items-center justify-center
+           w-32 h-32 rounded-full bg-match shadow-glow-match animate-match-pop;
+  }
+
+  .match-checkmark {
+    @apply font-display font-black text-5xl text-white;
+  }
+
+  /* ─── PAGE SHELLS ──────────────────────────────────────────── */
+
+  /* Standard page — with bottom nav clearance */
+  .page {
+    @apply flex flex-col min-h-dvh px-5 pb-24;
+    padding-top: max(env(safe-area-inset-top, 0px), 16px);
+  }
+
+  /* Full-screen — no nav (splash, onboarding, match, building) */
+  .page-full {
+    @apply flex flex-col min-h-dvh px-5;
+    padding-top: env(safe-area-inset-top, 48px);
+  }
+
+  /* ─── INPUTS ───────────────────────────────────────────────── */
+
+  .input-brand {
+    @apply w-full bg-charcoal-soft text-white
+           font-body text-base font-medium
+           px-5 py-4 rounded-xl
+           border border-transparent
+           placeholder:text-muted
+           focus:outline-none focus:border-orange/50 focus:bg-charcoal-mid
+           transition-all duration-[250ms];
+  }
+
+  /* ─── MISC ─────────────────────────────────────────────────── */
+
+  .brand-divider {
+    @apply w-12 h-[3px] bg-orange rounded-full my-8;
+  }
+
+  /* Subtle film-grain overlay. Add to a position:relative parent. */
+  .noise-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+}

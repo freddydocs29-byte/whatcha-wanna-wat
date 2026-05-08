@@ -14,7 +14,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="grid grid-cols-4 rounded-full border border-white/10 bg-white/[0.055] p-2 shadow-[0_8px_30px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+    <nav className="grid grid-cols-4 bg-[#2A2420] border-t border-white/[0.06] p-2">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
         return (
@@ -23,8 +23,8 @@ export default function BottomNav() {
             href={tab.href}
             className={
               isActive
-                ? "rounded-full bg-white px-3 py-3 text-center text-sm font-semibold text-black"
-                : "rounded-full px-3 py-3 text-center text-sm text-white/50 transition hover:text-white/75"
+                ? "rounded-full px-3 py-3 text-center text-sm font-semibold text-[#E8621A]"
+                : "rounded-full px-3 py-3 text-center text-sm text-[#8A7F78] transition hover:text-white/75"
             }
           >
             {tab.label}
