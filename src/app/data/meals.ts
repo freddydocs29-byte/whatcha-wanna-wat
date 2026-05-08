@@ -2668,7 +2668,7 @@ export const meals: Meal[] = [
     tags: ["15 min","Easy","Kid-friendly","Flavorful"],
     ingredients: ["Pork","Pineapple","Cilantro","Corn Tortillas","Onion","Lime"],
     whyItFits: "Classic street food, super tasty!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tacos-al-pastor.jpg",
   },
   {
     id: "enchiladas-verdes",
@@ -2679,7 +2679,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Medium effort","Comfort","Nutritious"],
     ingredients: ["Corn Tortillas","Chicken","Green Salsa","Crema","Cheese"],
     whyItFits: "Warm, cheesy goodness that satisfies!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/enchiladas-verdes.jpg",
   },
 
   {
@@ -2691,7 +2691,7 @@ export const meals: Meal[] = [
     tags: ["60 min","Medium effort","Comfort","Flavorful"],
     ingredients: ["Poblano Peppers","Ground Meat","Walnut Sauce","Pomegranate","Spices"],
     whyItFits: "A classic, rich in flavors!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chiles-en-nogada.jpg",
   },
   {
     id: "tortilla-soup",

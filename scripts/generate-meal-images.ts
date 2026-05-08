@@ -8,11 +8,10 @@
  * Run repeatedly, 10 meals at a time, until all remaining images are updated.
  *
  * Usage:
- *   OPENAI_API_KEY=sk-... \
- *   SUPABASE_URL=https://xxx.supabase.co \
- *   SUPABASE_SERVICE_ROLE_KEY=eyJ... \
- *   AUTO_WRITE=true \
  *   npx tsx scripts/generate-meal-images.ts
+ *
+ *   Reads credentials automatically from .env.local (dotenv).
+ *   Override at runtime if needed: AUTO_WRITE=true npx tsx ...
  *
  * Env options:
  *   CUISINES=American,Mexican,Italian   filter by cuisine  (default: ALL)
@@ -22,6 +21,9 @@
  *   START_AFTER=meal-id                 skip meals up to and including this ID
  *   ONLY_IDS=id1,id2,id3               process only these specific meal IDs
  */
+
+import { config } from "dotenv";
+config({ path: ".env.local" });
 
 import fs from "fs";
 import path from "path";
@@ -181,13 +183,28 @@ function replaceMealImageInContent(
   const block = content.substring(idIndex, blockEnd);
   const after = content.substring(blockEnd);
 
-  if (!block.includes(oldUrl)) {
-    console.warn(`  ⚠  Expected URL not found in meal block "${mealId}"`);
-    console.warn(`      Expected: ${oldUrl}`);
-    return content;
+  let updatedBlock: string;
+  if (oldUrl === "") {
+    // Meal has image: "" — can't search for an empty string (replaces pos 0).
+    // Use a regex to find and replace the empty image field directly.
+    const emptyImageRe = /image:\s*["']['"]/ ;
+    if (!emptyImageRe.test(block)) {
+      console.warn(`  ⚠  Could not find empty image field for meal "${mealId}"`);
+      return content;
+    }
+    updatedBlock = block.replace(emptyImageRe, `image: "${newUrl}"`);
+  } else {
+    if (!block.includes(oldUrl)) {
+      console.warn(`  ⚠  Expected URL not found in meal block "${mealId}"`);
+      console.warn(`      Expected: ${oldUrl}`);
+      return content;
+    }
+    updatedBlock = block.replace(oldUrl, newUrl);
   }
 
-  return before + block.replace(oldUrl, newUrl) + after;
+  if (updatedBlock === block) return content;
+
+  return before + updatedBlock + after;
 }
 
 /**
