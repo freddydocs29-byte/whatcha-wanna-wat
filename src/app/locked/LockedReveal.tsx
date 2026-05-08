@@ -26,7 +26,7 @@ export default function LockedReveal({ meal, pantryMode, pickedForYou }: Props) 
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-4 text-5xl font-semibold leading-[0.98] tracking-[-0.06em]"
+        className="font-display font-black text-4xl text-white text-center mt-8"
       >
         We&apos;re eating
         <br />
@@ -48,7 +48,7 @@ export default function LockedReveal({ meal, pantryMode, pickedForYou }: Props) 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 0.65, y: 0 }}
         transition={{ duration: 0.4, delay: 0.24, ease: "easeOut" }}
-        className="mt-5 max-w-[30ch] text-[15px] leading-7 text-white/65"
+        className="font-body text-sm text-white/70 text-center mt-3 max-w-xs"
       >
         {meal.whyItFits}. {meal.description}
       </motion.p>

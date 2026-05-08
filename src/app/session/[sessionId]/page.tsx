@@ -50,6 +50,12 @@ type ViewerRole = "host" | "guest" | "full" | "unknown";
 
 const POLL_INTERVAL_MS = 3000;
 
+const BUILD_PHRASES = [
+  "Combining your taste profiles…",
+  "Finding meals you'll both love…",
+  "Building your shared deck…",
+];
+
 const COOKING_INTENT_OPTIONS: { value: CookingIntent; label: string; sub: string }[] = [
   { value: "cooking",  label: "Cooking",      sub: "We'll make it at home" },
   { value: "ordering", label: "Ordering",     sub: "Delivery or takeout" },
@@ -66,6 +72,7 @@ export default function SessionPage() {
   const [copied, setCopied] = useState(false);
   const [joining, setJoining] = useState(false);
   const [buildingDeck, setBuildingDeck] = useState(false);
+  const [buildPhrase, setBuildPhrase] = useState(0);
   const [completingSetup, setCompletingSetup] = useState(false);
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
   const [selectedCookingIntent, setSelectedCookingIntent] = useState<CookingIntent>("either");
@@ -211,6 +218,16 @@ export default function SessionPage() {
     const timer = setTimeout(() => setCookingIntentStep("done"), 20_000);
     return () => clearTimeout(timer);
   }, [session?.status, cookingIntentStep]);
+
+  // Cycle through build phrases while deck is generating
+  useEffect(() => {
+    if (!buildingDeck) return;
+    setBuildPhrase(0);
+    const interval = setInterval(() => {
+      setBuildPhrase((p) => (p + 1) % BUILD_PHRASES.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [buildingDeck]);
 
   // Poll for changes:
   // - Host: detect when guest joins (status: waiting → active)
@@ -694,6 +711,54 @@ export default function SessionPage() {
               Session · {sessionId?.slice(0, 8)}
             </p>
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Building deck loading screen ─────────────────────────────────────────
+  if (buildingDeck) {
+    return (
+      <main className="min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center px-5">
+        {/* Avatars + connector */}
+        <div className="flex items-center gap-4 mb-10">
+          <div className="w-14 h-14 rounded-full bg-[#3D3733] flex items-center justify-center font-display font-black text-lg text-white">
+            👤
+          </div>
+          <span className="font-display font-black text-2xl text-[#E8621A]">+</span>
+          <div className="w-14 h-14 rounded-full bg-[#3D3733] flex items-center justify-center font-display font-black text-lg text-white">
+            👤
+          </div>
+        </div>
+
+        {/* Pulsing orb */}
+        <div className="w-48 h-48 rounded-full bg-[#E8621A]/20 flex items-center justify-center animate-orb-pulse">
+          <div
+            className="w-24 h-24 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-4xl text-white"
+            style={{ boxShadow: "0 0 40px rgba(232,98,26,0.3)" }}
+          >
+            🍽️
+          </div>
+        </div>
+
+        {/* Copy */}
+        <div className="mt-10">
+          <p className="font-display font-bold text-xl text-white text-center">
+            {BUILD_PHRASES[buildPhrase]}
+          </p>
+          <p className="font-body text-sm text-[#8A7F78] text-center mt-2">
+            Takes about 3 seconds
+          </p>
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex gap-2 mt-8">
+          {BUILD_PHRASES.map((_, i) => (
+            <div
+              key={i}
+              className={`w-2 h-2 rounded-full ${i === buildPhrase ? "bg-[#E8621A]" : "bg-[#3D3733]"}`}
+            />
+          ))}
         </div>
       </main>
     );

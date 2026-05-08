@@ -1962,7 +1962,7 @@ function DeckContent() {
 
   // ── Deck screen ───────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
+    <main className="min-h-screen bg-[#1C1A18] px-5 pb-6 safe-top text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
         {/* Ambient pantry glow — warm bloom from top edge (solo only) */}
@@ -1986,7 +1986,7 @@ function DeckContent() {
 
         <header className="relative flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <p className="text-sm text-white/50">Decision Deck</p>
+            <p className="font-body text-sm text-[#8A7F78]">Decision Deck</p>
             {sessionId && (
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-2 py-0.5 text-[10px] text-emerald-400/80">
                 <span className="h-1 w-1 rounded-full bg-emerald-400" />
@@ -2158,7 +2158,7 @@ function DeckContent() {
               Choose
             </motion.div>
 
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[28px]">
+            <div className="rounded-[24px] overflow-hidden relative w-full aspect-[3/4]">
               {/* Meal photo */}
               <img
                 src={imgErrors.has(meal.id) ? FALLBACK_IMAGE : meal.image}
@@ -2180,7 +2180,7 @@ function DeckContent() {
                 className="absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(to top, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.28) 38%, rgba(0,0,0,0.06) 62%, transparent 100%)",
+                    "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, transparent 100%)",
                 }}
               />
 
@@ -2195,7 +2195,7 @@ function DeckContent() {
                     className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
                     style={{ bottom: "38%" }}
                   >
-                    <div className="flex items-center gap-2.5 rounded-full bg-black/50 px-4 py-2 backdrop-blur-sm">
+                    <div className="flex items-center gap-2.5 bg-[#2A2420] rounded-full px-5 py-2.5">
                       <span className="text-xs text-rose-400/75">← Swipe to pass</span>
                       <span className="text-[10px] text-white/25">·</span>
                       <span className="text-xs text-emerald-400/75">Swipe to choose →</span>
@@ -2234,24 +2234,24 @@ function DeckContent() {
                 <div className="space-y-3">
                   <div>
                     <h2
-                      className="text-3xl font-semibold tracking-[-0.04em] text-white"
+                      className="font-display font-black text-2xl text-white"
                       style={{ textShadow: "0 2px 20px rgba(0,0,0,1), 0 1px 6px rgba(0,0,0,0.65)" }}
                     >
                       {meal.name}
                     </h2>
                     <p
-                      className="mt-2 text-sm leading-6 text-white/85"
+                      className="font-body text-sm text-white/80 mt-1"
                       style={{ textShadow: "0 1px 12px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.5)" }}
                     >
                       {meal.description}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 text-xs text-white/60">
+                  <div className="flex flex-wrap gap-2">
                     {meal.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-white/15 px-3 py-1 backdrop-blur-sm"
+                        className="bg-white/10 text-white font-body text-[11px] font-semibold px-3 py-1 rounded-full"
                       >
                         {tag}
                       </span>
@@ -2318,18 +2318,18 @@ function DeckContent() {
         </div>
 
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="mt-4 flex items-center justify-center gap-8">
           <button
             onClick={handlePass}
             disabled={isExiting || isChoosing}
-            className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-4 text-sm text-white/70 disabled:opacity-40"
+            className="w-16 h-16 rounded-full bg-[#2A2420] border border-white/10 text-white/60 text-2xl flex items-center justify-center disabled:opacity-40"
           >
             Pass
           </button>
           <button
             onClick={handleChoose}
             disabled={isExiting || isChoosing}
-            className="rounded-full border border-white/10 bg-white px-4 py-4 text-center text-sm font-semibold text-black disabled:opacity-40"
+            className="w-16 h-16 rounded-full bg-[#E8621A] text-white text-2xl flex items-center justify-center shadow-glow-orange disabled:opacity-40"
           >
             Choose
           </button>

@@ -107,7 +107,7 @@ export default function WhyItWorks({ meal, pantryMode }: Props) {
   if (reasons.length === 0) return null;
 
   return (
-    <div className="mt-6 border-t border-white/[0.07] pt-6">
+    <div className="bg-[#2A2420] rounded-[20px] p-5 w-full mt-6 border-l-4 border-[#4A7C59]">
       <p className="text-[11px] uppercase tracking-[0.08em] text-white/35">
         Why this works
       </p>

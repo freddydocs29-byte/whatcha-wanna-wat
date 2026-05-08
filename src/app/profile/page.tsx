@@ -62,7 +62,7 @@ const NOVELTY_OPTIONS: { value: number; label: string; desc: string }[] = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/30">
+    <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-3">
       {children}
     </p>
   );
@@ -287,7 +287,7 @@ export default function ProfilePage() {
   if (!prefs) return null;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-6 pt-5">
         {/* Background blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -325,7 +325,7 @@ export default function ProfilePage() {
             <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/55 backdrop-blur-md">
               Your preferences
             </div>
-            <h1 className="mt-4 text-[42px] font-semibold leading-[0.98] tracking-[-0.06em]">
+            <h1 className="font-display font-black text-2xl text-white mt-4">
               Tastes &amp; habits.
             </h1>
             <p className="mt-3 max-w-[34ch] text-sm leading-6 text-white/50">
@@ -423,7 +423,7 @@ export default function ProfilePage() {
                 {topLikedTags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1.5 text-xs text-emerald-300/70"
+                    className="bg-[#3D3733] text-white/60 font-body font-semibold text-[11px] px-3 py-1 rounded-full"
                   >
                     {tag}
                   </span>
@@ -440,7 +440,7 @@ export default function ProfilePage() {
                 {topDislikedTags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full border border-rose-400/20 bg-rose-400/[0.06] px-3 py-1.5 text-xs text-rose-300/55"
+                    className="bg-red-950/60 text-red-400 font-body font-semibold text-[11px] px-3 py-1 rounded-full border border-red-900/40"
                   >
                     {tag}
                   </span>

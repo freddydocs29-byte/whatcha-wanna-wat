@@ -256,7 +256,15 @@ body {
   }
 
   .btn-primary-full {
-    @apply btn-primary w-full;
+    @apply inline-flex items-center justify-center gap-2
+           bg-orange text-white
+           font-display font-black text-base
+           px-8 py-4 rounded-pill
+           shadow-glow-orange
+           transition-all duration-[250ms] ease-out
+           hover:bg-orange-light hover:scale-[1.02]
+           active:scale-95 active:shadow-none
+           select-none w-full;
   }
 
   .btn-secondary {
@@ -272,7 +280,15 @@ body {
   }
 
   .btn-secondary-full {
-    @apply btn-secondary w-full;
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-white
+           font-display font-bold text-base
+           px-8 py-4 rounded-pill
+           border border-white/20
+           transition-all duration-[250ms] ease-out
+           hover:border-white/40 hover:bg-white/5
+           active:scale-95
+           select-none w-full;
   }
 
   .btn-ghost {

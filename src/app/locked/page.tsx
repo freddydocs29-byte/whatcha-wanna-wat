@@ -26,7 +26,7 @@ export default async function LockedPage({ searchParams }: Props) {
   );
 
   return (
-    <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
+    <main className="min-h-screen bg-[#1C1A18] px-5 pb-6 safe-top text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
         <header className="flex items-center justify-between">
           <p className="text-sm text-white/50">Decision Deck</p>

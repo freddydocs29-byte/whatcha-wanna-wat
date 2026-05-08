@@ -27,7 +27,7 @@ export default function CookOrderButtons({ meal, recipeQuery }: Props) {
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => { recordIfNew(meal); trackEvent("cook_clicked", { mealId: meal.id }); }}
-        className="rounded-full bg-white px-5 py-4 text-center text-base font-semibold text-black"
+        className="w-full bg-[#4A7C59] text-white font-display font-black text-base py-4 rounded-full mt-8 shadow-glow-match"
       >
         Cook it
       </a>

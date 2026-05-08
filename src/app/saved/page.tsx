@@ -56,7 +56,7 @@ export default function SavedPage() {
   const isEmpty = loaded && favoriteMeals.length === 0 && savedForLater.length === 0;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 safe-top">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
@@ -67,8 +67,8 @@ export default function SavedPage() {
           <header className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 opacity-90">
               <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
-                Whatcha Wanna Eat?
+              <p className="font-display font-black text-white text-2xl leading-none">
+                Whatcha Wanna Eat<span className="text-[#E8621A]">?</span>
               </p>
             </Link>
             <Link
@@ -83,7 +83,7 @@ export default function SavedPage() {
             <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/55 backdrop-blur-md">
               Your list
             </div>
-            <h1 className="mt-5 text-[42px] font-semibold leading-[0.98] tracking-[-0.06em]">
+            <h1 className="font-display font-black text-3xl text-white mt-6">
               Saved
               <br />
               meals
@@ -120,7 +120,7 @@ export default function SavedPage() {
               {/* ── Favorites ──────────────────────────────────────────── */}
               <section id="favorites">
                 <div className="mb-4 flex items-center gap-2">
-                  <span className="text-sm font-semibold tracking-[-0.02em] text-white">
+                  <span className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-3">
                     Favorites
                   </span>
                   {favoriteMeals.length > 0 && (
@@ -144,17 +144,17 @@ export default function SavedPage() {
                     {favoriteMeals.map((meal) => (
                       <div
                         key={meal.id}
-                        className="rounded-[28px] border border-white/15 bg-white/[0.07] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.28)] backdrop-blur-md"
+                        className="bg-[#2A2420] rounded-[20px] p-5"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">
                             <div className="inline-flex rounded-full border border-white/10 bg-white/10 px-2.5 py-0.5 text-xs text-white/55">
                               {meal.category}
                             </div>
-                            <p className="mt-2 text-[18px] font-semibold tracking-[-0.03em]">
+                            <p className="font-display font-bold text-base text-white mt-2">
                               {meal.name}
                             </p>
-                            <p className="mt-1.5 text-sm leading-6 text-white/60">
+                            <p className="text-[#8A7F78] text-xs font-body mt-0.5">
                               {meal.whyItFits}
                             </p>
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -187,7 +187,7 @@ export default function SavedPage() {
               {savedForLater.length > 0 && (
                 <section id="saved">
                   <div className="mb-4 flex items-center gap-2">
-                    <span className="text-sm font-medium tracking-[-0.02em] text-white/50">
+                    <span className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-3">
                       Saved for Later
                     </span>
                     <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-white/30">
@@ -199,17 +199,17 @@ export default function SavedPage() {
                     {savedForLater.map((meal) => (
                       <div
                         key={meal.id}
-                        className="rounded-[28px] border border-white/[0.08] bg-white/[0.04] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-md"
+                        className="bg-[#2A2420] rounded-[20px] p-5"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">
                             <div className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.07] px-2.5 py-0.5 text-xs text-white/40">
                               {meal.category}
                             </div>
-                            <p className="mt-2 text-[17px] font-semibold tracking-[-0.03em] text-white/85">
+                            <p className="font-display font-bold text-base text-white mt-2">
                               {meal.name}
                             </p>
-                            <p className="mt-1.5 text-sm leading-6 text-white/40">
+                            <p className="text-[#8A7F78] text-xs font-body mt-0.5">
                               {meal.whyItFits}
                             </p>
                             <div className="mt-3 flex flex-wrap gap-2">

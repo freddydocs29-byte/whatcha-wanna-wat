@@ -169,12 +169,12 @@ export default function OnboardingPage() {
   const currentStep = STEPS[step - 1];
 
   return (
-    <main className="min-h-screen bg-[#080808] text-white">
+    <main className="min-h-screen bg-[#FAF6F1]">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-8 pt-6">
         {/* Background blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#E8621A]/[0.06] blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-[#E8621A]/[0.03] blur-3xl" />
         </div>
 
         <div className="relative z-10 flex min-h-screen flex-col">
@@ -182,14 +182,14 @@ export default function OnboardingPage() {
           <header className="flex items-center justify-between">
             <div className="flex items-center gap-2 opacity-90">
               <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#1C1A18]/40">
                 Whatcha Wanna Eat?
               </p>
             </div>
             {step > 1 && (
               <button
                 onClick={goBack}
-                className="text-sm text-white/35 transition hover:text-white/60"
+                className="text-sm text-[#1C1A18]/50 transition hover:text-[#1C1A18]/80"
               >
                 Back
               </button>
@@ -199,9 +199,9 @@ export default function OnboardingPage() {
           {/* Segmented progress bar */}
           <div className="mt-6 flex gap-1.5">
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-              <div key={i} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.12]">
+              <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-[#F0E9DF]">
                 <div
-                  className="h-full rounded-full bg-white transition-all duration-500 ease-out"
+                  className="h-full bg-[#E8621A] rounded-full transition-all duration-500"
                   style={{ width: i + 1 <= step ? "100%" : "0%" }}
                 />
               </div>
@@ -222,13 +222,13 @@ export default function OnboardingPage() {
             >
               {/* Question */}
               <div className="mt-10">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/30">
+                <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase">
                   {step} of {TOTAL_STEPS}
                 </p>
-                <h1 className="mt-4 whitespace-pre-line text-[38px] font-semibold leading-[1.05] tracking-[-0.05em]">
+                <h1 className="mt-4 whitespace-pre-line font-display font-black text-3xl text-[#1C1A18] leading-tight">
                   {currentStep.title}
                 </h1>
-                <p className="mt-3 max-w-[34ch] text-sm leading-6 text-white/50">
+                <p className="mt-3 max-w-[34ch] font-body text-base text-[#1C1A18]/60">
                   {currentStep.subtitle}
                 </p>
               </div>
@@ -243,10 +243,10 @@ export default function OnboardingPage() {
                       <button
                         key={opt.label}
                         onClick={() => toggleOption(opt.label, opt.field)}
-                        className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.96] ${
+                        className={`flex items-center gap-2 rounded-[12px] border px-5 py-3 font-body text-sm font-semibold transition-all duration-150 active:scale-[0.96] ${
                           selected
-                            ? "border-white bg-white text-black shadow-[0_0_0_1px_rgba(255,255,255,0.3),0_4px_20px_rgba(255,255,255,0.10)]"
-                            : "border-white/15 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09]"
+                            ? "bg-[#E8621A]/15 text-[#E8621A] border-[#E8621A]/60"
+                            : "bg-[#3D3733] text-white/80 border-transparent"
                         }`}
                       >
                         <span>{opt.emoji}</span>
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
                   {/* "No restrictions" advances immediately without requiring Continue */}
                   <button
                     onClick={handleNoRestrictions}
-                    className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-white/70 transition-all duration-150 hover:border-white/25 hover:bg-white/[0.09] active:scale-[0.96]"
+                    className="flex items-center gap-2 rounded-[12px] border border-transparent bg-[#3D3733] px-5 py-3 font-body text-sm font-semibold text-white/80 transition-all duration-150 active:scale-[0.96]"
                   >
                     <span>✓</span>
                     <span>No restrictions</span>
@@ -274,10 +274,10 @@ export default function OnboardingPage() {
                       <button
                         key={c.label}
                         onClick={() => toggleCuisine(c.label)}
-                        className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.96] ${
+                        className={`flex items-center gap-2 rounded-[12px] border px-5 py-3 font-body text-sm font-semibold transition-all duration-150 active:scale-[0.96] ${
                           selected
-                            ? "border-white bg-white text-black shadow-[0_0_0_1px_rgba(255,255,255,0.3),0_4px_20px_rgba(255,255,255,0.10)]"
-                            : "border-white/15 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09]"
+                            ? "bg-[#E8621A]/15 text-[#E8621A] border-[#E8621A]/60"
+                            : "bg-[#3D3733] text-white/80 border-transparent"
                         }`}
                       >
                         <span>{c.emoji}</span>
@@ -300,10 +300,10 @@ export default function OnboardingPage() {
                           setNoveltyBias(opt.value);
                           scheduleNoveltyAdvance();
                         }}
-                        className={`flex items-center gap-4 rounded-[22px] border p-4 text-left transition-all duration-150 active:scale-[0.99] ${
+                        className={`flex items-center gap-4 rounded-[12px] border p-4 text-left transition-all duration-150 active:scale-[0.99] ${
                           selected
-                            ? "border-white/60 bg-white/[0.10] shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_6px_28px_rgba(255,255,255,0.06)]"
-                            : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]"
+                            ? "bg-[#E8621A]/15 text-[#E8621A] border-[#E8621A]/60"
+                            : "bg-[#3D3733] text-white/80 border-transparent"
                         }`}
                       >
                         <div className="flex-1">
@@ -311,7 +311,7 @@ export default function OnboardingPage() {
                         </div>
                         <div
                           className={`h-5 w-5 shrink-0 rounded-full border-2 transition-all duration-150 ${
-                            selected ? "border-white bg-white" : "border-white/20"
+                            selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/30"
                           }`}
                         />
                       </button>
@@ -331,18 +331,18 @@ export default function OnboardingPage() {
       {(step <= 2 || (step === 3 && noveltyBias !== null)) && (
         <div className="fixed bottom-0 left-0 right-0 z-30">
           <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#080808]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#FAF6F1]" />
             <button
               onClick={advance}
               disabled={!canContinue()}
-              className={`w-full rounded-full bg-white px-5 py-[18px] text-center text-[15px] font-semibold text-black transition hover:opacity-95 active:scale-[0.99] disabled:opacity-30 ${
-                canContinue() ? "shadow-[0_8px_40px_rgba(255,255,255,0.28)]" : "shadow-none"
+              className={`w-full rounded-full bg-[#E8621A] text-white font-display font-black text-base py-4 text-center transition active:scale-[0.99] ${
+                canContinue() ? "" : "opacity-40 pointer-events-none"
               }`}
             >
               Continue
             </button>
             {step <= 2 && !canContinue() && (
-              <p className="mt-3 text-center text-xs text-white/30">
+              <p className="mt-3 text-center text-xs text-[#1C1A18]/30">
                 {step === 1
                   ? "Select above or tap No restrictions"
                   : "Select at least one above"}

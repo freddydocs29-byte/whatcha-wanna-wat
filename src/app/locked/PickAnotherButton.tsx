@@ -72,7 +72,7 @@ export default function PickAnotherButton({ currentMealId }: Props) {
   return (
     <button
       onClick={handlePickAnother}
-      className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white/70 w-full transition active:scale-[0.99]"
+      className="w-full text-[#8A7F78] font-semibold text-sm py-3 rounded-full transition active:scale-[0.99]"
     >
       Pick something else
     </button>
