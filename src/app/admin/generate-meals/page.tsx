@@ -104,7 +104,7 @@ export default function AdminGenerateMeals() {
         return next;
       });
 
-      setStatus(`✓ Wrote ${data.count} meals to meals.ts.`);
+      setStatus(`✓ ${data.count} meals written. Restart your dev server to see them in the deck.`);
     } catch (err) {
       setStatus(`Error: ${err instanceof Error ? err.message : "Unknown"}`);
     }

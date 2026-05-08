@@ -94,9 +94,13 @@ const HARD_NO_KEYWORDS: Record<string, string[]> = {
  * HARD_NO_KEYWORDS category key. Only Gluten-free and Dairy-free map to hardGate
  * exclusions. Vegetarian / Vegan / Halal / Kosher have no keyword-list entry yet.
  */
-const DIETARY_RESTRICTION_MAP: Record<string, string> = {
-  "Gluten-free": "Gluten / Pasta",
-  "Dairy-free": "Dairy",
+const DIETARY_RESTRICTION_MAP: Record<string, string[]> = {
+  "Gluten-free":  ["Gluten / Pasta"],
+  "Dairy-free":   ["Dairy"],
+  "Vegetarian":   ["Beef", "Pork", "Seafood", "Chicken"],
+  "Vegan":        ["Beef", "Pork", "Seafood", "Chicken", "Dairy"],
+  "Halal":        ["Pork"],
+  "Kosher":       ["Pork", "Seafood"],
 };
 
 /**
@@ -123,8 +127,7 @@ export function getAllHardNos(prefs: UserPreferences | null): string[] {
   if (!prefs) return [];
   // Dietary restrictions → keyword list key (only Gluten-free and Dairy-free map)
   const mappedDietary = prefs.dietaryRestrictions
-    .map((d) => DIETARY_RESTRICTION_MAP[d] ?? null)
-    .filter((v): v is string => v !== null);
+    .flatMap((d) => DIETARY_RESTRICTION_MAP[d] ?? []);
   // Hard-NO labels → keyword list key (new-format normalized; old-format passed through)
   const mappedHardNos = prefs.hardNoFoods.map((h) => HARD_NO_LABEL_MAP[h] ?? h);
   return [...new Set([...mappedDietary, ...mappedHardNos])];
