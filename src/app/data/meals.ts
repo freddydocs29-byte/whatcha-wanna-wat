@@ -2702,7 +2702,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Easy","Nutritious","Comfort"],
     ingredients: ["Tomatoes","Tortilla Strips","Avocado","Chicken","Cheese"],
     whyItFits: "Warm, comforting, and flavorful!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tortilla-soup.jpg",
   },
   {
     id: "mole-poblano",
@@ -2713,7 +2713,7 @@ export const meals: Meal[] = [
     tags: ["60 min","High effort","Bold","Elevated"],
     ingredients: ["Chilies","Chocolate","Chicken","Spices","Nuts"],
     whyItFits: "A true Mexican gastronomic delight!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mole-poblano.jpg",
   },
   {
     id: "elote",
@@ -2724,7 +2724,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Kid-friendly","Fresh"],
     ingredients: ["Corn","Mayonnaise","Cheese","Chili Powder","Lime"],
     whyItFits: "Flavorful and fun to eat!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/elote.jpg",
   },
   {
     id: "sopes",
@@ -2735,7 +2735,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Fresh","Flavorful"],
     ingredients: ["Corn Flour","Refried Beans","Meat","Lettuce","Salsa"],
     whyItFits: "A fresh and delicious treat!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sopes.jpg",
   },
   {
     id: "tamales",
@@ -2746,7 +2746,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Medium effort","Comfort","Nutritious"],
     ingredients: ["Masa","Meat","Corn Husks","Spices","Salsa"],
     whyItFits: "Comfort food wrapped in love!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tamales.jpg",
   },
   {
     id: "carnitas",
@@ -2757,7 +2757,7 @@ export const meals: Meal[] = [
     tags: ["60 min","Medium effort","Bold","Flavorful"],
     ingredients: ["Pork","Orange Juice","Spices","Onions","Garlic"],
     whyItFits: "Rich, flavorful, and satisfying!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/carnitas.jpg",
   },
   {
     id: "pozole",
@@ -2768,7 +2768,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Medium effort","Comfort","Nutritious"],
     ingredients: ["Hominy","Pork","Cabbage","Radishes","Lime"],
     whyItFits: "Warm, filling, and rich in tradition!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pozole.jpg",
   },
   {
     id: "chilaquiles",
@@ -2779,7 +2779,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Bold","Comfort"],
     ingredients: ["Tortilla Chips","Salsa","Cheese","Avocado","Egg"],
     whyItFits: "Bold flavors to kickstart your day!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chilaquiles.jpg",
   },
 
   {
@@ -2802,7 +2802,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Kid-friendly","Fresh"],
     ingredients: ["Corn Tortillas","Refried Beans","Avocado","Meat","Salsa"],
     whyItFits: "Crispy and full of flavor",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tostadas.jpg",
   },
   {
     id: "arroz-con-pollo",
@@ -2813,7 +2813,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Medium effort","Nutritious","Comfort"],
     ingredients: ["Chicken","Rice","Tomatoes","Bell Peppers","Spices"],
     whyItFits: "A comforting family favorite",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/arroz-con-pollo.jpg",
   },
   {
     id: "carnitas",
@@ -2836,7 +2836,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Flavorful"],
     ingredients: ["Ground Pork","Cabbage","Garlic","Ginger","Dumpling Wrappers"],
     whyItFits: "Quick, tasty, and addictive!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/gyoza-dumplings.jpg",
   },
   {
     id: "ramen-noodle-soup",
@@ -2847,7 +2847,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Medium effort","Nutritious"],
     ingredients: ["Ramen Noodles","Pork Chashu","Broth","Soft Boiled Eggs","Scallions"],
     whyItFits: "Comfort in every slurp!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/ramen-noodle-soup.jpg",
   },
   {
     id: "yakitori-skewers",
@@ -2858,7 +2858,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly"],
     ingredients: ["Chicken Thigh","Negi","Tare Sauce","Sesame Seeds"],
     whyItFits: "Bold flavors on a stick!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/yakitori-skewers.jpg",
   },
   {
     id: "sushi-rolls",
@@ -2869,7 +2869,7 @@ export const meals: Meal[] = [
     tags: ["35 min","High effort","Flavorful"],
     ingredients: ["Sushi Rice","Nori","Cucumber","Avocado","Fresh Fish"],
     whyItFits: "Roll your way to happiness!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sushi-rolls.jpg",
   },
   {
     id: "miso-soup",
@@ -2880,7 +2880,7 @@ export const meals: Meal[] = [
     tags: ["15 min","Easy","Nutritious"],
     ingredients: ["Miso Paste","Tofu","Seaweed","Scallions"],
     whyItFits: "Simple, warm, and healthy!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/miso-soup.jpg",
   },
   {
     id: "okonomiyaki-japanese-pancake",
@@ -2891,7 +2891,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Medium effort","Comfort"],
     ingredients: ["Cabbage","Pork Belly","Flour","Eggs","Okonomiyaki Sauce"],
     whyItFits: "A party on a plate!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/okonomiyaki-japanese-pancake.jpg",
   },
   {
     id: "teriyaki-chicken",
@@ -2902,7 +2902,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly"],
     ingredients: ["Chicken Thigh","Teriyaki Sauce","Rice","Green Beans"],
     whyItFits: "Sweet, savory, and satisfying!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/teriyaki-chicken.jpg",
   },
   {
     id: "chirashi-sushi",
@@ -2913,7 +2913,7 @@ export const meals: Meal[] = [
     tags: ["60 min","High effort","Nutritious"],
     ingredients: ["Sushi Rice","Sashimi","Vegetables","Soy Sauce"],
     whyItFits: "Beautifully arranged and delicious!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chirashi-sushi.jpg",
   },
   {
     id: "katsu-curry",
@@ -2924,7 +2924,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Medium effort","Flavorful"],
     ingredients: ["Pork Cutlet","Curry Sauce","Rice","Panko Breadcrumbs"],
     whyItFits: "Crispy, creamy, and comforting!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/katsu-curry.jpg",
   },
   {
     id: "nigiri-sushi",
@@ -2935,7 +2935,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Easy","Flavorful"],
     ingredients: ["Sushi Rice","Sashimi","Wasabi","Nori"],
     whyItFits: "Simplicity at its best!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/nigiri-sushi.jpg",
   },
   {
     id: "soba-noodle-salad",
@@ -2946,7 +2946,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Light"],
     ingredients: ["Soba Noodles","Cucumber","Carrots","Sesame Oil"],
     whyItFits: "Light, refreshing, and delicious!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/soba-noodle-salad.jpg",
   },
   {
     id: "donburi-rice-bowl",
@@ -2957,7 +2957,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Nutritious"],
     ingredients: ["Rice","Chicken","Egg","Vegetables"],
     whyItFits: "One bowl, endless possibilities!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/donburi-rice-bowl.jpg",
   },
 
   {
@@ -2969,7 +2969,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Flavorful","Comfort"],
     ingredients: ["Kimchi","Pork","Tofu","Green Onions","Garlic"],
     whyItFits: "It’s the ultimate comfort food for Koreans.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/kimchi-jjigae.jpg",
   },
   {
     id: "bulgogi",
@@ -2980,7 +2980,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Medium effort","Flavorful"],
     ingredients: ["Beef","Soy Sauce","Sugar","Garlic","Sesame Oil"],
     whyItFits: "Marinated overnight for maximal flavor.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bulgogi.jpg",
   },
   {
     id: "sundubu-jjigae",
@@ -2991,7 +2991,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Nutritious","Comfort"],
     ingredients: ["Soft Tofu","Seafood","Vegetables","Gochugaru","Egg"],
     whyItFits: "Silken tofu creates a velvety texture.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/sundubu-jjigae.jpg",
   },
   {
     id: "japchae",
@@ -3002,7 +3002,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly"],
     ingredients: ["Sweet Potato Noodles","Beef","Spinach","Carrots","Soy Sauce"],
     whyItFits: "The chewy noodles are a delightful surprise.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/japchae.jpg",
   },
   {
     id: "galbitang",
@@ -3013,7 +3013,7 @@ export const meals: Meal[] = [
     tags: ["60 min","High effort","Nutritious"],
     ingredients: ["Beef Ribs","Radish","Garlic","Green Onions","Soy Sauce"],
     whyItFits: "Slow-cooked for deep, comforting flavors.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/galbitang.jpg",
   },
   {
     id: "dolsot-bibimbap",
@@ -3024,7 +3024,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Medium effort","Flavorful"],
     ingredients: ["Rice","Vegetables","Egg","Gochujang","Sesame Oil"],
     whyItFits: "The crispy rice brings a delightful crunch.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/dolsot-bibimbap.jpg",
   },
   {
     id: "tteokbokki",
@@ -3035,7 +3035,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Kid-friendly"],
     ingredients: ["Rice Cakes","Gochujang","Fish Cakes","Green Onions","Sugar"],
     whyItFits: "A beloved snack straight from Korean streets.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tteokbokki.jpg",
   },
   {
     id: "naengmyeon",
@@ -3046,7 +3046,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Vegetarian","Nutritious"],
     ingredients: ["Buckwheat Noodles","Cucumber","Egg","Broth","Meat"],
     whyItFits: "Perfectly refreshing on a hot summer day.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/naengmyeon.jpg",
   },
   {
     id: "kimchi-fried-rice",
@@ -3057,7 +3057,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Pantry staple"],
     ingredients: ["Rice","Kimchi","Egg","Green Onions","Soy Sauce"],
     whyItFits: "A perfect way to use leftover kimchi.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/kimchi-fried-rice.jpg",
   },
   {
     id: "gimbap",
@@ -3068,7 +3068,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Meal-prep friendly"],
     ingredients: ["Seaweed","Rice","Vegetables","Egg","Meat"],
     whyItFits: "Perfectly portable and great for sharing.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/gimbap.jpg",
   },
   {
     id: "ojingeo-bokkeum",
@@ -3079,7 +3079,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Medium effort","Flavorful"],
     ingredients: ["Squid","Gochujang","Vegetables","Garlic","Sesame Oil"],
     whyItFits: "A burst of umami with every bite.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/ojingeo-bokkeum.jpg",
   },
   {
     id: "yangnyeom-chicken",
@@ -3090,7 +3090,7 @@ export const meals: Meal[] = [
     tags: ["45 min","High effort","Flavorful"],
     ingredients: ["Chicken","Cornstarch","Gochujang","Sugar","Garlic"],
     whyItFits: "The sauce is utterly addictive and unique.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/yangnyeom-chicken.jpg",
   },
   {
     id: "jeon",
@@ -3101,7 +3101,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly"],
     ingredients: ["Flour","Egg","Vegetables","Kimchi","Seafood"],
     whyItFits: "Golden and crispy, a must-try snack.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/jeon.jpg",
   },
   {
     id: "doenjang-jjigae",
@@ -3112,7 +3112,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Nutritious","Comfort"],
     ingredients: ["Doenjang","Tofu","Vegetables","Garlic","Chili Pepper"],
     whyItFits: "Deep, umami flavor from fermented paste.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/doenjang-jjigae.jpg",
   },
   {
     id: "baek-kalbi",
@@ -3123,7 +3123,7 @@ export const meals: Meal[] = [
     tags: ["60 min","High effort","Flavorful"],
     ingredients: ["Beef Short Ribs","Soy Sauce","Sugar","Garlic","Green Onions"],
     whyItFits: "Tender, flavorful ribs elevate any meal.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/baek-kalbi.jpg",
   },
   {
     id: "kongguksu",
@@ -3134,7 +3134,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Vegan","Nutritious"],
     ingredients: ["Noodles","Soybeans","Cucumber","Sesame Oil","Salt"],
     whyItFits: "Creamy and packed with plant-based protein.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/kongguksu.jpg",
   },
 
   {
@@ -3158,7 +3158,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Comfort","Flavorful"],
     ingredients: ["Beef","Rice Noodles","Beef Broth","Basil","Lime"],
     whyItFits: "The beef broth is simmered for hours!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pho-bo.jpg",
   },
   {
     id: "banh-mi",
@@ -3180,7 +3180,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Vegan","Nutritious","Fresh"],
     ingredients: ["Rice Paper","Shrimp","Rice Vermicelli","Lettuce","Peanut Sauce"],
     whyItFits: "The freshest ingredients rolled into a bite!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/goi-cuon.jpg",
   },
   {
     id: "bun-cha",
@@ -3191,7 +3191,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Flavorful","Medium effort"],
     ingredients: ["Pork Belly","Rice Noodles","Herbs","Fish Sauce","Garlic"],
     whyItFits: "The grilling technique is all about flavor!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bun-cha.jpg",
   },
   {
     id: "mi-quang",
@@ -3202,7 +3202,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Comfort","Medium effort"],
     ingredients: ["Rice Noodles","Pork","Peanuts","Herbs","Turmeric"],
     whyItFits: "Each bowl is a vibrant celebration of flavors!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mi-quang.jpg",
   },
   {
     id: "ca-kho-to",
@@ -3213,7 +3213,7 @@ export const meals: Meal[] = [
     tags: ["60 min","Bold","Flavorful","Elevated"],
     ingredients: ["Catfish","Fish Sauce","Sugar","Black Pepper","Garlic"],
     whyItFits: "The clay pot brings deep flavor to the fish!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/ca-kho-to.jpg",
   },
   {
     id: "che-ba-mau",
@@ -3224,7 +3224,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Vegan","Nutritious","Fresh"],
     ingredients: ["Mung Beans","Pandan Jelly","Coconut Milk","Ice","Sugar"],
     whyItFits: "A dessert that’s as pretty as it is delicious!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/che-ba-mau.jpg",
   },
   {
     id: "banh-xeo",
@@ -3235,7 +3235,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Flavorful","Kid-friendly"],
     ingredients: ["Rice Flour","Shrimp","Pork","Bean Sprouts","Coconut Milk"],
     whyItFits: "The crispy edges are irresistible!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/banh-xeo.jpg",
   },
   {
     id: "com tam",
@@ -3246,7 +3246,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Comfort","Easy"],
     ingredients: ["Broken Rice","Pork","Egg","Fish Sauce","Pickled Vegetables"],
     whyItFits: "A signature dish of Southern Vietnam!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/com%20tam.jpg",
   },
   {
     id: "xoi-ga",
@@ -3257,7 +3257,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Flavorful","Comfort"],
     ingredients: ["Sticky Rice","Chicken","Soy Sauce","Shallots","Peanuts"],
     whyItFits: "A warm dish that tastes like home!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/xoi-ga.jpg",
   },
   {
     id: "hu-tieu",
@@ -3268,7 +3268,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Flavorful","Nutritious"],
     ingredients: ["Noodles","Pork","Shrimp","Broth","Herbs"],
     whyItFits: "A beloved dish with roots in the South!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/hu-tieu.jpg",
   },
   {
     id: "banh-khot",
@@ -3279,7 +3279,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Kid-friendly","Easy"],
     ingredients: ["Rice Flour","Coconut Milk","Shrimp","Green Onion","Herbs"],
     whyItFits: "Small bites with big flavor!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/banh-khot.jpg",
   },
   {
     id: "ga-rang-muoi",
@@ -3290,7 +3290,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Flavorful","High effort"],
     ingredients: ["Chicken","Salt","Pepper","Garlic","Lime"],
     whyItFits: "Crispy chicken with a kick of flavor!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/ga-rang-muoi.jpg",
   },
   {
     id: "mi-gia",
@@ -3301,7 +3301,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Comfort","Nutritious"],
     ingredients: ["Egg Noodles","Chicken","Ginger","Herbs","Broth"],
     whyItFits: "A bowl of warmth for your soul!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mi-gia.jpg",
   },
   {
     id: "goi-ngu-sang",
@@ -3312,7 +3312,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Vegan","Nutritious","Fresh"],
     ingredients: ["Cabbage","Carrot","Radish","Cucumber","Vinaigrette"],
     whyItFits: "A rainbow on your plate that's healthy!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/goi-ngu-sang.jpg",
   },
   {
     id: "trang-mien",
@@ -3323,7 +3323,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Medium effort","Flavorful"],
     ingredients: ["Egg Noodles","Eggs","Soy Sauce","Vegetables","Garlic"],
     whyItFits: "The runny egg adds creaminess to the noodles!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/trang-mien.jpg",
   },
 
   {
@@ -3346,7 +3346,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Medium effort","Nutritious","Bold"],
     ingredients: ["Shrimp","Lemongrass","Kaffir Lime Leaves","Chili Paste","Mushrooms"],
     whyItFits: "Famous for its tangy broth and aromatic herbs.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tom-yum-goong.jpg",
   },
   {
     id: "green-curry",
@@ -3357,7 +3357,7 @@ export const meals: Meal[] = [
     tags: ["30 min","High effort","Vegetarian","Flavorful"],
     ingredients: ["Coconut Milk","Green Curry Paste","Eggplant","Basil","Tofu"],
     whyItFits: "Creamy and aromatic with a zesty kick.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/green-curry.jpg",
   },
   {
     id: "som-tam",
@@ -3368,7 +3368,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Vegan","Fresh"],
     ingredients: ["Green Papaya","Lime","Chili","Fish Sauce","Tomatoes"],
     whyItFits: "A favorite street food bursting with freshness.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/som-tam.jpg",
   },
   {
     id: "massaman-curry",
@@ -3390,7 +3390,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Medium effort","Flavorful","Comfort"],
     ingredients: ["Coconut Milk","Panang Curry Paste","Chicken","Basil","Lime Zest"],
     whyItFits: "Intensely flavored and uniquely Thai in every bite.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/panang-curry.jpg",
   },
   {
     id: "larb",
@@ -3401,7 +3401,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Vegan","Nutritious"],
     ingredients: ["Ground Meat","Lime Juice","Mint","Shallots","Chili Flakes"],
     whyItFits: "Classic northeastern Thai dish that’s bursting with flavor.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/larb.jpg",
   },
   {
     id: "pad-see-ew",
@@ -3412,7 +3412,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Kid-friendly","Comfort"],
     ingredients: ["Rice Noodles","Soy Sauce","Broccoli","Egg","Chicken"],
     whyItFits: "Comfort food that’s loved by kids and adults alike.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pad-see-ew.jpg",
   },
   {
     id: "khao-niew-mang-mueang",
@@ -3423,7 +3423,7 @@ export const meals: Meal[] = [
     tags: ["15 min","Easy","Flavorful","Vegetarian"],
     ingredients: ["Sticky Rice","Mango","Coconut Milk","Sugar","Salt"],
     whyItFits: "A beloved Thai dessert that’s a must-try.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/khao-niew-mang-mueang.jpg",
   },
   {
     id: "yellow-curry",
@@ -3434,7 +3434,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Medium effort","Nutritious","Comfort"],
     ingredients: ["Coconut Milk","Yellow Curry Paste","Chicken","Potatoes","Carrots"],
     whyItFits: "Comforting and aromatic curry that’s mild yet flavorful.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/yellow-curry.jpg",
   },
   {
     id: "tod-mun-plaa",
@@ -3445,7 +3445,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly","Flavorful"],
     ingredients: ["Fish","Curry Paste","Green Beans","Egg","Lime"],
     whyItFits: "Crispy, spicy, and utterly addictive!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tod-mun-plaa.jpg",
   },
   {
     id: "khao-soi",
@@ -3456,7 +3456,7 @@ export const meals: Meal[] = [
     tags: ["40 min","High effort","Flavorful","Nutritious"],
     ingredients: ["Egg Noodles","Coconut Milk","Curry Paste","Chicken","Crispy Noodles"],
     whyItFits: "Northern Thailand’s signature dish, full of flavor.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/khao-soi.jpg",
   },
   {
     id: "massaman-satay",
@@ -3467,7 +3467,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Medium effort","Elevated","Comfort"],
     ingredients: ["Chicken","Massaman Curry","Peanut Sauce","Coconut Milk","Cilantro"],
     whyItFits: "An enticing mix of flavors and textures.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/massaman-satay.jpg",
   },
   {
     id: "panang-tofu",
@@ -3478,7 +3478,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Vegan","Nutritious"],
     ingredients: ["Tofu","Coconut Milk","Panang Curry Paste","Jasmine Rice","Basil"],
     whyItFits: "A plant-based twist on a classic dish.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/panang-tofu.jpg",
   },
   {
     id: "krapow-moo",
@@ -3489,7 +3489,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Kid-friendly","Flavorful"],
     ingredients: ["Ground Pork","Basil","Chilies","Garlic","Soy Sauce"],
     whyItFits: "A beloved Thai street food that’s super fast!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/krapow-moo.jpg",
   },
   {
     id: "vegetable-spring-rolls",
@@ -3500,7 +3500,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly","Vegetarian"],
     ingredients: ["Rice Paper","Cabbage","Carrots","Mushrooms","Bean Sprouts"],
     whyItFits: "Crispy and fresh, great for sharing!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/vegetable-spring-rolls.jpg",
   },
   {
     id: "pad-krapow",
@@ -3511,7 +3511,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Medium effort","Flavorful","Nutritious"],
     ingredients: ["Ground Chicken","Basil","Chilies","Soy Sauce","Egg"],
     whyItFits: "A popular street food that packs a serious punch!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pad-krapow.jpg",
   },
 
   {
@@ -3534,7 +3534,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Kid-friendly","Comfort","Bold"],
     ingredients: ["Chickpeas","Flour","Onions","Spices","Yogurt"],
     whyItFits: "A staple street food that’s hard to resist!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chole-bhature.jpg",
   },
   {
     id: "paneer-tikka",
@@ -3545,7 +3545,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Vegetarian","Flavorful"],
     ingredients: ["Paneer","Yogurt","Spices","Bell Peppers","Onions"],
     whyItFits: "Grilled paneer like you’ve never tasted!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/paneer-tikka.jpg",
   },
   {
     id: "biryani",
@@ -3556,7 +3556,7 @@ export const meals: Meal[] = [
     tags: ["60 min","Flavorful","High effort","Nutritious"],
     ingredients: ["Rice","Chicken","Yogurt","Spices","Saffron"],
     whyItFits: "Each layer packs a flavorful punch!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/biryani.jpg",
   },
   {
     id: "dal-makhani",
@@ -3567,7 +3567,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Vegan","Nutritious","Comfort"],
     ingredients: ["Black Lentils","Butter","Cream","Tomatoes","Spices"],
     whyItFits: "A heartwarming dish from Punjab!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/dal-makhani.jpg",
   },
   {
     id: "idli-sambar",
@@ -3578,7 +3578,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Vegan","Healthy","Light"],
     ingredients: ["Rice","Lentils","Spices","Vegetables","Curry Leaves"],
     whyItFits: "A nutritious breakfast from South India!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/idli-sambar.jpg",
   },
   {
     id: "pav-bhaji",
@@ -3589,7 +3589,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Kid-friendly","Bold"],
     ingredients: ["Mixed Vegetables","Pav","Spices","Butter","Onions"],
     whyItFits: "A Mumbai street food classic everyone loves!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pav-bhaji.jpg",
   },
   {
     id: "pani-puri",
@@ -3600,7 +3600,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Kid-friendly","Bold"],
     ingredients: ["Puri","Chickpeas","Tamarind","Spices","Potatoes"],
     whyItFits: "The ultimate snack for any gathering!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pani-puri.jpg",
   },
   {
     id: "masala-dosa",
@@ -3611,7 +3611,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Vegetarian","Nutritious","Fresh"],
     ingredients: ["Rice","Lentils","Potatoes","Spices","Coconut"],
     whyItFits: "A popular South Indian breakfast delight!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/masala-dosa.jpg",
   },
   {
     id: "gobi-manchoorian",
@@ -3622,7 +3622,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Vegan","Flavorful","Easy"],
     ingredients: ["Cauliflower","Soy Sauce","Ginger","Garlic","Chili"],
     whyItFits: "A street food favorite with a fiery kick!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/gobi-manchoorian.jpg",
   },
   {
     id: "khichdi",
@@ -3633,7 +3633,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Vegan","Nutritious","Comfort"],
     ingredients: ["Rice","Lentils","Spices","Ghee","Vegetables"],
     whyItFits: "A soothing meal for the soul!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/khichdi.jpg",
   },
   {
     id: "samosa",
@@ -3644,7 +3644,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly","Bold"],
     ingredients: ["Flour","Potatoes","Peas","Spices","Oil"],
     whyItFits: "The quintessential Indian snack for all occasions!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/samosa.jpg",
   },
   {
     id: "upma",
@@ -3655,7 +3655,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Vegan","Nutritious","Light"],
     ingredients: ["Semolina","Vegetables","Mustard Seeds","Spices","Curry Leaves"],
     whyItFits: "A traditional South Indian breakfast favorite!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/upma.jpg",
   },
   {
     id: "dal-tadka",
@@ -3666,7 +3666,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Vegan","Flavorful","Nutritious"],
     ingredients: ["Yellow Lentils","Ghee","Garlic","Spices","Onions"],
     whyItFits: "A staple dish in every Indian home!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/dal-tadka.jpg",
   },
   {
     id: "pulao",
@@ -3677,7 +3677,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Vegetarian","Nutritious","Fresh"],
     ingredients: ["Rice","Vegetables","Spices","Ghee","Cashews"],
     whyItFits: "A simple and aromatic dish to savor!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pulao.jpg",
   },
   {
     id: "ragda-patties",
@@ -3688,7 +3688,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Vegetarian","Flavorful","Medium effort"],
     ingredients: ["Potatoes","Peas","Spices","Chutney","Sev"],
     whyItFits: "A delightful creation from Mumbai streets!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/ragda-patties.jpg",
   },
   {
     id: "methi-thepla",
@@ -3699,7 +3699,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Vegetarian","Nutritious","Easy"],
     ingredients: ["Wheat Flour","Fenugreek","Spices","Yogurt","Oil"],
     whyItFits: "A healthy twist on traditional flatbreads!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/methi-thepla.jpg",
   },
 
   {
@@ -3722,7 +3722,7 @@ export const meals: Meal[] = [
     tags: ["60 min","Medium effort","Comfort","Flavorful"],
     ingredients: ["Goat","Curry Powder","Onions","Garlic","Ginger"],
     whyItFits: "A staple of Caribbean gatherings, full of flavor!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/curried-goat.jpg",
   },
   {
     id: "rice-and-peas",
@@ -3733,7 +3733,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Pantry staple","Nutritious"],
     ingredients: ["Rice","Kidney Beans","Coconut Milk","Thyme"],
     whyItFits: "Classic Jamaican dish, goes with everything!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/rice-and-peas.jpg",
   },
   {
     id: "callaloo-soup",
@@ -3744,7 +3744,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Vegan","Nutritious","Light"],
     ingredients: ["Callaloo","Vegetable Broth","Garlic","Onion","Scotch Bonnet"],
     whyItFits: "Packed with vitamins, a Caribbean powerhouse!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/callaloo-soup.jpg",
   },
   {
     id: "cuban-black-beans",
@@ -3755,7 +3755,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Vegan","Nutritious"],
     ingredients: ["Black Beans","Onion","Garlic","Cumin"],
     whyItFits: "Cuban comfort food, rich in flavor and history!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/cuban-black-beans.jpg",
   },
   {
     id: "conch-fritters",
@@ -3766,7 +3766,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Medium effort","Kid-friendly","Flavorful"],
     ingredients: ["Conch","Flour","Eggs","Scallions","Hot Sauce"],
     whyItFits: "From the Bahamas, a beachside favorite!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/conch-fritters.jpg",
   },
   {
     id: "plantain-chips",
@@ -3777,7 +3777,7 @@ export const meals: Meal[] = [
     tags: ["15 min","Easy","Pantry staple","Light"],
     ingredients: ["Plantains","Oil","Salt"],
     whyItFits: "A staple snack in many Caribbean households!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/plantain-chips.jpg",
   },
   {
     id: "pigeon-pea-rice",
@@ -3788,7 +3788,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Comfort","Nutritious"],
     ingredients: ["Rice","Pigeon Peas","Coconut Milk","Garlic"],
     whyItFits: "Beloved in Trinidad, it’s a true comfort dish!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pigeon-pea-rice.jpg",
   },
   {
     id: "bbq-shrimp",
@@ -3799,7 +3799,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Medium effort","Kid-friendly","Flavorful"],
     ingredients: ["Shrimp","BBQ Sauce","Garlic","Lime"],
     whyItFits: "A New Orleans-inspired Caribbean classic!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/bbq-shrimp.jpg",
   },
   {
     id: "tropicana-salad",
@@ -3810,7 +3810,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Light","Nutritious"],
     ingredients: ["Mango","Avocado","Lettuce","Lime","Red Onion"],
     whyItFits: "Bright and fruity, a Caribbean delight!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tropicana-salad.jpg",
   },
   {
     id: "coconut-bread",
@@ -3821,7 +3821,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Medium effort","Comfort","Flavorful"],
     ingredients: ["Flour","Coconut Milk","Sugar","Baking Powder"],
     whyItFits: "A treat that celebrates the Caribbean’s coconut culture!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/coconut-bread.jpg",
   },
   {
     id: "baked-sorrel",
@@ -3832,7 +3832,7 @@ export const meals: Meal[] = [
     tags: ["60 min","High effort","Flavorful","Nutritious"],
     ingredients: ["Sorrel","Sugar","Cinnamon","Butter"],
     whyItFits: "A traditional holiday treat, bursting with flavor!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/baked-sorrel.jpg",
   },
   {
     id: "fish-cake",
@@ -3843,7 +3843,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly","Flavorful"],
     ingredients: ["Fish","Flour","Eggs","Spices"],
     whyItFits: "A beloved snack across the Caribbean islands!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/fish-cake.jpg",
   },
   {
     id: "roti",
@@ -3854,7 +3854,7 @@ export const meals: Meal[] = [
     tags: ["40 min","Medium effort","Comfort","Pantry staple"],
     ingredients: ["Flour","Water","Salt","Oil"],
     whyItFits: "A staple in Trinidadian culture, versatile and delicious!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/roti.jpg",
   },
   {
     id: "mango-chutney",
@@ -3865,7 +3865,7 @@ export const meals: Meal[] = [
     tags: ["25 min","Easy","Flavorful","Nutritious"],
     ingredients: ["Mango","Vinegar","Sugar","Spices"],
     whyItFits: "Classic condiment, enhances any Caribbean feast!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/mango-chutney.jpg",
   },
   {
     id: "stewed-peas",
@@ -3876,7 +3876,7 @@ export const meals: Meal[] = [
     tags: ["60 min","High effort","Nutritious","Comfort"],
     ingredients: ["Pigeon Peas","Coconut Milk","Spices","Onion"],
     whyItFits: "A staple Caribbean dish with deep roots!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/stewed-peas.jpg",
   },
   {
     id: "coconut-cream-pie",
@@ -3887,7 +3887,7 @@ export const meals: Meal[] = [
     tags: ["60 min","Medium effort","Flavorful","Comfort"],
     ingredients: ["Coconut Milk","Sugar","Flour","Eggs","Whipped Cream"],
     whyItFits: "A favorite dessert celebrating the lush coconut tree!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/coconut-cream-pie.jpg",
   },
   {
     id: "banana-bread",
@@ -3898,7 +3898,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Medium effort","Comfort","Flavorful"],
     ingredients: ["Bananas","Flour","Sugar","Eggs","Rum"],
     whyItFits: "Caribbean twist on a classic breakfast treat!",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/banana-bread.jpg",
   },
 
   {
@@ -3910,7 +3910,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Vegan","Fresh"],
     ingredients: ["Couscous","Carrots","Zucchini","Chickpeas","Parsley"],
     whyItFits: "A staple dish in Moroccan homes, healthy and filling.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/couscous-vegetable.jpg",
   },
   {
     id: "kefta-meatballs",
