@@ -196,6 +196,10 @@ function DeckContent() {
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
   );
+  const [showSwipeTip, setShowSwipeTip] = useState(
+    () => typeof window !== "undefined" && !localStorage.getItem("watcha_swipe_tip_seen")
+  );
+  const [showCookOrderModal, setShowCookOrderModal] = useState(false);
   // ── AI Fresh Ideas state ────────────────────────────────────────────────────
   const [aiMealsLoading, setAiMealsLoading] = useState(false);
   // Tracks IDs of AI-generated meals so the card can show the right label.
@@ -848,6 +852,11 @@ function DeckContent() {
     if (!showSwipeHint) return;
     localStorage.setItem("wwe_swipe_hint_seen", "1");
     setShowSwipeHint(false);
+  }
+
+  function dismissSwipeTip() {
+    localStorage.setItem("watcha_swipe_tip_seen", "true");
+    setShowSwipeTip(false);
   }
 
   const x = useMotionValue(0);
@@ -1522,7 +1531,7 @@ function DeckContent() {
           }
         }
 
-        router.push(`/locked?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
+        router.push(`/solo-match?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
       });
     }, 240);
   }
@@ -1905,7 +1914,7 @@ function DeckContent() {
                     {/* 8. CTA buttons */}
                     <div className="flex gap-3 w-full mt-6">
                       <button
-                        onClick={handleMatchConfirm}
+                        onClick={() => setShowCookOrderModal(true)}
                         className="flex-1 py-4 rounded-[16px] bg-[#E8621A] text-white font-display font-black text-base"
                         style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
                       >
@@ -1935,6 +1944,40 @@ function DeckContent() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Cook vs Order modal — shared match */}
+          {showCookOrderModal && (
+            <div className="fixed inset-0 z-[60] flex items-end justify-center">
+              <div
+                className="absolute inset-0 bg-black/60"
+                onClick={() => setShowCookOrderModal(false)}
+              />
+              <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+                <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+                <p className="font-display font-black text-2xl text-white text-center">
+                  How are you eating?
+                </p>
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  <button
+                    onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
+                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                  >
+                    <span className="text-4xl">🍳</span>
+                    <p className="font-display font-black text-lg text-white">Cook it</p>
+                    <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
+                  </button>
+                  <button
+                    onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
+                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                  >
+                    <span className="text-4xl">🚗</span>
+                    <p className="font-display font-black text-lg text-white">Order in</p>
+                    <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       );
     }
@@ -2124,6 +2167,26 @@ function DeckContent() {
           </div>
         )}
 
+        {/* Swipe tip banner — first-time only */}
+        {showSwipeTip && (
+          <div className="mx-5 mb-3 bg-[#2A2420] rounded-[16px] px-5 py-4 flex items-center gap-4">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center text-xs text-white/50">✕</div>
+              <div className="w-7 h-7 rounded-full bg-[#E8621A] flex items-center justify-center text-xs text-white">✓</div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-black text-base text-white">Swipe right to say yes.</p>
+              <p className="font-body text-sm text-[#8A7F78] mt-0.5">Left to pass. Or use the buttons below.</p>
+            </div>
+            <button
+              onClick={dismissSwipeTip}
+              className="text-[#E8621A] font-body font-semibold text-sm flex-shrink-0"
+            >
+              Got it
+            </button>
+          </div>
+        )}
+
         {/* 3. BACK CARD + 2. SWIPE CARD */}
         <div className="relative mx-4 mt-2">
 
@@ -2164,7 +2227,7 @@ function DeckContent() {
           >
             {/* Layer 1 — Food image */}
             <img
-              src={imgErrors.has(meal.id) ? FALLBACK_IMAGE : meal.image}
+              src={imgErrors.has(meal.id) || !meal.image ? FALLBACK_IMAGE : meal.image}
               alt={meal.name}
               draggable={false}
               onError={() => setImgErrors((prev) => new Set(prev).add(meal.id))}
@@ -2309,7 +2372,7 @@ function DeckContent() {
           <button
             onClick={handlePass}
             disabled={isExiting || isChoosing}
-            className="w-16 h-16 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center text-2xl text-white/50 active:scale-90 transition-transform duration-150 disabled:opacity-40"
+            className="w-14 h-14 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center text-2xl text-white/50 active:scale-90 transition-transform duration-150 disabled:opacity-40"
           >
             ✕
           </button>
@@ -2322,6 +2385,16 @@ function DeckContent() {
             style={{ boxShadow: '0 0 40px rgba(232,98,26,0.35)' }}
           >
             ✓
+          </button>
+
+          {/* SAVE button */}
+          <button
+            onClick={handleSave}
+            disabled={isExiting || isChoosing}
+            className="w-14 h-14 rounded-full bg-[#4A7C59] flex items-center justify-center text-xl text-white active:scale-90 transition-transform duration-150 disabled:opacity-40"
+            style={{ boxShadow: '0 0 24px rgba(74,124,89,0.3)' }}
+          >
+            ⭐
           </button>
         </div>
 
@@ -2420,7 +2493,7 @@ function DeckContent() {
                 {/* 8. CTA buttons */}
                 <div className="flex gap-3 w-full mt-6">
                   <button
-                    onClick={handleMatchConfirm}
+                    onClick={() => setShowCookOrderModal(true)}
                     className="flex-1 py-4 rounded-[16px] bg-[#E8621A] text-white font-display font-black text-base"
                     style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
                   >
@@ -2607,6 +2680,40 @@ function DeckContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Cook vs Order modal — shared match */}
+      {showCookOrderModal && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowCookOrderModal(false)}
+          />
+          <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            <p className="font-display font-black text-2xl text-white text-center">
+              How are you eating?
+            </p>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button
+                onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+              >
+                <span className="text-4xl">🍳</span>
+                <p className="font-display font-black text-lg text-white">Cook it</p>
+                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
+              </button>
+              <button
+                onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+              >
+                <span className="text-4xl">🚗</span>
+                <p className="font-display font-black text-lg text-white">Order in</p>
+                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

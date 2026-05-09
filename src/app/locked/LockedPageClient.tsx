@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type Meal } from "../data/meals";
 import {
@@ -11,6 +12,7 @@ import {
   removeSavedMeal,
 } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
+import BottomNav from "../components/BottomNav";
 
 type Props = {
   meal: Meal;
@@ -23,6 +25,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [decisionCount, setDecisionCount] = useState(0);
   const [streak, setStreak] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [showEatModal, setShowEatModal] = useState(false);
   const timeLabel = "just now";
 
   useEffect(() => {
@@ -55,9 +58,12 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
 
         {/* Top bar — avatar */}
         <div className="flex items-center justify-end mb-6">
-          <div className="w-11 h-11 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-lg text-white">
+          <Link
+            href="/profile"
+            className="w-11 h-11 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
+          >
             Y
-          </div>
+          </Link>
         </div>
 
         {/* 1. Headline block */}
@@ -89,7 +95,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
             {/* Meal info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-display font-black text-xl text-white truncate">
+                <span className="font-display font-black text-xl text-white">
                   🍽️ {meal.name}
                 </span>
               </div>
@@ -98,15 +104,12 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
               </p>
             </div>
             {/* CTA */}
-            <a
-              href={`https://www.google.com/search?q=${recipeQuery}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent("lets_eat_clicked", { mealId: meal.id })}
+            <button
+              onClick={() => { trackEvent("lets_eat_clicked", { mealId: meal.id }); setShowEatModal(true); }}
               className="bg-[#4A7C59] text-white font-display font-black text-sm px-4 py-2.5 rounded-full whitespace-nowrap flex-shrink-0"
             >
               Let&apos;s eat 🙌
-            </a>
+            </button>
           </div>
         </div>
 
@@ -181,6 +184,42 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
         </div>
 
       </div>
+
+      <BottomNav activeHref="/" />
+
+      {/* Cook vs Order modal */}
+      {showEatModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowEatModal(false)}
+          />
+          <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            <p className="font-display font-black text-2xl text-white text-center">
+              How are you eating?
+            </p>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button
+                onClick={() => { setShowEatModal(false); window.open(`https://www.google.com/search?q=${recipeQuery}`, "_blank", "noopener,noreferrer"); }}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+              >
+                <span className="text-4xl">🍳</span>
+                <p className="font-display font-black text-lg text-white">Cook it</p>
+                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
+              </button>
+              <button
+                onClick={() => { setShowEatModal(false); window.open(`https://www.google.com/search?q=${recipeQuery}`, "_blank", "noopener,noreferrer"); }}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+              >
+                <span className="text-4xl">🚗</span>
+                <p className="font-display font-black text-lg text-white">Order in</p>
+                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

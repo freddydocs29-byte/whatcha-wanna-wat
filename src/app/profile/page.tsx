@@ -311,7 +311,23 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── 3. Flavor profile bars ───────────────────────────────────────────── */}
+      {/* ── 3. Stats row ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3 mx-5 mt-6">
+        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+          <span className="font-display font-black text-3xl text-[#E8621A]">{history.length}</span>
+          <span className="font-body text-xs text-[#8A7F78] text-center mt-1">Decisions</span>
+        </div>
+        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+          <span className="font-display font-black text-3xl text-[#E8621A]">{mealsTriedCount}</span>
+          <span className="font-body text-xs text-[#8A7F78] text-center mt-1">Meals tried</span>
+        </div>
+        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+          <span className="font-display font-black text-3xl text-[#E8621A]">0</span>
+          <span className="font-body text-xs text-[#8A7F78] text-center mt-1">With others</span>
+        </div>
+      </div>
+
+      {/* ── 4. Flavor profile bars ───────────────────────────────────────────── */}
       {flavorBars.length > 0 && (
         <div className="px-5 mt-8">
           <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-4">
@@ -406,9 +422,7 @@ export default function ProfilePage() {
       {/* No partner name data in the current auth model (localStorage UUIDs only) */}
 
       {/* ── Bottom nav ───────────────────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50">
-        <BottomNav />
-      </div>
+      <BottomNav />
 
     </main>
   );

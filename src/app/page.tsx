@@ -241,7 +241,7 @@ export default function Home() {
             <div />
             <Link
               href="/profile"
-              className="w-11 h-11 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-lg text-white"
+              className="w-11 h-11 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
             >
               W
             </Link>
@@ -289,26 +289,13 @@ export default function Home() {
           </section>
 
           {/* 4. SECONDARY CARDS ROW */}
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {/* Card 1 — Just Me */}
+          <div className="mt-4">
+            {/* Card — Just Me */}
             <Link href="/deck" className="bg-[#2A2420] rounded-[20px] p-5 flex flex-col">
               <span className="text-2xl">🎯</span>
               <p className="font-display font-black text-lg text-white mt-3">Just Me</p>
               <p className="font-body text-sm text-[#8A7F78] mt-1">Solo swipe. Fast answer.</p>
             </Link>
-
-            {/* Card 2 — Decide for Me */}
-            <button
-              onClick={() => { trackEvent("find_something_clicked"); router.push("/recommend"); }}
-              className="relative bg-[#2A2420] rounded-[20px] p-5 flex flex-col text-left"
-            >
-              <span className="absolute top-3 right-3 bg-[#E8621A] text-white font-display font-black text-[10px] px-2 py-0.5 rounded-full">
-                New
-              </span>
-              <span className="text-2xl">🎲</span>
-              <p className="font-display font-black text-lg text-white mt-3">Decide for Me</p>
-              <p className="font-body text-sm text-[#8A7F78] mt-1">One tap. Done. No thinking.</p>
-            </button>
           </div>
 
           {/* 5. RECENTLY DECIDED SECTION */}
@@ -331,9 +318,7 @@ export default function Home() {
           )}
 
           {/* 6. BOTTOM NAV */}
-          <div className="mt-auto pt-8">
-            <BottomNav />
-          </div>
+          <BottomNav />
         </div>
       </div>
       {showClearModal && (

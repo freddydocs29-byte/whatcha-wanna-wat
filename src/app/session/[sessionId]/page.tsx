@@ -363,13 +363,10 @@ export default function SessionPage() {
     const stepNum = setupStep === "cuisines" ? 1 : setupStep === "hardNos" ? 2 : 3;
 
     return (
-      <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-        <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 safe-top">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          </div>
+      <main className="min-h-screen bg-[#1C1A18] text-white">
+        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
 
-          <div className="relative z-10 flex flex-col gap-6 pt-6">
+          <div className="flex flex-col gap-6 pt-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               {setupStep !== "cuisines" ? (
@@ -377,25 +374,25 @@ export default function SessionPage() {
                   onClick={() =>
                     setSetupStep(setupStep === "heat" ? "hardNos" : "cuisines")
                   }
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 backdrop-blur-md transition active:scale-[0.98]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
                 >
                   ←
                 </button>
               ) : (
                 <div className="w-10" />
               )}
-              <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+              <span className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
                 Quick setup
               </span>
               <div className="w-10" />
             </div>
 
-            {/* Progress dots */}
+            {/* Progress bar */}
             <div className="flex gap-1.5">
               {[1, 2, 3].map((n) => (
                 <div key={n} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.12]">
                   <div
-                    className="h-full rounded-full bg-white transition-all duration-500 ease-out"
+                    className="h-full rounded-full bg-[#E8621A] transition-all duration-500 ease-out"
                     style={{ width: n <= stepNum ? "100%" : "0%" }}
                   />
                 </div>
@@ -404,15 +401,15 @@ export default function SessionPage() {
 
             {/* Question */}
             <div className="mt-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/30">
+              <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
                 {stepNum} of 3
               </p>
-              <h1 className="mt-3 text-[34px] font-semibold leading-tight tracking-[-0.04em]">
-                {setupStep === "cuisines" && "What are you\ndown for?"}
-                {setupStep === "hardNos" && "Any hard nos\nor allergies?"}
-                {setupStep === "heat" && "How do you feel\nabout heat?"}
+              <h1 className="mt-3 font-display font-black text-3xl text-white leading-tight">
+                {setupStep === "cuisines" && "What are you down for?"}
+                {setupStep === "hardNos" && "Any hard nos or allergies?"}
+                {setupStep === "heat" && "How do you feel about heat?"}
               </h1>
-              <p className="mt-2 text-sm leading-6 text-white/50">
+              <p className="mt-2 font-body text-sm text-[#8A7F78]">
                 {setupStep === "cuisines" && "Pick everything that sounds good to you."}
                 {setupStep === "hardNos" && "These will never show up in your deck."}
                 {setupStep === "heat" && "Optional — skip if you don't mind either way."}
@@ -421,21 +418,26 @@ export default function SessionPage() {
 
             {/* Options */}
             {setupStep === "cuisines" && (
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-2">
                 {GUEST_CUISINES.map((c) => {
                   const selected = guestCuisines.includes(c.label);
                   return (
                     <button
                       key={c.label}
                       onClick={() => toggleMulti(c.label, guestCuisines, setGuestCuisines)}
-                      className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.96] ${
+                      className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
                         selected
-                          ? "border-white bg-white text-black shadow-[0_0_0_1px_rgba(255,255,255,0.3),0_4px_20px_rgba(255,255,255,0.10)]"
-                          : "border-white/15 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09]"
+                          ? "border-[#E8621A] bg-[#E8621A]/10"
+                          : "border-transparent bg-[#2A2420]"
                       }`}
                     >
-                      <span>{c.emoji}</span>
-                      <span>{c.label}</span>
+                      <span className="text-2xl">{c.emoji}</span>
+                      <span className="flex-1 font-display font-black text-base text-white text-left">{c.label}</span>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+                        selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/20"
+                      }`}>
+                        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+                      </div>
                     </button>
                   );
                 })}
@@ -443,21 +445,26 @@ export default function SessionPage() {
             )}
 
             {setupStep === "hardNos" && (
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-2">
                 {GUEST_HARD_NOS.map((f) => {
                   const selected = guestHardNos.includes(f.label);
                   return (
                     <button
                       key={f.label}
                       onClick={() => toggleMulti(f.label, guestHardNos, setGuestHardNos)}
-                      className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.96] ${
+                      className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
                         selected
-                          ? "border-white bg-white text-black shadow-[0_0_0_1px_rgba(255,255,255,0.3),0_4px_20px_rgba(255,255,255,0.10)]"
-                          : "border-white/15 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09]"
+                          ? "border-[#E8621A] bg-[#E8621A]/10"
+                          : "border-transparent bg-[#2A2420]"
                       }`}
                     >
-                      <span>{f.emoji}</span>
-                      <span>{f.label}</span>
+                      <span className="text-2xl">{f.emoji}</span>
+                      <span className="flex-1 font-display font-black text-base text-white text-left">{f.label}</span>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+                        selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/20"
+                      }`}>
+                        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+                      </div>
                     </button>
                   );
                 })}
@@ -465,26 +472,26 @@ export default function SessionPage() {
             )}
 
             {setupStep === "heat" && (
-              <div className="grid gap-3">
+              <div className="flex flex-col gap-2">
                 {GUEST_HEAT.map((opt) => {
                   const selected = guestSpice === opt.value;
                   return (
                     <button
                       key={opt.value}
                       onClick={() => setGuestSpice(opt.value)}
-                      className={`flex items-center gap-4 rounded-[22px] border p-4 text-left transition-all duration-150 active:scale-[0.99] ${
+                      className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
                         selected
-                          ? "border-white/60 bg-white/[0.10] shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_6px_28px_rgba(255,255,255,0.06)]"
-                          : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]"
+                          ? "border-[#E8621A] bg-[#E8621A]/10"
+                          : "border-transparent bg-[#2A2420]"
                       }`}
                     >
                       <span className="text-2xl">{opt.emoji}</span>
-                      <p className="flex-1 text-[15px] font-semibold tracking-[-0.03em]">{opt.label}</p>
-                      <div
-                        className={`h-5 w-5 shrink-0 rounded-full border-2 transition-all duration-150 ${
-                          selected ? "border-white bg-white" : "border-white/20"
-                        }`}
-                      />
+                      <p className="flex-1 font-display font-black text-base text-white text-left">{opt.label}</p>
+                      <div className={`w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
+                        selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/20"
+                      }`}>
+                        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+                      </div>
                     </button>
                   );
                 })}
@@ -496,12 +503,12 @@ export default function SessionPage() {
         {/* Sticky CTA */}
         <div className="fixed bottom-0 left-0 right-0 z-30">
           <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#080808]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
             <button
               onClick={advanceSetup}
               disabled={!canAdvance || completingSetup}
-              className={`w-full rounded-full bg-white px-5 py-[18px] text-center text-[15px] font-semibold text-black transition hover:opacity-95 active:scale-[0.99] disabled:opacity-30 ${
-                canAdvance && !completingSetup ? "shadow-[0_8px_40px_rgba(255,255,255,0.28)]" : "shadow-none"
+              className={`w-full rounded-full bg-[#E8621A] px-5 py-[18px] text-center text-[15px] font-display font-black text-white transition hover:opacity-95 active:scale-[0.99] disabled:opacity-30 ${
+                canAdvance && !completingSetup ? "shadow-[0_8px_40px_rgba(232,98,26,0.28)]" : "shadow-none"
               }`}
             >
               {completingSetup ? "Joining…" : setupStep === "heat" ? "Join session" : "Continue"}
@@ -510,7 +517,7 @@ export default function SessionPage() {
               <button
                 onClick={() => completeGuestSetup()}
                 disabled={completingSetup}
-                className="mt-3 w-full text-center text-sm text-white/35 transition hover:text-white/55 disabled:opacity-30"
+                className="mt-3 w-full text-center text-sm text-[#8A7F78] transition hover:text-white/55 disabled:opacity-30"
               >
                 Skip heat preference
               </button>
@@ -691,53 +698,47 @@ export default function SessionPage() {
     const guestVibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;
 
     return (
-      <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-        <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/[0.06] blur-3xl" />
-          </div>
+      <main className="min-h-screen bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+        <Link
+          href="/"
+          className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
+        >
+          ←
+        </Link>
 
-          <div className="relative z-10 flex flex-col gap-8 pt-6">
-            <div className="flex items-center justify-between">
-              <Link
-                href="/"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 backdrop-blur-md transition active:scale-[0.98]"
-              >
-                ←
-              </Link>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
-                Shared session
-              </span>
-              <div className="w-10" />
-            </div>
+        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-12">
+          Shared session
+        </p>
 
-            <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              <div className="flex items-center gap-2.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                <p className="text-xs font-medium uppercase tracking-widest text-emerald-400">
-                  Ready
-                </p>
-              </div>
-              <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
-                You&apos;re in
-              </h1>
-              <p className="mt-3 text-sm leading-6 text-white/55">
-                We&apos;ll use both profiles to build your shared deck.
-              </p>
-
-              <button
-                onClick={() => router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`)}
-                className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
-              >
-                Start swiping
-              </button>
-            </div>
-
-            <p className="text-center text-[11px] text-white/20">
-              Session · {sessionId?.slice(0, 8)}
-            </p>
+        <div className="w-24 h-24 rounded-full bg-[#E8621A]/10 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-[#E8621A]/20 flex items-center justify-center">
+            <span className="text-3xl">👥</span>
           </div>
         </div>
+
+        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight text-center">
+          You&apos;re in. Let&apos;s decide.
+        </h1>
+        <p className="font-body text-base text-[#8A7F78] text-center mt-3 max-w-xs">
+          We&apos;ll use both of your profiles to build your shared deck.
+        </p>
+
+        <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
+          <span className="w-2 h-2 rounded-full bg-[#4A7C59] animate-pulse" />
+          <span className="font-body text-sm text-[#8A7F78]">DECK READY</span>
+        </div>
+
+        <button
+          onClick={() => router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`)}
+          className="mt-8 w-full max-w-xs bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
+          style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+        >
+          Start swiping
+        </button>
+
+        <p className="font-body text-xs text-[#8A7F78]/40 mt-6">
+          Session · {sessionId?.slice(0, 8)}
+        </p>
       </main>
     );
   }
@@ -822,10 +823,10 @@ export default function SessionPage() {
           </div>
         </div>
 
-        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight">
+        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight text-center">
           Waiting for someone to join.
         </h1>
-        <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+        <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs text-center">
           Share the link below. Your deck builds the moment they join.
         </p>
 
@@ -863,99 +864,89 @@ export default function SessionPage() {
 
   // ── Host: both connected ──────────────────────────────────────────────────
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
-        {/* Background glows */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+    <main className="min-h-screen bg-[#1C1A18] text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10">
 
-        <div className="relative z-10 flex flex-col gap-8 pt-6">
+        <div className="flex flex-col gap-6 pt-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <Link
               href="/"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 backdrop-blur-md transition active:scale-[0.98]"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
             >
               ←
             </Link>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+            <span className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
               Shared session
             </span>
             <div className="w-10" />
           </div>
 
           {/* Status card */}
-          <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-            {/* Status indicator */}
+          <div className="bg-[#2A2420] rounded-[24px] p-6">
+            {/* Status pill */}
             {deckReady ? (
-              <div className="flex items-center gap-2.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                <p className="text-xs font-medium uppercase tracking-widest text-emerald-400">
-                  Ready
-                </p>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#4A7C59] animate-pulse" />
+                <span className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78]">DECK READY</span>
               </div>
             ) : bothConnected ? (
-              <div className="flex items-center gap-2.5">
-                <span className="h-2 w-2 rounded-full bg-white/70" />
-                <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                  Ready to start
-                </p>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#E8621A] animate-pulse" />
+                <span className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78]">BOTH CONNECTED</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/60 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8621A]" />
                 </span>
-                <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                  Waiting for someone
-                </p>
+                <span className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78]">WAITING FOR SOMEONE</span>
               </div>
             )}
 
-            <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
+            <h1 className="font-display font-black text-3xl text-white leading-tight mt-4">
               {deckReady
-                ? "Ready to decide"
+                ? "Ready to decide."
                 : bothConnected
-                ? "Both connected"
-                : "Session created"}
+                ? "You're both in."
+                : "Session created."}
             </h1>
-            <p className="mt-3 text-sm leading-6 text-white/55">
+            <p className="font-body text-base text-[#8A7F78] mt-3">
               {deckReady
-                ? "Your shared deck is ready. Start swiping — matches happen when you both say yes to the same meal."
+                ? "Your shared deck is ready. Start swiping — matches happen when you both say yes."
                 : bothConnected
                 ? "Tap Start swiping to build your shared deck."
                 : "Share this link and wait for them to join."}
             </p>
 
-            {/* Invite link — always visible so host can share while waiting */}
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <p className="truncate text-xs text-white/40">{sessionUrl}</p>
+            {/* Invite link */}
+            <div className="mt-5 bg-[#1C1A18] rounded-[14px] px-4 py-3">
+              <p className="truncate font-body text-xs text-[#8A7F78]">{sessionUrl}</p>
             </div>
-            <div className="mt-4 flex gap-3">
+            <div className="mt-3 grid grid-cols-2 gap-3">
               <button
                 onClick={handleShare}
-                className="flex-1 rounded-full border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-medium text-white transition active:scale-[0.98]"
+                className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full"
+                style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
               >
                 Share link
               </button>
               <button
                 onClick={handleCopy}
-                className="flex-1 rounded-full border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white transition active:scale-[0.98]"
+                className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full border border-white/10"
               >
                 {copied ? "Copied!" : "Copy link"}
               </button>
             </div>
 
-            {/* Cooking intent question — shown to both users immediately after both connect */}
+            {/* Cooking intent question */}
             {bothConnected && !deckReady && cookingIntentStep === "pending" && (
-              <div className="mt-5">
-                <p className="mb-4 text-sm font-medium text-white/55">
+              <div className="mt-6">
+                <p className="font-body text-sm text-[#8A7F78] mb-3">
                   Cooking or ordering tonight?
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {COOKING_INTENT_OPTIONS.map(({ value, label, sub }) => {
                     const emojis: Record<CookingIntent, string> = { cooking: "🍳", ordering: "📱", either: "🤷" };
                     const isActive = selectedCookingIntent === value;
@@ -963,35 +954,35 @@ export default function SessionPage() {
                       <button
                         key={value}
                         onClick={() => void handleCookingIntentSelect(value)}
-                        className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-4 text-center transition-all duration-150 active:scale-[0.97] ${
+                        className={`flex flex-col items-center gap-1.5 rounded-[16px] border p-3 text-center transition-all duration-150 active:scale-[0.97] ${
                           isActive
-                            ? "border-white/30 bg-white/[0.12] text-white/90"
-                            : "border-white/[0.07] bg-white/[0.03] text-white/35 hover:border-white/15 hover:text-white/55"
+                            ? "border-[#E8621A] bg-[#E8621A]/10"
+                            : "border-white/[0.07] bg-[#1C1A18]"
                         }`}
                       >
                         <span className="text-2xl">{emojis[value]}</span>
-                        <span className="text-xs font-semibold tracking-[-0.01em]">{label}</span>
-                        <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-white/45" : "text-white/20"}`}>{sub}</span>
+                        <span className={`text-xs font-semibold ${isActive ? "text-white" : "text-white/35"}`}>{label}</span>
+                        <span className={`text-[10px] leading-tight ${isActive ? "text-[#8A7F78]" : "text-white/20"}`}>{sub}</span>
                       </button>
                     );
                   })}
                 </div>
                 <button
                   onClick={handleCookingIntentSkip}
-                  className="mt-4 w-full text-center text-xs text-white/30 transition hover:text-white/50"
+                  className="mt-3 w-full text-center font-body text-sm text-[#8A7F78]/50 transition hover:text-[#8A7F78]"
                 >
                   Skip
                 </button>
               </div>
             )}
 
-            {/* Start swiping — shown once both users are connected and cooking intent step is done.
-                First click generates the deck then enters. */}
+            {/* Start swiping */}
             {bothConnected && cookingIntentStep === "done" && (
               <button
                 onClick={handleStartSwiping}
                 disabled={buildingDeck}
-                className="mt-6 w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+                className="mt-6 w-full rounded-full bg-[#E8621A] py-4 text-base font-display font-black text-white transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+                style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
               >
                 {buildingDeck ? "Building deck…" : "Start swiping"}
               </button>
@@ -999,7 +990,7 @@ export default function SessionPage() {
           </div>
 
           {/* Session ID footer */}
-          <p className="text-center text-[11px] text-white/20">
+          <p className="text-center font-body text-xs text-[#8A7F78]/40">
             Session · {sessionId?.slice(0, 8)}
           </p>
         </div>
