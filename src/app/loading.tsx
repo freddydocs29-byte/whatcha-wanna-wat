@@ -1,41 +1,26 @@
 "use client";
 
-import Image from "next/image";
-
 export default function Loading() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black animate-[fadeIn_0.4s_ease-in]">
-      <div className="animate-[breathe_3s_ease-in-out_infinite]" style={{ filter: "drop-shadow(0 0 24px rgba(255,255,255,0.25))" }}>
-        <Image
-          src="/logo.png"
-          alt="Whatcha Wanna Eat"
-          width={120}
-          height={120}
-          priority
-          className="select-none"
-        />
+    <main className="min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Background glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at 40% 40%, rgba(232,98,26,0.12) 0%, transparent 60%)' }}
+      />
+
+      {/* App icon */}
+      <div
+        className="relative z-10 w-20 h-20 bg-[#E8621A] rounded-[22%] flex items-center justify-center mb-6"
+        style={{ boxShadow: '0 0 50px rgba(232,98,26,0.35)' }}
+      >
+        <span className="font-display font-black text-5xl text-white">?</span>
       </div>
 
-      <div className="mt-8">
-        <div
-          className="w-5 h-5 rounded-full animate-spin"
-          style={{
-            border: "1.5px solid rgba(255,255,255,0.15)",
-            borderTopColor: "white",
-          }}
-        />
-      </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes breathe {
-          0%, 100% { transform: scale(1); }
-          50%       { transform: scale(1.04); }
-        }
-      `}</style>
-    </div>
-  );
+      {/* Wordmark */}
+      <p className="relative z-10 font-display font-black text-2xl text-white leading-none">
+        Watcha<span className="text-[#E8621A]">?</span>
+      </p>
+    </main>
+  )
 }

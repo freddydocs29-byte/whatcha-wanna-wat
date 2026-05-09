@@ -1,12 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Meal } from "../data/meals";
 import { getSavedMealsEnriched, removeSavedMeal, toggleSavedFavorite, addToHistory, updateTasteProfile } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
+import { fetchOrCreateProfile } from "../lib/supabase-profile";
+import { getUserId } from "../lib/identity";
+import type { Profile } from "../lib/supabase";
 
 function StarIcon({ filled }: { filled: boolean }) {
   return filled ? (
@@ -22,6 +24,7 @@ function StarIcon({ filled }: { filled: boolean }) {
 
 export default function SavedPage() {
   const router = useRouter();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
   const [savedForLater, setSavedForLater] = useState<Meal[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -35,6 +38,7 @@ export default function SavedPage() {
   useEffect(() => {
     refresh();
     setLoaded(true);
+    fetchOrCreateProfile(getUserId()).then(setProfile).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleToggleFavorite(meal: Meal) {
@@ -64,37 +68,27 @@ export default function SavedPage() {
         </div>
 
         <div className="relative z-10 flex min-h-screen flex-col">
-          <header className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 opacity-90">
-              <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
-              <p className="font-display font-black text-white text-2xl leading-none">
-                Whatcha Wanna Eat<span className="text-[#E8621A]">?</span>
-              </p>
-            </Link>
-            <Link
-              href="/profile"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/80 backdrop-blur-md transition active:scale-[0.98]"
-            >
-              👤
-            </Link>
-          </header>
-
-          <section className="pt-10">
-            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/55 backdrop-blur-md">
-              Your list
+          <div className="px-5 pt-6 pb-2">
+            {/* Top row — wordmark left, avatar right */}
+            <div className="flex items-center justify-between mb-6">
+              <span className="font-display font-black text-white text-2xl leading-none">
+                Watcha<span className="text-[#E8621A]">?</span>
+              </span>
+              <button onClick={() => router.push('/profile')}
+                      className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0">
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} className="w-full h-full object-cover" />
+                  : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
+                }
+              </button>
             </div>
-            <h1 className="font-display font-black text-3xl text-white mt-6">
-              Saved
-              <br />
-              meals
-            </h1>
-            <p className="mt-3 max-w-[31ch] text-[15px] leading-7 text-white/65">
-              Star the meals you know you love. Save the rest for later.
+
+            {/* Page headline */}
+            <h1 className="font-display font-black text-3xl text-white">Saved Meals</h1>
+            <p className="font-body text-sm text-[#8A7F78] mt-1">
+              Everything you&apos;ve loved, matched, and decided on.
             </p>
-            <p className="mt-1.5 text-xs text-white/30">
-              Tap a meal to make it your next choice.
-            </p>
-          </section>
+          </div>
 
           {isEmpty && (
             <div className="flex flex-1 flex-col items-center justify-center text-center">

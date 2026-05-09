@@ -75,15 +75,15 @@ export async function fetchProfileByAuthUserId(authUserId: string): Promise<Prof
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("auth_user_id", authUserId)
+      .eq("id", authUserId)
       .maybeSingle();
     if (error) {
-      console.error("[profile] fetch by auth_user_id error:", error.message);
+      console.error("[profile] fetch by id error:", error.message);
       return null;
     }
     return data ? (data as Profile) : null;
   } catch (err) {
-    console.error("[profile] unexpected fetch by auth_user_id error:", err);
+    console.error("[profile] unexpected fetch by id error:", err);
     return null;
   }
 }
@@ -94,7 +94,7 @@ export async function fetchProfileByAuthUserId(authUserId: string): Promise<Prof
  * Strategy:
  *   1. Look for an existing profile already linked to this authUserId.
  *      If found, return it — the user has signed in on another device before.
- *   2. Otherwise, find the anon profile by anonUserId and attach auth_user_id to it.
+ *   2. Otherwise, find the anon profile by anonUserId and attach id to it.
  *      Optionally write display_name if provided (e.g. from sign-up form).
  *   3. If neither profile exists, create a fresh one with both IDs.
  *
@@ -111,9 +111,9 @@ export async function linkAuthToProfile(
     const existing = await fetchProfileByAuthUserId(authUserId);
     if (existing) return existing;
 
-    // Step 2 — link auth_user_id onto the current anon profile
+    // Step 2 — link id onto the current anon profile
     const updates: Record<string, unknown> = {
-      auth_user_id: authUserId,
+      id: authUserId,
       updated_at: new Date().toISOString(),
     };
     if (displayName) updates.display_name = displayName;
@@ -137,7 +137,7 @@ export async function linkAuthToProfile(
       .from("profiles")
       .insert({
         user_id: anonUserId,
-        auth_user_id: authUserId,
+        id: authUserId,
         display_name: displayName ?? null,
       })
       .select()
