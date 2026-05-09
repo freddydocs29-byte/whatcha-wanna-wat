@@ -19,6 +19,8 @@ import {
   getStreak,
   clearTodaysPick,
   saveMeal,
+  removeSavedMeal,
+  getSavedMealsEnriched,
   addFavorite,
   addToHistory,
   HistoryEntry,
@@ -128,6 +130,8 @@ export default function Home() {
   );
   const [creatingSession, setCreatingSession] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [showEatModal, setShowEatModal] = useState(false);
 
   useEffect(() => {
     async function checkAndRoute() {
@@ -170,7 +174,9 @@ export default function Home() {
       setHistoryCount(history.length);
       setInsights(deriveInsights(history));
       setRecentHistory(history.slice(0, 8));
-      setTodaysPick(getTodaysPick());
+      const pick = getTodaysPick();
+      setTodaysPick(pick);
+      if (pick) setSaved(getSavedMealsEnriched().some((s) => s.meal.id === pick.meal.id));
       setStreak(getStreak());
       setReady(true);
 
@@ -262,6 +268,17 @@ export default function Home() {
     setClearStep("confirm");
   }
 
+  function toggleSave() {
+    if (!todaysPick) return;
+    if (saved) {
+      removeSavedMeal(todaysPick.meal.id);
+      setSaved(false);
+    } else {
+      saveMeal(todaysPick.meal);
+      setSaved(true);
+    }
+  }
+
   // Auth check in flight — render nothing to avoid a flash of splash for signed-in users.
   if (!showSplash && !ready) return null;
 
@@ -294,29 +311,128 @@ export default function Home() {
             </Link>
           </header>
 
-          {/* 2. GREETING BLOCK */}
-          <section className="mt-8">
-            {todaysPick ? (
-              <>
+          {todaysPick ? (
+            <>
+              {/* DECIDED STATE — Good Call layout */}
+
+              {/* 2. Headline */}
+              <section className="mt-8">
                 <h1 className="font-display font-black text-4xl text-white leading-tight">
-                  We&apos;re eating
-                  <br />
-                  <span className="text-[#E8621A]">{todaysPick.meal.name}</span>
-                  <br />
-                  tonight.
+                  Good call.
+                </h1>
+                <h1 className="font-display font-black text-4xl text-[#E8621A] leading-tight">
+                  Now stop thinking about it.
                 </h1>
                 <p className="font-body text-base text-[#8A7F78] mt-2">
-                  Already decided —{" "}
-                  <button
-                    onClick={openClearModal}
-                    className="underline decoration-[#8A7F78]/50 underline-offset-2"
-                  >
-                    change it anytime.
-                  </button>
+                  Tonight&apos;s decision is done.
                 </p>
-              </>
-            ) : (
-              <>
+              </section>
+
+              {/* 3. Tonight's match card */}
+              <div
+                className="w-full bg-[#2A2420] rounded-[20px] p-5 mt-6 border border-[#4A7C59]/30"
+                style={{ boxShadow: "0 0 30px rgba(74,124,89,0.12)" }}
+              >
+                <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase mb-3">
+                  TONIGHT&apos;S MATCH
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0">
+                    ✓
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-black text-xl text-white">
+                        🍽️ {todaysPick.meal.name}
+                      </span>
+                    </div>
+                    <p className="font-body text-xs text-[#8A7F78] mt-1">
+                      Decided just for you · just now
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { trackEvent("lets_eat_clicked", { mealId: todaysPick.meal.id }); setShowEatModal(true); }}
+                    className="bg-[#4A7C59] text-white font-display font-black text-sm px-4 py-2.5 rounded-full whitespace-nowrap flex-shrink-0"
+                  >
+                    Let&apos;s eat 🙌
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. Action cards */}
+              <div className="flex flex-col gap-3 mt-4">
+                <Link
+                  href="/deck?change=1"
+                  className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left"
+                >
+                  <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                    🔄
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display font-black text-base text-white">Changed your mind?</p>
+                    <p className="font-body text-sm text-[#8A7F78] mt-0.5">Start a new deck any time.</p>
+                  </div>
+                  <span className="text-[#8A7F78] text-lg">→</span>
+                </Link>
+
+                <button
+                  onClick={toggleSave}
+                  className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left"
+                >
+                  <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                    ⭐
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display font-black text-base text-white">
+                      {saved ? `Saved — ${todaysPick.meal.name}` : `Save ${todaysPick.meal.name}`}
+                    </p>
+                    <p className="font-body text-sm text-[#8A7F78] mt-0.5">
+                      {saved ? "Tap to remove from favorites." : "Add to your favorites."}
+                    </p>
+                  </div>
+                  <span className="text-[#8A7F78] text-lg">{saved ? "✓" : "→"}</span>
+                </button>
+              </div>
+
+              {/* 5. Streak section */}
+              <div className="mt-8">
+                <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
+                  YOUR STREAK
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+                    <span className="font-display font-black text-3xl text-[#E8621A]">
+                      {historyCount}
+                    </span>
+                    <span className="font-body text-xs text-[#8A7F78] text-center mt-1">
+                      Decisions made
+                    </span>
+                  </div>
+                  <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+                    <span className="font-display font-black text-3xl text-[#E8621A]">
+                      {streak}
+                    </span>
+                    <span className="font-body text-xs text-[#8A7F78] text-center mt-1">
+                      Days in a row
+                    </span>
+                  </div>
+                  <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+                    <span className="font-display font-black text-3xl text-[#E8621A]">
+                      2min
+                    </span>
+                    <span className="font-body text-xs text-[#8A7F78] text-center mt-1">
+                      Avg. decision time
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* UNDECIDED STATE — normal home layout */}
+
+              {/* 2. GREETING BLOCK */}
+              <section className="mt-8">
                 <h1 className="font-display font-black text-4xl text-white leading-tight">
                   It&apos;s {timeOfDay} in Detroit.
                   <br />
@@ -325,95 +441,54 @@ export default function Home() {
                 <p className="font-body text-base text-[#8A7F78] mt-2">
                   Your deck is ready.
                 </p>
-              </>
-            )}
-            {streak >= 1 && (
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/70">
-                🔥 {streak} day streak
-              </div>
-            )}
-          </section>
+                {streak >= 1 && (
+                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/70">
+                    🔥 {streak} day streak
+                  </div>
+                )}
+              </section>
 
-          {/* 3. HERO CARD — Decided meal or Deciding Together */}
-          {todaysPick ? (
-            <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
-              <p className="font-body text-sm text-white/70">You already picked</p>
-              <h2 className="font-display font-black text-2xl text-white mt-1 leading-tight">
-                {todaysPick.meal.name}
-              </h2>
-              {todaysPick.meal.whyItFits && (
-                <p className="font-body text-sm text-white/80 mt-2 leading-relaxed">
-                  {todaysPick.meal.whyItFits}
-                </p>
-              )}
-              <div className="mt-5 grid gap-3">
-                <a
-                  href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " recipe")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={recordPickIfNew}
-                  className="block w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full text-center"
+              {/* 3. HERO CARD — Deciding Together */}
+              <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex flex-col">
+                    <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
+                      👥
+                    </div>
+                    <h2 className="font-display font-black text-xl text-white mt-3">
+                      Deciding Together
+                    </h2>
+                    <p className="font-body text-sm text-white/80 mt-1">
+                      Swipe with your group. Match on what everyone actually wants.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
+                  disabled={creatingSession}
+                  className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
                 >
-                  Cook it
-                </a>
-                <a
-                  href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " near me")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={recordPickIfNew}
-                  className="block w-full bg-white/20 text-white font-display font-black text-base py-4 rounded-full text-center"
-                >
-                  Order it
-                </a>
-                <Link
-                  href="/deck?change=1"
-                  className="block w-full bg-transparent border border-white/30 text-white/80 font-display font-black text-base py-4 rounded-full text-center"
-                >
-                  Change it
+                  {creatingSession ? "Creating…" : "Start shared session →"}
+                </button>
+                {sessionError && (
+                  <p className="mt-3 text-center text-sm text-red-400">
+                    {sessionError}
+                  </p>
+                )}
+              </section>
+
+              {/* 4. SECONDARY CARDS ROW */}
+              <div className="mt-4">
+                <Link href="/deck" className="bg-[#2A2420] rounded-[20px] p-5 flex flex-col">
+                  <span className="text-2xl">🎯</span>
+                  <p className="font-display font-black text-lg text-white mt-3">Just Me</p>
+                  <p className="font-body text-sm text-[#8A7F78] mt-1">Solo swipe. Fast answer.</p>
                 </Link>
               </div>
-            </section>
-          ) : (
-            <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
-              <div className="flex items-start gap-4">
-                <div className="flex flex-col">
-                  <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
-                    👥
-                  </div>
-                  <h2 className="font-display font-black text-xl text-white mt-3">
-                    Deciding Together
-                  </h2>
-                  <p className="font-body text-sm text-white/80 mt-1">
-                    Swipe with your group. Match on what everyone actually wants.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
-                disabled={creatingSession}
-                className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {creatingSession ? "Creating…" : "Start shared session →"}
-              </button>
-              {sessionError && (
-                <p className="mt-3 text-center text-sm text-red-400">
-                  {sessionError}
-                </p>
-              )}
-            </section>
+            </>
           )}
 
-          {/* 4. SECONDARY CARDS ROW */}
-          <div className="mt-4">
-            {/* Card — Just Me */}
-            <Link href="/deck" className="bg-[#2A2420] rounded-[20px] p-5 flex flex-col">
-              <span className="text-2xl">🎯</span>
-              <p className="font-display font-black text-lg text-white mt-3">Just Me</p>
-              <p className="font-body text-sm text-[#8A7F78] mt-1">Solo swipe. Fast answer.</p>
-            </Link>
-          </div>
-
-          {/* 5. RECENTLY DECIDED SECTION */}
+          {/* RECENTLY DECIDED SECTION — always visible */}
           {recentHistory.length > 0 && (
             <div className="mt-8">
               <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
@@ -540,6 +615,46 @@ export default function Home() {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Let's eat modal */}
+      {showEatModal && todaysPick && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowEatModal(false)}
+          />
+          <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            <p className="font-display font-black text-2xl text-white text-center">
+              How are you eating?
+            </p>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <a
+                href={`https://www.google.com/search?q=how+to+cook+${encodeURIComponent(todaysPick.meal.name)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+              >
+                <span className="text-4xl">🍳</span>
+                <p className="font-display font-black text-lg text-white">Cook it</p>
+                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
+              </a>
+              <a
+                href={`https://www.google.com/search?q=order+${encodeURIComponent(todaysPick.meal.name)}+delivery`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+              >
+                <span className="text-4xl">🚗</span>
+                <p className="font-display font-black text-lg text-white">Order in</p>
+                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
+              </a>
+            </div>
           </div>
         </div>
       )}
