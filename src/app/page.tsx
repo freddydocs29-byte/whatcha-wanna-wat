@@ -249,44 +249,112 @@ export default function Home() {
 
           {/* 2. GREETING BLOCK */}
           <section className="mt-8">
-            <h1 className="font-display font-black text-4xl text-white leading-tight">
-              It&apos;s {timeOfDay} in Detroit.
-              <br />
-              <span className="text-[#E8621A]">Watcha wanna eat?</span>
-            </h1>
-            <p className="font-body text-base text-[#8A7F78] mt-2">
-              Your deck is ready.
-            </p>
-          </section>
-
-          {/* 3. HERO CARD — Deciding Together */}
-          <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
-            <div className="flex items-start gap-4">
-              <div className="flex flex-col">
-                <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
-                  👥
-                </div>
-                <h2 className="font-display font-black text-xl text-white mt-3">
-                  Deciding Together
-                </h2>
-                <p className="font-body text-sm text-white/80 mt-1">
-                  Swipe with your group. Match on what everyone actually wants.
+            {todaysPick ? (
+              <>
+                <h1 className="font-display font-black text-4xl text-white leading-tight">
+                  We&apos;re eating
+                  <br />
+                  <span className="text-[#E8621A]">{todaysPick.meal.name}</span>
+                  <br />
+                  tonight.
+                </h1>
+                <p className="font-body text-base text-[#8A7F78] mt-2">
+                  Already decided —{" "}
+                  <button
+                    onClick={openClearModal}
+                    className="underline decoration-[#8A7F78]/50 underline-offset-2"
+                  >
+                    change it anytime.
+                  </button>
                 </p>
+              </>
+            ) : (
+              <>
+                <h1 className="font-display font-black text-4xl text-white leading-tight">
+                  It&apos;s {timeOfDay} in Detroit.
+                  <br />
+                  <span className="text-[#E8621A]">Watcha wanna eat?</span>
+                </h1>
+                <p className="font-body text-base text-[#8A7F78] mt-2">
+                  Your deck is ready.
+                </p>
+              </>
+            )}
+            {streak >= 1 && (
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/70">
+                🔥 {streak} day streak
               </div>
-            </div>
-            <button
-              onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
-              disabled={creatingSession}
-              className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {creatingSession ? "Creating…" : "Start shared session →"}
-            </button>
-            {sessionError && (
-              <p className="mt-3 text-center text-sm text-red-400">
-                {sessionError}
-              </p>
             )}
           </section>
+
+          {/* 3. HERO CARD — Decided meal or Deciding Together */}
+          {todaysPick ? (
+            <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
+              <p className="font-body text-sm text-white/70">You already picked</p>
+              <h2 className="font-display font-black text-2xl text-white mt-1 leading-tight">
+                {todaysPick.meal.name}
+              </h2>
+              {todaysPick.meal.whyItFits && (
+                <p className="font-body text-sm text-white/80 mt-2 leading-relaxed">
+                  {todaysPick.meal.whyItFits}
+                </p>
+              )}
+              <div className="mt-5 grid gap-3">
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " recipe")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={recordPickIfNew}
+                  className="block w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full text-center"
+                >
+                  Cook it
+                </a>
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " near me")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={recordPickIfNew}
+                  className="block w-full bg-white/20 text-white font-display font-black text-base py-4 rounded-full text-center"
+                >
+                  Order it
+                </a>
+                <Link
+                  href="/deck?change=1"
+                  className="block w-full bg-transparent border border-white/30 text-white/80 font-display font-black text-base py-4 rounded-full text-center"
+                >
+                  Change it
+                </Link>
+              </div>
+            </section>
+          ) : (
+            <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
+              <div className="flex items-start gap-4">
+                <div className="flex flex-col">
+                  <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
+                    👥
+                  </div>
+                  <h2 className="font-display font-black text-xl text-white mt-3">
+                    Deciding Together
+                  </h2>
+                  <p className="font-body text-sm text-white/80 mt-1">
+                    Swipe with your group. Match on what everyone actually wants.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
+                disabled={creatingSession}
+                className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {creatingSession ? "Creating…" : "Start shared session →"}
+              </button>
+              {sessionError && (
+                <p className="mt-3 text-center text-sm text-red-400">
+                  {sessionError}
+                </p>
+              )}
+            </section>
+          )}
 
           {/* 4. SECONDARY CARDS ROW */}
           <div className="mt-4">
