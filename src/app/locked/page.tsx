@@ -1,12 +1,5 @@
 import { meals } from "../data/meals";
-import ShareButton from "./ShareButton";
-import SaveLaterButton from "./SaveLaterButton";
-import LockedReveal from "./LockedReveal";
-import BackButton from "./BackButton";
-import FirstTimeVisitorCTA from "./FirstTimeVisitorCTA";
-import CookOrderButtons from "./CookOrderButtons";
-import PickAnotherButton from "./PickAnotherButton";
-import BackToHomeLink from "./BackToHomeLink";
+import LockedPageClient from "./LockedPageClient";
 
 type Props = {
   searchParams: Promise<{ mealId?: string; pantry?: string; decided?: string }>;
@@ -15,7 +8,6 @@ type Props = {
 export default async function LockedPage({ searchParams }: Props) {
   const { mealId, pantry, decided } = await searchParams;
   const meal = meals.find((m) => m.id === mealId) ?? meals[0];
-  const pantryMode = pantry === "1";
   const pickedForYou = decided === "1";
 
   const isQuickOrEasy = meal.tags.some((t) =>
@@ -26,51 +18,10 @@ export default async function LockedPage({ searchParams }: Props) {
   );
 
   return (
-    <main className="min-h-screen bg-[#1C1A18] px-5 pb-6 safe-top text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
-        <header className="flex items-center justify-between">
-          <p className="text-sm text-white/50">Decision Deck</p>
-          <BackButton />
-        </header>
-
-        <LockedReveal meal={meal} pantryMode={pantryMode} pickedForYou={pickedForYou} />
-
-        <section className="mt-8 rounded-[34px] border border-white/10 bg-gradient-to-b from-white/[0.12] via-white/[0.07] to-white/[0.04] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
-          <div className="flex items-start justify-between">
-            <p className="text-sm text-white/50">{pickedForYou ? "Picked for you" : "Good choice"}</p>
-            <SaveLaterButton meal={meal} />
-          </div>
-          <h2 className="mt-2 text-[28px] font-semibold tracking-[-0.04em]">
-            What&apos;s next?
-          </h2>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {meal.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/60"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-6 grid gap-3">
-            <CookOrderButtons meal={meal} recipeQuery={recipeQuery} />
-
-            <ShareButton mealName={meal.name} />
-
-            {pickedForYou && (
-              <PickAnotherButton currentMealId={meal.id} />
-            )}
-
-            <BackToHomeLink />
-
-          </div>
-        </section>
-
-        <FirstTimeVisitorCTA />
-      </div>
-    </main>
+    <LockedPageClient
+      meal={meal}
+      recipeQuery={recipeQuery}
+      pickedForYou={pickedForYou}
+    />
   );
 }

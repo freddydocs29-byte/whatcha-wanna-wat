@@ -1832,47 +1832,104 @@ function DeckContent() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-5 pb-10 backdrop-blur-sm"
+                className="fixed inset-0 z-50 bg-[#1C1A18] overflow-y-auto"
               >
                 <motion.div
                   initial={{ y: 72, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 72, opacity: 0 }}
                   transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
-                  className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#111] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+                  className="relative flex flex-col items-center justify-start min-h-screen px-6 pt-16 pb-10"
                 >
-                  <div className="relative h-56">
-                    <img
-                      src={matchedMeal.image}
-                      alt={matchedMeal.name}
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background:
-                          "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.4) 55%, transparent 100%)",
-                      }}
-                    />
-                    <div className="absolute bottom-5 left-5">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-                        It&apos;s a match
-                      </p>
-                      <h2 className="mt-1 text-2xl font-semibold leading-tight tracking-[-0.04em]">
-                        You both picked
-                      </h2>
-                      <h2 className="text-2xl font-semibold leading-tight tracking-[-0.04em]">
-                        {matchedMeal.name} 🍽️
-                      </h2>
+                  {/* Radial green glow */}
+                  <div
+                    className="absolute inset-0 pointer-events-none z-0"
+                    style={{ background: "radial-gradient(ellipse at 50% 25%, rgba(74,124,89,0.18) 0%, transparent 60%)" }}
+                  />
+
+                  <div className="relative z-10 flex flex-col items-center w-full">
+                    {/* 1. Green pulsing circle */}
+                    <div className="flex items-center justify-center">
+                      <div
+                        className="w-28 h-28 rounded-full bg-[#4A7C59] flex items-center justify-center animate-pulse-soft"
+                        style={{ boxShadow: "0 0 60px rgba(74,124,89,0.45)" }}
+                      >
+                        <span className="font-display font-black text-5xl text-white">✓</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid gap-3 p-5">
-                    <button
-                      onClick={handleMatchConfirm}
-                      className="w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+
+                    {/* 2. Eyebrow label */}
+                    <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase mt-6">
+                      IT&apos;S A MATCH.
+                    </p>
+
+                    {/* 3. Main headline */}
+                    <h1 className="font-display font-black text-4xl text-white text-center mt-2 leading-tight">
+                      Dinner is decided.
+                    </h1>
+
+                    {/* 4. Meal name in green */}
+                    <p className="font-display font-bold text-2xl text-[#4A7C59] text-center mt-1">
+                      {matchedMeal.name}
+                    </p>
+
+                    {/* 5. Meal image card */}
+                    <div
+                      className="w-full rounded-[20px] overflow-hidden mt-6 bg-[#2A2420]"
+                      style={{ aspectRatio: "16/9" }}
                     >
-                      Lock it in
-                    </button>
+                      <img
+                        src={matchedMeal.image}
+                        alt={matchedMeal.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* 6. Meal name + description */}
+                    <div className="w-full mt-4 text-center">
+                      <p className="font-display font-black text-xl text-white">{matchedMeal.name}</p>
+                      <p className="font-body text-sm text-white/70 mt-1 leading-relaxed">{matchedMeal.description}</p>
+                    </div>
+
+                    {/* 7. Why this works card */}
+                    {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason && (
+                      <div className="w-full bg-[#2A2420] rounded-[18px] p-4 mt-4 flex items-start gap-3">
+                        <span className="text-xl flex-shrink-0 mt-0.5">💡</span>
+                        <p className="font-body text-sm text-white/75 leading-relaxed">
+                          <span className="font-display font-black text-sm text-[#E8621A]">Why this works: </span>
+                          {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 8. CTA buttons */}
+                    <div className="flex gap-3 w-full mt-6">
+                      <button
+                        onClick={handleMatchConfirm}
+                        className="flex-1 py-4 rounded-[16px] bg-[#E8621A] text-white font-display font-black text-base"
+                        style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
+                      >
+                        Let&apos;s eat 🙌
+                      </button>
+                      <button
+                        onClick={handleMatchReject}
+                        className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
+                      >
+                        See other matches
+                      </button>
+                    </div>
+
+                    {/* 9. Footer — other matches count */}
+                    {rejectedMatchIdsRef.current.size > 0 && (
+                      <p className="text-center mt-4">
+                        <span className="font-body text-sm text-[#8A7F78]">
+                          {rejectedMatchIdsRef.current.size} other {rejectedMatchIdsRef.current.size === 1 ? "match" : "matches"} waiting.{" "}
+                        </span>
+                        <button onClick={handleMatchReject} className="text-[#E8621A] font-semibold text-sm">
+                          See them →
+                        </button>
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               </motion.div>
@@ -1962,7 +2019,7 @@ function DeckContent() {
 
   // ── Deck screen ───────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#1C1A18] px-5 pb-6 safe-top text-white">
+    <main className="min-h-screen bg-[#1C1A18] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
         {/* Ambient pantry glow — warm bloom from top edge (solo only) */}
@@ -1974,7 +2031,7 @@ function DeckContent() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                className="pointer-events-none absolute inset-x-0 top-0 h-64 -mx-5"
+                className="pointer-events-none absolute inset-x-0 top-0 h-64"
                 style={{
                   background:
                     "radial-gradient(ellipse 100% 160px at 50% 0%, rgba(251,191,36,0.07) 0%, transparent 100%)",
@@ -1984,45 +2041,27 @@ function DeckContent() {
           </AnimatePresence>
         )}
 
-        <header className="relative flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <p className="font-body text-sm text-[#8A7F78]">Decision Deck</p>
-            {sessionId && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/[0.08] px-2 py-0.5 text-[10px] text-emerald-400/80">
-                <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                shared
-              </span>
-            )}
-            {topPicksMode && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[10px] text-white/35">
-                top picks
-              </span>
-            )}
+        {/* 1. HEADER ROW */}
+        <header className="flex items-center justify-between px-5 pt-4 pb-2">
+          <div>
+            <p className="font-body text-sm text-[#8A7F78]">
+              {sessionId ? "Deciding with your group" : "Decision Deck"}
+            </p>
+            <p className="font-body text-xs text-[#8A7F78]/60 mt-0.5">
+              {Math.max(0, totalCount - currentIndex)} cards left
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/")}
-              className="text-sm text-white/35 transition hover:text-white/60"
-            >
-              {isChangeMeal && existingMeal
-                ? `Keep ${existingMeal.meal.name}`
-                : "Back"}
-            </button>
-          </div>
+          <button
+            onClick={() => router.push("/")}
+            className="text-[#8A7F78] font-body font-semibold text-sm px-4 py-1.5 rounded-full border border-white/10"
+          >
+            {isChangeMeal && existingMeal ? `Keep ${existingMeal.meal.name}` : "End"}
+          </button>
         </header>
 
-        <section className="mt-8">
-          <h1 className="text-4xl font-semibold tracking-[-0.05em]">
-            What sounds good?
-          </h1>
-          <p className="mt-3 max-w-[30ch] text-sm leading-6 text-white/60">
-            Swipe left to pass, right to choose, or use the buttons below.
-          </p>
-        </section>
-
-        {/* Pantry bar + Fresh Ideas row — solo only */}
+        {/* Pantry bar + Fresh Ideas — solo only */}
         {!sessionId && (
-          <div className="mt-4 flex items-stretch gap-2">
+          <div className="px-5 mt-1 flex items-stretch gap-2">
             <motion.button
               onClick={() => {
                 if (!pantryMode) togglePantry();
@@ -2085,44 +2124,25 @@ function DeckContent() {
           </div>
         )}
 
-        {/* ── Progress + urgency ────────────────────────────────────────── */}
-        {totalCount > 0 && (
-          <div className="mt-4">
-            <div className="mb-1.5 flex items-center justify-between">
-              {sessionId && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-white/35">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
-                  Shared session
-                </span>
-              )}
-            </div>
-            <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/[0.07]">
-              <div
-                className="h-full rounded-full bg-white/25 transition-[width] duration-500 ease-out"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-[11px] text-white/40">{urgencyMessage}</p>
-          </div>
-        )}
+        {/* 3. BACK CARD + 2. SWIPE CARD */}
+        <div className="relative mx-4 mt-2">
 
-        <div className="relative mt-4">
-          {/* Next card — sits behind, promotes forward when current card exits */}
+          {/* 3. Back card — depth effect, sits behind top card */}
           {nextMeal && (
             <motion.div
               animate={
                 isExiting
                   ? { scale: 1, opacity: 1, y: 0 }
-                  : { scale: 0.92, opacity: 0.4, y: 10 }
+                  : { scale: 0.94, opacity: 0.5, y: -12 }
               }
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute inset-0 pointer-events-none select-none rounded-[34px] border border-white/[0.06] bg-white/[0.04]"
+              className="absolute inset-0 rounded-[28px] bg-[#2A2420] pointer-events-none"
             />
           )}
 
-          {/* Current card — draggable, on top */}
+          {/* 2. THE SWIPE CARD */}
           <motion.section
-            style={{ x, rotate }}
+            style={{ x, rotate, aspectRatio: '3/4' } as React.CSSProperties & { x: typeof x; rotate: typeof rotate }}
             animate={
               isExiting
                 ? { x: exitX, opacity: 0, scale: 1, filter: "brightness(1) contrast(1)" }
@@ -2140,144 +2160,110 @@ function DeckContent() {
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.8}
             onDragEnd={handleDragEnd}
-            className="relative z-10 cursor-grab select-none touch-none rounded-[34px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] active:cursor-grabbing"
+            className="relative rounded-[28px] overflow-hidden w-full bg-[#2A2420] cursor-grab select-none touch-none z-10 shadow-[0_10px_40px_rgba(0,0,0,0.35)] active:cursor-grabbing"
           >
-            {/* Pass stamp */}
-            <motion.div
-              style={{ opacity: passOpacity }}
-              className="pointer-events-none absolute left-5 top-8 z-10 -rotate-12 rounded border-2 border-rose-400/80 px-3 py-1 text-sm font-bold uppercase tracking-widest text-rose-400"
-            >
-              Pass
-            </motion.div>
+            {/* Layer 1 — Food image */}
+            <img
+              src={imgErrors.has(meal.id) ? FALLBACK_IMAGE : meal.image}
+              alt={meal.name}
+              draggable={false}
+              onError={() => setImgErrors((prev) => new Set(prev).add(meal.id))}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={imgErrors.has(meal.id) ? { filter: "brightness(0.88) saturate(0.6)" } : undefined}
+            />
 
-            {/* Choose stamp */}
+            {/* Layer 2 — Bottom scrim for text legibility */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)' }}
+            />
+
+            {/* Layer 3 — YES stamp (top right, shows when dragging right) */}
             <motion.div
               style={{ opacity: chooseOpacity }}
-              className="pointer-events-none absolute right-5 top-8 z-10 rotate-12 rounded border-2 border-emerald-400/80 px-3 py-1 text-sm font-bold uppercase tracking-widest text-emerald-400"
+              className="absolute top-8 right-5 z-10 font-display font-black text-2xl text-[#4A7C59] border-4 border-[#4A7C59] rounded-xl px-3 py-1 rotate-12 pointer-events-none"
             >
-              Choose
+              YES ✓
             </motion.div>
 
-            <div className="rounded-[24px] overflow-hidden relative w-full aspect-[3/4]">
-              {/* Meal photo */}
-              <img
-                src={imgErrors.has(meal.id) ? FALLBACK_IMAGE : meal.image}
-                alt={meal.name}
-                draggable={false}
-                onError={() =>
-                  setImgErrors((prev) => new Set(prev).add(meal.id))
-                }
-                className="absolute inset-0 h-full w-full object-cover"
-                style={
-                  imgErrors.has(meal.id)
-                    ? { filter: "brightness(0.88) saturate(0.6)" }
-                    : undefined
-                }
-              />
+            {/* Layer 4 — NOPE stamp (top left, shows when dragging left) */}
+            <motion.div
+              style={{ opacity: passOpacity }}
+              className="absolute top-8 left-5 z-10 font-display font-black text-2xl text-red-400 border-4 border-red-400 rounded-xl px-3 py-1 -rotate-12 pointer-events-none"
+            >
+              NOPE
+            </motion.div>
 
-              {/* Gradient overlay — sits above the image, below all text (z-10 content is above this) */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, transparent 100%)",
-                }}
-              />
-
-              {/* Swipe hint — overlaid on card, fades in after a short delay, persists until first interaction */}
-              <AnimatePresence>
-                {showSwipeHint && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, transition: { duration: 0.5 } }}
-                    transition={{ duration: 0.6, delay: 0.9 }}
-                    className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
-                    style={{ bottom: "38%" }}
-                  >
-                    <div className="flex items-center gap-2.5 bg-[#2A2420] rounded-full px-5 py-2.5">
-                      <span className="text-xs text-rose-400/75">← Swipe to pass</span>
-                      <span className="text-[10px] text-white/25">·</span>
-                      <span className="text-xs text-emerald-400/75">Swipe to choose →</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Card content */}
-              <div className="relative z-10 flex h-full flex-col justify-between p-5">
-                {/* Top: category badge */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="inline-flex rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/75 backdrop-blur-sm">
-                    {meal.category}
-                  </div>
-                  {/* AI label — only on AI-generated cards */}
-                  {aiMealIds.has(meal.id) && (
-                    <div
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm ${
-                        meal.aiLabel === "Made from your pantry"
-                          ? "border-amber-400/30 bg-black/35 text-amber-300/80"
-                          : "border-white/20 bg-black/35 text-white/60"
-                      }`}
-                    >
-                      {meal.aiLabel === "Made from your pantry" ? (
-                        <span style={{ filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))" }}>✦</span>
-                      ) : (
-                        <span className="text-white/40">✦</span>
-                      )}
-                      {meal.aiLabel ?? "Fresh idea"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom: title, description, tags, why */}
-                <div className="space-y-3">
-                  <div>
-                    <h2
-                      className="font-display font-black text-2xl text-white"
-                      style={{ textShadow: "0 2px 20px rgba(0,0,0,1), 0 1px 6px rgba(0,0,0,0.65)" }}
-                    >
-                      {meal.name}
-                    </h2>
-                    <p
-                      className="font-body text-sm text-white/80 mt-1"
-                      style={{ textShadow: "0 1px 12px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.5)" }}
-                    >
-                      {meal.description}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {meal.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="bg-white/10 text-white font-body text-[11px] font-semibold px-3 py-1 rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  {pantryMode && pantryMatchCount >= 2 && (
-                    <p
-                      className="text-xs text-white/60"
-                      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}
-                    >
-                      {pantryMatchCount >= 3 ? "You've got this" : "You've got most of this"}
-                    </p>
-                  )}
-
-                  {reason && (
-                    <p
-                      className="text-xs text-white/60"
-                      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}
-                    >
-                      ✦ {reason}
-                    </p>
-                  )}
-                </div>
+            {/* Category + AI badge row (top of card) */}
+            <div className="absolute top-0 left-0 right-0 p-4 z-10 flex items-start justify-between gap-2">
+              <div className="inline-flex rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/75 backdrop-blur-sm">
+                {meal.category}
               </div>
+              {aiMealIds.has(meal.id) && (
+                <div
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm ${
+                    meal.aiLabel === "Made from your pantry"
+                      ? "border-amber-400/30 bg-black/35 text-amber-300/80"
+                      : "border-white/20 bg-black/35 text-white/60"
+                  }`}
+                >
+                  {meal.aiLabel === "Made from your pantry" ? (
+                    <span style={{ filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))" }}>✦</span>
+                  ) : (
+                    <span className="text-white/40">✦</span>
+                  )}
+                  {meal.aiLabel ?? "Fresh idea"}
+                </div>
+              )}
             </div>
+
+            {/* Layer 5 — Card content (bottom of card) */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+              <h2 className="font-display font-black text-3xl text-white leading-tight">
+                {meal.name}
+              </h2>
+              <p className="font-body text-sm text-white/80 mt-2 leading-relaxed line-clamp-2">
+                {meal.description}
+              </p>
+              <div className="flex gap-2 mt-4 flex-wrap">
+                {meal.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="bg-white/10 text-white/80 font-body text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              {pantryMode && pantryMatchCount >= 2 && (
+                <p className="text-xs text-white/60 mt-2">
+                  {pantryMatchCount >= 3 ? "You've got this" : "You've got most of this"}
+                </p>
+              )}
+              {reason && (
+                <p className="text-xs text-white/60 mt-1">✦ {reason}</p>
+              )}
+            </div>
+
+            {/* Swipe hint — fades in after a short delay, dismissed on first interaction */}
+            <AnimatePresence>
+              {showSwipeHint && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, transition: { duration: 0.5 } }}
+                  transition={{ duration: 0.6, delay: 0.9 }}
+                  className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
+                  style={{ bottom: "38%" }}
+                >
+                  <div className="flex items-center gap-2.5 bg-[#2A2420] rounded-full px-5 py-2.5">
+                    <span className="text-xs text-rose-400/75">← Swipe to pass</span>
+                    <span className="text-[10px] text-white/25">·</span>
+                    <span className="text-xs text-emerald-400/75">Swipe to choose →</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Choose glow — flashes briefly when a meal is confirmed */}
             <AnimatePresence>
@@ -2287,7 +2273,7 @@ function DeckContent() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.1 }}
-                  className="pointer-events-none absolute inset-0 z-30 rounded-[34px]"
+                  className="pointer-events-none absolute inset-0 z-30 rounded-[28px]"
                   style={{
                     background:
                       "radial-gradient(ellipse 80% 70% at 50% 35%, rgba(255,255,255,0.22) 0%, transparent 72%)",
@@ -2317,45 +2303,31 @@ function DeckContent() {
           </motion.section>
         </div>
 
-
-        <div className="mt-4 flex items-center justify-center gap-8">
+        {/* 4. ACTION BUTTONS */}
+        <div className="flex items-center justify-center gap-6 mt-5 pb-6">
+          {/* NO button */}
           <button
             onClick={handlePass}
             disabled={isExiting || isChoosing}
-            className="w-16 h-16 rounded-full bg-[#2A2420] border border-white/10 text-white/60 text-2xl flex items-center justify-center disabled:opacity-40"
+            className="w-16 h-16 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center text-2xl text-white/50 active:scale-90 transition-transform duration-150 disabled:opacity-40"
           >
-            Pass
+            ✕
           </button>
+
+          {/* YES button */}
           <button
             onClick={handleChoose}
             disabled={isExiting || isChoosing}
-            className="w-16 h-16 rounded-full bg-[#E8621A] text-white text-2xl flex items-center justify-center shadow-glow-orange disabled:opacity-40"
+            className="w-20 h-20 rounded-full bg-[#E8621A] flex items-center justify-center text-3xl text-white active:scale-90 transition-transform duration-150 disabled:opacity-40"
+            style={{ boxShadow: '0 0 40px rgba(232,98,26,0.35)' }}
           >
-            Choose
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isExiting || isChoosing}
-            className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-4 text-sm text-white/70 disabled:opacity-40"
-          >
-            Save
+            ✓
           </button>
         </div>
 
-        {isChangeMeal && existingMeal && (
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={() => router.push("/")}
-              className="text-sm text-white/35 transition hover:text-white/60"
-            >
-              Keep {existingMeal.meal.name}
-            </button>
-          </div>
-        )}
-
-        {/* Just decide — shared sessions only. Takes position 0 from the group deck. */}
+        {/* Just decide — shared sessions only */}
         {sessionId && (
-          <div className="mt-3 flex justify-center">
+          <div className="flex justify-center -mt-2 pb-4">
             <button
               onClick={() => void handleJustDecide()}
               disabled={isExiting || isChoosing || rankedMeals.length === 0}
@@ -2375,50 +2347,104 @@ function DeckContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-5 pb-10 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-[#1C1A18] overflow-y-auto"
           >
             <motion.div
               initial={{ y: 72, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 72, opacity: 0 }}
               transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
-              className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#111] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
+              className="relative flex flex-col items-center justify-start min-h-screen px-6 pt-16 pb-10"
             >
-              {/* Meal image */}
-              <div className="relative h-56">
-                <img
-                  src={matchedMeal.image}
-                  alt={matchedMeal.name}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.4) 55%, transparent 100%)",
-                  }}
-                />
-                <div className="absolute bottom-5 left-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-                    It&apos;s a match
-                  </p>
-                  <h2 className="mt-1 text-2xl font-semibold leading-tight tracking-[-0.04em]">
-                    You both picked
-                  </h2>
-                  <h2 className="text-2xl font-semibold leading-tight tracking-[-0.04em]">
-                    {matchedMeal.name} 🍽️
-                  </h2>
-                </div>
-              </div>
+              {/* Radial green glow */}
+              <div
+                className="absolute inset-0 pointer-events-none z-0"
+                style={{ background: "radial-gradient(ellipse at 50% 25%, rgba(74,124,89,0.18) 0%, transparent 60%)" }}
+              />
 
-              {/* Actions */}
-              <div className="grid gap-3 p-5">
-                <button
-                  onClick={handleMatchConfirm}
-                  className="w-full rounded-full bg-white py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.99]"
+              <div className="relative z-10 flex flex-col items-center w-full">
+                {/* 1. Green pulsing circle */}
+                <div className="flex items-center justify-center">
+                  <div
+                    className="w-28 h-28 rounded-full bg-[#4A7C59] flex items-center justify-center animate-pulse-soft"
+                    style={{ boxShadow: "0 0 60px rgba(74,124,89,0.45)" }}
+                  >
+                    <span className="font-display font-black text-5xl text-white">✓</span>
+                  </div>
+                </div>
+
+                {/* 2. Eyebrow label */}
+                <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase mt-6">
+                  IT&apos;S A MATCH.
+                </p>
+
+                {/* 3. Main headline */}
+                <h1 className="font-display font-black text-4xl text-white text-center mt-2 leading-tight">
+                  Dinner is decided.
+                </h1>
+
+                {/* 4. Meal name in green */}
+                <p className="font-display font-bold text-2xl text-[#4A7C59] text-center mt-1">
+                  {matchedMeal.name}
+                </p>
+
+                {/* 5. Meal image card */}
+                <div
+                  className="w-full rounded-[20px] overflow-hidden mt-6 bg-[#2A2420]"
+                  style={{ aspectRatio: "16/9" }}
                 >
-                  Lock it in
-                </button>
+                  <img
+                    src={matchedMeal.image}
+                    alt={matchedMeal.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* 6. Meal name + description */}
+                <div className="w-full mt-4 text-center">
+                  <p className="font-display font-black text-xl text-white">{matchedMeal.name}</p>
+                  <p className="font-body text-sm text-white/70 mt-1 leading-relaxed">{matchedMeal.description}</p>
+                </div>
+
+                {/* 7. Why this works card */}
+                {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason && (
+                  <div className="w-full bg-[#2A2420] rounded-[18px] p-4 mt-4 flex items-start gap-3">
+                    <span className="text-xl flex-shrink-0 mt-0.5">💡</span>
+                    <p className="font-body text-sm text-white/75 leading-relaxed">
+                      <span className="font-display font-black text-sm text-[#E8621A]">Why this works: </span>
+                      {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason}
+                    </p>
+                  </div>
+                )}
+
+                {/* 8. CTA buttons */}
+                <div className="flex gap-3 w-full mt-6">
+                  <button
+                    onClick={handleMatchConfirm}
+                    className="flex-1 py-4 rounded-[16px] bg-[#E8621A] text-white font-display font-black text-base"
+                    style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
+                  >
+                    Let&apos;s eat 🙌
+                  </button>
+                  <button
+                    onClick={handleMatchReject}
+                    className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
+                  >
+                    See other matches
+                  </button>
+                </div>
+
+                {/* 9. Footer — other matches count */}
+                {rejectedMatchIdsRef.current.size > 0 && (
+                  <p className="text-center mt-4">
+                    <span className="font-body text-sm text-[#8A7F78]">
+                      {rejectedMatchIdsRef.current.size} other {rejectedMatchIdsRef.current.size === 1 ? "match" : "matches"} waiting.{" "}
+                    </span>
+                    <button onClick={handleMatchReject} className="text-[#E8621A] font-semibold text-sm">
+                      See them →
+                    </button>
+                  </p>
+                )}
               </div>
             </motion.div>
           </motion.div>

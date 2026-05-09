@@ -115,6 +115,7 @@ export default function Home() {
   const [insights, setInsights] = useState<string[]>([]);
   const [todaysPick, setTodaysPick] = useState<HistoryEntry | null>(null);
   const [streak, setStreak] = useState(0);
+  const [recentHistory, setRecentHistory] = useState<HistoryEntry[]>([]);
   const [showClearModal, setShowClearModal] = useState(false);
   const [clearStep, setClearStep] = useState<"confirm" | "completed" | "save">(
     "confirm",
@@ -135,6 +136,7 @@ export default function Home() {
     const history = getHistory();
     setHistoryCount(history.length);
     setInsights(deriveInsights(history));
+    setRecentHistory(history.slice(0, 8));
     setTodaysPick(getTodaysPick());
     setStreak(getStreak());
     setReady(true);
@@ -226,239 +228,109 @@ export default function Home() {
 
   if (!ready) return null;
 
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-6 safe-top">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute top-52 -left-20 h-56 w-56 rounded-full bg-white/[0.05] blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
-
         <div className="relative z-10 flex min-h-screen flex-col">
-          <header className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 opacity-90">
-              <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
-                Whatcha Wanna Eat?
-              </p>
-            </Link>
 
+          {/* 1. TOP HEADER ROW */}
+          <header className="flex items-center justify-between pt-4">
+            <div />
             <Link
               href="/profile"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/80 backdrop-blur-md transition active:scale-[0.98]"
+              className="w-11 h-11 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-lg text-white"
             >
-              👤
+              W
             </Link>
           </header>
 
-          <section className="pt-10">
-            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/55 backdrop-blur-md">
-              Tonight's question
+          {/* 2. GREETING BLOCK */}
+          <section className="mt-8">
+            <h1 className="font-display font-black text-4xl text-white leading-tight">
+              It&apos;s {timeOfDay} in Detroit.
+              <br />
+              <span className="text-[#E8621A]">Watcha wanna eat?</span>
+            </h1>
+            <p className="font-body text-base text-[#8A7F78] mt-2">
+              Your deck is ready.
+            </p>
+          </section>
+
+          {/* 3. HERO CARD — Deciding Together */}
+          <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
+            <div className="flex items-start gap-4">
+              <div className="flex flex-col">
+                <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
+                  👥
+                </div>
+                <h2 className="font-display font-black text-xl text-white mt-3">
+                  Deciding Together
+                </h2>
+                <p className="font-body text-sm text-white/80 mt-1">
+                  Swipe with your group. Match on what everyone actually wants.
+                </p>
+              </div>
             </div>
-
-            {todaysPick ? (
-              <>
-                <h1 className="mt-5 font-display font-black text-4xl text-white leading-tight">
-                  We&apos;re eating
-                  <br />
-                  {todaysPick.meal.name}
-                  <br />
-                  tonight.
-                </h1>
-                <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-[#8A7F78]">
-                  Already decided —{" "}
-                  <button
-                    onClick={openClearModal}
-                    className="underline decoration-white/30 underline-offset-2 transition active:text-white/90"
-                  >
-                    change it anytime.
-                  </button>
-                </p>
-                <button
-                  onClick={openClearModal}
-                  className="mt-2 block text-sm text-white/55 transition active:text-white/80"
-                >
-                  ↻ Clear decision
-                </button>
-              </>
-            ) : (
-              <>
-                <h1 className="mt-5 font-display font-black text-4xl text-white leading-tight">
-                  What we
-                  <br />
-                  eating
-                  <br />
-                  <AnimatedHeadlineWord />
-                </h1>
-                <p className="mt-5 max-w-[31ch] text-[15px] leading-7 text-[#8A7F78]">
-                  Less scrolling, less debating, less &quot;I don&apos;t know.&quot; Let&apos;s land on
-                  something good fast.
-                </p>
-              </>
-            )}
-
-            {streak >= 1 && (
-              <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/70 backdrop-blur-md">
-                🔥 {streak} day streak
-              </div>
+            <button
+              onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
+              disabled={creatingSession}
+              className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {creatingSession ? "Creating…" : "Start shared session →"}
+            </button>
+            {sessionError && (
+              <p className="mt-3 text-center text-sm text-red-400">
+                {sessionError}
+              </p>
             )}
           </section>
 
-          <div className="mt-8 border-t border-white/[0.07]" />
-
-          <section className="mt-8 bg-[#E8621A] rounded-[24px] p-6 text-white">
-            {todaysPick ? (
-              <>
-                <p className="text-sm text-white/50">You already picked</p>
-                <div className="mt-2 flex items-start justify-between gap-3">
-                  <h2 className="text-[28px] font-semibold leading-tight tracking-[-0.04em]">
-                    {todaysPick.meal.name}
-                  </h2>
-                  <SaveLaterButton meal={todaysPick.meal} />
-                </div>
-                <p className="mt-3 max-w-[34ch] text-sm leading-6 text-white/65">
-                  {todaysPick.meal.whyItFits}
-                </p>
-                <div className="mt-6 grid gap-3">
-                  <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " recipe")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={recordPickIfNew}
-                    className="block w-full rounded-full bg-white text-[#E8621A] font-black text-base px-8 py-4 text-center transition hover:opacity-95 active:scale-[0.99]"
-                  >
-                    Cook it
-                  </a>
-                  <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(todaysPick.meal.name + " near me")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={recordPickIfNew}
-                    className="block rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white"
-                  >
-                    Order it
-                  </a>
-                  <Link
-                    href="/deck?change=1"
-                    className="rounded-full border border-white/10 bg-transparent px-5 py-4 text-center text-base font-medium text-white/70"
-                  >
-                    Change it
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-white/50">Ready when you are</p>
-                    <h2 className="mt-2 text-[28px] font-semibold leading-tight tracking-[-0.04em]">
-                      Let&apos;s make a quick decision
-                    </h2>
-                  </div>
-                  <div className="shrink-0 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-white/70">
-                    under 60 sec
-                  </div>
-                </div>
-                <p className="mt-3 max-w-[34ch] text-sm leading-6 text-white/65">
-                  Swipe through ideas, save what hits, and lock in dinner without
-                  the usual back-and-forth.
-                </p>
-                <button
-                  onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
-                  disabled={creatingSession}
-                  className="mt-6 block w-full rounded-full bg-white text-[#E8621A] font-black text-base px-8 py-4 text-center transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
-                >
-                  {creatingSession ? "Creating…" : "Decide with someone"}
-                </button>
-                {sessionError && (
-                  <p className="mt-3 text-center text-sm text-red-400">
-                    {sessionError}
-                  </p>
-                )}
-                <button
-                  onClick={() => { trackEvent("find_something_clicked"); router.push("/recommend"); }}
-                  className="mt-3 w-full rounded-full border border-white/10 bg-white/[0.05] px-5 py-3.5 text-center text-[15px] font-medium text-white transition active:scale-[0.99]"
-                >
-                  Find something for me
-                </button>
-                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/45">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white/40" />
-                  Personalized picks
-                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
-                  Fast decisions
-                  <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
-                  Learns as you go
-                </div>
-              </>
-            )}
-          </section>
-
-          <div className="mt-6 border-t border-white/[0.07]" />
-
-          {/* Compact stats row — always visible, tappable navigation */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Link
-              href="/saved"
-              className="bg-[#2A2420] rounded-[20px] p-5 transition active:scale-[0.98]"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm leading-none">🔖</span>
-                  <p className="text-[13px] font-medium text-[#8A7F78]">Saved</p>
-                </div>
-                <p className="text-[20px] font-semibold leading-none tracking-[-0.04em]">
-                  {savedCount}
-                </p>
-              </div>
-              <p className="mt-2 text-xs text-[#8A7F78]">Meals you want to come back to</p>
+          {/* 4. SECONDARY CARDS ROW */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            {/* Card 1 — Just Me */}
+            <Link href="/deck" className="bg-[#2A2420] rounded-[20px] p-5 flex flex-col">
+              <span className="text-2xl">🎯</span>
+              <p className="font-display font-black text-lg text-white mt-3">Just Me</p>
+              <p className="font-body text-sm text-[#8A7F78] mt-1">Solo swipe. Fast answer.</p>
             </Link>
 
-            <Link
-              href="/history"
-              className="bg-[#2A2420] rounded-[20px] p-5 transition active:scale-[0.98]"
+            {/* Card 2 — Decide for Me */}
+            <button
+              onClick={() => { trackEvent("find_something_clicked"); router.push("/recommend"); }}
+              className="relative bg-[#2A2420] rounded-[20px] p-5 flex flex-col text-left"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm leading-none">🕒</span>
-                  <p className="text-[13px] font-medium text-[#8A7F78]">History</p>
-                </div>
-                <p className="text-[20px] font-semibold leading-none tracking-[-0.04em]">
-                  {historyCount}
-                </p>
-              </div>
-              <p className="mt-2 text-xs text-[#8A7F78]">What you&apos;ve been eating lately</p>
-            </Link>
+              <span className="absolute top-3 right-3 bg-[#E8621A] text-white font-display font-black text-[10px] px-2 py-0.5 rounded-full">
+                New
+              </span>
+              <span className="text-2xl">🎲</span>
+              <p className="font-display font-black text-lg text-white mt-3">Decide for Me</p>
+              <p className="font-body text-sm text-[#8A7F78] mt-1">One tap. Done. No thinking.</p>
+            </button>
           </div>
 
-          {/* Personal insight card — taps through to Profile */}
-          {insights.length > 0 && (
-            <Link
-              href="/profile"
-              className="mt-3 block bg-[#2A2420] rounded-[20px] p-5 transition active:scale-[0.98]"
-            >
-              <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase">
-                Lately you&apos;ve been…
+          {/* 5. RECENTLY DECIDED SECTION */}
+          {recentHistory.length > 0 && (
+            <div className="mt-8">
+              <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
+                Recently Decided
               </p>
-              <ul className="mt-3 space-y-2.5">
-                {insights.map((insight, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center gap-2.5 text-sm text-[#8A7F78]"
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                {recentHistory.map((entry) => (
+                  <span
+                    key={entry.meal.id + entry.chosenAt}
+                    className="flex items-center gap-2 bg-[#2A2420] text-white font-body text-sm font-medium px-4 py-2 rounded-full whitespace-nowrap"
                   >
-                    <span className="h-1 w-1 shrink-0 rounded-full bg-white/25" />
-                    {insight}
-                  </li>
+                    🍽️ {entry.meal.name}
+                  </span>
                 ))}
-              </ul>
-              {historyCount >= 3 && (
-                <p className="mt-4 text-[11px] text-white/25">
-                  Learning from {historyCount} pick{historyCount === 1 ? "" : "s"}
-                </p>
-              )}
-            </Link>
+              </div>
+            </div>
           )}
 
+          {/* 6. BOTTOM NAV */}
           <div className="mt-auto pt-8">
             <BottomNav />
           </div>

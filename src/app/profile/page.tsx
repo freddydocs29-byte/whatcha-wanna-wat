@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import BottomNav from "../components/BottomNav";
@@ -58,96 +57,19 @@ const NOVELTY_OPTIONS: { value: number; label: string; desc: string }[] = [
   { value: 0.8, label: "I love trying new things",  desc: "Surprise me every time" },
 ];
 
-// ── Section header ────────────────────────────────────────────────────────────
+// ── Category display name map ─────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-3">
-      {children}
-    </p>
-  );
-}
+const CATEGORY_LABELS: Record<string, string> = {
+  "Comfort food": "Comfort",
+  "Fresh & Healthy": "Fresh",
+  "Crowd-pleasers": "Crowd",
+  "Indulgent": "Indulgent",
+  "Quick & Easy": "Quick",
+  "Adventurous": "Bold",
+};
 
-// ── Divider with label ────────────────────────────────────────────────────────
-
-function DividerLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mt-12 mb-[-4px] flex items-center gap-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/20">
-        {children}
-      </p>
-      <div className="h-px flex-1 bg-white/[0.06]" />
-    </div>
-  );
-}
-
-// ── Chip (multi-select) ───────────────────────────────────────────────────────
-
-function Chip({
-  emoji,
-  label,
-  selected,
-  onToggle,
-}: {
-  emoji: string;
-  label: string;
-  selected: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.96] ${
-        selected
-          ? "border-white bg-white text-black shadow-[0_0_0_1px_rgba(255,255,255,0.3),0_4px_20px_rgba(255,255,255,0.10)]"
-          : "border-white/15 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09]"
-      }`}
-    >
-      <span>{emoji}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
-// ── Radio card (single-select) ────────────────────────────────────────────────
-
-function RadioCard({
-  label,
-  desc,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  desc: string;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className={`flex items-center gap-4 rounded-[22px] border p-4 text-left transition-all duration-150 active:scale-[0.99] ${
-        selected
-          ? "border-white/60 bg-white/[0.10] shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_6px_28px_rgba(255,255,255,0.06)]"
-          : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]"
-      }`}
-    >
-      <div className="flex-1">
-        <p className="text-[15px] font-semibold tracking-[-0.03em]">{label}</p>
-        <p className="mt-0.5 text-xs text-white/45">{desc}</p>
-      </div>
-      <div
-        className={`h-5 w-5 shrink-0 rounded-full border-2 transition-all duration-150 ${
-          selected ? "border-white bg-white" : "border-white/20"
-        }`}
-      />
-    </button>
-  );
-}
-
-// ── Loading pulse ─────────────────────────────────────────────────────────────
-
-function PulseLine() {
-  return <div className="h-4 w-28 animate-pulse rounded-full bg-white/[0.06]" />;
+function shortCategory(cat: string): string {
+  return CATEGORY_LABELS[cat] ?? cat.split(" ")[0];
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -167,6 +89,9 @@ export default function ProfilePage() {
   // ── Saved toast ────────────────────────────────────────────────────────────
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Hard NOs add mode ─────────────────────────────────────────────────────
+  const [showAddHardNo, setShowAddHardNo] = useState(false);
 
   useEffect(() => {
     // Sync reads — all available immediately from localStorage
@@ -284,259 +209,207 @@ export default function ProfilePage() {
     return Object.entries(freq).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
   })();
 
+  // ── Flavor profile bars ────────────────────────────────────────────────────
+
+  const flavorBars = tasteProfile
+    ? Object.entries(tasteProfile.likedCategories)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+    : [];
+
+  const maxFlavor = flavorBars[0]?.[1] ?? 1;
+
+  // ── Top cuisines (from prefs + history counts) ────────────────────────────
+
+  const cuisineCountMap: Record<string, number> = {};
+  for (const e of history) {
+    if (e.meal.cuisine) {
+      cuisineCountMap[e.meal.cuisine] = (cuisineCountMap[e.meal.cuisine] ?? 0) + 1;
+    }
+  }
+  const topCuisines = (prefs?.cuisines ?? [])
+    .map((label) => ({
+      label,
+      emoji: CUISINES.find((c) => c.label === label)?.emoji ?? "🍽️",
+      count: cuisineCountMap[label] ?? 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
+
+  // ── Member since ──────────────────────────────────────────────────────────
+
+  const memberSince = (() => {
+    if (history.length === 0) return null;
+    const oldest = history[history.length - 1];
+    return new Date(oldest.chosenAt).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  })();
+
+  // ── Insight text ─────────────────────────────────────────────────────────
+
+  const insightText = (() => {
+    if (topLikedTags.length === 0 && !topCategory) return null;
+    const parts: string[] = [];
+    if (topCategory) parts.push(topCategory);
+    if (topLikedTags[0]) parts.push(topLikedTags[0]);
+    return parts;
+  })();
+
   if (!prefs) return null;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-6 pt-5">
-        {/* Background blobs */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+    <main className="min-h-screen bg-[#1C1A18] text-white pb-24">
+
+      {/* ── Saved toast ──────────────────────────────────────────────────────── */}
+      <span
+        className={`fixed top-4 right-4 z-50 rounded-full border border-white/15 bg-white/[0.07] px-3 py-1 text-xs text-white/55 transition-all duration-300 ${
+          savedVisible ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        Saved
+      </span>
+
+      {/* ── 1. Profile header ─────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-4 px-5 pt-6">
+        <div className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white flex-shrink-0">
+          Y
         </div>
-
-        <div className="relative z-10 flex min-h-screen flex-col">
-
-          {/* ── Header ───────────────────────────────────────────────────────── */}
-          <header className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 opacity-90">
-              <Image
-                src="/logoheader.png"
-                alt="WWE logo"
-                height={18}
-                width={18}
-                className="h-[18px] w-auto"
-              />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
-                Whatcha Wanna Eat?
-              </p>
-            </Link>
-            <span
-              className={`rounded-full border border-white/15 bg-white/[0.07] px-3 py-1 text-xs text-white/55 transition-all duration-300 ${
-                savedVisible ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              Saved
-            </span>
-          </header>
-
-          {/* ── Page title ───────────────────────────────────────────────────── */}
-          <section className="pt-8">
-            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/55 backdrop-blur-md">
-              Your preferences
-            </div>
-            <h1 className="font-display font-black text-2xl text-white mt-4">
-              Tastes &amp; habits.
-            </h1>
-            <p className="mt-3 max-w-[34ch] text-sm leading-6 text-white/50">
-              Tap anything to update. Changes save automatically.
-            </p>
-          </section>
-
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-          {/* SECTION 1 — YOUR PREFERENCES                                       */}
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-
-          <DividerLabel>Your preferences</DividerLabel>
-
-          {/* What you love */}
-          <section className="mt-6">
-            <SectionLabel>What you love</SectionLabel>
-            <div className="flex flex-wrap gap-3">
-              {CUISINES.map((c) => (
-                <Chip
-                  key={c.label}
-                  emoji={c.emoji}
-                  label={c.label}
-                  selected={prefs.cuisines.includes(c.label)}
-                  onToggle={() => toggleCuisine(c.label)}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* Hard NOs */}
-          <section className="mt-8">
-            <SectionLabel>Hard NOs</SectionLabel>
-            <div className="flex flex-wrap gap-3">
-              {DISLIKED_FOODS.map((f) => {
-                const selected =
-                  f.label === "None of these"
-                    ? prefs.hardNoFoods.length === 0
-                    : prefs.hardNoFoods.includes(f.label);
-                return (
-                  <Chip
-                    key={f.label}
-                    emoji={f.emoji}
-                    label={f.label}
-                    selected={selected}
-                    onToggle={() => toggleDisliked(f.label)}
-                  />
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Dietary restrictions */}
-          <section className="mt-8">
-            <SectionLabel>Dietary restrictions</SectionLabel>
-            <div className="flex flex-wrap gap-3">
-              {DIETARY_OPTIONS.map((opt) => (
-                <Chip
-                  key={opt.label}
-                  emoji={opt.emoji}
-                  label={opt.label}
-                  selected={(prefs.dietaryRestrictions ?? []).includes(opt.label)}
-                  onToggle={() => toggleDietary(opt.label)}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* How adventurous? */}
-          <section className="mt-8">
-            <SectionLabel>How adventurous?</SectionLabel>
-            <div className="grid gap-3">
-              {NOVELTY_OPTIONS.map((opt) => (
-                <RadioCard
-                  key={opt.value}
-                  label={opt.label}
-                  desc={opt.desc}
-                  selected={noveltyBias === opt.value}
-                  onSelect={() => selectNoveltyBias(opt.value)}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-          {/* SECTION 2 — WHAT WE'VE LEARNED                                     */}
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-
-          <DividerLabel>What we&apos;ve learned</DividerLabel>
-
-          {/* Gravitating toward — sync from localStorage, hide if empty */}
-          {topLikedTags.length > 0 && (
-            <section className="mt-6">
-              <SectionLabel>Gravitating toward</SectionLabel>
-              <div className="flex flex-wrap gap-2">
-                {topLikedTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="bg-[#3D3733] text-white/60 font-body font-semibold text-[11px] px-3 py-1 rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Avoiding lately — sync from localStorage, hide if empty */}
-          {topDislikedTags.length > 0 && (
-            <section className="mt-6">
-              <SectionLabel>Avoiding lately</SectionLabel>
-              <div className="flex flex-wrap gap-2">
-                {topDislikedTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="bg-red-950/60 text-red-400 font-body font-semibold text-[11px] px-3 py-1 rounded-full border border-red-900/40"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Temporarily dialed back — async from Supabase soft_avoids */}
-          {asyncLoading ? (
-            <section className="mt-6">
-              <SectionLabel>Temporarily dialed back</SectionLabel>
-              <PulseLine />
-            </section>
-          ) : softAvoids.length > 0 ? (
-            <section className="mt-6">
-              <SectionLabel>Temporarily dialed back</SectionLabel>
-              <div className="flex flex-col gap-2">
-                {softAvoids.map((sa, i) => {
-                  const daysLeft = Math.ceil(
-                    (new Date(sa.expiresAt).getTime() - Date.now()) / 86400000,
-                  );
-                  return (
-                    <div
-                      key={i}
-                      className="rounded-[14px] border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/55"
-                    >
-                      {sa.category}
-                      <span className="ml-2 text-white/30">
-                        · resets in {daysLeft} day{daysLeft !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ) : null}
-
-          {/* Your patterns — async from Supabase decisions, hide if none */}
-          {asyncLoading ? (
-            <section className="mt-6">
-              <SectionLabel>Your patterns</SectionLabel>
-              <PulseLine />
-            </section>
-          ) : rituals.length > 0 ? (
-            <section className="mt-6">
-              <SectionLabel>Your patterns</SectionLabel>
-              <div className="flex flex-col gap-2">
-                {rituals.map((r) => (
-                  <div
-                    key={r.context}
-                    className="rounded-[14px] border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white/55"
-                  >
-                    {getRitualLabel(r.context)}
-                    <span className="text-white/30"> · {r.category}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-          {/* SECTION 3 — YOUR STATS                                             */}
-          {/* ═══════════════════════════════════════════════════════════════════ */}
-
-          {interactionCount > 0 && (
-            <>
-              <DividerLabel>Your stats</DividerLabel>
-
-              <section className="mt-6">
-                <div className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06]">
-                  <div className="flex items-center justify-between px-4 py-3.5">
-                    <span className="text-sm text-white/50">Decisions made</span>
-                    <span className="text-sm font-semibold tabular-nums">{interactionCount}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-4 py-3.5">
-                    <span className="text-sm text-white/50">Meals tried</span>
-                    <span className="text-sm font-semibold tabular-nums">{mealsTriedCount}</span>
-                  </div>
-                  {topCategory && (
-                    <div className="flex items-center justify-between px-4 py-3.5">
-                      <span className="text-sm text-white/50">Most accepted</span>
-                      <span className="text-sm font-semibold">{topCategory}</span>
-                    </div>
-                  )}
-                </div>
-              </section>
-            </>
-          )}
-
-          <div className="mt-auto pt-10">
-            <BottomNav />
-          </div>
-
+        <div className="flex-1 min-w-0">
+          <p className="font-display font-black text-2xl text-white leading-tight">You</p>
+          <p className="font-body text-sm text-[#8A7F78] mt-0.5">
+            {memberSince ? `Member since ${memberSince} · ` : ""}
+            {history.length} decisions
+          </p>
         </div>
+        <Link
+          href="/onboarding"
+          className="bg-[#2A2420] text-white font-body font-semibold text-sm px-4 py-2 rounded-full flex-shrink-0"
+        >
+          Edit
+        </Link>
       </div>
+
+      {/* ── 2. Insight card ───────────────────────────────────────────────────── */}
+      {insightText && (
+        <div className="mx-5 mt-5 bg-[#2A2420] rounded-[18px] p-5 border-l-4 border-[#E8621A]">
+          <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase">
+            WATCHA? KNOWS YOU
+          </p>
+          <p className="font-display font-black text-base text-white leading-snug mt-2">
+            You tend to go for{" "}
+            {insightText[0] && (
+              <span className="text-[#E8621A]">{insightText[0]}</span>
+            )}
+            {insightText[1] && (
+              <>
+                {" "}with a{" "}
+                <span className="text-[#E8621A]">{insightText[1]}</span>
+                {" "}vibe
+              </>
+            )}
+            .
+          </p>
+        </div>
+      )}
+
+      {/* ── 3. Flavor profile bars ───────────────────────────────────────────── */}
+      {flavorBars.length > 0 && (
+        <div className="px-5 mt-8">
+          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-4">
+            FLAVOR PROFILE
+          </p>
+          {flavorBars.map(([cat, val]) => {
+            const pct = Math.round((val / maxFlavor) * 100);
+            return (
+              <div key={cat} className="flex items-center gap-3 mb-3">
+                <span className="font-body text-sm text-white/80 w-16 flex-shrink-0">
+                  {shortCategory(cat)}
+                </span>
+                <div className="flex-1 h-2 bg-[#3D3733] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#E8621A] rounded-full"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="font-display font-bold text-sm text-[#E8621A] w-10 text-right flex-shrink-0">
+                  {pct}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── 4. Top cuisines ──────────────────────────────────────────────────── */}
+      {topCuisines.length > 0 && (
+        <div className="px-5 mt-8">
+          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
+            TOP CUISINES
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {topCuisines.map(({ label, emoji, count }) => (
+              <div key={label} className="bg-[#2A2420] rounded-[16px] p-4 flex items-center gap-3">
+                <span className="text-2xl flex-shrink-0">{emoji}</span>
+                <div className="min-w-0">
+                  <p className="font-display font-bold text-base text-white">{label}</p>
+                  <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                    {count > 0 ? `Decided ${count}×` : "In your list"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. Hard NOs ──────────────────────────────────────────────────────── */}
+      <div className="px-5 mt-8">
+        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
+          HARD NOS — NEVER SHOWING THESE
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {prefs.hardNoFoods.map((food) => (
+            <button
+              key={food}
+              onClick={() => toggleDisliked(food)}
+              className="flex items-center gap-1.5 bg-red-950/50 text-red-400 font-body font-semibold text-sm px-4 py-2 rounded-full border border-red-900/40"
+            >
+              <span className="font-black">×</span>
+              {food}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowAddHardNo((v) => !v)}
+            className="flex items-center gap-1 bg-[#2A2420] text-[#8A7F78] font-body font-semibold text-sm px-4 py-2 rounded-full"
+          >
+            + Add
+          </button>
+        </div>
+        {/* Inline add picker */}
+        {showAddHardNo && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {DISLIKED_FOODS.filter(
+              (f) => f.label !== "None of these" && !prefs.hardNoFoods.includes(f.label)
+            ).map((f) => (
+              <button
+                key={f.label}
+                onClick={() => { toggleDisliked(f.label); setShowAddHardNo(false); }}
+                className="flex items-center gap-1.5 bg-[#2A2420] text-white/70 font-body font-semibold text-sm px-4 py-2 rounded-full border border-white/10"
+              >
+                {f.emoji} {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── 6. Deciding with — hidden when no partner data ────────────────────── */}
+      {/* No partner name data in the current auth model (localStorage UUIDs only) */}
+
+      {/* ── Bottom nav ───────────────────────────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50">
+        <BottomNav />
+      </div>
+
     </main>
   );
 }

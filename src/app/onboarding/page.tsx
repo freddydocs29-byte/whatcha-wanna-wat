@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -168,74 +167,63 @@ export default function OnboardingPage() {
 
   const currentStep = STEPS[step - 1];
 
+  // Emojis for step 3 novelty options (no emoji field on NOVELTY_OPTIONS)
+  const noveltyEmojis = ["🔁", "⚖️", "🌟"];
+
   return (
-    <main className="min-h-screen bg-[#FAF6F1]">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-8 pt-6">
-        {/* Background blobs */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#E8621A]/[0.06] blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-[#E8621A]/[0.03] blur-3xl" />
-        </div>
+    <main className="min-h-screen bg-[#1C1A18] text-white">
+      <div className="mx-auto w-full max-w-md pb-32">
 
-        <div className="relative z-10 flex min-h-screen flex-col">
-          {/* Header */}
-          <header className="flex items-center justify-between">
-            <div className="flex items-center gap-2 opacity-90">
-              <Image src="/logoheader.png" alt="WWE logo" height={18} width={18} className="h-[18px] w-auto" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#1C1A18]/40">
-                Whatcha Wanna Eat?
-              </p>
-            </div>
-            {step > 1 && (
-              <button
-                onClick={goBack}
-                className="text-sm text-[#1C1A18]/50 transition hover:text-[#1C1A18]/80"
-              >
-                Back
-              </button>
-            )}
-          </header>
-
-          {/* Segmented progress bar */}
-          <div className="mt-6 flex gap-1.5">
+        {/* 1. PROGRESS BAR */}
+        <div className="flex items-center gap-3 px-5 pt-4">
+          {step > 1 && (
+            <button
+              onClick={goBack}
+              className="text-[#8A7F78] text-lg leading-none flex-shrink-0 pr-1"
+            >
+              ←
+            </button>
+          )}
+          <div className="flex flex-1 gap-1.5">
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-              <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-[#F0E9DF]">
-                <div
-                  className="h-full bg-[#E8621A] rounded-full transition-all duration-500"
-                  style={{ width: i + 1 <= step ? "100%" : "0%" }}
-                />
-              </div>
+              <div
+                key={i}
+                className={`h-[3px] flex-1 rounded-full ${
+                  i + 1 <= step ? "bg-[#E8621A]" : "bg-[#3D3733]"
+                }`}
+              />
             ))}
           </div>
+        </div>
 
-          {/* Animated step content */}
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={step}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-              className={`flex flex-1 flex-col${step <= 2 ? " pb-28" : ""}`}
-            >
-              {/* Question */}
-              <div className="mt-10">
-                <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase">
-                  {step} of {TOTAL_STEPS}
-                </p>
-                <h1 className="mt-4 whitespace-pre-line font-display font-black text-3xl text-[#1C1A18] leading-tight">
-                  {currentStep.title}
-                </h1>
-                <p className="mt-3 max-w-[34ch] font-body text-base text-[#1C1A18]/60">
-                  {currentStep.subtitle}
-                </p>
-              </div>
+        {/* Animated step content */}
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={step}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col"
+          >
+            {/* 2. QUESTION HEADLINE */}
+            <h1 className="font-display font-black text-3xl text-white leading-tight mt-8 px-5 whitespace-pre-line">
+              {currentStep.title}
+            </h1>
 
-              {/* ── Step 1: dietary constraints + hard NOs ─────────────────── */}
+            {/* 3. SUBTEXT */}
+            <p className="font-body text-base text-[#8A7F78] mt-3 px-5">
+              {currentStep.subtitle}
+            </p>
+
+            {/* 4. OPTIONS LIST */}
+            <div className="flex flex-col gap-3 mt-8 px-5">
+
+              {/* ── Step 1: dietary constraints + hard NOs ─────────────── */}
               {step === 1 && (
-                <div className="mt-8 flex flex-wrap gap-3">
+                <>
                   {STEP1_OPTIONS.map((opt) => {
                     const arr = opt.field === "dietary" ? dietaryRestrictions : hardNoFoods;
                     const selected = arr.includes(opt.label);
@@ -243,55 +231,82 @@ export default function OnboardingPage() {
                       <button
                         key={opt.label}
                         onClick={() => toggleOption(opt.label, opt.field)}
-                        className={`flex items-center gap-2 rounded-[12px] border px-5 py-3 font-body text-sm font-semibold transition-all duration-150 active:scale-[0.96] ${
+                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
                           selected
-                            ? "bg-[#E8621A]/15 text-[#E8621A] border-[#E8621A]/60"
-                            : "bg-[#3D3733] text-white/80 border-transparent"
+                            ? "bg-[#E8621A]/10 border-[#E8621A]"
+                            : "bg-[#2A2420] border-transparent"
                         }`}
                       >
-                        <span>{opt.emoji}</span>
-                        <span>{opt.label}</span>
+                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          {opt.emoji}
+                        </div>
+                        <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          {opt.label}
+                        </span>
+                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                          selected
+                            ? "bg-[#E8621A] flex items-center justify-center"
+                            : "border-2 border-[#3D3733]"
+                        }`}>
+                          {selected && <span className="text-sm font-black text-white">✓</span>}
+                        </div>
                       </button>
                     );
                   })}
-                  {/* "No restrictions" advances immediately without requiring Continue */}
+                  {/* "No restrictions" — advances immediately without requiring Continue */}
                   <button
                     onClick={handleNoRestrictions}
-                    className="flex items-center gap-2 rounded-[12px] border border-transparent bg-[#3D3733] px-5 py-3 font-body text-sm font-semibold text-white/80 transition-all duration-150 active:scale-[0.96]"
+                    className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
                   >
-                    <span>✓</span>
-                    <span>No restrictions</span>
+                    <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                      🚫
+                    </div>
+                    <span className="flex-1 font-display font-black text-lg text-white text-left">
+                      No restrictions
+                    </span>
+                    <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
                   </button>
-                </div>
+                </>
               )}
 
-              {/* ── Step 2: cuisine preferences (unchanged from original) ───── */}
+              {/* ── Step 2: cuisine preferences ────────────────────────── */}
               {step === 2 && (
-                <div className="mt-8 flex flex-wrap gap-3">
+                <>
                   {CUISINES.map((c) => {
                     const selected = cuisines.includes(c.label);
                     return (
                       <button
                         key={c.label}
                         onClick={() => toggleCuisine(c.label)}
-                        className={`flex items-center gap-2 rounded-[12px] border px-5 py-3 font-body text-sm font-semibold transition-all duration-150 active:scale-[0.96] ${
+                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
                           selected
-                            ? "bg-[#E8621A]/15 text-[#E8621A] border-[#E8621A]/60"
-                            : "bg-[#3D3733] text-white/80 border-transparent"
+                            ? "bg-[#E8621A]/10 border-[#E8621A]"
+                            : "bg-[#2A2420] border-transparent"
                         }`}
                       >
-                        <span>{c.emoji}</span>
-                        <span>{c.label}</span>
+                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          {c.emoji}
+                        </div>
+                        <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          {c.label}
+                        </span>
+                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                          selected
+                            ? "bg-[#E8621A] flex items-center justify-center"
+                            : "border-2 border-[#3D3733]"
+                        }`}>
+                          {selected && <span className="text-sm font-black text-white">✓</span>}
+                        </div>
                       </button>
                     );
                   })}
-                </div>
+                </>
               )}
 
-              {/* ── Step 3: familiarity vs novelty (auto-advances on selection) */}
+              {/* ── Step 3: familiarity vs novelty (auto-advances on pick) ─ */}
               {step === 3 && (
-                <div className="mt-8 grid gap-3">
-                  {NOVELTY_OPTIONS.map((opt) => {
+                <>
+                  {NOVELTY_OPTIONS.map((opt, i) => {
                     const selected = noveltyBias === opt.value;
                     return (
                       <button
@@ -300,54 +315,52 @@ export default function OnboardingPage() {
                           setNoveltyBias(opt.value);
                           scheduleNoveltyAdvance();
                         }}
-                        className={`flex items-center gap-4 rounded-[12px] border p-4 text-left transition-all duration-150 active:scale-[0.99] ${
+                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
                           selected
-                            ? "bg-[#E8621A]/15 text-[#E8621A] border-[#E8621A]/60"
-                            : "bg-[#3D3733] text-white/80 border-transparent"
+                            ? "bg-[#E8621A]/10 border-[#E8621A]"
+                            : "bg-[#2A2420] border-transparent"
                         }`}
                       >
-                        <div className="flex-1">
-                          <p className="text-[15px] font-semibold tracking-[-0.03em]">{opt.label}</p>
+                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          {noveltyEmojis[i]}
                         </div>
-                        <div
-                          className={`h-5 w-5 shrink-0 rounded-full border-2 transition-all duration-150 ${
-                            selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/30"
-                          }`}
-                        />
+                        <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          {opt.label}
+                        </span>
+                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                          selected
+                            ? "bg-[#E8621A] flex items-center justify-center"
+                            : "border-2 border-[#3D3733]"
+                        }`}>
+                          {selected && <span className="text-sm font-black text-white">✓</span>}
+                        </div>
                       </button>
                     );
                   })}
-                </div>
+                </>
               )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Sticky Continue button:
+      {/* 5. CONTINUE BUTTON — fixed at bottom
            Steps 1-2 (multi-select): always shown.
            Step 3 (auto-advance): shown only if the user navigated back and already
            has a noveltyBias set so they can proceed without re-selecting. */}
       {(step <= 2 || (step === 3 && noveltyBias !== null)) && (
-        <div className="fixed bottom-0 left-0 right-0 z-30">
-          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#FAF6F1]" />
+        <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
+          <div className="mx-auto w-full max-w-md">
             <button
               onClick={advance}
               disabled={!canContinue()}
-              className={`w-full rounded-full bg-[#E8621A] text-white font-display font-black text-base py-4 text-center transition active:scale-[0.99] ${
-                canContinue() ? "" : "opacity-40 pointer-events-none"
+              className={`w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99] ${
+                !canContinue() ? "opacity-40 pointer-events-none" : ""
               }`}
             >
               Continue
             </button>
-            {step <= 2 && !canContinue() && (
-              <p className="mt-3 text-center text-xs text-[#1C1A18]/30">
-                {step === 1
-                  ? "Select above or tap No restrictions"
-                  : "Select at least one above"}
-              </p>
-            )}
           </div>
         </div>
       )}

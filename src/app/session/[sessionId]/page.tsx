@@ -51,9 +51,10 @@ type ViewerRole = "host" | "guest" | "full" | "unknown";
 const POLL_INTERVAL_MS = 3000;
 
 const BUILD_PHRASES = [
-  "Combining your taste profiles…",
-  "Finding meals you'll both love…",
-  "Building your shared deck…",
+  "Finding what you'll both actually want...",
+  "Filtering out the hard nos...",
+  "Building your deck...",
+  "Almost there...",
 ];
 
 const COOKING_INTENT_OPTIONS: { value: CookingIntent; label: string; sub: string }[] = [
@@ -141,7 +142,6 @@ export default function SessionPage() {
       if (deckTriggeredRef.current) return; // already in progress on this client
 
       deckTriggeredRef.current = true;
-      setBuildingDeck(true);
 
       try {
         const mealIds = await buildSharedDeckForSession(
@@ -157,8 +157,6 @@ export default function SessionPage() {
         console.error("[session] deck generation failed:", err);
         // Reset so polling can retry
         deckTriggeredRef.current = false;
-      } finally {
-        setBuildingDeck(false);
       }
     },
     [], // sessionId is stable; no deps needed
@@ -281,10 +279,15 @@ export default function SessionPage() {
         updated_at: new Date().toISOString(),
       })
       .eq("id", sessionId);
-    // Build the shared deck (safe to call even if already built — returns early)
-    if (!session.deck_meal_ids?.length) {
-      await generateDeckIfNeeded(session);
-    }
+    // Show the Building Deck screen for a minimum of 3 seconds regardless of
+    // how fast the data loads, so the animation has time to play.
+    setBuildingDeck(true);
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 3000));
+    const deckBuild = !session.deck_meal_ids?.length
+      ? generateDeckIfNeeded(session)
+      : Promise.resolve();
+    await Promise.all([minDelay, deckBuild]);
+    setBuildingDeck(false);
     trackEvent("shared_deck_started", { sessionId, vibe: selectedVibe, cookingIntent: selectedCookingIntent });
     router.push(`/deck?sessionId=${sessionId}&vibe=${selectedVibe}`);
   }
@@ -566,96 +569,119 @@ export default function SessionPage() {
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
     const guestBothConnected = session?.status === "active" || session?.status === "matched";
 
-    return (
-      <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-        <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+    // Cooking intent question — shown once both users are connected
+    if (guestBothConnected && cookingIntentStep === "pending") {
+      return (
+        <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
+          <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+            </div>
+            <div className="relative z-10 flex flex-col gap-8 pt-6">
+              <div className="flex items-center justify-between">
+                <Link
+                  href="/"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 backdrop-blur-md transition active:scale-[0.98]"
+                >
+                  ←
+                </Link>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+                  Shared session
+                </span>
+                <div className="w-10" />
+              </div>
+              <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+                <div className="flex items-center gap-2.5">
+                  <span className="h-2 w-2 rounded-full bg-white/70" />
+                  <p className="text-xs font-medium uppercase tracking-widest text-white/50">
+                    Both connected
+                  </p>
+                </div>
+                <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
+                  Quick question
+                </h1>
+                <p className="mt-3 text-sm leading-6 text-white/55">
+                  Cooking or ordering tonight?
+                </p>
+                <div className="mt-5 grid grid-cols-3 gap-3">
+                  {COOKING_INTENT_OPTIONS.map(({ value, label, sub }) => {
+                    const emojis: Record<CookingIntent, string> = { cooking: "🍳", ordering: "📱", either: "🤷" };
+                    const isActive = selectedCookingIntent === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => void handleCookingIntentSelect(value)}
+                        className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-4 text-center transition-all duration-150 active:scale-[0.97] ${
+                          isActive
+                            ? "border-white/30 bg-white/[0.12] text-white/90"
+                            : "border-white/[0.07] bg-white/[0.03] text-white/35 hover:border-white/15 hover:text-white/55"
+                        }`}
+                      >
+                        <span className="text-2xl">{emojis[value]}</span>
+                        <span className="text-xs font-semibold tracking-[-0.01em]">{label}</span>
+                        <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-white/45" : "text-white/20"}`}>{sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={handleCookingIntentSkip}
+                  className="mt-4 w-full text-center text-xs text-white/30 transition hover:text-white/50"
+                >
+                  Skip
+                </button>
+              </div>
+              <p className="text-center text-[11px] text-white/20">
+                Session · {sessionId?.slice(0, 8)}
+              </p>
+            </div>
           </div>
+        </main>
+      );
+    }
 
-          <div className="relative z-10 flex flex-col gap-8 pt-6">
-            <div className="flex items-center justify-between">
-              <Link
-                href="/"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 backdrop-blur-md transition active:scale-[0.98]"
-              >
-                ←
-              </Link>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
-                Shared session
-              </span>
-              <div className="w-10" />
-            </div>
+    // Waiting / building deck state
+    return (
+      <main className="relative min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+        <Link
+          href="/"
+          className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
+        >
+          ←
+        </Link>
 
-            <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              {guestBothConnected && cookingIntentStep === "pending" ? (
-                <>
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full bg-white/70" />
-                    <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                      Both connected
-                    </p>
-                  </div>
-                  <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
-                    Quick question
-                  </h1>
-                  <p className="mt-3 text-sm leading-6 text-white/55">
-                    Cooking or ordering tonight?
-                  </p>
-                  <div className="mt-5 grid grid-cols-3 gap-3">
-                    {COOKING_INTENT_OPTIONS.map(({ value, label, sub }) => {
-                      const emojis: Record<CookingIntent, string> = { cooking: "🍳", ordering: "📱", either: "🤷" };
-                      const isActive = selectedCookingIntent === value;
-                      return (
-                        <button
-                          key={value}
-                          onClick={() => void handleCookingIntentSelect(value)}
-                          className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-4 text-center transition-all duration-150 active:scale-[0.97] ${
-                            isActive
-                              ? "border-white/30 bg-white/[0.12] text-white/90"
-                              : "border-white/[0.07] bg-white/[0.03] text-white/35 hover:border-white/15 hover:text-white/55"
-                          }`}
-                        >
-                          <span className="text-2xl">{emojis[value]}</span>
-                          <span className="text-xs font-semibold tracking-[-0.01em]">{label}</span>
-                          <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-white/45" : "text-white/20"}`}>{sub}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    onClick={handleCookingIntentSkip}
-                    className="mt-4 w-full text-center text-xs text-white/30 transition hover:text-white/50"
-                  >
-                    Skip
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white/70" />
-                    </span>
-                    <p className="text-xs font-medium uppercase tracking-widest text-white/50">
-                      Waiting
-                    </p>
-                  </div>
-                  <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
-                    Hang tight…
-                  </h1>
-                  <p className="mt-3 text-sm leading-6 text-white/55">
-                    Waiting for the host to start the deck.
-                  </p>
-                </>
-              )}
-            </div>
+        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-12">
+          Shared session
+        </p>
 
-            <p className="text-center text-[11px] text-white/20">
-              Session · {sessionId?.slice(0, 8)}
-            </p>
+        <div className="w-24 h-24 rounded-full bg-[#E8621A]/10 flex items-center justify-center animate-pulse">
+          <div className="w-14 h-14 rounded-full bg-[#E8621A]/20 flex items-center justify-center">
+            <span className="text-3xl">👥</span>
           </div>
         </div>
+
+        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight">
+          Your host is deciding with you.
+        </h1>
+        <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+          Hang tight. Building a deck for both of you.
+        </p>
+
+        <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
+          <span className="w-2 h-2 rounded-full bg-[#E8621A] animate-pulse" />
+          <span className="font-body text-sm text-[#8A7F78]">BUILDING YOUR DECK...</span>
+        </div>
+
+        <Link
+          href="/"
+          className="font-body text-sm text-[#8A7F78]/50 mt-12 transition hover:text-[#8A7F78]"
+        >
+          Leave session
+        </Link>
+
+        <p className="font-body text-xs text-[#8A7F78]/40 mt-4">
+          Session · {sessionId}
+        </p>
       </main>
     );
   }
@@ -718,48 +744,55 @@ export default function SessionPage() {
 
   // ── Building deck loading screen ─────────────────────────────────────────
   if (buildingDeck) {
+    const myInitial = "Y";
+    const partnerInitial = "?";
+
     return (
-      <main className="min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center px-5">
-        {/* Avatars + connector */}
-        <div className="flex items-center gap-4 mb-10">
-          <div className="w-14 h-14 rounded-full bg-[#3D3733] flex items-center justify-center font-display font-black text-lg text-white">
-            👤
-          </div>
-          <span className="font-display font-black text-2xl text-[#E8621A]">+</span>
-          <div className="w-14 h-14 rounded-full bg-[#3D3733] flex items-center justify-center font-display font-black text-lg text-white">
-            👤
-          </div>
-        </div>
-
-        {/* Pulsing orb */}
-        <div className="w-48 h-48 rounded-full bg-[#E8621A]/20 flex items-center justify-center animate-orb-pulse">
-          <div
-            className="w-24 h-24 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-4xl text-white"
-            style={{ boxShadow: "0 0 40px rgba(232,98,26,0.3)" }}
-          >
-            🍽️
+      <main className="min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center">
+        {/* Concentric rings */}
+        <div
+          className="relative flex items-center justify-center w-72 h-72"
+          style={{ animation: "pulse 3s ease-in-out infinite" }}
+        >
+          {/* Ring 1 — outermost */}
+          <div className="absolute w-72 h-72 rounded-full border border-[#E8621A]/20" />
+          {/* Ring 2 — middle */}
+          <div className="absolute w-52 h-52 rounded-full border border-[#E8621A]/35" />
+          {/* Ring 3 — inner */}
+          <div className="absolute w-36 h-36 rounded-full border border-[#E8621A]/50" />
+          {/* Center circle */}
+          <div className="w-20 h-20 rounded-full bg-[#3D1A00] flex items-center justify-center">
+            <span className="font-display font-black text-3xl text-[#E8621A]">?</span>
           </div>
         </div>
 
-        {/* Copy */}
-        <div className="mt-10">
-          <p className="font-display font-bold text-xl text-white text-center">
-            {BUILD_PHRASES[buildPhrase]}
-          </p>
-          <p className="font-body text-sm text-[#8A7F78] text-center mt-2">
-            Takes about 3 seconds
-          </p>
+        {/* Overlapping avatars */}
+        <div className="flex items-center justify-center mt-8">
+          <div className="w-10 h-10 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-sm text-white border-2 border-[#1C1A18] z-10 relative">
+            {myInitial}
+          </div>
+          <div className="w-10 h-10 rounded-full bg-[#3D3733] flex items-center justify-center font-display font-black text-sm text-white border-2 border-[#1C1A18] -ml-3">
+            {partnerInitial}
+          </div>
         </div>
 
-        {/* Progress dots */}
-        <div className="flex gap-2 mt-8">
-          {BUILD_PHRASES.map((_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full ${i === buildPhrase ? "bg-[#E8621A]" : "bg-[#3D3733]"}`}
-            />
-          ))}
-        </div>
+        {/* Status label */}
+        <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mt-4">
+          COMBINING YOUR TASTES...
+        </p>
+
+        {/* Rotating headline */}
+        <p
+          className="font-display font-black text-3xl text-white text-center mt-4 leading-tight px-8 transition-opacity duration-500"
+          style={{ opacity: 1 }}
+        >
+          {BUILD_PHRASES[buildPhrase]}
+        </p>
+
+        {/* Subtext */}
+        <p className="font-body text-sm text-[#8A7F78] text-center mt-3">
+          Filtering out the maybes. Your deck is almost ready.
+        </p>
       </main>
     );
   }
@@ -768,6 +801,67 @@ export default function SessionPage() {
   const bothConnected = session?.status === "active" || session?.status === "matched";
   const deckReady = !!(session?.deck_meal_ids?.length);
 
+  // ── Host: waiting for guest to join ──────────────────────────────────────
+  if (role === "host" && !bothConnected) {
+    return (
+      <main className="relative min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+        <Link
+          href="/"
+          className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
+        >
+          ←
+        </Link>
+
+        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-12">
+          Shared session
+        </p>
+
+        <div className="w-24 h-24 rounded-full bg-[#E8621A]/10 flex items-center justify-center animate-pulse">
+          <div className="w-14 h-14 rounded-full bg-[#E8621A]/20 flex items-center justify-center">
+            <span className="text-3xl">👥</span>
+          </div>
+        </div>
+
+        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight">
+          Waiting for someone to join.
+        </h1>
+        <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+          Share the link below. Your deck builds the moment they join.
+        </p>
+
+        <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
+          <span className="w-2 h-2 rounded-full bg-[#4A7C59] animate-pulse" />
+          <span className="font-body text-sm text-[#8A7F78]">WAITING FOR SOMEONE</span>
+        </div>
+
+        <div className="w-full bg-[#2A2420] rounded-[16px] px-4 py-3 mt-8">
+          <p className="font-body text-sm text-[#8A7F78] truncate">{sessionUrl}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mt-3 w-full">
+          <button
+            onClick={handleShare}
+            className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-[14px]"
+            style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+          >
+            Share link
+          </button>
+          <button
+            onClick={handleCopy}
+            className="w-full bg-[#2A2420] text-white font-display font-black text-base py-4 rounded-[14px] border border-white/10"
+          >
+            {copied ? "Copied!" : "Copy link"}
+          </button>
+        </div>
+
+        <p className="font-body text-xs text-[#8A7F78]/40 mt-6">
+          Session · {sessionId}
+        </p>
+      </main>
+    );
+  }
+
+  // ── Host: both connected ──────────────────────────────────────────────────
   return (
     <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
