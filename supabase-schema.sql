@@ -4,23 +4,39 @@
 -- One row per anonymous user (keyed by localStorage UUID). No auth required.
 -- Persists preferences and learned weights across sessions on the same device,
 -- and enables week-over-week improvement for each user.
+--
+-- auth_user_id: set when the user creates a Supabase Auth account.
+--   Allows cross-device sync by linking the auth identity to the anon profile.
+--   See supabase-migration-auth.sql for the ALTER TABLE to add this column.
+-- avatar_url: public URL of the user's avatar in the `avatars` Storage bucket.
 
 create table if not exists profiles (
-  user_id                text        primary key,
-  display_name           text,
-  dietary_restrictions   jsonb       not null default '[]',  -- dislikedFoods e.g. ["Seafood","Dairy"]
-  hard_no_foods          jsonb       not null default '[]',  -- strict never-show list (same as above for MVP)
-  favorite_cuisines      jsonb       not null default '[]',  -- preferred cuisines e.g. ["Italian","Asian"]
-  learned_weights              jsonb,                              -- TasteProfile: likedTags/dislikedTags/likedCategories/interactionCount
-  recently_seen_meal_ids       jsonb       not null default '[]',  -- flat list of recently shown meal IDs (recency penalty)
-  pantry_ingredient_counts     jsonb       not null default '{}',  -- {ingredient: useCount} — built from pantry_ingredients_selected events
+  user_id                      text        primary key,
+  auth_user_id                 uuid        unique,                             -- nullable; set on account creation
+  display_name                 text,                                           -- full name from sign-up or profile edit
+  avatar_url                   text,                                           -- public URL in avatars Storage bucket
+  dietary_restrictions         jsonb       not null default '[]',              -- e.g. ["Vegetarian","Halal"]
+  hard_no_foods                jsonb       not null default '[]',              -- strict never-show list e.g. ["No pork"]
+  favorite_cuisines            jsonb       not null default '[]',              -- preferred cuisines e.g. ["Italian","Asian"]
+  learned_weights              jsonb,                                          -- TasteProfile: likedTags/dislikedTags/likedCategories/interactionCount
+  recently_seen_meal_ids       jsonb       not null default '[]',              -- flat list of recently shown meal IDs (recency penalty)
+  pantry_ingredient_counts     jsonb       not null default '{}',              -- {ingredient: useCount} — built from pantry_ingredients_selected events
   created_at                   timestamptz not null default now(),
   updated_at                   timestamptz not null default now()
 );
 
--- RLS: open access for MVP (tighten when real auth is added)
+create index if not exists profiles_auth_user_id_idx
+  on profiles (auth_user_id) where auth_user_id is not null;
+
+-- RLS: open access for MVP — tighten to auth.uid() scoped policies once
+-- anonymous usage is deprecated.
 alter table profiles enable row level security;
 create policy "MVP open access" on profiles for all using (true) with check (true);
+
+-- ─── Avatars storage bucket ───────────────────────────────────────────────────
+-- Run supabase-migration-auth.sql to create the bucket and its RLS policies.
+-- Bucket: avatars (public, 5 MB limit, JPEG/PNG/WebP)
+-- Path pattern: avatars/{user_id}/avatar.{ext}
 
 create table sessions (
   id             uuid        default gen_random_uuid() primary key,

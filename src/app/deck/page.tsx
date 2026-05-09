@@ -1531,7 +1531,7 @@ function DeckContent() {
           }
         }
 
-        router.push(`/solo-match?mealId=${chosenMeal.id}${pantryMode ? "&pantry=1" : ""}`);
+        router.push("/");
       });
     }, 240);
   }

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "./components/BottomNav";
 import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
+import SplashScreen from "./components/SplashScreen";
 import { supabase } from "./lib/supabase";
 import { getUserId } from "./lib/identity";
 import {
@@ -13,6 +14,7 @@ import {
   getFavorites,
   getHistory,
   hasCompletedOnboarding,
+  markOnboardingDone,
   getTodaysPick,
   getStreak,
   clearTodaysPick,
@@ -21,7 +23,7 @@ import {
   addToHistory,
   HistoryEntry,
 } from "./lib/storage";
-import SaveLaterButton from "./locked/SaveLaterButton";
+import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import { trackEvent } from "./lib/analytics";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
@@ -109,6 +111,10 @@ function deriveInsights(history: HistoryEntry[]): string[] {
 
 export default function Home() {
   const router = useRouter();
+  // showSplash: true when no Supabase session exists (logged-out user)
+  // ready: true when session confirmed and home data loaded
+  // While neither is set, we're waiting for the auth check — render null.
+  const [showSplash, setShowSplash] = useState(false);
   const [ready, setReady] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [historyCount, setHistoryCount] = useState(0);
@@ -124,28 +130,58 @@ export default function Home() {
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasCompletedOnboarding()) {
-      router.replace("/onboarding");
-      return;
-    }
-    const saved = getSavedMeals();
-    const favorites = getFavorites();
-    const favoriteIds = new Set(favorites.map((m) => m.id));
-    const savedForLater = saved.filter((m) => !favoriteIds.has(m.id));
-    setSavedCount(favorites.length + savedForLater.length);
-    const history = getHistory();
-    setHistoryCount(history.length);
-    setInsights(deriveInsights(history));
-    setRecentHistory(history.slice(0, 8));
-    setTodaysPick(getTodaysPick());
-    setStreak(getStreak());
-    setReady(true);
+    async function checkAndRoute() {
+      // getSession() reads from the Supabase localStorage cache — no network call.
+      const { data: { session } } = await supabase.auth.getSession();
 
-    // Track once per browser session so repeated navigations don't re-fire.
-    if (!sessionStorage.getItem("wwe_app_opened")) {
-      sessionStorage.setItem("wwe_app_opened", "1");
-      trackEvent("app_opened");
+      if (!session) {
+        // No active session — show splash for logged-out users.
+        setShowSplash(true);
+        return;
+      }
+
+      // Session exists — check whether onboarding is complete.
+      // Fast path: localStorage flag (same device as previous visit).
+      if (!hasCompletedOnboarding()) {
+        // Slow path: fetch Supabase profile (new device or cleared localStorage).
+        // A profile is considered complete when display_name and at least one
+        // cuisine preference are present.
+        const profile = await fetchProfileByAuthUserId(session.user.id);
+        const profileComplete =
+          !!profile &&
+          !!(profile.display_name) &&
+          (profile.favorite_cuisines?.length ?? 0) > 0;
+
+        if (!profileComplete) {
+          router.replace("/onboarding");
+          return;
+        }
+        // Profile is complete — set the flag so the next load uses the fast path.
+        markOnboardingDone();
+      }
+
+      // Load home data.
+      const saved = getSavedMeals();
+      const favorites = getFavorites();
+      const favoriteIds = new Set(favorites.map((m) => m.id));
+      const savedForLater = saved.filter((m) => !favoriteIds.has(m.id));
+      setSavedCount(favorites.length + savedForLater.length);
+      const history = getHistory();
+      setHistoryCount(history.length);
+      setInsights(deriveInsights(history));
+      setRecentHistory(history.slice(0, 8));
+      setTodaysPick(getTodaysPick());
+      setStreak(getStreak());
+      setReady(true);
+
+      // Track once per browser session so repeated navigations don't re-fire.
+      if (!sessionStorage.getItem("wwe_app_opened")) {
+        sessionStorage.setItem("wwe_app_opened", "1");
+        trackEvent("app_opened");
+      }
     }
+
+    void checkAndRoute();
   }, [router]);
 
   function openClearModal() {
@@ -226,7 +262,18 @@ export default function Home() {
     setClearStep("confirm");
   }
 
-  if (!ready) return null;
+  // Auth check in flight — render nothing to avoid a flash of splash for signed-in users.
+  if (!showSplash && !ready) return null;
+
+  // No session — logged-out user sees the splash.
+  if (showSplash) {
+    return (
+      <SplashScreen
+        onLetsGo={() => router.push("/auth?mode=signup")}
+        onSignIn={() => router.push("/auth?mode=signin")}
+      />
+    );
+  }
 
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";

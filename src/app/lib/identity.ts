@@ -1,3 +1,5 @@
+import { supabase } from "./supabase";
+
 const USER_ID_KEY = "wwe_user_id";
 
 /**
@@ -12,4 +14,16 @@ export function getUserId(): string {
     localStorage.setItem(USER_ID_KEY, id);
   }
   return id;
+}
+
+/**
+ * Returns the Supabase Auth user ID (uuid) for the currently signed-in user,
+ * or null if the user is anonymous / not signed in.
+ *
+ * Uses getSession() which reads from localStorage — no network call.
+ */
+export async function getAuthUserId(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
 }

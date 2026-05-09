@@ -64,6 +64,147 @@ export async function fetchOrCreateProfile(userId: string): Promise<Profile | nu
   }
 }
 
+// ─── Auth helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Fetches a profile by Supabase Auth UUID.
+ * Returns null if no profile is linked to that auth user yet.
+ */
+export async function fetchProfileByAuthUserId(authUserId: string): Promise<Profile | null> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+    if (error) {
+      console.error("[profile] fetch by auth_user_id error:", error.message);
+      return null;
+    }
+    return data ? (data as Profile) : null;
+  } catch (err) {
+    console.error("[profile] unexpected fetch by auth_user_id error:", err);
+    return null;
+  }
+}
+
+/**
+ * Links an authenticated Supabase user to their existing anonymous profile.
+ *
+ * Strategy:
+ *   1. Look for an existing profile already linked to this authUserId.
+ *      If found, return it — the user has signed in on another device before.
+ *   2. Otherwise, find the anon profile by anonUserId and attach auth_user_id to it.
+ *      Optionally write display_name if provided (e.g. from sign-up form).
+ *   3. If neither profile exists, create a fresh one with both IDs.
+ *
+ * Returns the resolved profile, or null on error.
+ * Fire-and-forget safe — never throws.
+ */
+export async function linkAuthToProfile(
+  authUserId: string,
+  anonUserId: string,
+  displayName?: string,
+): Promise<Profile | null> {
+  try {
+    // Step 1 — already linked (e.g. returning user on a different device)
+    const existing = await fetchProfileByAuthUserId(authUserId);
+    if (existing) return existing;
+
+    // Step 2 — link auth_user_id onto the current anon profile
+    const updates: Record<string, unknown> = {
+      auth_user_id: authUserId,
+      updated_at: new Date().toISOString(),
+    };
+    if (displayName) updates.display_name = displayName;
+
+    const { data: linked, error: updateError } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("user_id", anonUserId)
+      .select()
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("[profile] link auth error:", updateError.message);
+      return null;
+    }
+
+    if (linked) return linked as Profile;
+
+    // Step 3 — anon profile didn't exist yet; create one with both IDs
+    const { data: created, error: insertError } = await supabase
+      .from("profiles")
+      .insert({
+        user_id: anonUserId,
+        auth_user_id: authUserId,
+        display_name: displayName ?? null,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("[profile] create with auth error:", insertError.message);
+      return null;
+    }
+
+    return created as Profile;
+  } catch (err) {
+    console.error("[profile] unexpected link auth error:", err);
+    return null;
+  }
+}
+
+/**
+ * Updates display_name and/or avatar_url for a profile row (keyed by user_id).
+ * Pass only the fields you want to change.
+ */
+export async function updateProfileMeta(
+  userId: string,
+  meta: { displayName?: string; avatarUrl?: string },
+): Promise<void> {
+  try {
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (meta.displayName !== undefined) payload.display_name = meta.displayName;
+    if (meta.avatarUrl !== undefined)   payload.avatar_url   = meta.avatarUrl;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("user_id", userId);
+    if (error) console.error("[profile] updateProfileMeta error:", error.message);
+  } catch (err) {
+    console.error("[profile] unexpected updateProfileMeta error:", err);
+  }
+}
+
+/**
+ * Uploads an avatar image to the `avatars` Storage bucket and returns its public URL.
+ * Path: avatars/{userId}/avatar.{ext}  — overwrites the previous avatar for this user.
+ * Returns null on error.
+ */
+export async function uploadAvatar(userId: string, file: File): Promise<string | null> {
+  try {
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${userId}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      console.error("[avatar] upload error:", uploadError.message);
+      return null;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    return data.publicUrl;
+  } catch (err) {
+    console.error("[avatar] unexpected upload error:", err);
+    return null;
+  }
+}
+
 // ─── Upsert helpers ───────────────────────────────────────────────────────────
 
 /**

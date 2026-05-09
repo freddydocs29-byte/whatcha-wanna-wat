@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
 import {
   getPreferences,
@@ -14,10 +15,15 @@ import {
   type TasteProfile,
   type HistoryEntry,
 } from "../lib/storage";
-import { fetchOrCreateProfile, fetchSoftAvoids } from "../lib/supabase-profile";
+import {
+  fetchOrCreateProfile,
+  fetchSoftAvoids,
+  updateProfileMeta,
+  uploadAvatar,
+} from "../lib/supabase-profile";
 import { detectRituals, getRitualLabel, type RitualDetection } from "../lib/rituals";
-import { getUserId } from "../lib/identity";
-import { type SoftAvoid } from "../lib/supabase";
+import { getUserId, getAuthUserId } from "../lib/identity";
+import { supabase, type SoftAvoid } from "../lib/supabase";
 
 // ── Option constants ──────────────────────────────────────────────────────────
 
@@ -72,14 +78,37 @@ function shortCategory(cat: string): string {
   return CATEGORY_LABELS[cat] ?? cat.split(" ")[0];
 }
 
+/** Returns up to 2 uppercase initials from a display name. */
+function initials(name: string | null | undefined): string {
+  if (!name) return "Y";
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
+  const router = useRouter();
+
   // ── Sync state (localStorage — available immediately after mount) ──────────
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [tasteProfile, setTasteProfile] = useState<TasteProfile | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [noveltyBias, setNoveltyBias] = useState<number>(0.5);
+
+  // ── Auth + profile state ───────────────────────────────────────────────────
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // ── Async state (Supabase) ─────────────────────────────────────────────────
   const [asyncLoading, setAsyncLoading] = useState(true);
@@ -100,18 +129,30 @@ export default function ProfilePage() {
     setHistory(getHistory());
     setNoveltyBias(getNoveltyBias());
 
-    // Async reads — fire all three in parallel
     const userId = getUserId();
+
+    // Check auth session and load full profile in parallel
     Promise.all([
+      getAuthUserId(),
       fetchOrCreateProfile(userId),
       fetchSoftAvoids(userId),
       detectRituals(userId),
     ])
-      .then(([profile, avoids, _rituals]) => {
+      .then(([authUid, profile, avoids, _rituals]) => {
+        setAuthUserId(authUid);
+
+        if (profile?.display_name) {
+          setDisplayName(profile.display_name);
+          setNameInput(profile.display_name);
+        }
+        if (profile?.avatar_url) {
+          setAvatarUrl(profile.avatar_url);
+        }
         // Supabase novelty_bias wins over localStorage value if set
         if (profile?.novelty_bias != null) {
           setNoveltyBias(profile.novelty_bias);
         }
+
         const now = Date.now();
         setSoftAvoids(avoids.filter((sa) => new Date(sa.expiresAt).getTime() > now));
         setRituals(_rituals.filter((r) => r.confidence >= 0.6));
@@ -173,6 +214,36 @@ export default function ProfilePage() {
     setNoveltyBias(value);
     saveNoveltyBias(value);
     flashSaved();
+  }
+
+  // ── Auth action helpers ────────────────────────────────────────────────────
+
+  async function saveName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setDisplayName(trimmed);
+    setEditingName(false);
+    await updateProfileMeta(getUserId(), { displayName: trimmed });
+    flashSaved();
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    const url = await uploadAvatar(getUserId(), file);
+    if (url) {
+      setAvatarUrl(url);
+      await updateProfileMeta(getUserId(), { avatarUrl: url });
+    }
+    setAvatarUploading(false);
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    setAuthUserId(null);
+    setSigningOut(false);
   }
 
   // ── Section 2 derived data (sync — from localStorage taste profile) ────────
@@ -256,6 +327,8 @@ export default function ProfilePage() {
 
   if (!prefs) return null;
 
+  const avatarInitials = initials(displayName || null);
+
   return (
     <main className="min-h-screen bg-[#1C1A18] text-white pb-24">
 
@@ -270,16 +343,79 @@ export default function ProfilePage() {
 
       {/* ── 1. Profile header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 px-5 pt-6">
-        <div className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white flex-shrink-0">
-          Y
+
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <button
+            onClick={() => authUserId && avatarInputRef.current?.click()}
+            className={`w-16 h-16 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-2xl text-white ${
+              avatarUrl ? "" : "bg-[#E8621A]"
+            } ${authUserId ? "cursor-pointer" : "cursor-default"}`}
+            title={authUserId ? "Change photo" : undefined}
+          >
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              avatarInitials
+            )}
+          </button>
+          {avatarUploading && (
+            <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+          )}
+          {authUserId && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#E8621A] rounded-full flex items-center justify-center pointer-events-none">
+              <span className="text-[10px] text-white">✎</span>
+            </div>
+          )}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
         </div>
+
+        {/* Name + meta */}
         <div className="flex-1 min-w-0">
-          <p className="font-display font-black text-2xl text-white leading-tight">You</p>
+          {editingName ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void saveName(); if (e.key === "Escape") setEditingName(false); }}
+                autoFocus
+                className="font-display font-black text-xl text-white bg-transparent border-b border-[#E8621A] outline-none flex-1 min-w-0 py-0.5"
+              />
+              <button onClick={() => void saveName()} className="text-[#E8621A] font-semibold text-sm flex-shrink-0">Save</button>
+              <button onClick={() => setEditingName(false)} className="text-[#8A7F78] text-sm flex-shrink-0">✕</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="font-display font-black text-2xl text-white leading-tight truncate">
+                {displayName || "You"}
+              </p>
+              {authUserId && (
+                <button
+                  onClick={() => { setNameInput(displayName); setEditingName(true); }}
+                  className="text-[#8A7F78] text-xs flex-shrink-0"
+                  title="Edit name"
+                >
+                  ✎
+                </button>
+              )}
+            </div>
+          )}
           <p className="font-body text-sm text-[#8A7F78] mt-0.5">
             {memberSince ? `Member since ${memberSince} · ` : ""}
             {history.length} decisions
           </p>
         </div>
+
         <Link
           href="/onboarding"
           className="bg-[#2A2420] text-white font-body font-semibold text-sm px-4 py-2 rounded-full flex-shrink-0"
@@ -287,6 +423,38 @@ export default function ProfilePage() {
           Edit
         </Link>
       </div>
+
+      {/* ── 1b. Auth CTA ──────────────────────────────────────────────────────── */}
+      {!asyncLoading && (
+        <div className="mx-5 mt-4">
+          {authUserId ? (
+            <div className="flex items-center justify-between bg-[#2A2420] rounded-[14px] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[#E8621A] text-sm">✓</span>
+                <p className="font-body text-sm text-white/70">Account connected</p>
+              </div>
+              <button
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className="font-body text-xs text-[#8A7F78] disabled:opacity-50"
+              >
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => router.push("/auth")}
+              className="w-full flex items-center justify-between bg-[#2A2420] rounded-[14px] px-4 py-3.5 border border-white/[0.06]"
+            >
+              <div>
+                <p className="font-display font-black text-sm text-white text-left">Create an account</p>
+                <p className="font-body text-xs text-[#8A7F78] mt-0.5 text-left">Sync your profile across devices</p>
+              </div>
+              <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── 2. Insight card ───────────────────────────────────────────────────── */}
       {insightText && (
@@ -417,9 +585,6 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
-
-      {/* ── 6. Deciding with — hidden when no partner data ────────────────────── */}
-      {/* No partner name data in the current auth model (localStorage UUIDs only) */}
 
       {/* ── Bottom nav ───────────────────────────────────────────────────────── */}
       <BottomNav />

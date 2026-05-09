@@ -99,7 +99,12 @@ export type UserBehavioralSignals = {
 
 export type Profile = {
   user_id: string;
+  /** UUID from supabase.auth — null for anonymous users, set when they create an account. */
+  auth_user_id: string | null;
+  /** Display name — set during sign-up or edited on profile page. Used for avatar initials. */
   display_name: string | null;
+  /** Public URL of avatar stored in the `avatars` Storage bucket. */
+  avatar_url: string | null;
   dietary_restrictions: string[];
   hard_no_foods: string[];
   favorite_cuisines: string[];

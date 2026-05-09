@@ -21,12 +21,13 @@
  */
 
 import { useEffect } from "react";
-import { getUserId } from "../lib/identity";
+import { getUserId, getAuthUserId } from "../lib/identity";
 import {
   fetchOrCreateProfile,
   upsertProfilePreferences,
   upsertLearnedWeights,
   upsertRecentlySeen,
+  linkAuthToProfile,
 } from "../lib/supabase-profile";
 import { getPreferences, savePreferences, getTasteProfile } from "../lib/storage";
 
@@ -119,6 +120,12 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
   useEffect(() => {
     const userId = getUserId();
     if (!userId) return;
+
+    // If the user has a Supabase Auth session, link it to their anon profile.
+    // This is a no-op when already linked, and safe to run on every load.
+    getAuthUserId().then((authUid) => {
+      if (authUid) linkAuthToProfile(authUid, userId).catch(() => {});
+    });
 
     fetchOrCreateProfile(userId).then((profile) => {
       if (!profile) return;
