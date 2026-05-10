@@ -197,19 +197,30 @@ export default function Home() {
   }, [router]);
 
   useEffect(() => {
-    const handler = () => {
+    const readMeal = () => {
       const saved = localStorage.getItem("watcha_decided_meal");
       if (!saved) return;
 
       try {
-        setDecidedMealState(JSON.parse(saved));
+        const parsed: DecidedMeal = JSON.parse(saved);
+        setDecidedMealState(parsed);
+        // Bridge: todaysPick gates the "Good call" layout, so populate it too.
+        setTodaysPick({ meal: parsed, chosenAt: parsed.decidedAt });
       } catch (err) {
-        console.warn("[decidedMeal] failed to parse restored meal:", err);
+        console.warn("[decidedMeal] failed to parse saved meal:", err);
       }
     };
 
-    window.addEventListener("decidedMealRestored", handler);
-    return () => window.removeEventListener("decidedMealRestored", handler);
+    readMeal(); // immediate read
+
+    // Also poll for 5 seconds to catch late restores from Supabase
+    const interval = setInterval(readMeal, 500);
+    const timeout = setTimeout(() => clearInterval(interval), 5000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   function openClearModal() {
