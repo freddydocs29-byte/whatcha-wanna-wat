@@ -1,6 +1,7 @@
 import { Meal } from "../data/meals";
 import { getUserId } from "./identity";
 import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertBehavioralSignals, upsertNoveltyBias, upsertLastDecidedMeal } from "./supabase-profile";
+import { supabase } from "./supabase";
 
 export type HistoryEntry = {
   meal: Meal;
@@ -224,13 +225,29 @@ export function getFavorites(): Meal[] {
     .map((s) => s.meal);
 }
 
+/** Fire-and-forget sync of the full saved list to Supabase. */
+function syncSavedToSupabase(saved: SavedMeal[]): void {
+  const userId = getUserId();
+  if (!userId) return;
+  supabase
+    .from('profiles')
+    .update({ saved_meals: saved })
+    .eq('user_id', userId)
+    .then(({ error }) => {
+      if (error) console.error('[saved] sync failed:', error.message);
+      else console.log('[saved] synced to Supabase');
+    });
+}
+
 /** Adds a meal to the saved collection (isFavorite = false). No-op if already saved. */
 export function saveMeal(meal: Meal): void {
   if (typeof window === "undefined") return;
   const current = getSavedMealsEnriched();
   if (current.some((s) => s.meal.id === meal.id)) return;
   const entry: SavedMeal = { meal, isFavorite: false, savedAt: new Date().toISOString() };
-  localStorage.setItem(SAVED_KEY, JSON.stringify([...current, entry]));
+  const updated = [...current, entry];
+  localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+  syncSavedToSupabase(updated);
 }
 
 /** Removes a meal from the saved collection entirely. */
@@ -238,6 +255,7 @@ export function removeSavedMeal(mealId: string): void {
   if (typeof window === "undefined") return;
   const updated = getSavedMealsEnriched().filter((s) => s.meal.id !== mealId);
   localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+  syncSavedToSupabase(updated);
 }
 
 /**
@@ -254,10 +272,13 @@ export function addFavorite(meal: Meal): void {
         s.meal.id === meal.id ? { ...s, isFavorite: true } : s,
       );
       localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+      syncSavedToSupabase(updated);
     }
   } else {
     const entry: SavedMeal = { meal, isFavorite: true, savedAt: new Date().toISOString() };
-    localStorage.setItem(SAVED_KEY, JSON.stringify([...current, entry]));
+    const updated = [...current, entry];
+    localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+    syncSavedToSupabase(updated);
   }
 }
 
@@ -271,6 +292,7 @@ export function removeFavorite(mealId: string): void {
     s.meal.id === mealId ? { ...s, isFavorite: false } : s,
   );
   localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+  syncSavedToSupabase(updated);
 }
 
 /** Toggles the isFavorite flag on a saved meal. Used by the saved page heart icon. */
@@ -280,6 +302,7 @@ export function toggleSavedFavorite(mealId: string): void {
     s.meal.id === mealId ? { ...s, isFavorite: !s.isFavorite } : s,
   );
   localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+  syncSavedToSupabase(updated);
 }
 
 export function getHistory(): HistoryEntry[] {
@@ -304,7 +327,7 @@ export function clearTodaysPick(): void {
 export function addToHistory(meal: Meal): void {
   const entry: HistoryEntry = { meal, chosenAt: new Date().toISOString() };
   const current = getHistory();
-  const updated = [entry, ...current];
+  const updated = [entry, ...current].slice(0, 50); // keep last 50
   localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
 
   // Sync recently_chosen timestamps to Supabase so shared sessions can apply
@@ -314,6 +337,19 @@ export function addToHistory(meal: Meal): void {
     chosen_at: h.chosenAt,
   }));
   upsertBehavioralSignals(getUserId(), { recentlyChosen }).catch(() => {});
+
+  // Sync full history to Supabase so it survives logout/login.
+  const userId = getUserId();
+  if (userId) {
+    supabase
+      .from('profiles')
+      .update({ meal_history: updated })
+      .eq('user_id', userId)
+      .then(({ error }) => {
+        if (error) console.error('[history] sync failed:', error.message);
+        else console.log('[history] synced to Supabase');
+      });
+  }
 }
 
 export function getPreferences(): UserPreferences | null {

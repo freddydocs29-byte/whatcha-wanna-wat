@@ -118,6 +118,8 @@ export type Profile = {
   } | null;
   recently_seen_meal_ids: string[];
   soft_avoids: SoftAvoid[];
+  meal_history: Array<{ meal: Record<string, unknown>; chosenAt: string }> | null;
+  saved_meals: Array<{ meal: Record<string, unknown>; isFavorite: boolean; savedAt: string }> | null;
   last_decided_meal: {
     id: string;
     name: string;

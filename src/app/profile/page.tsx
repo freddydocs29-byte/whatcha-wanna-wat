@@ -22,7 +22,7 @@ import {
   uploadAvatar,
 } from "../lib/supabase-profile";
 import { detectRituals, getRitualLabel, type RitualDetection } from "../lib/rituals";
-import { getUserId, getAuthUserId } from "../lib/identity";
+import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import { supabase, type SoftAvoid } from "../lib/supabase";
 
 // ── Option constants ──────────────────────────────────────────────────────────
@@ -269,9 +269,8 @@ export default function ProfilePage() {
   async function handleSignOut() {
     setSigningOut(true);
     await supabase.auth.signOut();
-    // ProfileProvider's onAuthStateChange listener handles clearAllLocalState()
-    // + resetAnonymousId() + re-initialization. Navigate away immediately so
-    // the user doesn't see stale profile data while that cleanup runs.
+    clearAllLocalState();
+    resetAnonymousId();
     router.push("/");
   }
 

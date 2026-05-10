@@ -181,6 +181,24 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
         console.log("[profile] returning user: resolved user_id from auth →", resolvedUserId);
       }
 
+      // Restore saved meals from Supabase profile if localStorage is empty
+      if (existingAuthProfile.saved_meals?.length) {
+        const localSaved = localStorage.getItem('wwe_saved_meals');
+        if (!localSaved || JSON.parse(localSaved).length === 0) {
+          localStorage.setItem('wwe_saved_meals', JSON.stringify(existingAuthProfile.saved_meals));
+          console.log('[saved] restored from Supabase:', existingAuthProfile.saved_meals.length, 'meals');
+        }
+      }
+
+      // Restore meal history from Supabase profile if localStorage is empty
+      if (existingAuthProfile.meal_history?.length) {
+        const localHistory = localStorage.getItem('wwe_history');
+        if (!localHistory || JSON.parse(localHistory).length === 0) {
+          localStorage.setItem('wwe_history', JSON.stringify(existingAuthProfile.meal_history));
+          console.log('[history] restored from Supabase:', existingAuthProfile.meal_history.length, 'entries');
+        }
+      }
+
       // Restore decided meal from Supabase profile if localStorage is empty
       if (existingAuthProfile.last_decided_meal) {
         const localMeal = localStorage.getItem('watcha_decided_meal')
