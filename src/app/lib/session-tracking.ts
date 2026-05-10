@@ -157,8 +157,6 @@ export async function createTrackingSession(opts: {
       opened_at: now.toISOString(),
       meal_period: mealPeriod,
       day_type: dayType,
-      is_group_session: opts.isGroupSession,
-      group_session_id: opts.groupSessionId ?? null,
     })
     .select("id")
     .single();
@@ -230,6 +228,8 @@ export async function recordDecision(opts: {
   const userId = getUserId();
   if (!userId) return;
 
+  console.log('[decisions] writing with userId:', userId);
+
   const now = new Date();
   const { mealPeriod, dayType } = inferSessionContext(now);
 
@@ -246,7 +246,9 @@ export async function recordDecision(opts: {
     is_ai_generated: opts.isAiGenerated,
   });
 
-  if (error && process.env.NODE_ENV === "development") {
-    console.warn("[session-tracking] recordDecision failed:", error.message);
+  if (error) {
+    console.error('[decisions] insert failed:', error.message, error.details, error.hint);
+  } else {
+    console.log('[decisions] insert success for meal:', opts.meal.name);
   }
 }
