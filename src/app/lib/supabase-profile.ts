@@ -469,6 +469,22 @@ export async function syncBehavioralSignalsToSupabase(userId: string): Promise<v
 }
 
 /**
+ * Persists (or clears) the last decided meal for the given user.
+ * Pass null to clear the column.
+ */
+export async function upsertLastDecidedMeal(
+  userId: string,
+  mealData: object | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ last_decided_meal: mealData, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
+/**
  * Persists the flat list of recently-seen meal IDs for the recency penalty.
  * Called after each deck build.
  */

@@ -17,6 +17,7 @@ import {
   markOnboardingDone,
   getTodaysPick,
   getDecidedMeal,
+  clearDecidedMeal,
   getStreak,
   clearTodaysPick,
   saveMeal,
@@ -195,6 +196,22 @@ export default function Home() {
     void checkAndRoute();
   }, [router]);
 
+  useEffect(() => {
+    const handler = () => {
+      const saved = localStorage.getItem("watcha_decided_meal");
+      if (!saved) return;
+
+      try {
+        setDecidedMealState(JSON.parse(saved));
+      } catch (err) {
+        console.warn("[decidedMeal] failed to parse restored meal:", err);
+      }
+    };
+
+    window.addEventListener("decidedMealRestored", handler);
+    return () => window.removeEventListener("decidedMealRestored", handler);
+  }, []);
+
   function openClearModal() {
     setClearStep("confirm");
     setShowClearModal(true);
@@ -267,6 +284,7 @@ export default function Home() {
 
   function handleClearDecision() {
     clearTodaysPick();
+    clearDecidedMeal();
     setTodaysPick(null);
     setStreak(getStreak());
     setShowClearModal(false);

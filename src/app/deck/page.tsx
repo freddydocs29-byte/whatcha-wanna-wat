@@ -4,7 +4,7 @@ import { useRef, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
-import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getNoveltyBias, setDecidedMeal, type UserPreferences, type HistoryEntry } from "../lib/storage";
+import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getNoveltyBias, saveDecidedMeal, type UserPreferences, type HistoryEntry } from "../lib/storage";
 import { rankMeals, hardGate, getAllHardNos, getSharedReason, getTimeBucket, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
@@ -1017,7 +1017,7 @@ function DeckContent() {
       })
       .eq("id", sessionId);
     addToHistory(matchedMeal);
-    setDecidedMeal({ ...matchedMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
+    saveDecidedMeal({ ...matchedMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
     router.push(`/locked?mealId=${matchedMeal.id}`);
   }
 
@@ -1308,7 +1308,7 @@ function DeckContent() {
       .eq("id", sessionId);
 
     addToHistory(topMeal);
-    setDecidedMeal({ ...topMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
+    saveDecidedMeal({ ...topMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
     router.push(`/locked?mealId=${topMeal.id}`);
   }
 
@@ -1513,7 +1513,7 @@ function DeckContent() {
           }
         });
         addToHistory(chosenMeal);
-        setDecidedMeal({ ...chosenMeal, decidedAt: new Date().toISOString(), mode: "solo" });
+        saveDecidedMeal({ ...chosenMeal, decidedAt: new Date().toISOString(), mode: "solo" });
         syncBehavioralSignalsToSupabase(getUserId()).catch((err) =>
           console.warn("[sync] behavioral signals failed:", err),
         );

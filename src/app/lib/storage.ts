@@ -1,6 +1,6 @@
 import { Meal } from "../data/meals";
 import { getUserId } from "./identity";
-import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertBehavioralSignals, upsertNoveltyBias } from "./supabase-profile";
+import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertBehavioralSignals, upsertNoveltyBias, upsertLastDecidedMeal } from "./supabase-profile";
 
 export type HistoryEntry = {
   meal: Meal;
@@ -85,16 +85,71 @@ export function getDecidedMeal(): DecidedMeal | null {
   return read<DecidedMeal | null>(DECIDED_MEAL_KEY, null);
 }
 
-/** Persists a decided meal so the Home screen can display the "Good call" state. */
-export function setDecidedMeal(meal: DecidedMeal): void {
+/**
+ * Persists a decided meal to localStorage AND profiles.last_decided_meal.
+ * Single canonical write path — use this everywhere instead of direct localStorage.
+ */
+export function saveDecidedMeal(meal: DecidedMeal): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(DECIDED_MEAL_KEY, JSON.stringify(meal));
+
+  const userId = getUserId();
+  console.log('[decidedMeal] userId at save time:', userId);
+
+  if (!userId) {
+    console.warn('[decidedMeal] no userId — skipping Supabase write');
+    return;
+  }
+
+  upsertLastDecidedMeal(userId, meal)
+    .then(() => console.log('[decidedMeal] saved to Supabase:', meal.name))
+    .catch((err) => console.error('[decidedMeal] Supabase write failed:', err));
 }
 
-/** Clears the decided meal (e.g. when the user starts a new deck). */
+/**
+ * Clears the decided meal from localStorage AND profiles.last_decided_meal.
+ * Call this whenever the user actively dismisses their current decision.
+ */
 export function clearDecidedMeal(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(DECIDED_MEAL_KEY);
+  const userId = getUserId();
+  if (userId) {
+    upsertLastDecidedMeal(userId, null).catch(() => {});
+  }
+}
+
+/**
+ * Restores the decided meal from a Supabase profile into localStorage.
+ *
+ * Rules:
+ * - If localStorage is empty and profile has a meal → restore from profile.
+ * - If both exist → keep whichever has the newer decidedAt timestamp.
+ * - Never overwrite a newer local meal with an older remote one.
+ *
+ * Call this after profile hydration in ProfileProvider so the last decided
+ * meal is available on the Home screen after login.
+ */
+export function restoreDecidedMealFromProfile(
+  profile: { last_decided_meal?: { decidedAt: string } | null },
+): void {
+  if (typeof window === "undefined") return;
+  const remote = profile.last_decided_meal;
+  if (!remote) return;
+
+  const local = getDecidedMeal();
+  if (!local) {
+    // Nothing in localStorage — restore from profile.
+    localStorage.setItem(DECIDED_MEAL_KEY, JSON.stringify(remote));
+    return;
+  }
+
+  // Both exist — keep the newer one.
+  const localTime = new Date(local.decidedAt).getTime();
+  const remoteTime = new Date(remote.decidedAt).getTime();
+  if (remoteTime > localTime) {
+    localStorage.setItem(DECIDED_MEAL_KEY, JSON.stringify(remote));
+  }
 }
 
 function read<T>(key: string, fallback: T): T {

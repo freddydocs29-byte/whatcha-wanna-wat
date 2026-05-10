@@ -49,6 +49,7 @@ const APP_STORAGE_KEYS = [
   "wwe_ritual_rejections",
   "wwe_pending_return_check",
   "wwe_nudge_cooldown",
+  "watcha_decided_meal",    // cleared on logout; restored from Supabase on login
 ] as const;
 
 /**

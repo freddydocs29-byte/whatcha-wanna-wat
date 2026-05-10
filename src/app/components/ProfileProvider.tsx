@@ -33,7 +33,7 @@ import {
   upsertRecentlySeen,
   linkAuthToProfile,
 } from "../lib/supabase-profile";
-import { getPreferences, savePreferences, getTasteProfile } from "../lib/storage";
+import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/supabase";
 
@@ -180,6 +180,30 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
         localStorage.setItem("wwe_user_id", resolvedUserId);
         console.log("[profile] returning user: resolved user_id from auth →", resolvedUserId);
       }
+
+      // Restore decided meal from Supabase profile if localStorage is empty
+      if (existingAuthProfile.last_decided_meal) {
+        const localMeal = localStorage.getItem('watcha_decided_meal')
+        if (!localMeal) {
+          localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
+          console.log('[decidedMeal] restored from Supabase:', existingAuthProfile.last_decided_meal.name)
+          window.dispatchEvent(new Event('decidedMealRestored'))
+        } else {
+          try {
+            const local = JSON.parse(localMeal)
+            const localTime = new Date(local.decidedAt).getTime()
+            const remoteTime = new Date(existingAuthProfile.last_decided_meal.decidedAt).getTime()
+            if (remoteTime > localTime) {
+              localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
+              console.log('[decidedMeal] remote newer — restored:', existingAuthProfile.last_decided_meal.name)
+              window.dispatchEvent(new Event('decidedMealRestored'))
+            }
+          } catch {
+            localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
+            window.dispatchEvent(new Event('decidedMealRestored'))
+          }
+        }
+      }
     } else {
       // No auth-linked profile yet → this is a new signup on this device.
       // Link the current anon profile to the auth account.
@@ -199,6 +223,15 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
 
   const profile: Profile | null = await fetchOrCreateProfile(resolvedUserId);
   if (!profile) return; // Supabase unavailable — leave localStorage as-is.
+
+  // ── Step 2b: restore decided meal from profile if localStorage is empty ───
+  //
+  // Called here so that a returning user who logged out (clearing localStorage)
+  // gets their last decided meal back the moment their profile is hydrated.
+  restoreDecidedMealFromProfile(profile);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("decidedMealRestored"));
+  }
 
   // ── Step 3: merge preferences (cuisines, dietary, hardNos) ───────────────
   //

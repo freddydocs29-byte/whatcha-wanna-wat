@@ -118,6 +118,18 @@ export type Profile = {
   } | null;
   recently_seen_meal_ids: string[];
   soft_avoids: SoftAvoid[];
+  last_decided_meal: {
+    id: string;
+    name: string;
+    image?: string;
+    description?: string;
+    cuisine?: string;
+    category?: string;
+    decidedAt: string;
+    mode: "solo" | "shared";
+    sessionId?: string;
+    partner?: string;
+  } | null;
   created_at: string;
   updated_at: string;
 };
