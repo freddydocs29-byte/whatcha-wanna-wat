@@ -75,7 +75,7 @@ export async function fetchProfileByAuthUserId(authUserId: string): Promise<Prof
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", authUserId)
+      .eq("auth_user_id", authUserId)
       .maybeSingle();
     if (error) {
       console.error("[profile] fetch by id error:", error.message);
@@ -111,9 +111,9 @@ export async function linkAuthToProfile(
     const existing = await fetchProfileByAuthUserId(authUserId);
     if (existing) return existing;
 
-    // Step 2 — link id onto the current anon profile
+    // Step 2 — link auth_user_id onto the current anon profile
     const updates: Record<string, unknown> = {
-      id: authUserId,
+      auth_user_id: authUserId,
       updated_at: new Date().toISOString(),
     };
     if (displayName) updates.display_name = displayName;
@@ -137,7 +137,7 @@ export async function linkAuthToProfile(
       .from("profiles")
       .insert({
         user_id: anonUserId,
-        id: authUserId,
+        auth_user_id: authUserId,
         display_name: displayName ?? null,
       })
       .select()
