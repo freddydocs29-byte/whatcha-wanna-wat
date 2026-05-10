@@ -2493,21 +2493,12 @@ function DeckContent() {
                   >
                     Let&apos;s eat 🙌
                   </button>
-                  {sessionId ? (
-                    <button
-                      onClick={() => router.push("/")}
-                      className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
-                    >
-                      Back to home
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleMatchReject}
-                      className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
-                    >
-                      See other matches
-                    </button>
-                  )}
+                  <button
+                    onClick={() => router.push("/")}
+                    className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
+                  >
+                    Back to home
+                  </button>
                 </div>
 
                 {/* 9. Footer — other matches count (solo only) */}

@@ -725,7 +725,8 @@ export default function Home() {
               <button
                 onClick={async () => {
                   setShowDismissConfirm(false);
-                  await clearDecidedMeal();
+                  clearTodaysPick();
+                  clearDecidedMeal();
                   setDecidedMealState(null);
                   setTodaysPick(null);
                 }}
