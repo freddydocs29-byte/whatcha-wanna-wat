@@ -1924,24 +1924,12 @@ function DeckContent() {
                         Let&apos;s eat 🙌
                       </button>
                       <button
-                        onClick={handleMatchReject}
+                        onClick={() => router.push("/")}
                         className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
                       >
-                        See other matches
+                        Back to home
                       </button>
                     </div>
-
-                    {/* 9. Footer — other matches count */}
-                    {rejectedMatchIdsRef.current.size > 0 && (
-                      <p className="text-center mt-4">
-                        <span className="font-body text-sm text-[#8A7F78]">
-                          {rejectedMatchIdsRef.current.size} other {rejectedMatchIdsRef.current.size === 1 ? "match" : "matches"} waiting.{" "}
-                        </span>
-                        <button onClick={handleMatchReject} className="text-[#E8621A] font-semibold text-sm">
-                          See them →
-                        </button>
-                      </p>
-                    )}
                   </div>
                 </motion.div>
               </motion.div>
@@ -2505,16 +2493,25 @@ function DeckContent() {
                   >
                     Let&apos;s eat 🙌
                   </button>
-                  <button
-                    onClick={handleMatchReject}
-                    className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
-                  >
-                    See other matches
-                  </button>
+                  {sessionId ? (
+                    <button
+                      onClick={() => router.push("/")}
+                      className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
+                    >
+                      Back to home
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleMatchReject}
+                      className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
+                    >
+                      See other matches
+                    </button>
+                  )}
                 </div>
 
-                {/* 9. Footer — other matches count */}
-                {rejectedMatchIdsRef.current.size > 0 && (
+                {/* 9. Footer — other matches count (solo only) */}
+                {!sessionId && rejectedMatchIdsRef.current.size > 0 && (
                   <p className="text-center mt-4">
                     <span className="font-body text-sm text-[#8A7F78]">
                       {rejectedMatchIdsRef.current.size} other {rejectedMatchIdsRef.current.size === 1 ? "match" : "matches"} waiting.{" "}
