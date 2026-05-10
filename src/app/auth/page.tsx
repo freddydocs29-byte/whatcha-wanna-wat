@@ -55,8 +55,8 @@ export default function AuthPage() {
         }
 
         // 2. Link the new auth user to the existing anon profile,
-        //    writing display_name at the same time.
-        await linkAuthToProfile(authUid, anonUserId, name.trim() || undefined);
+        //    writing display_name and email at the same time.
+        await linkAuthToProfile(authUid, anonUserId, name.trim() || undefined, email.trim() || undefined);
 
         if (data.session) {
           // Email confirmation is disabled — session is live immediately.
@@ -80,14 +80,10 @@ export default function AuthPage() {
           return;
         }
 
-        const authUid = data.user?.id;
-        if (authUid) {
-          // Link (or re-confirm link) to the current device's anon profile.
-          await linkAuthToProfile(authUid, anonUserId);
-        }
-
-        // Route to / — the home page checks onboarding status and redirects
-        // to /onboarding if incomplete, or shows home if complete.
+        // ProfileProvider's onAuthStateChange fires SIGNED_IN and resolves
+        // the correct user_id via fetchProfileByAuthUserId — do not call
+        // linkAuthToProfile here, which would risk overwriting a returning
+        // user's existing profile with the current device's anon ID.
         router.replace("/");
       }
     } catch (err) {

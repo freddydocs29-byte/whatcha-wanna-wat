@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import {
   fetchOrCreateProfile,
+  fetchProfileByAuthUserId,
   upsertProfilePreferences,
   upsertLearnedWeights,
   upsertRecentlySeen,
@@ -148,27 +149,55 @@ async function withRetry<T>(
  *
  * This is the single source of truth for hydration. All merge rules are
  * applied here — no other code path should perform a merge.
+ *
+ * Sign-in vs sign-up distinction:
+ *   - Returning sign-in: fetchProfileByAuthUserId finds an existing profile →
+ *     we use that profile's user_id and update localStorage. No linking occurs.
+ *   - New sign-up: no auth-linked profile found → linkAuthToProfile stamps the
+ *     auth_user_id onto the current device's anon profile.
  */
-async function initializeProfile(userId: string): Promise<void> {
-  if (!userId) return;
+async function initializeProfile(deviceUserId: string): Promise<void> {
+  if (!deviceUserId) return;
 
-  // ── Step 1: link auth session to the anon profile (if signed in) ──────────
+  // ── Step 1: resolve the canonical app user_id for this auth session ────────
+  //
+  // For returning users (signed in on another device before), we MUST use their
+  // existing profile's user_id — not the current device's anon UUID. Otherwise
+  // every new device creates a duplicate profile row.
+
+  let resolvedUserId = deviceUserId;
 
   const authUid = await getAuthUserId();
   if (authUid) {
-    const linked = await withRetry(
-      () => linkAuthToProfile(authUid, userId),
-      "linkAuthToProfile",
-    );
-    if (!linked) {
-      // Log but don't bail — the rest of the init can still proceed.
-      console.error("[profile] linkAuthToProfile failed — profile not linked to auth account");
+    // First: look for an existing profile already linked to this auth account.
+    const existingAuthProfile = await fetchProfileByAuthUserId(authUid);
+
+    if (existingAuthProfile) {
+      // Returning user — use the profile they already have.
+      resolvedUserId = existingAuthProfile.user_id;
+      if (resolvedUserId !== deviceUserId) {
+        // Update localStorage so all subsequent reads use the correct ID.
+        localStorage.setItem("wwe_user_id", resolvedUserId);
+        console.log("[profile] returning user: resolved user_id from auth →", resolvedUserId);
+      }
+    } else {
+      // No auth-linked profile yet → this is a new signup on this device.
+      // Link the current anon profile to the auth account.
+      const linked = await withRetry(
+        () => linkAuthToProfile(authUid, deviceUserId),
+        "linkAuthToProfile",
+      );
+      if (!linked) {
+        console.error("[profile] linkAuthToProfile failed — continuing with device user_id");
+      } else {
+        resolvedUserId = linked.user_id;
+      }
     }
   }
 
   // ── Step 2: fetch or create the Supabase profile row ─────────────────────
 
-  const profile: Profile | null = await fetchOrCreateProfile(userId);
+  const profile: Profile | null = await fetchOrCreateProfile(resolvedUserId);
   if (!profile) return; // Supabase unavailable — leave localStorage as-is.
 
   // ── Step 3: merge preferences (cuisines, dietary, hardNos) ───────────────
@@ -216,7 +245,7 @@ async function initializeProfile(userId: string): Promise<void> {
     });
   } else if (hasLocalPrefs && !hasRemotePrefs) {
     // Local is already the superset AND remote is completely empty → upload.
-    upsertProfilePreferences(userId, {
+    upsertProfilePreferences(resolvedUserId, {
       cuisines:            localCuisines,
       dietaryRestrictions: localDietary,
       hardNoFoods:         localHardNos,
@@ -235,14 +264,14 @@ async function initializeProfile(userId: string): Promise<void> {
     writeLocalJSON(TASTE_KEY, profile.learned_weights);
   } else if (localTaste.interactionCount > 0 && !remoteHasWeights) {
     // Supabase has nothing — upload local.
-    upsertLearnedWeights(userId, localTaste).catch(() => {});
+    upsertLearnedWeights(resolvedUserId, localTaste).catch(() => {});
   } else if (localTaste.interactionCount > 0 && remoteHasWeights) {
     // Both have data — merge with per-key max.
     const remoteTaste = profile.learned_weights as TasteProfile;
     const merged      = mergeTasteProfiles(localTaste, remoteTaste);
     if (tasteProfileDiffersFrom(merged, localTaste)) {
       writeLocalJSON(TASTE_KEY, merged);
-      upsertLearnedWeights(userId, merged).catch(() => {});
+      upsertLearnedWeights(resolvedUserId, merged).catch(() => {});
     }
     // If local was already a superset, leave it alone. The next swipe
     // will keep Supabase current via the debounced sync in storage.ts.
@@ -259,7 +288,7 @@ async function initializeProfile(userId: string): Promise<void> {
       { mealIds: remoteSeenIds, seenAt: new Date().toISOString() },
     ]);
   } else if (localSeenIds.length > 0 && remoteSeenIds.length === 0) {
-    upsertRecentlySeen(userId, localSeenIds).catch(() => {});
+    upsertRecentlySeen(resolvedUserId, localSeenIds).catch(() => {});
   } else if (localSeenIds.length > 0 && remoteSeenIds.length > 0) {
     const merged = [
       ...new Set([...localSeenIds, ...remoteSeenIds]),
@@ -268,7 +297,7 @@ async function initializeProfile(userId: string): Promise<void> {
       writeLocalJSON(SEEN_KEY, [
         { mealIds: merged, seenAt: new Date().toISOString() },
       ]);
-      upsertRecentlySeen(userId, merged).catch(() => {});
+      upsertRecentlySeen(resolvedUserId, merged).catch(() => {});
     }
   }
 }

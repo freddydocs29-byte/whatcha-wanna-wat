@@ -78,45 +78,56 @@ export async function fetchProfileByAuthUserId(authUserId: string): Promise<Prof
       .eq("auth_user_id", authUserId)
       .maybeSingle();
     if (error) {
-      console.error("[profile] fetch by id error:", error.message);
+      console.error("[profile] fetchProfileByAuthUserId error:", error.message);
       return null;
     }
-    return data ? (data as Profile) : null;
+    if (data) {
+      console.log("[profile] found existing profile by auth_user_id:", authUserId, "→ user_id:", (data as Profile).user_id);
+      return data as Profile;
+    }
+    console.log("[profile] no profile found for auth_user_id:", authUserId);
+    return null;
   } catch (err) {
-    console.error("[profile] unexpected fetch by id error:", err);
+    console.error("[profile] unexpected fetchProfileByAuthUserId error:", err);
     return null;
   }
 }
 
 /**
- * Links an authenticated Supabase user to their existing anonymous profile.
+ * Links a newly signed-up Supabase Auth user to their existing anonymous profile.
+ * Only call this on NEW signups — not on returning sign-ins.
  *
  * Strategy:
- *   1. Look for an existing profile already linked to this authUserId.
- *      If found, return it — the user has signed in on another device before.
- *   2. Otherwise, find the anon profile by anonUserId and attach id to it.
- *      Optionally write display_name if provided (e.g. from sign-up form).
- *   3. If neither profile exists, create a fresh one with both IDs.
+ *   1. Check whether a profile already exists for this authUserId.
+ *      If found, return it immediately — do NOT overwrite any anon profile.
+ *   2. Otherwise, update the anon profile (by anonUserId) to attach auth_user_id,
+ *      display_name, and email.
+ *   3. If no anon profile row exists for anonUserId, insert a fresh one with
+ *      both IDs and empty preference arrays.
  *
- * Returns the resolved profile, or null on error.
- * Fire-and-forget safe — never throws.
+ * Returns the resolved profile, or null on error. Never throws.
  */
 export async function linkAuthToProfile(
   authUserId: string,
   anonUserId: string,
   displayName?: string,
+  email?: string,
 ): Promise<Profile | null> {
   try {
-    // Step 1 — already linked (e.g. returning user on a different device)
+    // Step 1 — guard: a profile already exists for this auth account
     const existing = await fetchProfileByAuthUserId(authUserId);
-    if (existing) return existing;
+    if (existing) {
+      console.log("[profile] linkAuthToProfile: profile already linked, returning existing user_id:", existing.user_id);
+      return existing;
+    }
 
-    // Step 2 — link auth_user_id onto the current anon profile
+    // Step 2 — stamp auth_user_id (and optional meta) onto the anon profile
     const updates: Record<string, unknown> = {
       auth_user_id: authUserId,
       updated_at: new Date().toISOString(),
     };
     if (displayName) updates.display_name = displayName;
+    if (email) updates.email = email;
 
     const { data: linked, error: updateError } = await supabase
       .from("profiles")
@@ -126,31 +137,42 @@ export async function linkAuthToProfile(
       .maybeSingle();
 
     if (updateError) {
-      console.error("[profile] link auth error:", updateError.message);
+      console.error("[profile] linkAuthToProfile update error:", updateError.message);
       return null;
     }
 
-    if (linked) return linked as Profile;
+    if (linked) {
+      console.log("[profile] linkAuthToProfile: linked anon profile", anonUserId, "→ auth_user_id", authUserId);
+      return linked as Profile;
+    }
 
-    // Step 3 — anon profile didn't exist yet; create one with both IDs
+    // Step 3 — anon profile row didn't exist yet; insert a complete new row
+    const now = new Date().toISOString();
     const { data: created, error: insertError } = await supabase
       .from("profiles")
       .insert({
         user_id: anonUserId,
         auth_user_id: authUserId,
         display_name: displayName ?? null,
+        email: email ?? null,
+        favorite_cuisines: [],
+        dietary_restrictions: [],
+        hard_no_foods: [],
+        created_at: now,
+        updated_at: now,
       })
       .select()
       .single();
 
     if (insertError) {
-      console.error("[profile] create with auth error:", insertError.message);
+      console.error("[profile] linkAuthToProfile insert error:", insertError.message);
       return null;
     }
 
+    console.log("[profile] linkAuthToProfile: created new profile for", anonUserId, "with auth_user_id", authUserId);
     return created as Profile;
   } catch (err) {
-    console.error("[profile] unexpected link auth error:", err);
+    console.error("[profile] unexpected linkAuthToProfile error:", err);
     return null;
   }
 }
