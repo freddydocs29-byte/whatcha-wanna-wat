@@ -234,7 +234,6 @@ export async function recordDecision(opts: {
   const { mealPeriod, dayType } = inferSessionContext(now);
 
   const { error } = await supabase.from("decisions").insert({
-    session_id: opts.trackingSessionId,
     user_id: userId,
     meal_id: opts.meal.id,
     meal_name: opts.meal.name,
