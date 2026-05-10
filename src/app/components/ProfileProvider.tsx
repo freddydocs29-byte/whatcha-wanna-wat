@@ -7,7 +7,8 @@
  *   1. On mount: run initializeProfile() once.
  *   2. On SIGNED_IN / TOKEN_REFRESHED / USER_UPDATED: re-run initializeProfile().
  *   3. On SIGNED_OUT: clear all local state, reset to a fresh anon identity,
- *      then re-run initializeProfile() so the next user starts clean.
+ *      unblock the UI, and navigate to "/". Does NOT re-run initializeProfile —
+ *      SIGNED_IN handles that when the next user logs in.
  *   4. Children are not rendered until initialization completes (profileReady).
  *      This prevents any page from reading stale localStorage before the
  *      Supabase ↔ local merge has finished.
@@ -24,6 +25,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import {
   fetchOrCreateProfile,
@@ -375,6 +377,7 @@ function ProfileLoadingScreen() {
 
 export default function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profileReady, setProfileReady] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Track whether this effect is still mounted so we don't call setState
@@ -414,11 +417,13 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        // Wipe all user data from this device and generate a fresh anon ID
-        // before re-initializing, so the next user starts completely clean.
+        // Wipe all user data and generate a fresh anon ID, then return to the
+        // splash/auth screen. Do NOT call boot() here — SIGNED_IN will trigger
+        // initializeProfile() when the next user logs in.
         clearAllLocalState();
         resetAnonymousId();
-        void boot();
+        setProfileReady(true);
+        router.push("/");
       } else if (
         event === "SIGNED_IN" ||
         event === "TOKEN_REFRESHED" ||

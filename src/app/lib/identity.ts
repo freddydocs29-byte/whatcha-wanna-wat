@@ -67,12 +67,13 @@ export function clearAllLocalState(): void {
   }
 
   // Clear dynamic AI meal cache keys (variable suffix).
+  // These live in sessionStorage (see ai-meals.ts), not localStorage.
   const aiKeys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const k = sessionStorage.key(i);
     if (k?.startsWith("wwe_ai_meals_v1_")) aiKeys.push(k);
   }
-  for (const k of aiKeys) localStorage.removeItem(k);
+  for (const k of aiKeys) sessionStorage.removeItem(k);
 }
 
 /**
