@@ -624,35 +624,32 @@ export default function SessionPage() {
     // Cooking intent question — shown once both users are connected
     if (guestBothConnected && cookingIntentStep === "pending") {
       return (
-        <main className="min-h-screen overflow-hidden bg-[#080808] text-white">
-          <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-            </div>
-            <div className="relative z-10 flex flex-col gap-8 pt-6">
+        <main className="min-h-screen bg-[#1C1A18] text-white">
+          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
+            <div className="flex flex-col gap-8 pt-6">
               <div className="flex items-center justify-between">
                 <Link
                   href="/"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 backdrop-blur-md transition active:scale-[0.98]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
                 >
                   ←
                 </Link>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-[#8A7F78]">
                   Shared session
                 </span>
                 <div className="w-10" />
               </div>
-              <div className="rounded-[28px] border border-white/10 bg-gradient-to-b from-white/[0.14] via-white/[0.08] to-white/[0.04] p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-2 w-2 rounded-full bg-white/70" />
-                  <p className="text-xs font-medium uppercase tracking-widest text-white/50">
+              <div className="bg-[#2A2420] rounded-[24px] p-6">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#E8621A] animate-pulse" />
+                  <p className="font-body text-[11px] font-semibold uppercase tracking-widest text-[#8A7F78]">
                     Both connected
                   </p>
                 </div>
-                <h1 className="mt-4 text-[32px] font-semibold leading-tight tracking-[-0.04em]">
+                <h1 className="mt-4 font-display font-black text-3xl text-white leading-tight">
                   Quick question
                 </h1>
-                <p className="mt-3 text-sm leading-6 text-white/55">
+                <p className="mt-3 font-body text-base text-[#8A7F78]">
                   Cooking or ordering tonight?
                 </p>
                 <div className="mt-5 grid grid-cols-3 gap-3">
@@ -663,27 +660,27 @@ export default function SessionPage() {
                       <button
                         key={value}
                         onClick={() => void handleCookingIntentSelect(value)}
-                        className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-4 text-center transition-all duration-150 active:scale-[0.97] ${
+                        className={`flex flex-col items-center gap-1.5 rounded-[16px] border p-3 text-center transition-all duration-150 active:scale-[0.97] ${
                           isActive
-                            ? "border-white/30 bg-white/[0.12] text-white/90"
-                            : "border-white/[0.07] bg-white/[0.03] text-white/35 hover:border-white/15 hover:text-white/55"
+                            ? "border-[#E8621A] bg-[#E8621A]/10 text-white"
+                            : "border-white/[0.07] bg-[#1C1A18] text-white/35 hover:border-white/15 hover:text-white/55"
                         }`}
                       >
                         <span className="text-2xl">{emojis[value]}</span>
-                        <span className="text-xs font-semibold tracking-[-0.01em]">{label}</span>
-                        <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-white/45" : "text-white/20"}`}>{sub}</span>
+                        <span className="text-xs font-semibold">{label}</span>
+                        <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-[#8A7F78]" : "text-white/20"}`}>{sub}</span>
                       </button>
                     );
                   })}
                 </div>
                 <button
                   onClick={handleCookingIntentSkip}
-                  className="mt-4 w-full text-center text-xs text-white/30 transition hover:text-white/50"
+                  className="mt-4 w-full text-center font-body text-sm text-[#8A7F78]/50 transition hover:text-[#8A7F78]"
                 >
                   Skip
                 </button>
               </div>
-              <p className="text-center text-[11px] text-white/20">
+              <p className="text-center font-body text-xs text-[#8A7F78]/40">
                 Session · {sessionId?.slice(0, 8)}
               </p>
             </div>
