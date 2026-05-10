@@ -125,8 +125,17 @@ export default function ProfilePage() {
   const [showAddHardNo, setShowAddHardNo] = useState(false);
 
   useEffect(() => {
-    // Sync reads — all available immediately from localStorage
-    setPrefs(getPreferences());
+    // Sync reads — all available immediately from localStorage.
+    // Fall back to empty defaults if localStorage was wiped (e.g. after sign-out)
+    // so the page never gets stuck on a blank screen from a null prefs guard.
+    setPrefs(getPreferences() ?? {
+      cuisines: [],
+      dietaryRestrictions: [],
+      hardNoFoods: [],
+      spiceLevel: "any",
+      cookOrOrder: "either",
+      kidFriendly: null,
+    });
     setTasteProfile(getTasteProfile());
     setHistory(getHistory());
     setNoveltyBias(getNoveltyBias());
@@ -345,7 +354,15 @@ export default function ProfilePage() {
     return parts;
   })();
 
-  if (!prefs) return null;
+  // Guard for the single render frame before the useEffect fires.
+  // After that frame prefs is guaranteed non-null (defaults are set in the effect above).
+  if (!prefs) {
+    return (
+      <div className="min-h-screen bg-[#1C1A18] flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-white/20 border-t-[#E8621A] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const avatarInitials = initials(displayName || null);
 

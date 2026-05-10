@@ -302,15 +302,27 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
     let active = true;
 
     async function boot() {
-      setProfileReady(false);
       const userId = getUserId(); // reads or creates wwe_user_id
+
+      // Last-resort safety: if initializeProfile somehow hangs (e.g. Supabase
+      // never resolves), force profileReady after 10 s so the app never stays
+      // stuck on the loading screen forever.
+      const timeoutPromise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          console.warn("[profile] boot() safety timeout reached — forcing profileReady=true");
+          resolve();
+        }, 10_000);
+      });
+
       try {
-        await initializeProfile(userId);
+        setProfileReady(false);
+        await Promise.race([initializeProfile(userId), timeoutPromise]);
       } catch (err) {
         // Never block the app on a profile init failure — log and continue.
         console.error("[profile] initializeProfile threw unexpectedly:", err);
+      } finally {
+        if (active) setProfileReady(true);
       }
-      if (active) setProfileReady(true);
     }
 
     // Run immediately on mount.
