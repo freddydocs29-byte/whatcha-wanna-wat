@@ -63,6 +63,39 @@ const NOVELTY_BIAS_KEY = "wwe_novelty_bias";
 // Legacy key — only read during one-time migration, never written again.
 const FAVORITES_KEY = "wwe_favorites";
 const LAST_DECIDE_KEY = "wwe_last_decide_pick";
+/**
+ * Canonical key for the current decided meal shown on the Home screen.
+ * Written immediately when any match path resolves so Home never reads stale state.
+ */
+const DECIDED_MEAL_KEY = "watcha_decided_meal";
+
+/**
+ * The decided meal stored for the Home screen "Good call" state.
+ * Extends Meal so callers can pass it directly to saveMeal / addFavorite.
+ */
+export type DecidedMeal = Meal & {
+  decidedAt: string;
+  mode: "shared" | "solo";
+  sessionId?: string;
+  partner?: string;
+};
+
+/** Returns the currently decided meal, or null if none is set. */
+export function getDecidedMeal(): DecidedMeal | null {
+  return read<DecidedMeal | null>(DECIDED_MEAL_KEY, null);
+}
+
+/** Persists a decided meal so the Home screen can display the "Good call" state. */
+export function setDecidedMeal(meal: DecidedMeal): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DECIDED_MEAL_KEY, JSON.stringify(meal));
+}
+
+/** Clears the decided meal (e.g. when the user starts a new deck). */
+export function clearDecidedMeal(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(DECIDED_MEAL_KEY);
+}
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;

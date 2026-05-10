@@ -5,26 +5,28 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { savePreferences, markOnboardingDone, hasCompletedOnboarding, saveNoveltyBias } from "../lib/storage";
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 // ── Option data ───────────────────────────────────────────────────────────────
 
-/**
- * Step 1 options. field="dietary" → dietaryRestrictions; field="hardno" → hardNoFoods.
- * Kept on one screen so the user makes one decision about what they can't/won't eat.
- */
-const STEP1_OPTIONS: { label: string; emoji: string; field: "dietary" | "hardno" }[] = [
-  // Dietary restrictions → dietary_restrictions Supabase column
-  { label: "Vegetarian",  emoji: "🥦", field: "dietary" },
-  { label: "Vegan",       emoji: "🌱", field: "dietary" },
-  { label: "Gluten-free", emoji: "🌾", field: "dietary" }, // maps to "Gluten / Pasta" in hardGate
-  { label: "Dairy-free",  emoji: "🥛", field: "dietary" }, // maps to "Dairy" in hardGate
-  { label: "Halal",       emoji: "☪️",  field: "dietary" },
-  { label: "Kosher",      emoji: "✡️",  field: "dietary" },
-  // Hard NOs → hard_no_foods Supabase column
-  { label: "No pork",     emoji: "🐷", field: "hardno" },
-  { label: "No seafood",  emoji: "🦐", field: "hardno" },
-  { label: "No beef",     emoji: "🥩", field: "hardno" },
+/** Step 1: dietary restrictions → dietary_restrictions Supabase column */
+const DIETARY_OPTIONS: { label: string; emoji: string }[] = [
+  { label: "Vegetarian",  emoji: "🥦" },
+  { label: "Vegan",       emoji: "🌱" },
+  { label: "Gluten-free", emoji: "🌾" },
+  { label: "Dairy-free",  emoji: "🥛" },
+  { label: "Halal",       emoji: "☪️"  },
+  { label: "Kosher",      emoji: "✡️"  },
+];
+
+/** Step 2: hard NOs → hard_no_foods Supabase column (stored as direct HARD_NO_KEYWORDS keys) */
+const HARD_NO_OPTIONS: { label: string; emoji: string }[] = [
+  { label: "Seafood",      emoji: "🦐" },
+  { label: "Beef",         emoji: "🥩" },
+  { label: "Pork",         emoji: "🐷" },
+  { label: "Chicken",      emoji: "🍗" },
+  { label: "Dairy",        emoji: "🧀" },
+  { label: "Gluten / Pasta", emoji: "🌾" },
 ];
 
 const CUISINES = [
@@ -47,8 +49,12 @@ const NOVELTY_OPTIONS = [
 
 const STEPS = [
   {
-    title: "Anything you\ncan't or won't eat?",
-    subtitle: "We'll make sure these never show up in your deck.",
+    title: "Any dietary\nrestrictions?",
+    subtitle: "We'll never show you meals that don't work for you.",
+  },
+  {
+    title: "Anything you absolutely\nwon't eat?",
+    subtitle: "Hard NOs are never shown. Ever.",
   },
   {
     title: "What are you usually\ndown for?",
@@ -130,23 +136,29 @@ export default function OnboardingPage() {
     }, 280);
   }
 
-  // ── Step 1 toggle helpers ─────────────────────────────────────────────────
+  // ── Toggle helpers ────────────────────────────────────────────────────────
 
-  function toggleOption(label: string, field: "dietary" | "hardno") {
-    if (field === "dietary") {
-      setDietaryRestrictions((prev) =>
-        prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]
-      );
-    } else {
-      setHardNoFoods((prev) =>
-        prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]
-      );
-    }
+  function toggleDietary(label: string) {
+    setDietaryRestrictions((prev) =>
+      prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]
+    );
   }
 
-  /** "No restrictions" — clears both arrays and immediately advances to step 2. */
-  function handleNoRestrictions() {
+  function toggleHardNo(label: string) {
+    setHardNoFoods((prev) =>
+      prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]
+    );
+  }
+
+  /** "None of these" on the dietary step — clears dietary and advances. */
+  function handleNoDietary() {
     setDietaryRestrictions([]);
+    setDirection(1);
+    setStep((s) => s + 1);
+  }
+
+  /** "None of these" on the hard NO step — clears hard NOs and advances. */
+  function handleNoHardNos() {
     setHardNoFoods([]);
     setDirection(1);
     setStep((s) => s + 1);
@@ -159,9 +171,10 @@ export default function OnboardingPage() {
   }
 
   function canContinue(): boolean {
-    if (step === 1) return dietaryRestrictions.length > 0 || hardNoFoods.length > 0;
-    if (step === 2) return cuisines.length > 0;
-    // Step 3 auto-advances on selection; no Continue needed unless navigated back.
+    if (step === 1) return dietaryRestrictions.length > 0;
+    if (step === 2) return hardNoFoods.length > 0;
+    if (step === 3) return cuisines.length > 0;
+    // Step 4 auto-advances on selection; no Continue needed unless navigated back.
     return noveltyBias !== null;
   }
 
@@ -221,16 +234,15 @@ export default function OnboardingPage() {
             {/* 4. OPTIONS LIST */}
             <div className="flex flex-col gap-3 mt-8 px-5">
 
-              {/* ── Step 1: dietary constraints + hard NOs ─────────────── */}
+              {/* ── Step 1: dietary restrictions ───────────────────────── */}
               {step === 1 && (
                 <>
-                  {STEP1_OPTIONS.map((opt) => {
-                    const arr = opt.field === "dietary" ? dietaryRestrictions : hardNoFoods;
-                    const selected = arr.includes(opt.label);
+                  {DIETARY_OPTIONS.map((opt) => {
+                    const selected = dietaryRestrictions.includes(opt.label);
                     return (
                       <button
                         key={opt.label}
-                        onClick={() => toggleOption(opt.label, opt.field)}
+                        onClick={() => toggleDietary(opt.label)}
                         className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
                           selected
                             ? "bg-[#E8621A]/10 border-[#E8621A]"
@@ -253,24 +265,71 @@ export default function OnboardingPage() {
                       </button>
                     );
                   })}
-                  {/* "No restrictions" — advances immediately without requiring Continue */}
+                  {/* "None of these" — clears dietary and advances immediately */}
                   <button
-                    onClick={handleNoRestrictions}
+                    onClick={handleNoDietary}
                     className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
                   >
                     <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
                       🚫
                     </div>
                     <span className="flex-1 font-display font-black text-lg text-white text-left">
-                      No restrictions
+                      None of these
                     </span>
                     <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
                   </button>
                 </>
               )}
 
-              {/* ── Step 2: cuisine preferences ────────────────────────── */}
+              {/* ── Step 2: hard NOs ───────────────────────────────────── */}
               {step === 2 && (
+                <>
+                  {HARD_NO_OPTIONS.map((opt) => {
+                    const selected = hardNoFoods.includes(opt.label);
+                    return (
+                      <button
+                        key={opt.label}
+                        onClick={() => toggleHardNo(opt.label)}
+                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                          selected
+                            ? "bg-[#E8621A]/10 border-[#E8621A]"
+                            : "bg-[#2A2420] border-transparent"
+                        }`}
+                      >
+                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          {opt.emoji}
+                        </div>
+                        <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          {opt.label}
+                        </span>
+                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                          selected
+                            ? "bg-[#E8621A] flex items-center justify-center"
+                            : "border-2 border-[#3D3733]"
+                        }`}>
+                          {selected && <span className="text-sm font-black text-white">✓</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {/* "None of these" — clears hard NOs and advances immediately */}
+                  <button
+                    onClick={handleNoHardNos}
+                    className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
+                  >
+                    <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                      🚫
+                    </div>
+                    <span className="flex-1 font-display font-black text-lg text-white text-left">
+                      None of these
+                    </span>
+                    <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
+                  </button>
+                </>
+              )}
+
+              {/* ── Step 3: cuisine preferences ────────────────────────── */}
+              {step === 3 && (
                 <>
                   {CUISINES.map((c) => {
                     const selected = cuisines.includes(c.label);
@@ -303,8 +362,8 @@ export default function OnboardingPage() {
                 </>
               )}
 
-              {/* ── Step 3: familiarity vs novelty (auto-advances on pick) ─ */}
-              {step === 3 && (
+              {/* ── Step 4: familiarity vs novelty (auto-advances on pick) ─ */}
+              {step === 4 && (
                 <>
                   {NOVELTY_OPTIONS.map((opt, i) => {
                     const selected = noveltyBias === opt.value;
@@ -346,10 +405,10 @@ export default function OnboardingPage() {
       </div>
 
       {/* 5. CONTINUE BUTTON — fixed at bottom
-           Steps 1-2 (multi-select): always shown.
-           Step 3 (auto-advance): shown only if the user navigated back and already
+           Steps 1-3 (multi-select): always shown.
+           Step 4 (auto-advance): shown only if the user navigated back and already
            has a noveltyBias set so they can proceed without re-selecting. */}
-      {(step <= 2 || (step === 3 && noveltyBias !== null)) && (
+      {(step <= 3 || (step === 4 && noveltyBias !== null)) && (
         <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
           <div className="mx-auto w-full max-w-md">
             <button

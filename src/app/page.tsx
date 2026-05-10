@@ -16,6 +16,7 @@ import {
   hasCompletedOnboarding,
   markOnboardingDone,
   getTodaysPick,
+  getDecidedMeal,
   getStreak,
   clearTodaysPick,
   saveMeal,
@@ -24,6 +25,7 @@ import {
   addFavorite,
   addToHistory,
   HistoryEntry,
+  type DecidedMeal,
 } from "./lib/storage";
 import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import { trackEvent } from "./lib/analytics";
@@ -122,6 +124,7 @@ export default function Home() {
   const [historyCount, setHistoryCount] = useState(0);
   const [insights, setInsights] = useState<string[]>([]);
   const [todaysPick, setTodaysPick] = useState<HistoryEntry | null>(null);
+  const [decidedMeal, setDecidedMealState] = useState<DecidedMeal | null>(null);
   const [streak, setStreak] = useState(0);
   const [recentHistory, setRecentHistory] = useState<HistoryEntry[]>([]);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -176,6 +179,8 @@ export default function Home() {
       setRecentHistory(history.slice(0, 8));
       const pick = getTodaysPick();
       setTodaysPick(pick);
+      const decided = getDecidedMeal();
+      setDecidedMealState(decided);
       if (pick) setSaved(getSavedMealsEnriched().some((s) => s.meal.id === pick.meal.id));
       setStreak(getStreak());
       setReady(true);
@@ -347,7 +352,7 @@ export default function Home() {
                       </span>
                     </div>
                     <p className="font-body text-xs text-[#8A7F78] mt-1">
-                      Decided just for you · just now
+                      {decidedMeal?.mode === "shared" ? "Decided with your partner" : "Decided just for you"} · just now
                     </p>
                   </div>
                   <button

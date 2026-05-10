@@ -95,7 +95,7 @@ export async function buildSharedDeckForSession(
   const [profilesResult, behavioralSignalsMap] = await Promise.all([
     supabase
       .from("profiles")
-      .select("user_id, hard_no_foods, favorite_cuisines, learned_weights, recently_seen_meal_ids")
+      .select("user_id, dietary_restrictions, hard_no_foods, favorite_cuisines, learned_weights, recently_seen_meal_ids")
       .in("user_id", [hostUserId, guestUserId]),
     fetchBehavioralSignalsBatch([hostUserId, guestUserId]),
   ]);
@@ -119,13 +119,18 @@ export async function buildSharedDeckForSession(
   const hostSignals  = behavioralSignalsMap.get(hostUserId);
   const guestSignals = behavioralSignalsMap.get(guestUserId);
 
-  // 3. Combine hard NOs — UNION: excluded if EITHER user has a hard NO
-  const combinedHardNos: string[] = [
-    ...new Set([
-      ...(hostProfile?.hard_no_foods ?? []),
-      ...(guestProfile?.hard_no_foods ?? []),
-    ]),
-  ];
+  // 3. Combine hard NOs — UNION: excluded if EITHER user has a hard NO.
+  //    Expand each user's dietary_restrictions through DIETARY_RESTRICTION_MAP
+  //    (same logic as getAllHardNos) so e.g. "Vegetarian" gates out meat meals.
+  const hostHardNos = getAllHardNos({
+    dietaryRestrictions: (hostProfile?.dietary_restrictions as string[] | null) ?? [],
+    hardNoFoods: (hostProfile?.hard_no_foods as string[] | null) ?? [],
+  } as UserPreferences);
+  const guestHardNos = getAllHardNos({
+    dietaryRestrictions: (guestProfile?.dietary_restrictions as string[] | null) ?? [],
+    hardNoFoods: (guestProfile?.hard_no_foods as string[] | null) ?? [],
+  } as UserPreferences);
+  const combinedHardNos: string[] = [...new Set([...hostHardNos, ...guestHardNos])];
 
   // 4. Build per-user scoring profiles (kept separate for mutual scoring)
   const hostScoringProfile: UserProfileForScoring = {

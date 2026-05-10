@@ -120,7 +120,8 @@ export default function ProfilePage() {
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Hard NOs add mode ─────────────────────────────────────────────────────
+  // ── Dietary / Hard NOs add mode ───────────────────────────────────────────
+  const [showAddDietary, setShowAddDietary] = useState(false);
   const [showAddHardNo, setShowAddHardNo] = useState(false);
 
   useEffect(() => {
@@ -571,10 +572,51 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── 5. Hard NOs ──────────────────────────────────────────────────────── */}
+      {/* ── 5. Dietary restrictions ──────────────────────────────────────────── */}
       <div className="px-5 mt-8">
         <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
-          HARD NOS — NEVER SHOWING THESE
+          DIETARY RESTRICTIONS
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(prefs.dietaryRestrictions ?? []).map((item) => (
+            <button
+              key={item}
+              onClick={() => toggleDietary(item)}
+              className="flex items-center gap-1.5 bg-[#2A2420] text-white/80 font-body font-semibold text-sm px-4 py-2 rounded-full border border-white/10"
+            >
+              <span className="font-black">×</span>
+              {item}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowAddDietary((v) => !v)}
+            className="flex items-center gap-1 bg-[#2A2420] text-[#8A7F78] font-body font-semibold text-sm px-4 py-2 rounded-full"
+          >
+            + Add
+          </button>
+        </div>
+        {/* Inline add picker */}
+        {showAddDietary && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {DIETARY_OPTIONS.filter(
+              (d) => !(prefs.dietaryRestrictions ?? []).includes(d.label)
+            ).map((d) => (
+              <button
+                key={d.label}
+                onClick={() => { toggleDietary(d.label); setShowAddDietary(false); }}
+                className="flex items-center gap-1.5 bg-[#2A2420] text-white/70 font-body font-semibold text-sm px-4 py-2 rounded-full border border-white/10"
+              >
+                {d.emoji} {d.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── 6. Hard NOs ──────────────────────────────────────────────────────── */}
+      <div className="px-5 mt-8">
+        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
+          HARD NOs — NEVER SHOWING THESE
         </p>
         <div className="flex flex-wrap gap-2">
           {prefs.hardNoFoods.map((food) => (
