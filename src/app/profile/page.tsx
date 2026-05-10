@@ -107,6 +107,7 @@ export default function ProfilePage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -231,19 +232,37 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarUploading(true);
-    const url = await uploadAvatar(getUserId(), file);
-    if (url) {
-      setAvatarUrl(url);
-      await updateProfileMeta(getUserId(), { avatarUrl: url });
+    setAvatarError(null);
+
+    const userId = getUserId();
+    const url = await uploadAvatar(userId, file);
+
+    if (!url) {
+      setAvatarError("Photo didn't upload. Try again.");
+      setAvatarUploading(false);
+      return;
     }
+
+    const saved = await updateProfileMeta(userId, { avatarUrl: url });
+
+    if (!saved) {
+      setAvatarError("Photo uploaded, but didn't save. Try again.");
+      setAvatarUploading(false);
+      return;
+    }
+
+    // Only update the visible avatar after both upload and profile save succeed.
+    setAvatarUrl(url);
     setAvatarUploading(false);
   }
 
   async function handleSignOut() {
     setSigningOut(true);
     await supabase.auth.signOut();
-    setAuthUserId(null);
-    setSigningOut(false);
+    // ProfileProvider's onAuthStateChange listener handles clearAllLocalState()
+    // + resetAnonymousId() + re-initialization. Navigate away immediately so
+    // the user doesn't see stale profile data while that cleanup runs.
+    router.push("/");
   }
 
   // ── Section 2 derived data (sync — from localStorage taste profile) ────────
@@ -345,7 +364,8 @@ export default function ProfilePage() {
       <div className="flex items-center gap-4 px-5 pt-6">
 
         {/* Avatar */}
-        <div className="relative flex-shrink-0">
+        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+        <div className="relative">
           <button
             onClick={() => authUserId && avatarInputRef.current?.click()}
             className={`w-16 h-16 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-2xl text-white ${
@@ -377,6 +397,12 @@ export default function ProfilePage() {
             className="hidden"
             onChange={handleAvatarChange}
           />
+        </div>
+        {avatarError && (
+          <p className="text-red-400 text-[10px] font-body text-center leading-tight max-w-[72px]">
+            {avatarError}
+          </p>
+        )}
         </div>
 
         {/* Name + meta */}

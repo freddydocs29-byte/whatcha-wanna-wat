@@ -159,10 +159,17 @@ export async function linkAuthToProfile(
  * Updates display_name and/or avatar_url for a profile row (keyed by user_id).
  * Pass only the fields you want to change.
  */
+/**
+ * Updates display_name and/or avatar_url for a profile row (keyed by user_id).
+ * Pass only the fields you want to change.
+ *
+ * Returns true on success, false on any Supabase error.
+ * The caller is responsible for surfacing failures to the user.
+ */
 export async function updateProfileMeta(
   userId: string,
   meta: { displayName?: string; avatarUrl?: string },
-): Promise<void> {
+): Promise<boolean> {
   try {
     const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (meta.displayName !== undefined) payload.display_name = meta.displayName;
@@ -172,9 +179,15 @@ export async function updateProfileMeta(
       .from("profiles")
       .update(payload)
       .eq("user_id", userId);
-    if (error) console.error("[profile] updateProfileMeta error:", error.message);
+
+    if (error) {
+      console.error("[profile] updateProfileMeta error:", error.message);
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error("[profile] unexpected updateProfileMeta error:", err);
+    return false;
   }
 }
 
