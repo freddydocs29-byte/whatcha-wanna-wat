@@ -175,26 +175,26 @@ export default function HistoryPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setConfirming(false)}
           />
-          <div className="relative w-full max-w-md rounded-[28px] border border-white/10 bg-[#111] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
-            <p className="text-lg font-semibold tracking-[-0.03em]">
+          <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.06] bg-[#2A2420] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+            <p className="font-display font-black text-xl text-white tracking-tight">
               Clear history?
             </p>
-            <p className="mt-2 text-sm leading-6 text-white/50">
+            <p className="font-body text-sm text-[#8A7F78] mt-2 leading-relaxed">
               This will permanently remove all {entries.length} meal
               {entries.length !== 1 ? "s" : ""} from your history.
             </p>
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => setConfirming(false)}
-                className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-3 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                className="flex-1 rounded-full border border-white/10 bg-[#1C1A18] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleClear}
-                className="flex-1 rounded-full border border-white/15 bg-white/10 py-3 text-sm font-medium text-white transition hover:bg-white/15 active:scale-[0.98]"
+                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
               >
-                Clear
+                Yes, clear it
               </button>
             </div>
           </div>

@@ -136,6 +136,7 @@ export default function Home() {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [showEatModal, setShowEatModal] = useState(false);
+  const [showDismissConfirm, setShowDismissConfirm] = useState(false);
 
   useEffect(() => {
     async function checkAndRoute() {
@@ -331,7 +332,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-6 safe-top">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-32 safe-top">
         <div className="relative z-10 flex min-h-screen flex-col">
 
           {/* 1. TOP HEADER ROW */}
@@ -367,9 +368,18 @@ export default function Home() {
                 className="w-full bg-[#2A2420] rounded-[20px] p-5 mt-6 border border-[#4A7C59]/30"
                 style={{ boxShadow: "0 0 30px rgba(74,124,89,0.12)" }}
               >
-                <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase mb-3">
-                  TONIGHT&apos;S MATCH
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase">
+                    TONIGHT&apos;S MATCH
+                  </p>
+                  <button
+                    onClick={() => setShowDismissConfirm(true)}
+                    className="text-[#8A7F78] text-base leading-none hover:text-white/60 active:scale-90 transition-all duration-[150ms] w-6 h-6 flex items-center justify-center"
+                    aria-label="Dismiss tonight's pick"
+                  >
+                    ✕
+                  </button>
+                </div>
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0">
                     ✓
@@ -688,6 +698,41 @@ export default function Home() {
                 <p className="font-display font-black text-lg text-white">Order in</p>
                 <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dismiss tonight's pick confirmation */}
+      {showDismissConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-5 pb-10">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowDismissConfirm(false)}
+          />
+          <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.06] bg-[#2A2420] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+            <p className="font-display font-black text-xl text-white tracking-tight">Clear meal?</p>
+            <p className="font-body text-sm text-[#8A7F78] mt-2 leading-relaxed">
+              This will remove tonight&apos;s pick and take you back to the home screen.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setShowDismissConfirm(false)}
+                className="flex-1 rounded-full border border-white/10 bg-[#1C1A18] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+              >
+                No
+              </button>
+              <button
+                onClick={async () => {
+                  setShowDismissConfirm(false);
+                  await clearDecidedMeal();
+                  setDecidedMealState(null);
+                  setTodaysPick(null);
+                }}
+                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition active:scale-[0.98] hover:bg-[#F27B35]"
+              >
+                Yes, clear it
+              </button>
             </div>
           </div>
         </div>

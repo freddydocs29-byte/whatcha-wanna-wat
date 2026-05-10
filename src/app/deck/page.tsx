@@ -1987,13 +1987,15 @@ function DeckContent() {
 
     // ── Solo exhausted state ───────────────────────────────────────────────
     return (
-      <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
+      <main className="min-h-screen bg-[#1C1A18] px-5 pb-6 safe-top text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
           <header className="flex items-center justify-between">
-            <p className="text-sm text-white/50">Decision Deck</p>
+            <span className="font-display font-black text-base text-white">
+              Watcha<span className="text-[#E8621A]">?</span>
+            </span>
             <button
               onClick={() => router.push("/")}
-              className="text-sm text-white/35 transition hover:text-white/60"
+              className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
             >
               {isChangeMeal && existingMeal
                 ? `Keep ${existingMeal.meal.name}`
@@ -2004,56 +2006,57 @@ function DeckContent() {
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             {topPicksMode ? (
               <>
-                <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
-                  <span className="h-1 w-1 rounded-full bg-white/30" />
+                <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-[#2A2420] px-3.5 py-1.5 font-body text-xs text-[#8A7F78]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#E8621A]" />
                   Round 2 complete
                 </div>
-                <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
+                <h2 className="mt-4 font-display font-black text-3xl text-white leading-tight">
                   That&apos;s your best set
                 </h2>
-                <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
+                <p className="font-body mt-3 max-w-[28ch] text-sm leading-relaxed text-[#8A7F78]">
                   You&apos;ve gone through your strongest matches. Want to try a new direction?
                 </p>
-                <p className="mt-3 text-xs text-white/30">You&apos;re close 👀</p>
-                <div className="mt-8 flex gap-3">
+                <p className="font-body mt-3 text-xs text-[#8A7F78]/60">You&apos;re close 👀</p>
+                <div className="mt-8 w-full flex flex-col gap-3">
                   <button
                     onClick={() => { setTopPicksMode(false); setCurrentIndex(0); }}
-                    className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
+                    className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
                   >
                     Start over
                   </button>
+                  <button
+                    onClick={() => router.push("/browse")}
+                    className="w-full rounded-full border border-white/10 bg-[#2A2420] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                  >
+                    Browse all meals
+                  </button>
                 </div>
-                <button
-                  onClick={() => router.push("/browse")}
-                  className="mt-4 text-sm text-white/35 underline underline-offset-4 transition hover:text-white/60"
-                >
-                  Browse all meals
-                </button>
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-semibold tracking-[-0.04em]">
+                <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-[#2A2420] px-3.5 py-1.5 font-body text-xs text-[#8A7F78]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#E8621A]" />
+                  Deck complete
+                </div>
+                <h2 className="font-display font-black text-3xl text-white leading-tight">
                   No match yet
                 </h2>
-                <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
+                <p className="font-body mt-3 max-w-[28ch] text-sm leading-relaxed text-[#8A7F78]">
                   Want to run it back?
                 </p>
-                <div className="mt-8 w-full">
+                <div className="mt-8 w-full flex flex-col gap-3">
                   <button
                     onClick={handleRefreshDeck}
-                    className="w-full rounded-full bg-white py-4 text-base font-semibold text-black"
-                    style={{ boxShadow: "0 0 24px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)" }}
+                    className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
                   >
                     Refresh deck
                   </button>
-                  <div className="mt-5 flex justify-center gap-3">
-                    <button
-                      onClick={() => router.push("/browse")}
-                      className="rounded-full border border-white/[0.07] bg-white/[0.05] px-5 py-3 text-sm text-white/50"
-                    >
-                      Browse all
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => router.push("/browse")}
+                    className="w-full rounded-full border border-white/10 bg-[#2A2420] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                  >
+                    Browse all
+                  </button>
                 </div>
               </>
             )}
