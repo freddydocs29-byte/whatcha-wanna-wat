@@ -223,7 +223,9 @@ export default function Home() {
                 .from('profiles')
                 .update({ last_decided_meal: null })
                 .eq('user_id', userId)
-                .catch(() => {})
+                .then(({ error }) => {
+                  if (error) console.error('[decidedMeal] clear failed:', error.message)
+                })
             }
 
             return
