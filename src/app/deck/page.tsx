@@ -16,6 +16,7 @@ import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
 import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
+import SoloLockOverlay from "../components/SoloLockOverlay";
 import { fetchSoftAvoids, upsertSoftAvoids, syncBehavioralSignalsToSupabase, upsertPantryIngredientCounts } from "../lib/supabase-profile";
 import { getPantryIngredientOrder, type PantryIngredientTiers } from "../lib/pantry";
 import { type SoftAvoid } from "../lib/supabase";
@@ -193,6 +194,7 @@ function DeckContent() {
   const [sessionVibeMode, setSessionVibeMode] = useState<SessionVibeMode>(vibeParam ?? "mix-it-up");
   const startAtParam = searchParams.get("startAt");
   const [isChoosing, setIsChoosing] = useState(false);
+  const [soloLockMeal, setSoloLockMeal] = useState<Meal | null>(null);
   const [showSwipeHint, setShowSwipeHint] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
   );
@@ -1351,10 +1353,10 @@ function DeckContent() {
           meal.category,
         ];
 
-        // Trigger sheet after 3 consecutive passes, max 3 times total per session
+        // Rejection sheet disabled for MVP — streak tracking preserved for future use
         const STREAK_THRESHOLD = 3;
         const CAP = 3;
-        if (
+        if (false && // disabled: sheet never shows
           passStreakRef.current >= STREAK_THRESHOLD &&
           rejectionCaptureCountRef.current < CAP &&
           !pendingRejectionSheetRef.current
@@ -1534,7 +1536,9 @@ function DeckContent() {
           }
         }
 
-        router.push("/");
+        // Celebration overlay — navigates home after 2.5s
+        if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([80, 40, 80]);
+        setSoloLockMeal(chosenMeal);
       });
     }, 240);
   }
@@ -2057,6 +2061,15 @@ function DeckContent() {
   // ── Deck screen ───────────────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[#1C1A18] text-white">
+      {soloLockMeal && (
+        <SoloLockOverlay
+          meal={soloLockMeal}
+          onComplete={() => {
+            setSoloLockMeal(null);
+            router.push("/");
+          }}
+        />
+      )}
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
         {/* Ambient pantry glow — warm bloom from top edge (solo only) */}

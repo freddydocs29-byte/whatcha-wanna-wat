@@ -199,18 +199,53 @@ export default function Home() {
 
   useEffect(() => {
     const readMeal = () => {
-      const saved = localStorage.getItem("watcha_decided_meal");
-      if (!saved) return;
+      const saved = localStorage.getItem('watcha_decided_meal')
 
-      try {
-        const parsed: DecidedMeal = JSON.parse(saved);
-        setDecidedMealState(parsed);
-        // Bridge: todaysPick gates the "Good call" layout, so populate it too.
-        setTodaysPick({ meal: parsed, chosenAt: parsed.decidedAt });
-      } catch (err) {
-        console.warn("[decidedMeal] failed to parse saved meal:", err);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+
+          // Auto-clear if meal was decided more than 6 hours ago
+          const decidedAt = new Date(parsed.decidedAt).getTime()
+          const sixHours = 6 * 60 * 60 * 1000
+          const isExpired = Date.now() - decidedAt > sixHours
+
+          if (isExpired) {
+            localStorage.removeItem('watcha_decided_meal')
+            setDecidedMealState(null)
+            setTodaysPick(null)
+
+            // Clear from Supabase too
+            const userId = getUserId()
+
+            if (userId) {
+              supabase
+                .from('profiles')
+                .update({ last_decided_meal: null })
+                .eq('user_id', userId)
+                .catch(() => {})
+            }
+
+            return
+          }
+
+          // Not expired — show it
+          setDecidedMealState(parsed)
+
+          setTodaysPick({
+            id: parsed.id,
+            name: parsed.name,
+            image: parsed.image,
+            description: parsed.description,
+            decidedAt: parsed.decidedAt,
+            mode: parsed.mode,
+          } as HistoryEntry)
+
+        } catch {
+          localStorage.removeItem('watcha_decided_meal')
+        }
       }
-    };
+    }
 
     readMeal(); // immediate read
 
@@ -723,12 +758,26 @@ export default function Home() {
                 No
               </button>
               <button
-                onClick={async () => {
+                onClick={() => {
                   setShowDismissConfirm(false);
-                  clearTodaysPick();
-                  clearDecidedMeal();
+                  // Only clear the home screen display state
+                  // Do NOT touch wwe_history, wwe_saved, or decisions table
+                  localStorage.removeItem('watcha_decided_meal');
                   setDecidedMealState(null);
                   setTodaysPick(null);
+
+                  // Clear last_decided_meal from profile so it doesn't restore on next login
+                  // But leave meal_history and saved_meals completely untouched
+                  const userId = getUserId();
+                  if (userId) {
+                    supabase
+                      .from('profiles')
+                      .update({ last_decided_meal: null })
+                      .eq('user_id', userId)
+                      .then(() =>
+                        console.log('[decidedMeal] home screen cleared — history preserved')
+                      );
+                  }
                 }}
                 className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition active:scale-[0.98] hover:bg-[#F27B35]"
               >

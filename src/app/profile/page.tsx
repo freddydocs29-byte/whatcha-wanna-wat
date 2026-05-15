@@ -460,7 +460,7 @@ export default function ProfilePage() {
         </div>
 
         <Link
-          href="/onboarding"
+          href="/profile/edit"
           className="bg-[#2A2420] text-white font-body font-semibold text-sm px-4 py-2 rounded-full flex-shrink-0"
         >
           Edit

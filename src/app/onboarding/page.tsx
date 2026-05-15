@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { savePreferences, markOnboardingDone, hasCompletedOnboarding, saveNoveltyBias } from "../lib/storage";
 
@@ -74,6 +74,8 @@ const slideVariants = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
 
@@ -90,9 +92,9 @@ export default function OnboardingPage() {
   // fire after the user has navigated away from step 3.
   const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Redirect if onboarding already done.
+  // Redirect if onboarding already done — unless we're in edit mode.
   useEffect(() => {
-    if (hasCompletedOnboarding()) router.replace("/");
+    if (!isEditMode && hasCompletedOnboarding()) router.replace("/");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function advance() {
@@ -112,7 +114,7 @@ export default function OnboardingPage() {
       });
       saveNoveltyBias(vals.noveltyBias ?? 0.5);
       markOnboardingDone();
-      router.replace("/");
+      router.replace(isEditMode ? '/profile/edit' : '/');
     }
   }
 

@@ -201,27 +201,27 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
         }
       }
 
-      // Restore decided meal from Supabase profile if localStorage is empty
+      // Restore decided meal from Supabase profile — only if within 6 hours
       if (existingAuthProfile.last_decided_meal) {
-        const localMeal = localStorage.getItem('watcha_decided_meal')
-        if (!localMeal) {
-          localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
-          console.log('[decidedMeal] restored from Supabase:', existingAuthProfile.last_decided_meal.name)
-          window.dispatchEvent(new Event('decidedMealRestored'))
-        } else {
-          try {
-            const local = JSON.parse(localMeal)
-            const localTime = new Date(local.decidedAt).getTime()
-            const remoteTime = new Date(existingAuthProfile.last_decided_meal.decidedAt).getTime()
-            if (remoteTime > localTime) {
-              localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
-              console.log('[decidedMeal] remote newer — restored:', existingAuthProfile.last_decided_meal.name)
-              window.dispatchEvent(new Event('decidedMealRestored'))
-            }
-          } catch {
+        const decidedAt = new Date(existingAuthProfile.last_decided_meal.decidedAt).getTime()
+        const sixHours = 6 * 60 * 60 * 1000
+        const isExpired = Date.now() - decidedAt > sixHours
+
+        if (!isExpired) {
+          // Only restore if still within 6 hours
+          const localMeal = localStorage.getItem('watcha_decided_meal')
+          if (!localMeal) {
             localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
+            console.log('[decidedMeal] restored from Supabase:', existingAuthProfile.last_decided_meal.name)
             window.dispatchEvent(new Event('decidedMealRestored'))
           }
+        } else {
+          // Expired — clear it from Supabase silently
+          console.log('[decidedMeal] expired — clearing from Supabase')
+          await supabase
+            .from('profiles')
+            .update({ last_decided_meal: null })
+            .eq('user_id', existingAuthProfile.user_id)
         }
       }
     } else {
