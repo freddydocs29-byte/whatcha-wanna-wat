@@ -235,12 +235,13 @@ export default function Home() {
           setDecidedMealState(parsed)
 
           setTodaysPick({
-            id: parsed.id,
-            name: parsed.name,
-            image: parsed.image,
-            description: parsed.description,
-            decidedAt: parsed.decidedAt,
-            mode: parsed.mode,
+            meal: {
+              id: parsed.id,
+              name: parsed.name,
+              image: parsed.image,
+              description: parsed.description,
+            },
+            chosenAt: parsed.decidedAt,
           } as HistoryEntry)
 
         } catch {
