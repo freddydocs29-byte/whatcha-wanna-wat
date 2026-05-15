@@ -1,6 +1,6 @@
 import { Meal } from "../data/meals";
 import { getUserId } from "./identity";
-import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertBehavioralSignals, upsertNoveltyBias, upsertLastDecidedMeal } from "./supabase-profile";
+import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertRecentlyShown, upsertBehavioralSignals, upsertNoveltyBias, upsertLastDecidedMeal, type RecentlyShownEntry } from "./supabase-profile";
 import { supabase } from "./supabase";
 
 export type HistoryEntry = {
@@ -59,6 +59,7 @@ const PREFS_KEY = "wwe_preferences";
 const ONBOARDING_KEY = "wwe_onboarding_done";
 const TASTE_KEY = "wwe_taste_profile";
 const SEEN_KEY = "wwe_seen_sessions";
+const SHOWN_ENTRIES_KEY = "wwe_shown_entries";
 const FLAVOR_KEY = "wwe_flavor_profile";
 const NOVELTY_BIAS_KEY = "wwe_novelty_bias";
 // Legacy key — only read during one-time migration, never written again.
@@ -481,6 +482,8 @@ type SeenSession = {
   seenAt: string;
 };
 
+export type ShownEntry = RecentlyShownEntry; // { mealId: string; shownAt: string }
+
 /**
  * Returns the set of meal IDs that appeared in any deck built during the
  * last `sessionCount` sessions. Used to apply a "recently seen" penalty
@@ -498,6 +501,9 @@ export function getRecentlySeenIds(sessionCount = 3): Set<string> {
  * Record a batch of meal IDs as "seen" in a new deck session.
  * Keeps the last 5 sessions so the recency penalty covers enough
  * history to prevent the same meals from dominating across visits.
+ *
+ * Also appends timestamped impression entries to recently_shown (capped at 50,
+ * deduplicated by mealId keeping the newest shownAt) for hard exclusion in scoring.
  */
 export function recordSeenSession(mealIds: string[]): void {
   if (typeof window === "undefined") return;
@@ -508,6 +514,35 @@ export function recordSeenSession(mealIds: string[]): void {
   // Sync flattened IDs to Supabase for cross-session recency penalty
   const allIds = updated.flatMap((s) => s.mealIds);
   upsertRecentlySeen(getUserId(), allIds).catch(() => {});
+  // Append timestamped impression entries; deduplicate by mealId (newest wins); cap at 50
+  const now = new Date().toISOString();
+  const newEntries: ShownEntry[] = mealIds.map((id) => ({ mealId: id, shownAt: now }));
+  const existingEntries = read<ShownEntry[]>(SHOWN_ENTRIES_KEY, []);
+  const seenIds = new Set<string>();
+  const mergedEntries = [...newEntries, ...existingEntries]
+    .filter((e) => {
+      if (seenIds.has(e.mealId)) return false;
+      seenIds.add(e.mealId);
+      return true;
+    })
+    .slice(0, 50);
+  localStorage.setItem(SHOWN_ENTRIES_KEY, JSON.stringify(mergedEntries));
+  upsertRecentlyShown(getUserId(), mergedEntries).catch(() => {});
+}
+
+/**
+ * Returns the set of meal IDs shown to the user within the last `withinDays` days.
+ * Used by scoring to hard-exclude recently shown meals from the deck entirely.
+ */
+export function getRecentlyShownIds(withinDays = 7): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  const entries = read<ShownEntry[]>(SHOWN_ENTRIES_KEY, []);
+  const cutoff = Date.now() - withinDays * 24 * 60 * 60 * 1000;
+  return new Set(
+    entries
+      .filter((e) => new Date(e.shownAt).getTime() > cutoff)
+      .map((e) => e.mealId),
+  );
 }
 
 function toLocalDateStr(date: Date): string {

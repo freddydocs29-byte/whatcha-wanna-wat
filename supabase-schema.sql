@@ -20,6 +20,7 @@ create table if not exists profiles (
   favorite_cuisines            jsonb       not null default '[]',              -- preferred cuisines e.g. ["Italian","Asian"]
   learned_weights              jsonb,                                          -- TasteProfile: likedTags/dislikedTags/likedCategories/interactionCount
   recently_seen_meal_ids       jsonb       not null default '[]',              -- flat list of recently shown meal IDs (recency penalty)
+  recently_shown               jsonb       not null default '[]',              -- [{mealId, shownAt}] timestamped impression log, capped at 50 entries
   pantry_ingredient_counts     jsonb       not null default '{}',              -- {ingredient: useCount} — built from pantry_ingredients_selected events
   created_at                   timestamptz not null default now(),
   updated_at                   timestamptz not null default now()

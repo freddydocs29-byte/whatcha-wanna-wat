@@ -1,5 +1,5 @@
 import { type Meal } from "../data/meals";
-import { type UserPreferences, type HistoryEntry, type TasteProfile, type FlavorProfile } from "./storage";
+import { type UserPreferences, type HistoryEntry, type TasteProfile, type FlavorProfile, getRecentlyShownIds } from "./storage";
 import { type SoftAvoid } from "./supabase";
 import { type SessionContext } from "./session-tracking";
 
@@ -1168,6 +1168,20 @@ export function rankMeals(
   noveltyBias?: number,
 ): RankedMeal[] {
   if (meals.length === 0) return [];
+
+  // Hard-exclude meals shown in the last 7 days — not a penalty, complete removal.
+  // Graduated relaxation: 7d → 3d → 1d if the candidate pool drops below 8.
+  // Never empties the pool — falls back to the original input as last resort.
+  const MIN_POOL = 8;
+  let filteredMeals = meals;
+  for (const windowDays of [7, 3, 1]) {
+    const shownIds = getRecentlyShownIds(windowDays);
+    const candidate = shownIds.size > 0 ? meals.filter((m) => !shownIds.has(m.id)) : meals;
+    filteredMeals = candidate;
+    if (candidate.length >= MIN_POOL) break;
+    // last iteration (1 day): accept whatever candidate has
+  }
+  meals = filteredMeals.length > 0 ? filteredMeals : meals;
 
   // 1. Score every meal — behaviorScore and vibeScore tracked separately for dev logging
   const scored = meals.map((meal) => {

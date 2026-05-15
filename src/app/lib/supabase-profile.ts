@@ -484,6 +484,8 @@ export async function upsertLastDecidedMeal(
   if (error) throw error;
 }
 
+export type RecentlyShownEntry = { mealId: string; shownAt: string };
+
 /**
  * Persists the flat list of recently-seen meal IDs for the recency penalty.
  * Called after each deck build.
@@ -501,6 +503,26 @@ export async function upsertRecentlySeen(
     if (error) console.error("[profile] upsert seen error:", error.message);
   } catch (err) {
     console.error("[profile] unexpected upsert seen error:", err);
+  }
+}
+
+/**
+ * Persists the timestamped impression log for hard exclusion in scoring.
+ * Called after each deck build, alongside upsertRecentlySeen.
+ */
+export async function upsertRecentlyShown(
+  userId: string,
+  entries: RecentlyShownEntry[],
+): Promise<void> {
+  try {
+    const { error } = await supabase.from("profiles").upsert({
+      user_id: userId,
+      recently_shown: entries,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) console.error("[profile] upsert shown error:", error.message);
+  } catch (err) {
+    console.error("[profile] unexpected upsert shown error:", err);
   }
 }
 

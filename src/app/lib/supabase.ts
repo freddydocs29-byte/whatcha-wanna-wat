@@ -19,6 +19,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Intercept invalid/expired refresh token errors.
+// When a stored refresh token is rejected by Supabase, the SDK fires SIGNED_OUT.
+// Detect that transition and redirect cleanly instead of leaving the user stuck.
+if (typeof window !== "undefined") {
+  let hadSession = false;
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session && (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+      hadSession = true;
+    }
+    if (event === "SIGNED_OUT" && hadSession) {
+      hadSession = false;
+      window.location.replace("/auth");
+    }
+  });
+}
+
 export type Session = {
   id: string;
   host_user_id: string;
