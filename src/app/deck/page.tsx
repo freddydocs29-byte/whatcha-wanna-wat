@@ -663,7 +663,7 @@ function DeckContent() {
     }
     const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
     if (!deckRecordedRef.current) {
-      recordSeenSession(ranked.map((r) => r.meal.id));
+      recordSeenSession(ranked.slice(0, DECK_SIZE).map((r) => r.meal.id));
       deckRecordedRef.current = true;
     }
 
@@ -1242,7 +1242,7 @@ function DeckContent() {
     deckRecordedRef.current = false;
     lastAiContextKeyRef.current = null; // allow re-trigger after explicit Fresh Ideas
     const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
-    recordSeenSession(staticDeck.map((r) => r.meal.id));
+    recordSeenSession(staticDeck.slice(0, DECK_SIZE).map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(staticDeck.slice(0, DECK_SIZE));
     setCurrentIndex(0);
@@ -1261,7 +1261,7 @@ function DeckContent() {
     sessionShownRef.current = new Set();
     deckRecordedRef.current = false;
     const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
-    recordSeenSession(ranked.map((r) => r.meal.id));
+    recordSeenSession(ranked.slice(0, DECK_SIZE).map((r) => r.meal.id));
     deckRecordedRef.current = true;
     setRankedMeals(ranked.slice(0, DECK_SIZE));
     setCurrentIndex(0);
