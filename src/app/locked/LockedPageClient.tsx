@@ -13,6 +13,9 @@ import {
 } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
 import BottomNav from "../components/BottomNav";
+import { fetchOrCreateProfile } from "../lib/supabase-profile";
+import { getUserId } from "../lib/identity";
+import type { Profile } from "../lib/supabase";
 
 type Props = {
   meal: Meal;
@@ -26,6 +29,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [streak, setStreak] = useState(0);
   const [saved, setSaved] = useState(false);
   const [showEatModal, setShowEatModal] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const timeLabel = "just now";
 
   useEffect(() => {
@@ -33,6 +37,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
     setDecisionCount(history.length);
     setStreak(getStreak());
     setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
+    fetchOrCreateProfile(getUserId()).then(setProfile).catch(() => {});
   }, [meal.id]);
 
   function toggleSave() {
@@ -60,9 +65,12 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
         <div className="flex items-center justify-end mb-6">
           <Link
             href="/profile"
-            className="w-11 h-11 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
+            className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
           >
-            Y
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
+              : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
+            }
           </Link>
         </div>
 

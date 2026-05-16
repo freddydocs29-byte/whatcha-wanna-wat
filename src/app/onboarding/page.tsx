@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { savePreferences, markOnboardingDone, hasCompletedOnboarding, saveNoveltyBias } from "../lib/storage";
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 // ── Option data ───────────────────────────────────────────────────────────────
 
@@ -211,206 +211,238 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Animated step content */}
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col"
-          >
-            {/* 2. QUESTION HEADLINE */}
-            <h1 className="font-display font-black text-3xl text-white leading-tight mt-8 px-5 whitespace-pre-line">
-              {currentStep.title}
-            </h1>
+        {/* Animated step content — steps 1–4 only */}
+        {step < 5 && (
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-col"
+            >
+              {/* 2. QUESTION HEADLINE */}
+              <h1 className="font-display font-black text-3xl text-white leading-tight mt-8 px-5 whitespace-pre-line">
+                {currentStep.title}
+              </h1>
 
-            {/* 3. SUBTEXT */}
-            <p className="font-body text-base text-[#8A7F78] mt-3 px-5">
-              {currentStep.subtitle}
+              {/* 3. SUBTEXT */}
+              <p className="font-body text-base text-[#8A7F78] mt-3 px-5">
+                {currentStep.subtitle}
+              </p>
+
+              {/* 4. OPTIONS LIST */}
+              <div className="flex flex-col gap-3 mt-8 px-5">
+
+                {/* ── Step 1: dietary restrictions ───────────────────────── */}
+                {step === 1 && (
+                  <>
+                    {DIETARY_OPTIONS.map((opt) => {
+                      const selected = dietaryRestrictions.includes(opt.label);
+                      return (
+                        <button
+                          key={opt.label}
+                          onClick={() => toggleDietary(opt.label)}
+                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                            selected
+                              ? "bg-[#E8621A]/10 border-[#E8621A]"
+                              : "bg-[#2A2420] border-transparent"
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                            {opt.emoji}
+                          </div>
+                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                            {opt.label}
+                          </span>
+                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                            selected
+                              ? "bg-[#E8621A] flex items-center justify-center"
+                              : "border-2 border-[#3D3733]"
+                          }`}>
+                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {/* "None of these" — clears dietary and advances immediately */}
+                    <button
+                      onClick={handleNoDietary}
+                      className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
+                    >
+                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                        🚫
+                      </div>
+                      <span className="flex-1 font-display font-black text-lg text-white text-left">
+                        None of these
+                      </span>
+                      <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
+                    </button>
+                  </>
+                )}
+
+                {/* ── Step 2: hard NOs ───────────────────────────────────── */}
+                {step === 2 && (
+                  <>
+                    {HARD_NO_OPTIONS.map((opt) => {
+                      const selected = hardNoFoods.includes(opt.label);
+                      return (
+                        <button
+                          key={opt.label}
+                          onClick={() => toggleHardNo(opt.label)}
+                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                            selected
+                              ? "bg-[#E8621A]/10 border-[#E8621A]"
+                              : "bg-[#2A2420] border-transparent"
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                            {opt.emoji}
+                          </div>
+                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                            {opt.label}
+                          </span>
+                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                            selected
+                              ? "bg-[#E8621A] flex items-center justify-center"
+                              : "border-2 border-[#3D3733]"
+                          }`}>
+                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {/* "None of these" — clears hard NOs and advances immediately */}
+                    <button
+                      onClick={handleNoHardNos}
+                      className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
+                    >
+                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                        🚫
+                      </div>
+                      <span className="flex-1 font-display font-black text-lg text-white text-left">
+                        None of these
+                      </span>
+                      <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
+                    </button>
+                  </>
+                )}
+
+                {/* ── Step 3: cuisine preferences ────────────────────────── */}
+                {step === 3 && (
+                  <>
+                    {CUISINES.map((c) => {
+                      const selected = cuisines.includes(c.label);
+                      return (
+                        <button
+                          key={c.label}
+                          onClick={() => toggleCuisine(c.label)}
+                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                            selected
+                              ? "bg-[#E8621A]/10 border-[#E8621A]"
+                              : "bg-[#2A2420] border-transparent"
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                            {c.emoji}
+                          </div>
+                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                            {c.label}
+                          </span>
+                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                            selected
+                              ? "bg-[#E8621A] flex items-center justify-center"
+                              : "border-2 border-[#3D3733]"
+                          }`}>
+                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* ── Step 4: familiarity vs novelty (auto-advances on pick) ─ */}
+                {step === 4 && (
+                  <>
+                    {NOVELTY_OPTIONS.map((opt, i) => {
+                      const selected = noveltyBias === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            setNoveltyBias(opt.value);
+                            scheduleNoveltyAdvance();
+                          }}
+                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                            selected
+                              ? "bg-[#E8621A]/10 border-[#E8621A]"
+                              : "bg-[#2A2420] border-transparent"
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                            {noveltyEmojis[i]}
+                          </div>
+                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                            {opt.label}
+                          </span>
+                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                            selected
+                              ? "bg-[#E8621A] flex items-center justify-center"
+                              : "border-2 border-[#3D3733]"
+                          }`}>
+                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* ── Step 5: brand poster ─────────────────────────────────────────── */}
+        {step === 5 && (
+          <div className="relative flex flex-col items-center justify-center px-5 pt-16 pb-40 min-h-[calc(100vh-56px)]">
+            {/* Radial orange glow behind the ? */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-[#E8621A] blur-3xl opacity-[0.12] pointer-events-none" />
+
+            {/* Wordmark */}
+            <p className="font-display font-black text-xs text-[#8A7F78] tracking-[0.25em] uppercase mb-10 relative z-10">
+              Watcha?
             </p>
 
-            {/* 4. OPTIONS LIST */}
-            <div className="flex flex-col gap-3 mt-8 px-5">
+            {/* "Stop asking." */}
+            <h1 className="font-display font-black text-5xl text-white leading-none text-center relative z-10">
+              Stop asking.
+            </h1>
 
-              {/* ── Step 1: dietary restrictions ───────────────────────── */}
-              {step === 1 && (
-                <>
-                  {DIETARY_OPTIONS.map((opt) => {
-                    const selected = dietaryRestrictions.includes(opt.label);
-                    return (
-                      <button
-                        key={opt.label}
-                        onClick={() => toggleDietary(opt.label)}
-                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
-                          selected
-                            ? "bg-[#E8621A]/10 border-[#E8621A]"
-                            : "bg-[#2A2420] border-transparent"
-                        }`}
-                      >
-                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                          {opt.emoji}
-                        </div>
-                        <span className="flex-1 font-display font-black text-lg text-white text-left">
-                          {opt.label}
-                        </span>
-                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                          selected
-                            ? "bg-[#E8621A] flex items-center justify-center"
-                            : "border-2 border-[#3D3733]"
-                        }`}>
-                          {selected && <span className="text-sm font-black text-white">✓</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {/* "None of these" — clears dietary and advances immediately */}
-                  <button
-                    onClick={handleNoDietary}
-                    className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
-                  >
-                    <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                      🚫
-                    </div>
-                    <span className="flex-1 font-display font-black text-lg text-white text-left">
-                      None of these
-                    </span>
-                    <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
-                  </button>
-                </>
-              )}
-
-              {/* ── Step 2: hard NOs ───────────────────────────────────── */}
-              {step === 2 && (
-                <>
-                  {HARD_NO_OPTIONS.map((opt) => {
-                    const selected = hardNoFoods.includes(opt.label);
-                    return (
-                      <button
-                        key={opt.label}
-                        onClick={() => toggleHardNo(opt.label)}
-                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
-                          selected
-                            ? "bg-[#E8621A]/10 border-[#E8621A]"
-                            : "bg-[#2A2420] border-transparent"
-                        }`}
-                      >
-                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                          {opt.emoji}
-                        </div>
-                        <span className="flex-1 font-display font-black text-lg text-white text-left">
-                          {opt.label}
-                        </span>
-                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                          selected
-                            ? "bg-[#E8621A] flex items-center justify-center"
-                            : "border-2 border-[#3D3733]"
-                        }`}>
-                          {selected && <span className="text-sm font-black text-white">✓</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {/* "None of these" — clears hard NOs and advances immediately */}
-                  <button
-                    onClick={handleNoHardNos}
-                    className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
-                  >
-                    <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                      🚫
-                    </div>
-                    <span className="flex-1 font-display font-black text-lg text-white text-left">
-                      None of these
-                    </span>
-                    <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
-                  </button>
-                </>
-              )}
-
-              {/* ── Step 3: cuisine preferences ────────────────────────── */}
-              {step === 3 && (
-                <>
-                  {CUISINES.map((c) => {
-                    const selected = cuisines.includes(c.label);
-                    return (
-                      <button
-                        key={c.label}
-                        onClick={() => toggleCuisine(c.label)}
-                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
-                          selected
-                            ? "bg-[#E8621A]/10 border-[#E8621A]"
-                            : "bg-[#2A2420] border-transparent"
-                        }`}
-                      >
-                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                          {c.emoji}
-                        </div>
-                        <span className="flex-1 font-display font-black text-lg text-white text-left">
-                          {c.label}
-                        </span>
-                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                          selected
-                            ? "bg-[#E8621A] flex items-center justify-center"
-                            : "border-2 border-[#3D3733]"
-                        }`}>
-                          {selected && <span className="text-sm font-black text-white">✓</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-
-              {/* ── Step 4: familiarity vs novelty (auto-advances on pick) ─ */}
-              {step === 4 && (
-                <>
-                  {NOVELTY_OPTIONS.map((opt, i) => {
-                    const selected = noveltyBias === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          setNoveltyBias(opt.value);
-                          scheduleNoveltyAdvance();
-                        }}
-                        className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
-                          selected
-                            ? "bg-[#E8621A]/10 border-[#E8621A]"
-                            : "bg-[#2A2420] border-transparent"
-                        }`}
-                      >
-                        <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                          {noveltyEmojis[i]}
-                        </div>
-                        <span className="flex-1 font-display font-black text-lg text-white text-left">
-                          {opt.label}
-                        </span>
-                        <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                          selected
-                            ? "bg-[#E8621A] flex items-center justify-center"
-                            : "border-2 border-[#3D3733]"
-                        }`}>
-                          {selected && <span className="text-sm font-black text-white">✓</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-
+            {/* Giant decorative ? */}
+            <div className="font-display font-black text-[40vh] leading-none text-[#E8621A] my-2 relative z-10 select-none">
+              ?
             </div>
-          </motion.div>
-        </AnimatePresence>
+
+            {/* "Start eating." */}
+            <h1 className="font-display font-black text-5xl text-white leading-none text-center relative z-10">
+              Start eating.
+            </h1>
+
+          </div>
+        )}
+
       </div>
 
       {/* 5. CONTINUE BUTTON — fixed at bottom
            Steps 1-3 (multi-select): always shown.
            Step 4 (auto-advance): shown only if the user navigated back and already
            has a noveltyBias set so they can proceed without re-selecting. */}
-      {(step <= 3 || (step === 4 && noveltyBias !== null)) && (
+      {step < 5 && (step <= 3 || (step === 4 && noveltyBias !== null)) && (
         <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
           <div className="mx-auto w-full max-w-md">
             <button
@@ -421,6 +453,20 @@ export default function OnboardingPage() {
               }`}
             >
               Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5 CTA */}
+      {step === 5 && (
+        <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
+          <div className="mx-auto w-full max-w-md">
+            <button
+              onClick={advance}
+              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99]"
+            >
+              Let&apos;s eat →
             </button>
           </div>
         </div>

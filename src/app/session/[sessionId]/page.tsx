@@ -6,7 +6,8 @@ import Link from "next/link";
 import { supabase, Session } from "../../lib/supabase";
 import { getUserId } from "../../lib/identity";
 import { buildSharedDeckForSession } from "../../lib/deck";
-import { upsertProfilePreferences, syncBehavioralSignalsToSupabase } from "../../lib/supabase-profile";
+import { upsertProfilePreferences, syncBehavioralSignalsToSupabase, fetchOrCreateProfile } from "../../lib/supabase-profile";
+import type { Profile } from "../../lib/supabase";
 import type { SessionVibeMode, CookingIntent } from "../../lib/scoring";
 import {
   hasCompletedOnboarding,
@@ -91,6 +92,8 @@ export default function SessionPage() {
 
   // Guard so generateDeckIfNeeded only fires once per session load
   const deckTriggeredRef = useRef(false);
+
+  const [myProfile, setMyProfile] = useState<Profile | null>(null);
 
   // Guest quick-setup state (null = not yet checked)
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
@@ -211,6 +214,7 @@ export default function SessionPage() {
   // Initial load
   useEffect(() => {
     loadSession();
+    fetchOrCreateProfile(getUserId()).then(setMyProfile).catch(() => {});
   }, [loadSession]);
 
   // Auto-join if guest slot is open — only after setup is confirmed not needed
@@ -787,7 +791,7 @@ export default function SessionPage() {
 
   // ── Building deck loading screen ─────────────────────────────────────────
   if (buildingDeck) {
-    const myInitial = "Y";
+    const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
     const partnerInitial = "?";
 
     return (

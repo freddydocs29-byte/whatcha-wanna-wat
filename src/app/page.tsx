@@ -30,6 +30,7 @@ import {
   mealWasManuallyClearedAfter,
 } from "./lib/storage";
 import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
+import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
@@ -138,6 +139,7 @@ export default function Home() {
   const [saved, setSaved] = useState(false);
   const [showEatModal, setShowEatModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     async function checkAndRoute() {
@@ -186,6 +188,7 @@ export default function Home() {
       setDecidedMealState(decided);
       if (pick) setSaved(getSavedMealsEnriched().some((s) => s.meal.id === pick.meal.id));
       setStreak(getStreak());
+      fetchProfileByAuthUserId(session.user.id).then(setProfile).catch(() => {});
       setReady(true);
 
       // Track once per browser session so repeated navigations don't re-fire.
@@ -379,9 +382,12 @@ export default function Home() {
             <div />
             <Link
               href="/profile"
-              className="w-11 h-11 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
+              className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
             >
-              W
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
+                : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
+              }
             </Link>
           </header>
 
