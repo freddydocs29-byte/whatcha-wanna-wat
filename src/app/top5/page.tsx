@@ -120,7 +120,7 @@ export default function Top5Page() {
       mode: "solo",
     });
 
-    router.push(`/locked?mealId=${selectedMeal.meal.id}&decided=1`);
+    router.push("/");
   }
 
   return (

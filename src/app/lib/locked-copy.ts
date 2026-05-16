@@ -67,6 +67,21 @@ function randomSubheadline(): string {
   return SUBHEADLINES[Math.floor(Math.random() * SUBHEADLINES.length)];
 }
 
+// ─── Cuisine detection via keyword matching ───────────────────────────────────
+
+function detectCuisineCategory(meal: Meal): string | null {
+  const text = `${meal.name} ${(meal.tags ?? []).join(' ')}`.toLowerCase()
+
+  if (/taco|enchilada|burrito|quesadilla|carnitas|salsa|guac/.test(text)) return 'mexican'
+  if (/pasta|pizza|risotto|lasagna|carbonara|marinara|gnocchi/.test(text)) return 'italian'
+  if (/ramen|sushi|pho|pad thai|curry|stir.?fry|noodle|dumpling|wonton/.test(text)) return 'asian'
+  if (/burger|sandwich|hot dog|bbq|wings|fried chicken|mac.*cheese/.test(text)) return 'american'
+  if (/salad|bowl|grain|quinoa|kale|arugula/.test(text)) return 'healthy'
+  if (/soup|stew|chili|casserole|pot roast|comfort/.test(text)) return 'comfort'
+
+  return null
+}
+
 // ─── Category 1 — Ritual / repeat ────────────────────────────────────────────
 
 type RitualMatch =
@@ -75,18 +90,18 @@ type RitualMatch =
 
 function matchesRitual(meal: Meal, history: HistoryEntry[]): RitualMatch | null {
   if (history.length < 2) return null;
-  const recent = history.slice(0, 10);
+  const recent = history.slice(0, 7);
   const mealName = meal.name.toLowerCase();
-  const cuisine = meal.cuisine.toLowerCase();
+  const cuisineCategory = detectCuisineCategory(meal);
   let nameCount = 0;
   let cuisineCount = 0;
   for (const entry of recent) {
     if (entry.meal.name.toLowerCase() === mealName) nameCount++;
-    if (entry.meal.cuisine.toLowerCase() === cuisine) cuisineCount++;
+    if (cuisineCategory && detectCuisineCategory(entry.meal) === cuisineCategory) cuisineCount++;
   }
   // Exact meal match takes priority over cuisine match
   if (nameCount >= 2) return { type: "meal", mealName: meal.name };
-  if (cuisineCount >= 2) return { type: "cuisine", cuisine: meal.cuisine };
+  if (cuisineCategory && cuisineCount >= 2) return { type: "cuisine", cuisine: cuisineCategory };
   return null;
 }
 
@@ -311,7 +326,7 @@ const DEFAULT_LINES: Array<{ text: string; variantId: string }> = [
  * Cuisine / time / default lines are left name-free per the spec.
  */
 function shouldUseName(): boolean {
-  return Math.random() < 0.25;
+  return Math.random() < 0.40;
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────

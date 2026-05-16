@@ -392,7 +392,7 @@ function DeckContent() {
         .single();
       if (sessionData?.status === "matched") {
         if (sessionData.locked_meal_id && !matchedMealRef.current) {
-          router.push(`/locked?mealId=${sessionData.locked_meal_id}`);
+          router.push("/");
         }
         return;
       }
@@ -1020,7 +1020,7 @@ function DeckContent() {
       .eq("id", sessionId);
     addToHistory(matchedMeal);
     saveDecidedMeal({ ...matchedMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
-    router.push(`/locked?mealId=${matchedMeal.id}`);
+    router.push("/");
   }
 
   function handleMatchReject() {
@@ -1311,7 +1311,7 @@ function DeckContent() {
 
     addToHistory(topMeal);
     saveDecidedMeal({ ...topMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
-    router.push(`/locked?mealId=${topMeal.id}`);
+    router.push("/");
   }
 
   // Shared-mode refresh: delete all swipes, clear the deck, return to the lobby so

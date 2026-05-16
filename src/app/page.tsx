@@ -238,6 +238,12 @@ export default function Home() {
         return
       }
 
+      // Meal is valid — sync state if it differs from localStorage truth.
+      // Compare by id+decidedAt to avoid unnecessary re-renders.
+      if (!decidedMeal || decidedMeal.id !== parsed.id || decidedMeal.decidedAt !== parsed.decidedAt) {
+        setDecidedMealState(parsed)
+      }
+
     } catch {
       setDecidedMealState(null)
       setTodaysPick(null)
@@ -268,22 +274,19 @@ export default function Home() {
     return () => window.removeEventListener('decidedMealRestored', handler)
   }, [])
 
-  // Load or generate a context-aware headline when the decided meal changes.
-  // Once generated it is persisted in localStorage so it never changes until
-  // the meal is cleared — navigating away and back keeps the same headline.
+  // Generate a context-aware headline whenever the decided meal or profile changes.
+  // No localStorage caching — the function is cheap and caching caused a race where
+  // the headline was generated before the profile loaded (userName always null).
+  const decidedMealId = decidedMeal?.id ?? "";
+  const decidedMealDecidedAt = decidedMeal?.decidedAt ?? "";
+  const resolvedUserName = profile?.display_name ?? "";
   useEffect(() => {
     if (!decidedMeal) {
       setLockedHeadline(null);
       return;
     }
-    const stored = localStorage.getItem('wwe_locked_headline');
-    if (stored) {
-      try {
-        setLockedHeadline(JSON.parse(stored));
-        return;
-      } catch {}
-    }
-    // No stored headline — generate once and persist
+    if (profile === undefined) return; // still loading — wait
+
     const generated = getLockedMealHeadline({
       meal: decidedMeal,
       userName: profile?.display_name ?? null,
@@ -291,9 +294,7 @@ export default function Home() {
       history: getHistory(),
     });
     setLockedHeadline(generated);
-    localStorage.setItem('wwe_locked_headline', JSON.stringify(generated));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [decidedMeal?.id]);
+  }, [decidedMealId, decidedMealDecidedAt, resolvedUserName]);
 
   function openClearModal() {
     setClearStep("confirm");
@@ -811,7 +812,6 @@ export default function Home() {
                   // 1. Set cleared timestamp first — synchronously
                   localStorage.setItem('wwe_meal_cleared_at', Date.now().toString())
                   localStorage.removeItem('watcha_decided_meal')
-                  localStorage.removeItem('wwe_locked_headline')
 
                   // 2. Clear React state immediately
                   setShowDismissConfirm(false)
