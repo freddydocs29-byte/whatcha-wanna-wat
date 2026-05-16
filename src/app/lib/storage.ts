@@ -136,6 +136,7 @@ export function saveDecidedMeal(meal: DecidedMeal): void {
 export function clearDecidedMeal(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(DECIDED_MEAL_KEY);
+  localStorage.removeItem('wwe_locked_headline');
   const userId = getUserId();
   if (userId) {
     upsertLastDecidedMeal(userId, null).catch(() => {});

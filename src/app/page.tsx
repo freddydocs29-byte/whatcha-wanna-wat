@@ -32,6 +32,7 @@ import {
 import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
+import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -140,6 +141,7 @@ export default function Home() {
   const [showEatModal, setShowEatModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [lockedHeadline, setLockedHeadline] = useState<LockedMealHeadlineResult | null>(null);
 
   useEffect(() => {
     async function checkAndRoute() {
@@ -265,6 +267,33 @@ export default function Home() {
     window.addEventListener('decidedMealRestored', handler)
     return () => window.removeEventListener('decidedMealRestored', handler)
   }, [])
+
+  // Load or generate a context-aware headline when the decided meal changes.
+  // Once generated it is persisted in localStorage so it never changes until
+  // the meal is cleared — navigating away and back keeps the same headline.
+  useEffect(() => {
+    if (!decidedMeal) {
+      setLockedHeadline(null);
+      return;
+    }
+    const stored = localStorage.getItem('wwe_locked_headline');
+    if (stored) {
+      try {
+        setLockedHeadline(JSON.parse(stored));
+        return;
+      } catch {}
+    }
+    // No stored headline — generate once and persist
+    const generated = getLockedMealHeadline({
+      meal: decidedMeal,
+      userName: profile?.display_name ?? null,
+      mode: decidedMeal.mode,
+      history: getHistory(),
+    });
+    setLockedHeadline(generated);
+    localStorage.setItem('wwe_locked_headline', JSON.stringify(generated));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decidedMeal?.id]);
 
   function openClearModal() {
     setClearStep("confirm");
@@ -402,10 +431,10 @@ export default function Home() {
               {/* 2. Headline */}
               <section className="mt-8">
                 <h1 className="font-display font-black text-4xl text-white leading-tight">
-                  Good call.
+                  {lockedHeadline?.headline ?? "Good call."}
                 </h1>
-                <h1 className="font-display font-black text-4xl text-[#E8621A] leading-tight">
-                  Now stop thinking about it.
+                <h1 className="font-display font-black text-4xl text-[#E8621A] leading-tight text-balance">
+                  {lockedHeadline?.subheadline ?? "Stop thinking about it."}
                 </h1>
                 <p className="font-body text-base text-[#8A7F78] mt-2">
                   Tonight&apos;s decision is done.
@@ -782,6 +811,7 @@ export default function Home() {
                   // 1. Set cleared timestamp first — synchronously
                   localStorage.setItem('wwe_meal_cleared_at', Date.now().toString())
                   localStorage.removeItem('watcha_decided_meal')
+                  localStorage.removeItem('wwe_locked_headline')
 
                   // 2. Clear React state immediately
                   setShowDismissConfirm(false)
