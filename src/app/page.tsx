@@ -561,11 +561,16 @@ export default function Home() {
               </section>
 
               {/* 4. SECONDARY CARDS ROW */}
-              <div className="mt-4">
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 <Link href="/deck" className="bg-[#2A2420] rounded-[20px] p-5 flex flex-col">
                   <span className="text-2xl">🎯</span>
                   <p className="font-display font-black text-lg text-white mt-3">Just Me</p>
                   <p className="font-body text-sm text-[#8A7F78] mt-1">Solo swipe. Fast answer.</p>
+                </Link>
+                <Link href="/top5" className="bg-white rounded-[20px] p-5 flex flex-col">
+                  <span className="text-2xl">✨</span>
+                  <p className="font-display font-black text-lg text-[#1C1A18] mt-3">Tonight&apos;s Top 5</p>
+                  <p className="font-body text-sm text-[#8A7F78] mt-1">Your best options, ranked.</p>
                 </Link>
               </div>
             </>
