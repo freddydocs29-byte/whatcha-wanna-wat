@@ -50,6 +50,7 @@ const APP_STORAGE_KEYS = [
   "wwe_pending_return_check",
   "wwe_nudge_cooldown",
   "watcha_decided_meal",    // cleared on logout; restored from Supabase on login
+  "wwe_meal_cleared_at",   // timestamp of last manual clear — prevents stale restores
 ] as const;
 
 /**
@@ -74,6 +75,7 @@ export function clearAllLocalState(): void {
     if (k?.startsWith("wwe_ai_meals_v1_")) aiKeys.push(k);
   }
   for (const k of aiKeys) sessionStorage.removeItem(k);
+
 }
 
 /**

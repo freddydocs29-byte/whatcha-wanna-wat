@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Meal } from "../data/meals";
 import {
   HistoryEntry,
@@ -12,6 +13,9 @@ import {
   removeFavorite,
 } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
+import { fetchOrCreateProfile } from "../lib/supabase-profile";
+import { getUserId } from "../lib/identity";
+import type { Profile } from "../lib/supabase";
 
 
 function formatDate(iso: string): string {
@@ -34,6 +38,8 @@ function formatTime(iso: string): string {
 }
 
 export default function HistoryPage() {
+  const router = useRouter();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -44,6 +50,7 @@ export default function HistoryPage() {
     const enriched = getSavedMealsEnriched();
     setFavoriteIds(new Set(enriched.filter((s) => s.isFavorite).map((s) => s.meal.id)));
     setLoaded(true);
+    fetchOrCreateProfile(getUserId()).then(setProfile).catch(() => {});
   }, []);
 
   function handleFavoriteToggle(meal: Meal) {
@@ -83,9 +90,28 @@ export default function HistoryPage() {
     <main className="min-h-screen bg-[#1C1A18] text-white pb-28">
       <div className="mx-auto w-full max-w-md">
 
-        <h1 className="font-display font-black text-3xl text-white mt-6 px-5">
-          History
-        </h1>
+        <div className="px-5 pt-6 pb-2">
+          {/* Avatar top right only */}
+          <div className="flex items-center justify-end mb-6">
+            <button
+              onClick={() => router.push('/profile')}
+              className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0"
+            >
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
+                : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
+              }
+            </button>
+          </div>
+
+          {/* Title row */}
+          <h1 className="font-display font-black text-3xl text-white">
+            History
+          </h1>
+          <p className="font-body text-sm text-[#8A7F78] mt-1">
+            Every meal you&apos;ve decided on.
+          </p>
+        </div>
 
         {loaded && entries.length > 0 && (
           <div className="flex items-center justify-between px-5 mt-4 mb-1">

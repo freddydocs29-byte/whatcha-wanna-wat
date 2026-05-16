@@ -24,7 +24,7 @@
  *   - Empty local defaults NEVER overwrite non-empty Supabase values.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import {
@@ -35,7 +35,7 @@ import {
   upsertRecentlySeen,
   linkAuthToProfile,
 } from "../lib/supabase-profile";
-import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile } from "../lib/storage";
+import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/supabase";
 
@@ -202,26 +202,32 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
       }
 
       // Restore decided meal from Supabase profile — only if within 6 hours
+      console.log('[ProfileProvider] checking last_decided_meal restore:', existingAuthProfile.last_decided_meal)
+      console.log('[ProfileProvider] wwe_meal_cleared_at in localStorage:', localStorage.getItem('wwe_meal_cleared_at'))
       if (existingAuthProfile.last_decided_meal) {
-        const decidedAt = new Date(existingAuthProfile.last_decided_meal.decidedAt).getTime()
-        const sixHours = 6 * 60 * 60 * 1000
-        const isExpired = Date.now() - decidedAt > sixHours
-
-        if (!isExpired) {
-          // Only restore if still within 6 hours
-          const localMeal = localStorage.getItem('watcha_decided_meal')
-          if (!localMeal) {
-            localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
-            console.log('[decidedMeal] restored from Supabase:', existingAuthProfile.last_decided_meal.name)
-            window.dispatchEvent(new Event('decidedMealRestored'))
-          }
+        if (mealWasManuallyClearedAfter(existingAuthProfile.last_decided_meal.decidedAt)) {
+          console.log('[decidedMeal] cleared after this meal — not restoring')
         } else {
-          // Expired — clear it from Supabase silently
-          console.log('[decidedMeal] expired — clearing from Supabase')
-          await supabase
-            .from('profiles')
-            .update({ last_decided_meal: null })
-            .eq('user_id', existingAuthProfile.user_id)
+          const decidedAt = new Date(existingAuthProfile.last_decided_meal.decidedAt).getTime()
+          const sixHours = 6 * 60 * 60 * 1000
+          const isExpired = Date.now() - decidedAt > sixHours
+
+          if (!isExpired) {
+            // Only restore if still within 6 hours
+            const localMeal = localStorage.getItem('watcha_decided_meal')
+            if (!localMeal) {
+              localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
+              console.log('[decidedMeal] restored from Supabase:', existingAuthProfile.last_decided_meal.name)
+              window.dispatchEvent(new Event('decidedMealRestored'))
+            }
+          } else {
+            // Expired — clear it from Supabase silently
+            console.log('[decidedMeal] expired — clearing from Supabase')
+            await supabase
+              .from('profiles')
+              .update({ last_decided_meal: null })
+              .eq('user_id', existingAuthProfile.user_id)
+          }
         }
       }
     } else {
@@ -248,9 +254,19 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
   //
   // Called here so that a returning user who logged out (clearing localStorage)
   // gets their last decided meal back the moment their profile is hydrated.
-  restoreDecidedMealFromProfile(profile);
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("decidedMealRestored"));
+  if (profile.last_decided_meal) {
+    if (mealWasManuallyClearedAfter(profile.last_decided_meal.decidedAt)) {
+      console.log('[ProfileProvider] meal was cleared — not restoring')
+    } else {
+      restoreDecidedMealFromProfile(profile);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("decidedMealRestored"));
+      }
+    }
+  } else {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("decidedMealRestored"));
+    }
   }
 
   // ── Step 3: merge preferences (cuisines, dietary, hardNos) ───────────────
@@ -378,6 +394,7 @@ function ProfileLoadingScreen() {
 export default function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profileReady, setProfileReady] = useState(false);
   const router = useRouter();
+  const bootRan = useRef(false);
 
   useEffect(() => {
     // Track whether this effect is still mounted so we don't call setState
@@ -385,16 +402,23 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
     let active = true;
 
     async function boot() {
+      if (bootRan.current) {
+        console.log('[ProfileProvider] boot already ran — skipping')
+        return
+      }
+      bootRan.current = true
+
       const userId = getUserId(); // reads or creates wwe_user_id
 
       // Last-resort safety: if initializeProfile somehow hangs (e.g. Supabase
-      // never resolves), force profileReady after 10 s so the app never stays
+      // never resolves), force profileReady after 8 s so the app never stays
       // stuck on the loading screen forever.
+      let safetyTimer: ReturnType<typeof setTimeout>;
       const timeoutPromise = new Promise<void>((resolve) => {
-        setTimeout(() => {
+        safetyTimer = setTimeout(() => {
           console.warn("[profile] boot() safety timeout reached — forcing profileReady=true");
           resolve();
-        }, 10_000);
+        }, 8_000);
       });
 
       try {
@@ -404,6 +428,7 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
         // Never block the app on a profile init failure — log and continue.
         console.error("[profile] initializeProfile threw unexpectedly:", err);
       } finally {
+        clearTimeout(safetyTimer!);
         if (active) setProfileReady(true);
       }
     }

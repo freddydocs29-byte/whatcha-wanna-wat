@@ -69,15 +69,14 @@ export default function SavedPage() {
 
         <div className="relative z-10 flex min-h-screen flex-col">
           <div className="px-5 pt-6 pb-2">
-            {/* Top row — wordmark left, avatar right */}
-            <div className="flex items-center justify-between mb-6">
-              <span className="font-display font-black text-white text-2xl leading-none">
-                Watcha<span className="text-[#E8621A]">?</span>
-              </span>
-              <button onClick={() => router.push('/profile')}
-                      className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0">
+            {/* Avatar top right only */}
+            <div className="flex items-center justify-end mb-6">
+              <button
+                onClick={() => router.push('/profile')}
+                className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0"
+              >
                 {profile?.avatar_url
-                  ? <img src={profile.avatar_url} className="w-full h-full object-cover" />
+                  ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
                   : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
                 }
               </button>

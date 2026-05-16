@@ -27,6 +27,7 @@ import {
   addToHistory,
   HistoryEntry,
   type DecidedMeal,
+  mealWasManuallyClearedAfter,
 } from "./lib/storage";
 import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import { trackEvent } from "./lib/analytics";
@@ -197,70 +198,70 @@ export default function Home() {
     void checkAndRoute();
   }, [router]);
 
+  // Runs on every render — syncs React state with localStorage truth
   useEffect(() => {
-    const readMeal = () => {
-      const saved = localStorage.getItem('watcha_decided_meal')
+    const saved = localStorage.getItem('watcha_decided_meal')
+    const clearedAt = localStorage.getItem('wwe_meal_cleared_at')
 
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-
-          // Auto-clear if meal was decided more than 6 hours ago
-          const decidedAt = new Date(parsed.decidedAt).getTime()
-          const sixHours = 6 * 60 * 60 * 1000
-          const isExpired = Date.now() - decidedAt > sixHours
-
-          if (isExpired) {
-            localStorage.removeItem('watcha_decided_meal')
-            setDecidedMealState(null)
-            setTodaysPick(null)
-
-            // Clear from Supabase too
-            const userId = getUserId()
-
-            if (userId) {
-              supabase
-                .from('profiles')
-                .update({ last_decided_meal: null })
-                .eq('user_id', userId)
-                .then(({ error }) => {
-                  if (error) console.error('[decidedMeal] clear failed:', error.message)
-                })
-            }
-
-            return
-          }
-
-          // Not expired — show it
-          setDecidedMealState(parsed)
-
-          setTodaysPick({
-            meal: {
-              id: parsed.id,
-              name: parsed.name,
-              image: parsed.image,
-              description: parsed.description,
-            },
-            chosenAt: parsed.decidedAt,
-          } as HistoryEntry)
-
-        } catch {
-          localStorage.removeItem('watcha_decided_meal')
-        }
-      }
+    if (!saved) {
+      // No meal in localStorage — clear state regardless of what React thinks
+      setDecidedMealState(null)
+      setTodaysPick(null)
+      return
     }
 
-    readMeal(); // immediate read
+    try {
+      const parsed = JSON.parse(saved)
 
-    // Also poll for 5 seconds to catch late restores from Supabase
-    const interval = setInterval(readMeal, 500);
-    const timeout = setTimeout(() => clearInterval(interval), 5000);
+      // Check if manually cleared
+      if (clearedAt) {
+        const clearedAtTime = parseInt(clearedAt, 10)
+        const decidedAtTime = new Date(parsed.decidedAt).getTime()
+        if (clearedAtTime > decidedAtTime) {
+          setDecidedMealState(null)
+          setTodaysPick(null)
+          return
+        }
+      }
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, []);
+      // Check 6 hour expiry
+      const sixHours = 6 * 60 * 60 * 1000
+      if (Date.now() - new Date(parsed.decidedAt).getTime() > sixHours) {
+        setDecidedMealState(null)
+        setTodaysPick(null)
+        localStorage.removeItem('watcha_decided_meal')
+        return
+      }
+
+    } catch {
+      setDecidedMealState(null)
+      setTodaysPick(null)
+    }
+  }) // NO dependency array — runs on every render
+
+  // Handle late restores from ProfileProvider (e.g. after Supabase hydration)
+  useEffect(() => {
+    const handler = () => {
+      const saved = localStorage.getItem('watcha_decided_meal')
+      if (!saved) return
+      try {
+        const parsed = JSON.parse(saved)
+        if (mealWasManuallyClearedAfter(parsed.decidedAt)) {
+          localStorage.removeItem('watcha_decided_meal')
+          setDecidedMealState(null)
+          setTodaysPick(null)
+          return
+        }
+        setDecidedMealState(parsed)
+        setTodaysPick({
+          meal: { id: parsed.id, name: parsed.name, image: parsed.image, description: parsed.description },
+          chosenAt: parsed.decidedAt,
+        } as HistoryEntry)
+      } catch {}
+    }
+    window.addEventListener('decidedMealRestored', handler)
+    return () => window.removeEventListener('decidedMealRestored', handler)
+  }, [])
 
   function openClearModal() {
     setClearStep("confirm");
@@ -761,26 +762,29 @@ export default function Home() {
                 No
               </button>
               <button
-                onClick={() => {
-                  setShowDismissConfirm(false);
-                  // Only clear the home screen display state
-                  // Do NOT touch wwe_history, wwe_saved, or decisions table
-                  localStorage.removeItem('watcha_decided_meal');
-                  setDecidedMealState(null);
-                  setTodaysPick(null);
+                onClick={async () => {
+                  console.log('[X button] clearing meal, setting cleared_at to:', Date.now())
+                  // 1. Set cleared timestamp first — synchronously
+                  localStorage.setItem('wwe_meal_cleared_at', Date.now().toString())
+                  localStorage.removeItem('watcha_decided_meal')
 
-                  // Clear last_decided_meal from profile so it doesn't restore on next login
-                  // But leave meal_history and saved_meals completely untouched
-                  const userId = getUserId();
+                  // 2. Clear React state immediately
+                  setShowDismissConfirm(false)
+                  setDecidedMealState(null)
+                  setTodaysPick(null)
+
+                  // 3. Await Supabase clear BEFORE anything else
+                  const userId = getUserId()
                   if (userId) {
-                    supabase
+                    await supabase
                       .from('profiles')
                       .update({ last_decided_meal: null })
                       .eq('user_id', userId)
-                      .then(() =>
-                        console.log('[decidedMeal] home screen cleared — history preserved')
-                      );
+                    console.log('[decidedMeal] cleared from home and Supabase')
                   }
+
+                  // 4. NOW dispatch the event to update ProfileProvider in-memory state
+                  window.dispatchEvent(new CustomEvent('clearDecidedMeal'))
                 }}
                 className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition active:scale-[0.98] hover:bg-[#F27B35]"
               >

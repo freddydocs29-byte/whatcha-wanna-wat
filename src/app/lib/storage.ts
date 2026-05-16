@@ -82,6 +82,26 @@ export type DecidedMeal = Meal & {
   partner?: string;
 };
 
+/**
+ * Returns true if the user manually cleared their decided meal AFTER the given
+ * decidedAt timestamp. Used to suppress stale restores from Supabase or localStorage.
+ */
+export function mealWasManuallyClearedAfter(decidedAt: string): boolean {
+  if (typeof window === "undefined") return false;
+  const clearedAt = localStorage.getItem('wwe_meal_cleared_at')
+  console.log('[clearCheck] wwe_meal_cleared_at:', clearedAt, '| decidedAt:', decidedAt)
+  if (!clearedAt) {
+    console.log('[clearCheck] no cleared timestamp — returning false')
+    return false
+  }
+  const clearedAtTime = parseInt(clearedAt, 10);
+  const decidedAtTime = new Date(decidedAt).getTime();
+  const result = clearedAtTime > decidedAtTime
+  console.log('[clearCheck] clearedAtTime:', clearedAtTime, '> decidedAtTime:', decidedAtTime, '=', result)
+  if (Number.isNaN(clearedAtTime) || Number.isNaN(decidedAtTime)) return false;
+  return result;
+}
+
 /** Returns the currently decided meal, or null if none is set. */
 export function getDecidedMeal(): DecidedMeal | null {
   return read<DecidedMeal | null>(DECIDED_MEAL_KEY, null);
@@ -94,6 +114,7 @@ export function getDecidedMeal(): DecidedMeal | null {
 export function saveDecidedMeal(meal: DecidedMeal): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(DECIDED_MEAL_KEY, JSON.stringify(meal));
+  localStorage.removeItem('wwe_meal_cleared_at');
 
   const userId = getUserId();
   console.log('[decidedMeal] userId at save time:', userId);
@@ -138,6 +159,9 @@ export function restoreDecidedMealFromProfile(
   if (typeof window === "undefined") return;
   const remote = profile.last_decided_meal;
   if (!remote) return;
+
+  // Never restore a meal the user already cleared this session
+  if (mealWasManuallyClearedAfter(remote.decidedAt)) return;
 
   const local = getDecidedMeal();
   if (!local) {
