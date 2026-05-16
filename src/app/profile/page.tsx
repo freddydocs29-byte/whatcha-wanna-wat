@@ -366,7 +366,11 @@ export default function ProfilePage() {
   const avatarInitials = initials(displayName || null);
 
   return (
-    <main className="min-h-screen bg-[#1C1A18] text-white pb-24">
+    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white pb-24">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+      </div>
 
       {/* ── Saved toast ──────────────────────────────────────────────────────── */}
       <span
@@ -378,93 +382,93 @@ export default function ProfilePage() {
       </span>
 
       {/* ── 1. Profile header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 px-5 pt-6">
+      <div className="px-5 pt-6 pb-2">
 
-        {/* Avatar */}
-        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-        <div className="relative">
-          <button
-            onClick={() => authUserId && avatarInputRef.current?.click()}
-            className={`w-16 h-16 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-2xl text-white ${
-              avatarUrl ? "" : "bg-[#E8621A]"
-            } ${authUserId ? "cursor-pointer" : "cursor-default"}`}
-            title={authUserId ? "Change photo" : undefined}
-          >
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              avatarInitials
-            )}
-          </button>
-          {avatarUploading && (
-            <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          )}
-          {authUserId && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#E8621A] rounded-full flex items-center justify-center pointer-events-none">
-              <span className="text-[10px] text-white">✎</span>
-            </div>
-          )}
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={handleAvatarChange}
-          />
-        </div>
-        {avatarError && (
-          <p className="text-red-400 text-[10px] font-body text-center leading-tight max-w-[72px]">
-            {avatarError}
-          </p>
-        )}
-        </div>
-
-        {/* Name + meta */}
-        <div className="flex-1 min-w-0">
-          {editingName ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") void saveName(); if (e.key === "Escape") setEditingName(false); }}
-                autoFocus
-                className="font-display font-black text-xl text-white bg-transparent border-b border-[#E8621A] outline-none flex-1 min-w-0 py-0.5"
-              />
-              <button onClick={() => void saveName()} className="text-[#E8621A] font-semibold text-sm flex-shrink-0">Save</button>
-              <button onClick={() => setEditingName(false)} className="text-[#8A7F78] text-sm flex-shrink-0">✕</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <p className="font-display font-black text-2xl text-white leading-tight truncate">
-                {displayName || "You"}
-              </p>
-              {authUserId && (
-                <button
-                  onClick={() => { setNameInput(displayName); setEditingName(true); }}
-                  className="text-[#8A7F78] text-xs flex-shrink-0"
-                  title="Edit name"
-                >
-                  ✎
-                </button>
+        {/* Avatar top right */}
+        <div className="flex items-center justify-end mb-6">
+          <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+            <div className="relative">
+              <button
+                onClick={() => authUserId && avatarInputRef.current?.click()}
+                className={`w-11 h-11 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-lg text-white ${
+                  avatarUrl ? "" : "bg-[#E8621A]"
+                } ${authUserId ? "cursor-pointer" : "cursor-default"}`}
+                title={authUserId ? "Change photo" : undefined}
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  avatarInitials
+                )}
+              </button>
+              {avatarUploading && (
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                </div>
               )}
+              {authUserId && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#E8621A] rounded-full flex items-center justify-center pointer-events-none">
+                  <span className="text-[10px] text-white">✎</span>
+                </div>
+              )}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
-          )}
-          <p className="font-body text-sm text-[#8A7F78] mt-0.5">
-            {memberSince ? `Member since ${memberSince} · ` : ""}
-            {history.length} decisions
-          </p>
+            {avatarError && (
+              <p className="text-red-400 text-[10px] font-body text-center leading-tight max-w-[72px]">
+                {avatarError}
+              </p>
+            )}
+          </div>
         </div>
 
-        <Link
-          href="/profile/edit"
-          className="bg-[#2A2420] text-white font-body font-semibold text-sm px-4 py-2 rounded-full flex-shrink-0"
-        >
-          Edit
-        </Link>
+        {/* Page headline + name */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display font-black text-3xl text-white">Profile</h1>
+            {editingName ? (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") void saveName(); if (e.key === "Escape") setEditingName(false); }}
+                  autoFocus
+                  className="font-body text-sm text-white bg-transparent border-b border-[#E8621A] outline-none flex-1 min-w-0 py-0.5"
+                />
+                <button onClick={() => void saveName()} className="text-[#E8621A] font-semibold text-sm flex-shrink-0">Save</button>
+                <button onClick={() => setEditingName(false)} className="text-[#8A7F78] text-sm flex-shrink-0">✕</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="font-body text-sm text-[#8A7F78]">
+                  {displayName || "You"}{memberSince ? ` · Member since ${memberSince}` : ""} · {history.length} decisions
+                </p>
+                {authUserId && (
+                  <button
+                    onClick={() => { setNameInput(displayName); setEditingName(true); }}
+                    className="text-[#8A7F78] text-xs flex-shrink-0"
+                    title="Edit name"
+                  >
+                    ✎
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <Link
+            href="/profile/edit"
+            className="bg-[#2A2420] text-white font-body font-semibold text-sm px-4 py-2 rounded-full flex-shrink-0 ml-4"
+          >
+            Edit
+          </Link>
+        </div>
       </div>
 
       {/* ── 1b. Auth CTA ──────────────────────────────────────────────────────── */}

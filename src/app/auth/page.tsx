@@ -134,6 +134,10 @@ export default function AuthPage() {
         className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse at 60% 0%, rgba(232,98,26,0.12) 0%, transparent 55%)" }}
       />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+      </div>
 
       <div className="relative z-10 flex flex-col flex-1 px-6 pt-14 pb-10 max-w-md mx-auto w-full">
 

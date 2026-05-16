@@ -60,7 +60,7 @@ export default function BottomNav({ activeHref }: { activeHref?: string } = {}) 
             key={tab.href}
             href={tab.href}
             aria-label={tab.label}
-            className="flex items-center justify-center"
+            className="flex flex-col items-center justify-center gap-1"
           >
             <span
               className={
@@ -70,6 +70,9 @@ export default function BottomNav({ activeHref }: { activeHref?: string } = {}) 
               }
             >
               {tab.icon}
+            </span>
+            <span className={`text-[10px] font-medium ${isActive ? "text-white" : "text-[#8A7F78]"}`}>
+              {tab.label}
             </span>
           </Link>
         );

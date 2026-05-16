@@ -381,7 +381,11 @@ export default function SessionPage() {
     const stepNum = setupStep === "cuisines" ? 1 : setupStep === "dietary" ? 2 : setupStep === "hardNos" ? 3 : 4;
 
     return (
-      <main className="min-h-screen bg-[#1C1A18] text-white">
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+        </div>
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
 
           <div className="flex flex-col gap-6 pt-6">
@@ -628,7 +632,11 @@ export default function SessionPage() {
     // Cooking intent question — shown once both users are connected
     if (guestBothConnected && cookingIntentStep === "pending") {
       return (
-        <main className="min-h-screen bg-[#1C1A18] text-white">
+        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+          </div>
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
             <div className="flex flex-col gap-8 pt-6">
               <div className="flex items-center justify-between">
@@ -695,7 +703,11 @@ export default function SessionPage() {
 
     // Waiting / building deck state
     return (
-      <main className="relative min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+        </div>
         <Link
           href="/"
           className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
@@ -744,7 +756,11 @@ export default function SessionPage() {
     const guestVibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;
 
     return (
-      <main className="min-h-screen bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+        </div>
         <Link
           href="/"
           className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
@@ -795,7 +811,11 @@ export default function SessionPage() {
     const partnerInitial = "?";
 
     return (
-      <main className="min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+        </div>
         {/* Concentric rings */}
         <div
           className="relative flex items-center justify-center w-72 h-72"
@@ -851,7 +871,11 @@ export default function SessionPage() {
   // ── Host: waiting for guest to join ──────────────────────────────────────
   if (role === "host" && !bothConnected) {
     return (
-      <main className="relative min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+        </div>
         <Link
           href="/"
           className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
@@ -910,7 +934,11 @@ export default function SessionPage() {
 
   // ── Host: both connected ──────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#1C1A18] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+      </div>
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10">
 
         <div className="flex flex-col gap-6 pt-6">

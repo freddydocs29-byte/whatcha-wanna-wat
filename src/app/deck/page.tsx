@@ -1979,7 +1979,11 @@ function DeckContent() {
 
     // ── Solo exhausted state ───────────────────────────────────────────────
     return (
-      <main className="min-h-screen bg-[#1C1A18] px-5 pb-6 safe-top text-white">
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-6 safe-top text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+        </div>
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
           <header className="flex items-center justify-between">
             <span className="font-display font-black text-base text-white">
@@ -2060,7 +2064,11 @@ function DeckContent() {
 
   // ── Deck screen ───────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#1C1A18] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+      </div>
       {soloLockMeal && (
         <SoloLockOverlay
           meal={soloLockMeal}

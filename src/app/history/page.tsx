@@ -87,8 +87,12 @@ export default function HistoryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#1C1A18] text-white pb-28">
-      <div className="mx-auto w-full max-w-md">
+    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white pb-28">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+      </div>
+      <div className="relative mx-auto w-full max-w-md">
 
         <div className="px-5 pt-6 pb-2">
           {/* Avatar top right only */}
