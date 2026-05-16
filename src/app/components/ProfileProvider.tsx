@@ -168,6 +168,10 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
   // every new device creates a duplicate profile row.
 
   let resolvedUserId = deviceUserId;
+  // Tracks whether Step 1 already ran the decided-meal check so Step 2b can
+  // skip the duplicate restoreDecidedMealFromProfile call (while still
+  // dispatching decidedMealRestored for paths where Step 1 was skipped).
+  let decidedMealHandledByStep1 = false;
 
   const authUid = await getAuthUserId();
   if (authUid) {
@@ -230,6 +234,9 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
           }
         }
       }
+      // Mark that Step 1 handled the decided-meal check so Step 2b skips the
+      // duplicate restoreDecidedMealFromProfile call for returning users.
+      decidedMealHandledByStep1 = true;
     } else {
       // No auth-linked profile yet → this is a new signup on this device.
       // Link the current anon profile to the auth account.
@@ -252,13 +259,19 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
 
   // ── Step 2b: restore decided meal from profile if localStorage is empty ───
   //
-  // Called here so that a returning user who logged out (clearing localStorage)
-  // gets their last decided meal back the moment their profile is hydrated.
+  // Covers anon users and new signups — Step 1 is skipped for them because
+  // there is no existingAuthProfile. For returning users, Step 1 already ran
+  // the restore with stricter guards (6-hour expiry, manual-clear check), so
+  // we skip the restoreDecidedMealFromProfile call here to avoid duplication.
+  // The decidedMealRestored event is always dispatched so the home page is
+  // unblocked regardless of whether a meal was actually found.
   if (profile.last_decided_meal) {
     if (mealWasManuallyClearedAfter(profile.last_decided_meal.decidedAt)) {
       console.log('[ProfileProvider] meal was cleared — not restoring')
     } else {
-      restoreDecidedMealFromProfile(profile);
+      if (!decidedMealHandledByStep1) {
+        restoreDecidedMealFromProfile(profile);
+      }
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("decidedMealRestored"));
       }
@@ -445,6 +458,11 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
         // Wipe all user data and generate a fresh anon ID, then return to the
         // splash/auth screen. Do NOT call boot() here — SIGNED_IN will trigger
         // initializeProfile() when the next user logs in.
+        //
+        // Reset the boot guard so boot() can run again when the next user logs in.
+        // Without this, SIGNED_IN fires but boot() returns early because bootRan
+        // is still true from the initial mount — blocking every restore.
+        bootRan.current = false;
         clearAllLocalState();
         resetAnonymousId();
         setProfileReady(true);
