@@ -706,9 +706,9 @@ export default function Home() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-display font-black text-base text-white">
-                        {activeSession.status === "waiting" && "Waiting for someone to join"}
-                        {(activeSession.status === "ready") && "Both in — building your deck..."}
-                        {activeSession.status === "swiping" && "Deck ready — keep swiping"}
+                        {activeSession.status === "waiting" && "Waiting for your partner"}
+                        {activeSession.status === "ready" && "Your partner joined! Tap to continue"}
+                        {activeSession.status === "swiping" && "Session in progress · Tap to keep swiping"}
                       </p>
                       {activeSession.sessionCode && (
                         <p className="font-body text-xs text-[#8A7F78] mt-0.5">

@@ -16,6 +16,7 @@ import {
   type UserPreferences,
 } from "../../lib/storage";
 import { trackEvent } from "../../lib/analytics";
+import { SessionTerminalScreen } from "../../../components/SessionTerminalScreen";
 
 // ── Lightweight guest setup data ──────────────────────────────────────────────
 
@@ -76,6 +77,13 @@ const VIBE_COLORS: Record<SessionVibeMode, string> = {
   "kid-friendly":  "#E8621A",
 };
 
+const vibeEmoji: Record<string, string> = Object.fromEntries(
+  VIBE_OPTIONS.map((o) => [o.value, o.emoji])
+);
+const vibeName: Record<string, string> = Object.fromEntries(
+  VIBE_OPTIONS.map((o) => [o.value, o.label])
+);
+
 const WAITING_HEADLINES = [
   "The hard part\nis deciding.",
   "At least you'll\nagree on something.",
@@ -104,6 +112,7 @@ export default function SessionPage() {
   const [role, setRole] = useState<ViewerRole>("unknown");
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [sessionMatched, setSessionMatched] = useState(false);
   const [copied, setCopied] = useState(false);
   const [joining, setJoining] = useState(false);
   const [buildingDeck, setBuildingDeck] = useState(false);
@@ -171,7 +180,15 @@ export default function SessionPage() {
       s.status = "expired";
     }
     if (s.status === "expired") {
+      if (typeof window !== "undefined") localStorage.removeItem("wwe_active_session");
       setSessionExpired(true);
+      setSession(s);
+      return;
+    }
+
+    if (s.status === "matched") {
+      if (typeof window !== "undefined") localStorage.removeItem("wwe_active_session");
+      setSessionMatched(true);
       setSession(s);
       return;
     }
@@ -187,8 +204,8 @@ export default function SessionPage() {
         setSelectedVibe(s.vibe as SessionVibeMode);
         vibeInitializedRef.current = true;
       }
-      // Re-entry detection: if status is already swiping/matched, skip intro flow
-      if (s.status === "swiping" || s.status === "matched") {
+      // Re-entry detection: if status is already swiping, skip intro flow
+      if (s.status === "swiping") {
         setHostNeedsOnboarding(false);
       }
       // If guest already joined when host loads (status ready/active),
@@ -331,21 +348,6 @@ export default function SessionPage() {
       }
     });
   }, [session?.status, generateDeckIfNeeded, session]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-navigate to deck when status reaches swiping and deck_meal_ids is present.
-  // Guests auto-navigate, but only after the minimum 3s building animation completes
-  // (enforced by keeping buildingDeck=true until the min delay elapses).
-  // Hosts never auto-navigate here — they tap "Start swiping →" themselves.
-  useEffect(() => {
-    if (session?.status !== "swiping") return;
-    if (!session?.deck_meal_ids?.length) return;
-    if (role !== "guest") return;
-    if (buildingDeck) return; // wait for 3s minimum animation to finish
-
-    const vibe = (session.vibe ?? "mix-it-up") as SessionVibeMode;
-    trackEvent("shared_deck_started", { sessionId, vibe });
-    router.push(`/deck?sessionId=${sessionId}&vibe=${vibe}`);
-  }, [session?.status, session?.deck_meal_ids, role, buildingDeck]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for changes
   useEffect(() => {
@@ -738,31 +740,12 @@ export default function SessionPage() {
 
   // ── Session expired ───────────────────────────────────────────────────────
   if (sessionExpired || session?.status === "expired") {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-        </div>
-        <div className="w-20 h-20 rounded-full bg-[#E8621A]/10 flex items-center justify-center">
-          <span className="font-display font-black text-4xl text-[#E8621A]">?</span>
-        </div>
-        <div>
-          <h1 className="font-display font-black text-2xl text-white leading-tight">
-            This session has expired.
-          </h1>
-          <p className="mt-2 font-body text-sm text-[#8A7F78]">
-            Start a fresh one when you&apos;re ready.
-          </p>
-        </div>
-        <button
-          onClick={() => router.push("/")}
-          className="rounded-full bg-[#E8621A] px-8 py-4 font-display font-black text-base text-white transition hover:opacity-95 active:scale-[0.99]"
-          style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
-        >
-          Start a new one
-        </button>
-      </main>
-    );
+    return <SessionTerminalScreen variant="expired" />;
+  }
+
+  // ── Session already matched ───────────────────────────────────────────────
+  if (sessionMatched) {
+    return <SessionTerminalScreen variant="matched" />;
   }
 
   // ── Session full ──────────────────────────────────────────────────────────
@@ -809,6 +792,15 @@ export default function SessionPage() {
           </div>
         </div>
 
+        {session?.vibe && vibeEmoji[session.vibe] && (
+          <div className="flex items-center gap-2 mt-4">
+            <span className="text-lg">{vibeEmoji[session.vibe]}</span>
+            <span className="font-body text-sm text-[#8A7F78]">
+              Tonight feels like: <span className="text-white font-semibold">{vibeName[session.vibe]}</span>
+            </span>
+          </div>
+        )}
+
         <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight">
           Your host is deciding with you.
         </h1>
@@ -829,7 +821,9 @@ export default function SessionPage() {
         </Link>
 
         <p className="font-body text-xs text-[#8A7F78]/40 mt-4">
-          Session · {sessionId}
+          {session?.session_code
+            ? `Code: ${session.session_code}`
+            : `Session · ${sessionId?.slice(0, 8)}`}
         </p>
       </main>
     );
@@ -875,7 +869,10 @@ export default function SessionPage() {
         </div>
 
         <button
-          onClick={() => router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`)}
+          onClick={() => {
+            trackEvent("shared_deck_started", { sessionId, vibe: guestVibe });
+            router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`);
+          }}
           className="mt-8 w-full max-w-xs bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
           style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
         >
