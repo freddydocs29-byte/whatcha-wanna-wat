@@ -230,6 +230,8 @@ function DeckContent() {
   // ── Shared-session state ────────────────────────────────────────────────────
   const [sharedLoading, setSharedLoading] = useState(!!sessionId);
   const [sharedError, setSharedError] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [showAbandonmentBanner, setShowAbandonmentBanner] = useState(false);
   const [userId, setUserId] = useState<string>("");
   const [bothDone, setBothDone] = useState(false);
   const [sharedRefreshing, setSharedRefreshing] = useState(false);
@@ -375,26 +377,62 @@ function DeckContent() {
     };
   }, [sessionId, userId, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Poll for matches while inside a shared session
+  // Poll for matches while inside a shared session.
+  // Also checks for expiry and surfaces the abandonment banner.
   useEffect(() => {
     if (!sessionId) return;
 
     const poll = async () => {
       if (matchedMealRef.current) return; // Already showing match modal
 
-      // Check session status first — catches "Just decide for us" (which writes
-      // directly to sessions without inserting a swipe) and the case where the
-      // other user already confirmed a mutual-swipe match.
+      // Fetch enough fields for match detection, expiry, and abandonment checks
       const { data: sessionData } = await supabase
         .from("sessions")
-        .select("status, locked_meal_id")
+        .select("status, locked_meal_id, expires_at, updated_at, host_user_id, guest_user_id")
         .eq("id", sessionId)
         .single();
+
+      // Expiry check — stop polling and show expired screen
+      if (
+        sessionData?.status === "expired" ||
+        (sessionData?.expires_at && new Date(sessionData.expires_at) <= new Date())
+      ) {
+        setSessionExpired(true);
+        return;
+      }
+
+      // Match already confirmed by the other user
       if (sessionData?.status === "matched") {
         if (sessionData.locked_meal_id && !matchedMealRef.current) {
           router.push("/");
         }
         return;
+      }
+
+      // Abandonment banner: session has been swiping for > 2 h with no recent partner swipes
+      if (sessionData && !showAbandonmentBanner && userId) {
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        const swipingStarted = new Date(sessionData.updated_at);
+        if (swipingStarted < twoHoursAgo) {
+          const otherUserId =
+            userId === sessionData.host_user_id
+              ? sessionData.guest_user_id
+              : sessionData.host_user_id;
+          if (otherUserId) {
+            const { data: lastSwipe } = await supabase
+              .from("swipes")
+              .select("created_at")
+              .eq("session_id", sessionId)
+              .eq("user_id", otherUserId)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            const lastSwipeAt = lastSwipe?.created_at ? new Date(lastSwipe.created_at) : null;
+            if (!lastSwipeAt || lastSwipeAt < twoHoursAgo) {
+              setShowAbandonmentBanner(true);
+            }
+          }
+        }
       }
 
       const { data: swipeData } = await supabase
@@ -1322,9 +1360,10 @@ function DeckContent() {
     trackEvent("deck_refreshed", { mode: "shared", sessionId });
     setSharedRefreshing(true);
     await supabase.from("swipes").delete().eq("session_id", sessionId);
+    // Reset deck and status back to 'ready' so the session page auto-rebuilds
     await supabase
       .from("sessions")
-      .update({ deck_meal_ids: null, updated_at: new Date().toISOString() })
+      .update({ deck_meal_ids: null, status: "ready", updated_at: new Date().toISOString() })
       .eq("id", sessionId);
     router.push(`/session/${sessionId}`);
   }
@@ -1750,14 +1789,43 @@ function DeckContent() {
     passStreakRef.current = 0;
   }
 
+  // ── Session expired screen ────────────────────────────────────────────────
+  if (sessionId && sessionExpired) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        </div>
+        <div className="w-20 h-20 rounded-full bg-[#E8621A]/10 flex items-center justify-center">
+          <span className="font-display font-black text-4xl text-[#E8621A]">?</span>
+        </div>
+        <div>
+          <h1 className="font-display font-black text-2xl text-white leading-tight">
+            This session has expired.
+          </h1>
+          <p className="mt-2 font-body text-sm text-[#8A7F78]">
+            Start a fresh one when you&apos;re ready.
+          </p>
+        </div>
+        <button
+          onClick={() => router.push("/")}
+          className="rounded-full bg-[#E8621A] px-8 py-4 font-display font-black text-base text-white transition hover:opacity-95 active:scale-[0.99]"
+          style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+        >
+          Start a new one
+        </button>
+      </main>
+    );
+  }
+
   // ── Shared deck error screen ──────────────────────────────────────────────
   if (sessionId && sharedError) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#080808] px-6 text-center text-white">
         <p className="text-lg font-semibold tracking-[-0.03em]">Deck not ready</p>
         <p className="max-w-[28ch] text-sm leading-6 text-white/50">
-          The shared deck hasn&apos;t been created yet. Ask the host to go back
-          and tap &ldquo;Start swiping&rdquo; again.
+          The shared deck couldn&apos;t be built. Ask the host to go back and
+          try again.
         </p>
         <button
           onClick={() => router.push("/")}
@@ -2097,6 +2165,16 @@ function DeckContent() {
               />
             )}
           </AnimatePresence>
+        )}
+
+        {/* Abandonment banner — non-blocking, shown only when partner has been quiet > 2h */}
+        {sessionId && showAbandonmentBanner && (
+          <div className="mx-5 mt-3 flex items-center gap-2 rounded-[12px] bg-[#2A2420] px-4 py-2.5">
+            <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#8A7F78]" />
+            <p className="font-body text-xs text-[#8A7F78]">
+              Still waiting on your partner. They have 24 hours to swipe.
+            </p>
+          </div>
         )}
 
         {/* 1. HEADER ROW */}

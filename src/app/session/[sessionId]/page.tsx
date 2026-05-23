@@ -8,7 +8,7 @@ import { getUserId } from "../../lib/identity";
 import { buildSharedDeckForSession } from "../../lib/deck";
 import { upsertProfilePreferences, syncBehavioralSignalsToSupabase, fetchOrCreateProfile } from "../../lib/supabase-profile";
 import type { Profile } from "../../lib/supabase";
-import type { SessionVibeMode, CookingIntent } from "../../lib/scoring";
+import type { SessionVibeMode } from "../../lib/scoring";
 import {
   hasCompletedOnboarding,
   savePreferences,
@@ -57,6 +57,33 @@ const GUEST_HEAT: { value: UserPreferences["spiceLevel"]; label: string; emoji: 
   { value: "any", label: "No preference", emoji: "🤷" },
 ];
 
+// ── Host flow constants ───────────────────────────────────────────────────────
+
+const VIBE_OPTIONS: { value: SessionVibeMode; emoji: string; label: string; description: string }[] = [
+  { value: "comfort-food", emoji: "🔥", label: "Comfort me", description: "The good stuff. Familiar, satisfying." },
+  { value: "quick-easy", emoji: "⚡", label: "Keep it easy", description: "Quick, simple, no-fuss." },
+  { value: "mix-it-up", emoji: "✨", label: "Surprise us", description: "Something neither of you expected." },
+  { value: "healthy", emoji: "🥗", label: "Healthy reset", description: "Light, fresh, feels good." },
+  { value: "something-new", emoji: "🎉", label: "Celebrate something", description: "Special occasion energy." },
+];
+
+const VIBE_COLORS: Record<SessionVibeMode, string> = {
+  "comfort-food":  "#E8621A",
+  "quick-easy":    "#C9983A",
+  "mix-it-up":     "#9B70D4",
+  "healthy":       "#3DAA72",
+  "something-new": "#C9983A",
+  "kid-friendly":  "#E8621A",
+};
+
+const WAITING_HEADLINES = [
+  "The hard part\nis deciding.",
+  "At least you'll\nagree on something.",
+  "Better than\nfighting over it.",
+  "Two people.\nOne answer.",
+  "No more\n\"I don't care.\"",
+];
+
 type ViewerRole = "host" | "guest" | "full" | "unknown";
 
 const POLL_INTERVAL_MS = 3000;
@@ -68,11 +95,6 @@ const BUILD_PHRASES = [
   "Almost there...",
 ];
 
-const COOKING_INTENT_OPTIONS: { value: CookingIntent; label: string; sub: string }[] = [
-  { value: "cooking",  label: "Cooking",      sub: "We'll make it at home" },
-  { value: "ordering", label: "Ordering",     sub: "Delivery or takeout" },
-  { value: "either",   label: "Either works", sub: "No preference" },
-];
 
 export default function SessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -81,17 +103,27 @@ export default function SessionPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<ViewerRole>("unknown");
   const [error, setError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [copied, setCopied] = useState(false);
   const [joining, setJoining] = useState(false);
   const [buildingDeck, setBuildingDeck] = useState(false);
   const [buildPhrase, setBuildPhrase] = useState(0);
   const [completingSetup, setCompletingSetup] = useState(false);
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
-  const [selectedCookingIntent, setSelectedCookingIntent] = useState<CookingIntent>("either");
-  const [cookingIntentStep, setCookingIntentStep] = useState<"pending" | "done">("pending");
+
+  // Host flow state
+  const [hostStep, setHostStep] = useState<"vibe" | "sharing" | "waiting">("vibe");
+  // false = re-entry (skip intro steps); true = first-time host flow
+  const [hostNeedsOnboarding, setHostNeedsOnboarding] = useState(true);
+  const [showStartSwiping, setShowStartSwiping] = useState(false);
+  const [cancellingSession, setCancellingSession] = useState(false);
+  const [waitingHeadlineIdx, setWaitingHeadlineIdx] = useState(0);
+  const [savingVibe, setSavingVibe] = useState(false);
 
   // Guard so generateDeckIfNeeded only fires once per session load
   const deckTriggeredRef = useRef(false);
+  // Guard so loadSession polling never resets a vibe the user has already selected
+  const vibeInitializedRef = useRef(false);
 
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
 
@@ -105,9 +137,12 @@ export default function SessionPage() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Prefer the short code URL; fall back to UUID path if code is absent (older rows)
   const sessionUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/session/${sessionId}`
+      ? session?.session_code
+        ? `${window.location.origin}/join/${session.session_code}`
+        : `${window.location.origin}/session/${sessionId}`
       : "";
 
   // Load session and determine role
@@ -124,14 +159,44 @@ export default function SessionPage() {
     }
 
     const s = data as Session;
+
+    // Enforce expiry: if expires_at has passed and session is not terminal, mark it
+    const now = new Date();
+    if (s.status !== "expired" && s.status !== "matched" && new Date(s.expires_at) <= now) {
+      void supabase
+        .from("sessions")
+        .update({ status: "expired", updated_at: new Date().toISOString() })
+        .eq("id", sessionId)
+        .not("status", "in", '("expired","matched")');
+      s.status = "expired";
+    }
+    if (s.status === "expired") {
+      setSessionExpired(true);
+      setSession(s);
+      return;
+    }
+
     setSession(s);
 
     const myId = getUserId();
 
     if (myId === s.host_user_id) {
       setRole("host");
-      if (s.vibe) setSelectedVibe(s.vibe as SessionVibeMode);
-      if (s.cooking_intent) setSelectedCookingIntent(s.cooking_intent);
+      // Only initialize selectedVibe once — don't let polls reset what the user picked
+      if (s.vibe && !vibeInitializedRef.current) {
+        setSelectedVibe(s.vibe as SessionVibeMode);
+        vibeInitializedRef.current = true;
+      }
+      // Re-entry detection: if status is already swiping/matched, skip intro flow
+      if (s.status === "swiping" || s.status === "matched") {
+        setHostNeedsOnboarding(false);
+      }
+      // If guest already joined when host loads (status ready/active),
+      // jump directly to the waiting step to avoid a vibe-selector flash
+      if (s.status === "ready" || s.status === "active") {
+        setHostStep("waiting");
+        prevBothConnectedRef.current = true;
+      }
     } else if (myId === s.guest_user_id) {
       setRole("guest");
     } else if (s.guest_user_id !== null) {
@@ -164,8 +229,15 @@ export default function SessionPage() {
           currentSession.guest_user_id,
         );
 
+        // Advance status to swiping — idempotent if another client already did this
+        await supabase
+          .from("sessions")
+          .update({ status: "swiping", updated_at: new Date().toISOString() })
+          .eq("id", currentSession.id)
+          .in("status", ["ready", "active"]); // only transition forward
+
         setSession((prev) =>
-          prev ? { ...prev, deck_meal_ids: mealIds } : prev,
+          prev ? { ...prev, deck_meal_ids: mealIds, status: "swiping" } : prev,
         );
       } catch (err) {
         console.error("[session] deck generation failed:", err);
@@ -185,7 +257,7 @@ export default function SessionPage() {
       .from("sessions")
       .update({
         guest_user_id: myId,
-        status: "active",
+        status: "ready",
         updated_at: new Date().toISOString(),
       })
       .eq("id", sessionId)
@@ -208,8 +280,7 @@ export default function SessionPage() {
       console.warn("[sync] behavioral signals failed:", err),
     );
     trackEvent("shared_session_joined", { sessionId });
-    // Deck generation is deferred — host triggers it explicitly by clicking "Start swiping"
-  }, [sessionId, loadSession, generateDeckIfNeeded]);
+  }, [sessionId, loadSession]);
 
   // Initial load
   useEffect(() => {
@@ -224,14 +295,6 @@ export default function SessionPage() {
     }
   }, [role, session, joining, needsSetup, joinSession]);
 
-  // Auto-advance cooking intent step after 20 s if both are connected and neither has acted
-  useEffect(() => {
-    const isConnected = session?.status === "active" || session?.status === "matched";
-    if (!isConnected || cookingIntentStep !== "pending") return;
-    const timer = setTimeout(() => setCookingIntentStep("done"), 20_000);
-    return () => clearTimeout(timer);
-  }, [session?.status, cookingIntentStep]);
-
   // Cycle through build phrases while deck is generating
   useEffect(() => {
     if (!buildingDeck) return;
@@ -242,12 +305,52 @@ export default function SessionPage() {
     return () => clearInterval(interval);
   }, [buildingDeck]);
 
-  // Poll for changes:
-  // - Host: detect when guest joins (status: waiting → active)
-  // - Both: detect when deck is ready (deck_meal_ids populated)
+  // Auto-trigger deck generation when both are ready.
+  // Fires on both host and guest — deckTriggeredRef ensures at most one attempt per client;
+  // the DB guard (deck_meal_ids IS NULL) ensures only one deck is ever written.
+  // For guests, setBuildingDeck(false) is delayed to enforce a minimum 3s animation display.
+  useEffect(() => {
+    if (session?.status !== "ready") return;
+    if (deckTriggeredRef.current) return;
+    if (!session) return;
+
+    syncBehavioralSignalsToSupabase(getUserId()).catch((err) =>
+      console.warn("[sync] behavioral signals failed:", err),
+    );
+
+    const isGuest = role === "guest";
+    const startTime = Date.now();
+    setBuildingDeck(true);
+    generateDeckIfNeeded(session).finally(() => {
+      if (isGuest) {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 3000 - elapsed);
+        setTimeout(() => setBuildingDeck(false), remaining);
+      } else {
+        setBuildingDeck(false);
+      }
+    });
+  }, [session?.status, generateDeckIfNeeded, session]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-navigate to deck when status reaches swiping and deck_meal_ids is present.
+  // Guests auto-navigate, but only after the minimum 3s building animation completes
+  // (enforced by keeping buildingDeck=true until the min delay elapses).
+  // Hosts never auto-navigate here — they tap "Start swiping →" themselves.
+  useEffect(() => {
+    if (session?.status !== "swiping") return;
+    if (!session?.deck_meal_ids?.length) return;
+    if (role !== "guest") return;
+    if (buildingDeck) return; // wait for 3s minimum animation to finish
+
+    const vibe = (session.vibe ?? "mix-it-up") as SessionVibeMode;
+    trackEvent("shared_deck_started", { sessionId, vibe });
+    router.push(`/deck?sessionId=${sessionId}&vibe=${vibe}`);
+  }, [session?.status, session?.deck_meal_ids, role, buildingDeck]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll for changes
   useEffect(() => {
     const shouldPoll =
-      (role === "host" && session?.status === "waiting") ||
+      (role === "host" && (session?.status === "waiting" || session?.status === "ready")) ||
       ((role === "host" || role === "guest") && !(session?.deck_meal_ids?.length));
 
     if (shouldPoll) {
@@ -263,49 +366,33 @@ export default function SessionPage() {
     };
   }, [role, session?.status, session?.deck_meal_ids, loadSession]);
 
-  // Persists cooking intent selection and advances past the question step.
-  // Called by both host and guest — last write wins (both are present, it's a quick choice).
-  async function handleCookingIntentSelect(intent: CookingIntent) {
-    setSelectedCookingIntent(intent);
-    const { error: err } = await supabase
-      .from("sessions")
-      .update({ cooking_intent: intent, updated_at: new Date().toISOString() })
-      .eq("id", sessionId);
-    if (err) console.warn("[session] cooking intent save failed:", err.message);
-    setCookingIntentStep("done");
-  }
+  // Detect guest join from any host step (vibe, sharing, or waiting).
+  // Auto-advances hostStep to "waiting" so the celebration UI renders,
+  // then shows "Start swiping →" after 2s.
+  const bothConnected =
+    session?.status === "ready" ||
+    session?.status === "active" ||
+    session?.status === "swiping" ||
+    session?.status === "matched";
 
-  function handleCookingIntentSkip() {
-    setCookingIntentStep("done");
-  }
+  const prevBothConnectedRef = useRef(false);
+  useEffect(() => {
+    if (!bothConnected || prevBothConnectedRef.current) return;
+    if (role !== "host") return;
+    prevBothConnectedRef.current = true;
+    setHostStep("waiting");
+    const timer = setTimeout(() => setShowStartSwiping(true), 2000);
+    return () => clearTimeout(timer);
+  }, [bothConnected, role]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Host locks the chosen vibe, generates the shared deck, then enters.
-  // cooking_intent is already in the DB from the question step — no need to re-write it here.
-  async function handleStartSwiping() {
-    if (!session) return;
-    syncBehavioralSignalsToSupabase(getUserId()).catch((err) =>
-      console.warn("[sync] behavioral signals failed:", err),
-    );
-    // Persist the vibe so deck build and guest screen both reflect it
-    await supabase
-      .from("sessions")
-      .update({
-        vibe: selectedVibe,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sessionId);
-    // Show the Building Deck screen for a minimum of 3 seconds regardless of
-    // how fast the data loads, so the animation has time to play.
-    setBuildingDeck(true);
-    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 3000));
-    const deckBuild = !session.deck_meal_ids?.length
-      ? generateDeckIfNeeded(session)
-      : Promise.resolve();
-    await Promise.all([minDelay, deckBuild]);
-    setBuildingDeck(false);
-    trackEvent("shared_deck_started", { sessionId, vibe: selectedVibe, cookingIntent: selectedCookingIntent });
-    router.push(`/deck?sessionId=${sessionId}&vibe=${selectedVibe}`);
-  }
+  // Rotate waiting headlines every 2.5s
+  useEffect(() => {
+    if (role !== "host" || hostStep !== "waiting" || bothConnected) return;
+    const interval = setInterval(() => {
+      setWaitingHeadlineIdx((i) => (i + 1) % WAITING_HEADLINES.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [role, hostStep, bothConnected]);
 
   function handleCopy() {
     navigator.clipboard.writeText(sessionUrl).then(() => {
@@ -349,6 +436,49 @@ export default function SessionPage() {
     } else {
       handleCopy();
     }
+  }
+
+  async function handleVibeSelect(vibe: SessionVibeMode | null) {
+    if (vibe) {
+      setSavingVibe(true);
+      setSelectedVibe(vibe);
+      vibeInitializedRef.current = true;
+      await supabase
+        .from("sessions")
+        .update({ vibe, updated_at: new Date().toISOString() })
+        .eq("id", sessionId);
+      setSession((prev) => prev ? { ...prev, vibe } : prev);
+      setSavingVibe(false);
+    }
+    setHostStep("sharing");
+  }
+
+  async function handleCancelSession() {
+    setCancellingSession(true);
+    await supabase
+      .from("sessions")
+      .update({ status: "expired", updated_at: new Date().toISOString() })
+      .eq("id", sessionId);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("wwe_active_session");
+    }
+    router.push("/");
+  }
+
+  function handleStartSwiping() {
+    // Update localStorage so the home banner knows we're swiping
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("wwe_active_session");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          localStorage.setItem("wwe_active_session", JSON.stringify({ ...parsed, status: "swiping" }));
+        } catch {}
+      }
+    }
+    const vibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;
+    trackEvent("shared_deck_started", { sessionId, vibe });
+    router.push(`/deck?sessionId=${sessionId}&vibe=${vibe}`);
   }
 
   // ── Guest quick setup ─────────────────────────────────────────────────────
@@ -606,6 +736,35 @@ export default function SessionPage() {
     );
   }
 
+  // ── Session expired ───────────────────────────────────────────────────────
+  if (sessionExpired || session?.status === "expired") {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        </div>
+        <div className="w-20 h-20 rounded-full bg-[#E8621A]/10 flex items-center justify-center">
+          <span className="font-display font-black text-4xl text-[#E8621A]">?</span>
+        </div>
+        <div>
+          <h1 className="font-display font-black text-2xl text-white leading-tight">
+            This session has expired.
+          </h1>
+          <p className="mt-2 font-body text-sm text-[#8A7F78]">
+            Start a fresh one when you&apos;re ready.
+          </p>
+        </div>
+        <button
+          onClick={() => router.push("/")}
+          className="rounded-full bg-[#E8621A] px-8 py-4 font-display font-black text-base text-white transition hover:opacity-95 active:scale-[0.99]"
+          style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+        >
+          Start a new one
+        </button>
+      </main>
+    );
+  }
+
   // ── Session full ──────────────────────────────────────────────────────────
   if (role === "full") {
     return (
@@ -625,83 +784,8 @@ export default function SessionPage() {
     );
   }
 
-  // ── Guest: waiting for deck / cooking intent question ────────────────────
+  // ── Guest: waiting for deck to build ────────────────────────────────────
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
-    const guestBothConnected = session?.status === "active" || session?.status === "matched";
-
-    // Cooking intent question — shown once both users are connected
-    if (guestBothConnected && cookingIntentStep === "pending") {
-      return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-            <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-          </div>
-          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10 safe-top">
-            <div className="flex flex-col gap-8 pt-6">
-              <div className="flex items-center justify-between">
-                <Link
-                  href="/"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
-                >
-                  ←
-                </Link>
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-[#8A7F78]">
-                  Shared session
-                </span>
-                <div className="w-10" />
-              </div>
-              <div className="bg-[#2A2420] rounded-[24px] p-6">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#E8621A] animate-pulse" />
-                  <p className="font-body text-[11px] font-semibold uppercase tracking-widest text-[#8A7F78]">
-                    Both connected
-                  </p>
-                </div>
-                <h1 className="mt-4 font-display font-black text-3xl text-white leading-tight">
-                  Quick question
-                </h1>
-                <p className="mt-3 font-body text-base text-[#8A7F78]">
-                  Cooking or ordering tonight?
-                </p>
-                <div className="mt-5 grid grid-cols-3 gap-3">
-                  {COOKING_INTENT_OPTIONS.map(({ value, label, sub }) => {
-                    const emojis: Record<CookingIntent, string> = { cooking: "🍳", ordering: "📱", either: "🤷" };
-                    const isActive = selectedCookingIntent === value;
-                    return (
-                      <button
-                        key={value}
-                        onClick={() => void handleCookingIntentSelect(value)}
-                        className={`flex flex-col items-center gap-1.5 rounded-[16px] border p-3 text-center transition-all duration-150 active:scale-[0.97] ${
-                          isActive
-                            ? "border-[#E8621A] bg-[#E8621A]/10 text-white"
-                            : "border-white/[0.07] bg-[#1C1A18] text-white/35 hover:border-white/15 hover:text-white/55"
-                        }`}
-                      >
-                        <span className="text-2xl">{emojis[value]}</span>
-                        <span className="text-xs font-semibold">{label}</span>
-                        <span className={`mt-0.5 text-[10px] leading-tight ${isActive ? "text-[#8A7F78]" : "text-white/20"}`}>{sub}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={handleCookingIntentSkip}
-                  className="mt-4 w-full text-center font-body text-sm text-[#8A7F78]/50 transition hover:text-[#8A7F78]"
-                >
-                  Skip
-                </button>
-              </div>
-              <p className="text-center font-body text-xs text-[#8A7F78]/40">
-                Session · {sessionId?.slice(0, 8)}
-              </p>
-            </div>
-          </div>
-        </main>
-      );
-    }
-
-    // Waiting / building deck state
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -805,8 +889,12 @@ export default function SessionPage() {
     );
   }
 
-  // ── Building deck loading screen ─────────────────────────────────────────
-  if (buildingDeck) {
+  // ── Building deck loading screen (host + guest) ───────────────────────────
+  const shouldShowBuildingDeck =
+    buildingDeck &&
+    (role === "guest" || (role === "host" && (!hostNeedsOnboarding || hostStep === "waiting")));
+
+  if (shouldShowBuildingDeck) {
     const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
     const partnerInitial = "?";
 
@@ -821,19 +909,14 @@ export default function SessionPage() {
           className="relative flex items-center justify-center w-72 h-72"
           style={{ animation: "pulse 3s ease-in-out infinite" }}
         >
-          {/* Ring 1 — outermost */}
           <div className="absolute w-72 h-72 rounded-full border border-[#E8621A]/20" />
-          {/* Ring 2 — middle */}
           <div className="absolute w-52 h-52 rounded-full border border-[#E8621A]/35" />
-          {/* Ring 3 — inner */}
           <div className="absolute w-36 h-36 rounded-full border border-[#E8621A]/50" />
-          {/* Center circle */}
           <div className="w-20 h-20 rounded-full bg-[#3D1A00] flex items-center justify-center">
             <span className="font-display font-black text-3xl text-[#E8621A]">?</span>
           </div>
         </div>
 
-        {/* Overlapping avatars */}
         <div className="flex items-center justify-center mt-8">
           <div className="w-10 h-10 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-sm text-white border-2 border-[#1C1A18] z-10 relative">
             {myInitial}
@@ -843,12 +926,10 @@ export default function SessionPage() {
           </div>
         </div>
 
-        {/* Status label */}
         <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mt-4">
           COMBINING YOUR TASTES...
         </p>
 
-        {/* Rotating headline */}
         <p
           className="font-display font-black text-3xl text-white text-center mt-4 leading-tight px-8 transition-opacity duration-500"
           style={{ opacity: 1 }}
@@ -856,7 +937,6 @@ export default function SessionPage() {
           {BUILD_PHRASES[buildPhrase]}
         </p>
 
-        {/* Subtext */}
         <p className="font-body text-sm text-[#8A7F78] text-center mt-3">
           Filtering out the maybes. Your deck is almost ready.
         </p>
@@ -864,211 +944,474 @@ export default function SessionPage() {
     );
   }
 
-  // ── Host lobby ────────────────────────────────────────────────────────────
-  const bothConnected = session?.status === "active" || session?.status === "matched";
-  const deckReady = !!(session?.deck_meal_ids?.length);
+  // ── Host: vibe selector (Change 1) ────────────────────────────────────────
+  if (role === "host" && hostNeedsOnboarding && hostStep === "vibe") {
+    const activeColor = VIBE_COLORS[selectedVibe] ?? "#E8621A";
+    const activeLabel = VIBE_OPTIONS.find((o) => o.value === selectedVibe)?.label ?? "";
 
-  // ── Host: waiting for guest to join ──────────────────────────────────────
-  if (role === "host" && !bothConnected) {
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
         </div>
-        <Link
-          href="/"
-          className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
-        >
-          ←
-        </Link>
+        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-32">
+          <div className="flex flex-col gap-6 pt-6">
 
-        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-12">
-          Shared session
-        </p>
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <Link
+                href="/"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
+              >
+                ←
+              </Link>
+              <span className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
+                New session
+              </span>
+              <div className="w-10" />
+            </div>
 
-        <div className="w-24 h-24 rounded-full bg-[#E8621A]/10 flex items-center justify-center animate-pulse">
-          <div className="w-14 h-14 rounded-full bg-[#E8621A]/20 flex items-center justify-center">
-            <span className="text-3xl">👥</span>
+            {/* Headline — active label shown in vibe color */}
+            <div className="mt-2">
+              <h1 className="font-display font-black text-4xl text-white leading-tight">
+                What&apos;s the vibe tonight?
+              </h1>
+              <p
+                className="font-body text-base mt-2 transition-colors duration-200"
+                style={{ color: activeLabel ? activeColor : "#8A7F78" }}
+              >
+                {activeLabel || "Pick a mood. We'll build your deck around it."}
+              </p>
+            </div>
+
+            {/* Vibe grid — 2 col + 1 full-width */}
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              {VIBE_OPTIONS.slice(0, 4).map((opt) => {
+                const selected = selectedVibe === opt.value;
+                const color = VIBE_COLORS[opt.value] ?? "#E8621A";
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setSelectedVibe(opt.value);
+                      vibeInitializedRef.current = true;
+                    }}
+                    className="flex flex-col items-start gap-2 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
+                    style={{
+                      borderColor: selected ? color : "transparent",
+                      backgroundColor: selected ? `${color}1A` : "#2A2420",
+                    }}
+                  >
+                    <span className="text-3xl">{opt.emoji}</span>
+                    <div>
+                      <p
+                        className="font-display font-black text-base leading-tight transition-colors duration-150"
+                        style={{ color: selected ? color : "white" }}
+                      >
+                        {opt.label}
+                      </p>
+                      <p className="font-body text-xs text-[#8A7F78] mt-1 leading-snug">
+                        {opt.description}
+                      </p>
+                    </div>
+                    <div
+                      className="w-4 h-4 rounded-full border-2 flex items-center justify-center ml-auto transition-all duration-150"
+                      style={{
+                        borderColor: selected ? color : "rgba(255,255,255,0.2)",
+                        backgroundColor: selected ? color : "transparent",
+                      }}
+                    >
+                      {selected && <span className="text-white text-[8px] font-bold">✓</span>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* 5th option — full width */}
+            {(() => {
+              const opt = VIBE_OPTIONS[4];
+              const selected = selectedVibe === opt.value;
+              const color = VIBE_COLORS[opt.value] ?? "#E8621A";
+              return (
+                <button
+                  onClick={() => {
+                    setSelectedVibe(opt.value);
+                    vibeInitializedRef.current = true;
+                  }}
+                  className="flex items-center gap-4 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
+                  style={{
+                    borderColor: selected ? color : "transparent",
+                    backgroundColor: selected ? `${color}1A` : "#2A2420",
+                  }}
+                >
+                  <span className="text-3xl">{opt.emoji}</span>
+                  <div className="flex-1">
+                    <p
+                      className="font-display font-black text-base transition-colors duration-150"
+                      style={{ color: selected ? color : "white" }}
+                    >
+                      {opt.label}
+                    </p>
+                    <p className="font-body text-xs text-[#8A7F78] mt-0.5">{opt.description}</p>
+                  </div>
+                  <div
+                    className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150"
+                    style={{
+                      borderColor: selected ? color : "rgba(255,255,255,0.2)",
+                      backgroundColor: selected ? color : "transparent",
+                    }}
+                  >
+                    {selected && <span className="text-white text-[8px] font-bold">✓</span>}
+                  </div>
+                </button>
+              );
+            })()}
           </div>
         </div>
 
-        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight text-center">
-          Waiting for someone to join.
-        </h1>
-        <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs text-center">
-          Share the link below. Your deck builds the moment they join.
-        </p>
-
-        <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
-          <span className="w-2 h-2 rounded-full bg-[#4A7C59] animate-pulse" />
-          <span className="font-body text-sm text-[#8A7F78]">WAITING FOR SOMEONE</span>
+        {/* Sticky CTA */}
+        <div className="fixed bottom-0 left-0 right-0 z-30">
+          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
+            <button
+              onClick={() => handleVibeSelect(selectedVibe)}
+              disabled={savingVibe}
+              className="w-full rounded-full px-5 py-[18px] text-center font-display font-black text-[15px] text-white transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
+              style={{
+                backgroundColor: savingVibe ? "#8A7F78" : activeColor,
+                boxShadow: savingVibe ? "none" : `0 8px 40px ${activeColor}45`,
+              }}
+            >
+              {savingVibe ? "Saving…" : "Build our deck →"}
+            </button>
+            <button
+              onClick={() => handleVibeSelect(null)}
+              disabled={savingVibe}
+              className="mt-3 w-full text-center text-sm text-[#8A7F78] transition hover:text-white/55 disabled:opacity-30"
+            >
+              Skip — surprise us
+            </button>
+          </div>
         </div>
-
-        <div className="w-full bg-[#2A2420] rounded-[16px] px-4 py-3 mt-8">
-          <p className="font-body text-sm text-[#8A7F78] truncate">{sessionUrl}</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mt-3 w-full">
-          <button
-            onClick={handleShare}
-            className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-[14px]"
-            style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
-          >
-            Share link
-          </button>
-          <button
-            onClick={handleCopy}
-            className="w-full bg-[#2A2420] text-white font-display font-black text-base py-4 rounded-[14px] border border-white/10"
-          >
-            {copied ? "Copied!" : "Copy link"}
-          </button>
-        </div>
-
-        <p className="font-body text-xs text-[#8A7F78]/40 mt-6">
-          Session · {sessionId}
-        </p>
       </main>
     );
   }
 
-  // ── Host: both connected ──────────────────────────────────────────────────
-  return (
-    <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-      </div>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-10">
+  // ── Host: sharing screen (Change 2) ──────────────────────────────────────
+  if (role === "host" && hostNeedsOnboarding && hostStep === "sharing") {
+    const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
 
-        <div className="flex flex-col gap-6 pt-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <Link
-              href="/"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
-            >
-              ←
-            </Link>
-            <span className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
-              Shared session
-            </span>
-            <div className="w-10" />
-          </div>
-
-          {/* Status card */}
-          <div className="bg-[#2A2420] rounded-[24px] p-6">
-            {/* Status pill */}
-            {deckReady ? (
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#4A7C59] animate-pulse" />
-                <span className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78]">DECK READY</span>
-              </div>
-            ) : bothConnected ? (
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#E8621A] animate-pulse" />
-                <span className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78]">BOTH CONNECTED</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/60 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8621A]" />
-                </span>
-                <span className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78]">WAITING FOR SOMEONE</span>
-              </div>
-            )}
-
-            <h1 className="font-display font-black text-3xl text-white leading-tight mt-4">
-              {deckReady
-                ? "Ready to decide."
-                : bothConnected
-                ? "You're both in."
-                : "Session created."}
-            </h1>
-            <p className="font-body text-base text-[#8A7F78] mt-3">
-              {deckReady
-                ? "Your shared deck is ready. Start swiping — matches happen when you both say yes."
-                : bothConnected
-                ? "Tap Start swiping to build your shared deck."
-                : "Share this link and wait for them to join."}
-            </p>
-
-            {/* Invite link */}
-            <div className="mt-5 bg-[#1C1A18] rounded-[14px] px-4 py-3">
-              <p className="truncate font-body text-xs text-[#8A7F78]">{sessionUrl}</p>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <button
-                onClick={handleShare}
-                className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full"
-                style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
-              >
-                Share link
-              </button>
-              <button
-                onClick={handleCopy}
-                className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full border border-white/10"
-              >
-                {copied ? "Copied!" : "Copy link"}
-              </button>
-            </div>
-
-            {/* Cooking intent question */}
-            {bothConnected && !deckReady && cookingIntentStep === "pending" && (
-              <div className="mt-6">
-                <p className="font-body text-sm text-[#8A7F78] mb-3">
-                  Cooking or ordering tonight?
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {COOKING_INTENT_OPTIONS.map(({ value, label, sub }) => {
-                    const emojis: Record<CookingIntent, string> = { cooking: "🍳", ordering: "📱", either: "🤷" };
-                    const isActive = selectedCookingIntent === value;
-                    return (
-                      <button
-                        key={value}
-                        onClick={() => void handleCookingIntentSelect(value)}
-                        className={`flex flex-col items-center gap-1.5 rounded-[16px] border p-3 text-center transition-all duration-150 active:scale-[0.97] ${
-                          isActive
-                            ? "border-[#E8621A] bg-[#E8621A]/10"
-                            : "border-white/[0.07] bg-[#1C1A18]"
-                        }`}
-                      >
-                        <span className="text-2xl">{emojis[value]}</span>
-                        <span className={`text-xs font-semibold ${isActive ? "text-white" : "text-white/35"}`}>{label}</span>
-                        <span className={`text-[10px] leading-tight ${isActive ? "text-[#8A7F78]" : "text-white/20"}`}>{sub}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={handleCookingIntentSkip}
-                  className="mt-3 w-full text-center font-body text-sm text-[#8A7F78]/50 transition hover:text-[#8A7F78]"
-                >
-                  Skip
-                </button>
-              </div>
-            )}
-
-            {/* Start swiping */}
-            {bothConnected && cookingIntentStep === "done" && (
-              <button
-                onClick={handleStartSwiping}
-                disabled={buildingDeck}
-                className="mt-6 w-full rounded-full bg-[#E8621A] py-4 text-base font-display font-black text-white transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
-                style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
-              >
-                {buildingDeck ? "Building deck…" : "Start swiping"}
-              </button>
-            )}
-          </div>
-
-          {/* Session ID footer */}
-          <p className="text-center font-body text-xs text-[#8A7F78]/40">
-            Session · {sessionId?.slice(0, 8)}
-          </p>
+    return (
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
         </div>
-      </div>
-    </main>
-  );
+        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 pb-10 text-center">
+
+          {/* Back */}
+          <button
+            onClick={() => setHostStep("vibe")}
+            className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
+          >
+            ←
+          </button>
+
+          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-8">
+            Share your session
+          </p>
+
+          <h1 className="font-display font-black text-4xl text-white leading-tight">
+            Who&apos;s deciding<br />with you?
+          </h1>
+          <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+            Send this code or link. They join, you both swipe, and a match picks your dinner.
+          </p>
+
+          {/* Session code — prominent display */}
+          <div className="mt-8 w-full bg-[#2A2420] rounded-[24px] p-6 border border-white/[0.06]">
+            <p className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase mb-2">
+              Session code
+            </p>
+            <p className="font-display font-black text-5xl text-white tracking-wide">
+              {codeDisplay}
+            </p>
+            <p className="font-body text-xs text-[#8A7F78] mt-2">
+              or share the link below
+            </p>
+            <div className="mt-3 bg-[#1C1A18] rounded-[12px] px-3 py-2">
+              <p className="font-body text-xs text-[#8A7F78] truncate">{sessionUrl}</p>
+            </div>
+          </div>
+
+          {/* Share actions */}
+          <div className="grid grid-cols-2 gap-3 mt-4 w-full">
+            <button
+              onClick={handleShare}
+              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-[14px]"
+              style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+            >
+              Share link
+            </button>
+            <button
+              onClick={handleCopy}
+              className="w-full bg-[#2A2420] text-white font-display font-black text-base py-4 rounded-[14px] border border-white/10"
+            >
+              {copied ? "Copied!" : "Copy link"}
+            </button>
+          </div>
+
+          {/* Waiting status pill */}
+          <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
+            <span className="w-2 h-2 rounded-full bg-[#E8621A] animate-pulse" />
+            <span className="font-body text-sm text-[#8A7F78]">Waiting for someone to join...</span>
+          </div>
+
+          {/* Transition to waiting room */}
+          <button
+            onClick={() => setHostStep("waiting")}
+            className="mt-8 font-body text-sm text-[#8A7F78] underline underline-offset-2 transition hover:text-white/60"
+          >
+            I shared it, now what? →
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Host: waiting room (Change 3) ─────────────────────────────────────────
+  if (role === "host" && (hostStep === "waiting" || !hostNeedsOnboarding)) {
+    const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
+    const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
+    const deckReady = !!(session?.deck_meal_ids?.length);
+
+    // Sub-state: guest just joined, show "Start swiping →"
+    if (bothConnected && showStartSwiping) {
+      return (
+        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+          </div>
+
+          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-8">
+            They&apos;re in
+          </p>
+
+          {/* Two avatar circles, lit up */}
+          <div className="flex items-center gap-4 mb-8">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white border-2 border-[#E8621A]/40"
+                style={{ boxShadow: "0 0 24px rgba(232,98,26,0.45)" }}>
+                {myInitial}
+              </div>
+              <span className="text-xs text-[#8A7F78]">You</span>
+            </div>
+
+            {/* Connector */}
+            <div className="flex items-center gap-1.5 mb-5">
+              <div className="w-2 h-2 rounded-full bg-[#E8621A]" />
+              <div className="w-2 h-2 rounded-full bg-[#E8621A]" />
+              <div className="w-2 h-2 rounded-full bg-[#E8621A]" />
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-2xl text-white border-2 border-[#4A7C59]/40"
+                style={{ boxShadow: "0 0 24px rgba(74,124,89,0.45)" }}>
+                ✓
+              </div>
+              <span className="text-xs text-[#8A7F78]">Joined</span>
+            </div>
+          </div>
+
+          <h1 className="font-display font-black text-4xl text-white leading-tight">
+            Your crew<br />is ready.
+          </h1>
+          <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+            {deckReady
+              ? "Your deck is built. Tap to start swiping — you both need to match on something."
+              : "Building your shared deck now. Tap to jump in the moment it's ready."}
+          </p>
+
+          <button
+            onClick={handleStartSwiping}
+            disabled={!deckReady}
+            className="mt-10 w-full max-w-xs bg-[#E8621A] text-white font-display font-black text-base py-5 rounded-full transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50"
+            style={deckReady ? { boxShadow: "0 0 40px rgba(232,98,26,0.4)" } : {}}
+          >
+            {deckReady ? "Start swiping →" : "Building deck…"}
+          </button>
+
+          {!deckReady && (
+            <div className="flex items-center gap-2 mt-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E8621A] animate-pulse" />
+              <span className="font-body text-xs text-[#8A7F78]">Almost there...</span>
+            </div>
+          )}
+        </main>
+      );
+    }
+
+    // Sub-state: guest joined but 2s animation delay not done yet
+    if (bothConnected && !showStartSwiping) {
+      return (
+        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          </div>
+
+          {/* Two avatar circles, animating in */}
+          <div className="flex items-center gap-4 mb-8">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white">
+                {myInitial}
+              </div>
+              <span className="text-xs text-[#8A7F78]">You</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 mb-5">
+              <div className="w-2 h-2 rounded-full bg-[#E8621A]/40 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-[#E8621A]/40 animate-pulse" style={{ animationDelay: "0.2s" }} />
+              <div className="w-2 h-2 rounded-full bg-[#E8621A]/40 animate-pulse" style={{ animationDelay: "0.4s" }} />
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-2xl text-white animate-pulse">
+                ✓
+              </div>
+              <span className="text-xs text-[#8A7F78]">Joined!</span>
+            </div>
+          </div>
+
+          <h1 className="font-display font-black text-3xl text-white">
+            They joined!
+          </h1>
+          <p className="font-body text-sm text-[#8A7F78] mt-2">Get ready...</p>
+        </main>
+      );
+    }
+
+    // Sub-state: waiting for guest (full branded waiting room)
+    const expiresAt = session?.expires_at ? new Date(session.expires_at) : null;
+    const hoursLeft = expiresAt
+      ? Math.max(0, Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)))
+      : null;
+
+    return (
+      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col px-6 pt-12 pb-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+        </div>
+
+        {/* Back */}
+        {hostNeedsOnboarding && (
+          <button
+            onClick={() => setHostStep("sharing")}
+            className="w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg mb-8 self-start"
+          >
+            ←
+          </button>
+        )}
+
+        {/* Main content — centered */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+
+          {/* Avatar pair */}
+          <div className="flex items-center gap-5 mb-10">
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white"
+                style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+              >
+                {myInitial}
+              </div>
+              <span className="text-xs text-[#8A7F78]">You</span>
+            </div>
+
+            {/* Dashed connector */}
+            <div className="flex items-center gap-1.5 mb-5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/20" />
+              ))}
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-full bg-[#2A2420] border-2 border-dashed border-white/20 flex items-center justify-center font-display font-black text-2xl text-white/30">
+                ?
+              </div>
+              <span className="text-xs text-[#8A7F78]">Waiting...</span>
+            </div>
+          </div>
+
+          {/* Rotating headline */}
+          <h1
+            key={waitingHeadlineIdx}
+            className="font-display font-black text-4xl text-white leading-tight text-center"
+            style={{
+              animation: "fadeIn 0.4s ease-out",
+              whiteSpace: "pre-line",
+            }}
+          >
+            {WAITING_HEADLINES[waitingHeadlineIdx]}
+          </h1>
+
+          {/* Session code */}
+          <div className="mt-8 bg-[#2A2420] rounded-[20px] px-6 py-4 w-full max-w-xs">
+            <p className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase mb-1">
+              Code
+            </p>
+            <p className="font-display font-black text-3xl text-white tracking-wide">
+              {codeDisplay}
+            </p>
+          </div>
+
+          {/* Expiry */}
+          {hoursLeft !== null && (
+            <p className="font-body text-xs text-[#8A7F78]/60 mt-3">
+              Session expires in {hoursLeft}h
+            </p>
+          )}
+
+          {/* Waiting pulse */}
+          <div className="flex items-center gap-2 mt-6">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/60 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8621A]" />
+            </span>
+            <span className="font-body text-sm text-[#8A7F78]">Waiting for someone to join</span>
+          </div>
+        </div>
+
+        {/* Bottom actions */}
+        <div className="flex flex-col gap-3 mt-6">
+          <button
+            onClick={handleShare}
+            className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full"
+            style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+          >
+            Resend invite
+          </button>
+          <button
+            onClick={handleCancelSession}
+            disabled={cancellingSession}
+            className="w-full bg-[#2A2420] text-[#8A7F78] font-display font-black text-base py-4 rounded-full border border-white/[0.06] transition hover:text-white/60 disabled:opacity-40"
+          >
+            {cancellingSession ? "Cancelling…" : "Cancel session"}
+          </button>
+        </div>
+
+        <style jsx>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </main>
+    );
+  }
+
+  // ── Fallback (should not normally be reached) ─────────────────────────────
+  return null;
 }

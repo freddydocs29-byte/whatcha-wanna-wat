@@ -33,6 +33,7 @@ import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
+import { generateSessionCode } from "./lib/session-code";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -142,6 +143,12 @@ export default function Home() {
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [lockedHeadline, setLockedHeadline] = useState<LockedMealHeadlineResult | null>(null);
+  const [activeSession, setActiveSession] = useState<{
+    sessionId: string;
+    sessionCode: string | null;
+    status: string;
+    vibe?: string;
+  } | null>(null);
 
   useEffect(() => {
     async function checkAndRoute() {
@@ -296,6 +303,68 @@ export default function Home() {
     setLockedHeadline(generated);
   }, [decidedMealId, decidedMealDecidedAt, resolvedUserName]);
 
+  // Load and validate any active shared session from localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem("wwe_active_session");
+    if (!stored) return;
+
+    let parsed: { sessionId: string; sessionCode?: string; expiresAt?: string; status?: string; vibe?: string } | null = null;
+    try {
+      parsed = JSON.parse(stored);
+    } catch {
+      localStorage.removeItem("wwe_active_session");
+      return;
+    }
+
+    if (!parsed?.sessionId) {
+      localStorage.removeItem("wwe_active_session");
+      return;
+    }
+
+    // Client-side expiry check
+    if (parsed.expiresAt && new Date(parsed.expiresAt) <= new Date()) {
+      localStorage.removeItem("wwe_active_session");
+      return;
+    }
+
+    // Query live status from Supabase
+    const sessionId = parsed.sessionId;
+    void (async () => {
+      try {
+        const { data } = await supabase
+          .from("sessions")
+          .select("status, vibe, session_code")
+          .eq("id", sessionId)
+          .single();
+        if (!data || data.status === "expired" || data.status === "matched") {
+          localStorage.removeItem("wwe_active_session");
+          return;
+        }
+        setActiveSession({
+          sessionId,
+          sessionCode: data.session_code ?? null,
+          status: data.status,
+          vibe: data.vibe ?? undefined,
+        });
+      } catch {}
+    })();
+  }, []);
+
+  function handleResumeBanner() {
+    if (!activeSession) return;
+    if (activeSession.status === "swiping") {
+      router.push(`/deck?sessionId=${activeSession.sessionId}&vibe=${activeSession.vibe ?? "mix-it-up"}`);
+    } else {
+      router.push(`/session/${activeSession.sessionId}`);
+    }
+  }
+
+  function handleDismissBanner() {
+    localStorage.removeItem("wwe_active_session");
+    setActiveSession(null);
+  }
+
   function openClearModal() {
     setClearStep("confirm");
     setShowClearModal(true);
@@ -316,27 +385,48 @@ export default function Home() {
 
     try {
       const hostId = getUserId();
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase
-        .from("sessions")
-        .insert({
-          host_user_id: hostId,
-          status: "waiting",
-          expires_at: expiresAt,
-          vibe: "mix-it-up",
-          cooking_intent: "either",
-        })
-        .select()
-        .single();
+      // 12-hour window — matches the DB column default
+      const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
 
-      if (error || !data) {
+      // Retry up to 3 times on session_code uniqueness collision
+      let data = null;
+      let lastError = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const sessionCode = generateSessionCode();
+        const result = await supabase
+          .from("sessions")
+          .insert({
+            host_user_id: hostId,
+            status: "waiting",
+            expires_at: expiresAt,
+            vibe: "mix-it-up",
+            cooking_intent: "either",
+            session_code: sessionCode,
+          })
+          .select()
+          .single();
+
+        if (!result.error) {
+          data = result.data;
+          lastError = null;
+          break;
+        }
+        // 23505 = unique_violation — retry with a new code; anything else bail immediately
+        if (result.error.code !== "23505") {
+          lastError = result.error;
+          break;
+        }
+        lastError = result.error;
+      }
+
+      if (!data) {
         console.error("[session] Failed to create session:", {
-          message: error?.message,
-          code: error?.code,
-          details: error?.details,
-          hint: error?.hint,
+          message: lastError?.message,
+          code: lastError?.code,
+          details: lastError?.details,
+          hint: lastError?.hint,
         });
-        const detail = [error?.code, error?.message].filter(Boolean).join(" — ");
+        const detail = [lastError?.code, lastError?.message].filter(Boolean).join(" — ");
         setSessionError(
           detail
             ? `Couldn't start a session: ${detail}`
@@ -346,7 +436,21 @@ export default function Home() {
         return;
       }
 
-      trackEvent("shared_session_created", { sessionId: data.id });
+      // Persist the active session for 12 hours so other parts of the app can read it
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "wwe_active_session",
+          JSON.stringify({
+            sessionId: data.id,
+            sessionCode: data.session_code,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+            status: "waiting",
+          }),
+        );
+      }
+
+      trackEvent("shared_session_created", { sessionId: data.id, sessionCode: data.session_code });
       router.push(`/session/${data.id}`);
     } catch (e) {
       console.error("[session] Unexpected error:", e);
@@ -571,34 +675,79 @@ export default function Home() {
                 )}
               </section>
 
-              {/* 3. HERO CARD — Deciding Together */}
-              <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex flex-col">
-                    <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
+              {/* 3. HERO CARD — Active session banner OR Deciding Together */}
+              {activeSession ? (
+                <section
+                  className="rounded-[24px] p-5 mt-6 border border-white/[0.08] bg-[#2A2420] cursor-pointer"
+                  onClick={handleResumeBanner}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/70 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8621A]" />
+                      </span>
+                      <span className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase">
+                        Active session
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDismissBanner(); }}
+                      className="text-[#8A7F78] text-base leading-none hover:text-white/50 w-6 h-6 flex items-center justify-center"
+                      aria-label="Dismiss session banner"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-[#E8621A]/10 flex items-center justify-center text-xl flex-shrink-0">
                       👥
                     </div>
-                    <h2 className="font-display font-black text-xl text-white mt-3">
-                      Deciding Together
-                    </h2>
-                    <p className="font-body text-sm text-white/80 mt-1">
-                      Swipe with your group. Match on what everyone actually wants.
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display font-black text-base text-white">
+                        {activeSession.status === "waiting" && "Waiting for someone to join"}
+                        {(activeSession.status === "ready") && "Both in — building your deck..."}
+                        {activeSession.status === "swiping" && "Deck ready — keep swiping"}
+                      </p>
+                      {activeSession.sessionCode && (
+                        <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                          Code: {activeSession.sessionCode}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
                   </div>
-                </div>
-                <button
-                  onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
-                  disabled={creatingSession}
-                  className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  {creatingSession ? "Creating…" : "Start shared session →"}
-                </button>
-                {sessionError && (
-                  <p className="mt-3 text-center text-sm text-red-400">
-                    {sessionError}
-                  </p>
-                )}
-              </section>
+                </section>
+              ) : (
+                <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex flex-col">
+                      <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
+                        👥
+                      </div>
+                      <h2 className="font-display font-black text-xl text-white mt-3">
+                        Deciding Together
+                      </h2>
+                      <p className="font-body text-sm text-white/80 mt-1">
+                        Swipe with your group. Match on what everyone actually wants.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
+                    disabled={creatingSession}
+                    className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {creatingSession ? "Creating…" : "Start shared session →"}
+                  </button>
+                  {sessionError && (
+                    <p className="mt-3 text-center text-sm text-red-400">
+                      {sessionError}
+                    </p>
+                  )}
+                </section>
+              )}
 
               {/* 4. SECONDARY CARDS ROW */}
               <div className="mt-4 grid grid-cols-2 gap-3">

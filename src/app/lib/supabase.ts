@@ -37,9 +37,10 @@ if (typeof window !== "undefined") {
 
 export type Session = {
   id: string;
+  session_code: string | null;
   host_user_id: string;
   guest_user_id: string | null;
-  status: "waiting" | "active" | "matched";
+  status: "waiting" | "ready" | "active" | "swiping" | "matched" | "expired";
   locked_meal_id: string | null;
   deck_meal_ids: string[] | null;
   vibe: string | null;

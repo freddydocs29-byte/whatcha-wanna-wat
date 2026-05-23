@@ -158,7 +158,7 @@ export async function buildSharedDeckForSession(
         .from("sessions")
         .select("*", { count: "exact", head: true })
         .neq("id", sessionId)
-        .neq("status", "waiting")
+        .in("status", ["active", "swiping", "matched"]) // only count meaningful sessions
         .or(
           `and(host_user_id.eq.${hostUserId},guest_user_id.eq.${guestUserId}),` +
           `and(host_user_id.eq.${guestUserId},guest_user_id.eq.${hostUserId})`,
@@ -167,7 +167,7 @@ export async function buildSharedDeckForSession(
         .from("sessions")
         .select("*", { count: "exact", head: true })
         .neq("id", sessionId)
-        .neq("status", "waiting")
+        .in("status", ["active", "swiping", "matched"])
         .eq("host_user_id", hostUserId)
         .eq("guest_user_id", guestUserId),
     ]);

@@ -41,7 +41,7 @@ export default function LockedReveal({ meal, pantryMode, pickedForYou }: Props) 
         transition={{ duration: 0.35, delay: 0.14, ease: "easeOut" }}
         className="mt-3 text-sm text-white/50"
       >
-        Locked in. Come back anytime to cook, order, or change it.
+        The decision part is done. Come back anytime to change it.
       </motion.p>
 
       <motion.p
