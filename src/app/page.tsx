@@ -349,7 +349,7 @@ export default function Home() {
       try {
         const { data } = await supabase
           .from("sessions")
-          .select("status, vibe, session_code, locked_meal_id, host_user_id, guest_user_id, deck_meal_ids")
+          .select("id, status, locked_meal_id, host_user_id, guest_user_id, deck_meal_ids, session_code, vibe, expires_at")
           .eq("id", sessionId)
           .single();
 

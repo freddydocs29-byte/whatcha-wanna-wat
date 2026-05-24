@@ -366,12 +366,16 @@ function DeckContent() {
   const [bypassToExhausted, setBypassToExhausted] = useState(false);
   const [sharedRefreshing, setSharedRefreshing] = useState(false);
   const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
+  const [matchConfirmError, setMatchConfirmError] = useState<string | null>(null);
+  const [matchConfirming, setMatchConfirming] = useState(false);
   // Refs so polling/async callbacks always see current values without stale closures
   const matchedMealRef = useRef<Meal | null>(null);
   const rejectedMatchIdsRef = useRef<Set<string>>(new Set());
   // True when the current user's own 'yes' swipe triggered the match,
   // meaning we still need to advance the card if they click "Pick something else"
   const matchPendingAdvanceRef = useRef(false);
+  // Guard: poll-detected match writes status:"matched" once per meal; reset on reject
+  const matchWrittenRef = useRef(false);
 
   function setMatchedMeal(meal: Meal | null) {
     matchedMealRef.current = meal;
@@ -681,6 +685,24 @@ function DeckContent() {
 
         const found = meals.find((m) => m.id === mealId);
         if (found) {
+          // Write matched state to Supabase so the other user's Home poll can detect it.
+          // Guard prevents re-writing every interval tick for the same detection event.
+          if (!matchWrittenRef.current) {
+            matchWrittenRef.current = true;
+            const { error: writeError } = await supabase
+              .from("sessions")
+              .update({
+                status: "matched",
+                locked_meal_id: found.id,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", sessionId);
+            if (writeError) {
+              console.error("[match] polling path failed to update session:", writeError.message);
+            } else {
+              console.log("[match] polling path wrote matched state:", found.id);
+            }
+          }
           matchPendingAdvanceRef.current = false; // Detected via poll, not own swipe
           setMatchedMeal(found);
           return;
@@ -1255,7 +1277,27 @@ function DeckContent() {
 
   async function handleMatchConfirm() {
     if (!matchedMeal || !sessionId) return;
+    setMatchConfirming(true);
+    setMatchConfirmError(null);
     trackEvent("match_confirmed", { mealId: matchedMeal.id, sessionId });
+
+    const { error } = await supabase
+      .from("sessions")
+      .update({
+        status: "matched",
+        locked_meal_id: matchedMeal.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+
+    if (error) {
+      console.error("[match] failed to update session:", error.message);
+      setMatchConfirmError("We found the match, but couldn't lock it in. Try again.");
+      setMatchConfirming(false);
+      return;
+    }
+
+    console.log("[match] session marked matched:", sessionId, matchedMeal.id);
 
     // Record acceptance — fire-and-forget
     trackingClosedRef.current = true;
@@ -1277,16 +1319,12 @@ function DeckContent() {
       }
     });
 
-    await supabase
-      .from("sessions")
-      .update({
-        status: "matched",
-        locked_meal_id: matchedMeal.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sessionId);
     addToHistory(matchedMeal);
     saveDecidedMeal({ ...matchedMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("wwe_active_session");
+      localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
+    }
     router.push("/");
   }
 
@@ -1294,6 +1332,7 @@ function DeckContent() {
     if (!matchedMeal) return;
     trackEvent("match_started_over", { mealId: matchedMeal.id, sessionId });
     rejectedMatchIdsRef.current.add(matchedMeal.id);
+    matchWrittenRef.current = false; // allow next poll-detected match to write
     const shouldAdvance = matchPendingAdvanceRef.current;
     matchPendingAdvanceRef.current = false;
     setMatchedMeal(null);
@@ -2559,11 +2598,15 @@ function DeckContent() {
                       </button>
                       <button
                         onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
-                        className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
+                        disabled={matchConfirming}
+                        className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center disabled:opacity-60"
                       >
-                        Back to home
+                        {matchConfirming ? "Locking in…" : "Back to home"}
                       </button>
                     </div>
+                    {matchConfirmError && (
+                      <p className="text-center text-sm text-red-400 mt-3">{matchConfirmError}</p>
+                    )}
                   </div>
                 </motion.div>
               </motion.div>
@@ -2585,7 +2628,8 @@ function DeckContent() {
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
                     onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                    disabled={matchConfirming}
+                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
                   >
                     <span className="text-4xl">🍳</span>
                     <p className="font-display font-black text-lg text-white">Cook it</p>
@@ -2593,13 +2637,17 @@ function DeckContent() {
                   </button>
                   <button
                     onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                    disabled={matchConfirming}
+                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
                   >
                     <span className="text-4xl">🚗</span>
                     <p className="font-display font-black text-lg text-white">Order in</p>
                     <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
                   </button>
                 </div>
+                {matchConfirmError && (
+                  <p className="text-center text-sm text-red-400 mt-4">{matchConfirmError}</p>
+                )}
               </div>
             </div>
           )}
@@ -3420,11 +3468,15 @@ function DeckContent() {
                   </button>
                   <button
                     onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
-                    className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
+                    disabled={matchConfirming}
+                    className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center disabled:opacity-60"
                   >
-                    Back to home
+                    {matchConfirming ? "Locking in…" : "Back to home"}
                   </button>
                 </div>
+                {matchConfirmError && (
+                  <p className="text-center text-sm text-red-400 mt-3">{matchConfirmError}</p>
+                )}
 
                 {/* 9. Footer — other matches count (solo only) */}
                 {!sessionId && rejectedMatchIdsRef.current.size > 0 && (
@@ -3615,7 +3667,8 @@ function DeckContent() {
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button
                 onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                disabled={matchConfirming}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
               >
                 <span className="text-4xl">🍳</span>
                 <p className="font-display font-black text-lg text-white">Cook it</p>
@@ -3623,13 +3676,17 @@ function DeckContent() {
               </button>
               <button
                 onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                disabled={matchConfirming}
+                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
               >
                 <span className="text-4xl">🚗</span>
                 <p className="font-display font-black text-lg text-white">Order in</p>
                 <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
               </button>
             </div>
+            {matchConfirmError && (
+              <p className="text-center text-sm text-red-400 mt-4">{matchConfirmError}</p>
+            )}
           </div>
         </div>
       )}
