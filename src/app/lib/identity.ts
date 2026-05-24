@@ -69,6 +69,14 @@ export function clearAllLocalState(): void {
     localStorage.removeItem(key);
   }
 
+  // Clear dynamic Top 5 daily cache keys (wwe_top5_{userId}_{date}).
+  const top5Keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("wwe_top5_")) top5Keys.push(k);
+  }
+  for (const k of top5Keys) localStorage.removeItem(k);
+
   // Clear dynamic AI meal cache keys (variable suffix).
   // These live in sessionStorage (see ai-meals.ts), not localStorage.
   const aiKeys: string[] = [];

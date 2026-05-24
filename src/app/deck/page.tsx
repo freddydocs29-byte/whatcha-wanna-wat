@@ -1974,7 +1974,7 @@ function DeckContent() {
                         Let&apos;s eat 🙌
                       </button>
                       <button
-                        onClick={() => router.push("/")}
+                        onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
                         className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
                       >
                         Back to home
@@ -2571,7 +2571,7 @@ function DeckContent() {
                     Let&apos;s eat 🙌
                   </button>
                   <button
-                    onClick={() => router.push("/")}
+                    onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
                     className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center"
                   >
                     Back to home

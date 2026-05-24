@@ -26,6 +26,7 @@ import {
 } from "../lib/scoring";
 import { inferSessionContext } from "../lib/session-tracking";
 import { trackEvent } from "../lib/analytics";
+import { getUserId } from "../lib/identity";
 
 // Mirrors the soft-preference filter from deck/page.tsx
 function matchesPreferences(meal: Meal, prefs: UserPreferences | null): boolean {
@@ -89,6 +90,67 @@ function buildTop5(): RankedMeal[] {
   return ranked.slice(0, 5);
 }
 
+// ── Top 5 daily cache ────────────────────────────────────────────────────────
+
+const TOP5_KEY_PREFIX = "wwe_top5_";
+
+interface Top5CacheEntry {
+  date: string;
+  userId: string;
+  meals: Array<{ id: string; reason: string }>;
+  generatedAt: string;
+  wasRefreshed?: boolean;
+}
+
+function getTop5CacheKey(): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const userId = getUserId();
+  return `${TOP5_KEY_PREFIX}${userId}_${today}`;
+}
+
+function clearStaleTop5Keys(todayKey: string): void {
+  const stale: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith(TOP5_KEY_PREFIX) && k !== todayKey) stale.push(k);
+  }
+  for (const k of stale) localStorage.removeItem(k);
+}
+
+function loadTop5Cache(key: string): { meals: RankedMeal[]; wasRefreshed: boolean } | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const cached: Top5CacheEntry = JSON.parse(raw);
+    const meals_result: RankedMeal[] = [];
+    for (const { id, reason } of cached.meals) {
+      const meal = meals.find((m) => m.id === id);
+      if (meal) meals_result.push({ meal, reason, pantryMatchCount: 0 });
+    }
+    // Only use cache if we got all 5 meals back from the catalog
+    if (meals_result.length !== 5) return null;
+    return { meals: meals_result, wasRefreshed: cached.wasRefreshed ?? false };
+  } catch {
+    localStorage.removeItem(key);
+    return null;
+  }
+}
+
+function saveTop5Cache(key: string, ranked: RankedMeal[], wasRefreshed = false): void {
+  const today = new Date().toISOString().slice(0, 10);
+  const userId = getUserId();
+  const entry: Top5CacheEntry = {
+    date: today,
+    userId,
+    meals: ranked.map((r) => ({ id: r.meal.id, reason: r.reason })),
+    generatedAt: new Date().toISOString(),
+    wasRefreshed,
+  };
+  localStorage.setItem(key, JSON.stringify(entry));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const POSITIONS = ["01", "02", "03", "04", "05"];
 
 export default function Top5Page() {
@@ -96,11 +158,33 @@ export default function Top5Page() {
   const [top5, setTop5] = useState<RankedMeal[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [locking, setLocking] = useState(false);
+  const [hasRefreshed, setHasRefreshed] = useState(false);
 
   useEffect(() => {
-    setTop5(buildTop5());
+    const key = getTop5CacheKey();
+    clearStaleTop5Keys(key);
+
+    const cached = loadTop5Cache(key);
+    if (cached) {
+      setTop5(cached.meals);
+      setHasRefreshed(cached.wasRefreshed);
+    } else {
+      const fresh = buildTop5();
+      setTop5(fresh);
+      saveTop5Cache(key, fresh);
+    }
+
     trackEvent("top5_viewed");
   }, []);
+
+  function handleRefresh() {
+    const key = getTop5CacheKey();
+    const fresh = buildTop5();
+    setTop5(fresh);
+    saveTop5Cache(key, fresh, true);
+    setHasRefreshed(true);
+    setSelected(null);
+  }
 
   const selectedMeal = top5.find((r) => r.meal.id === selected);
 
@@ -147,19 +231,30 @@ export default function Top5Page() {
               />
             </svg>
           </Link>
-          <div>
-            <p
-              className="font-display font-black text-xl leading-tight"
-              style={{ color: "#1C1A18" }}
-            >
-              Tonight&apos;s Top 5
-            </p>
-            <p
-              className="font-body text-xs mt-0.5"
-              style={{ color: "#8A7F78" }}
-            >
-              Ranked for you
-            </p>
+          <div className="flex-1 flex items-center justify-between">
+            <div>
+              <p
+                className="font-display font-black text-xl leading-tight"
+                style={{ color: "#1C1A18" }}
+              >
+                Tonight&apos;s Top 5
+              </p>
+              <p
+                className="font-body text-xs mt-0.5"
+                style={{ color: "#8A7F78" }}
+              >
+                Ranked for you
+              </p>
+            </div>
+            {!hasRefreshed && (
+              <button
+                onClick={handleRefresh}
+                className="font-body text-xs px-3 py-1.5 rounded-full transition-opacity hover:opacity-70"
+                style={{ color: "#8A7F78", backgroundColor: "#EDE8E1" }}
+              >
+                Refresh today&apos;s picks
+              </button>
+            )}
           </div>
         </div>
       </div>

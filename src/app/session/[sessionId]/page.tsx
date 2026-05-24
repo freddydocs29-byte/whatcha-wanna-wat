@@ -982,9 +982,9 @@ export default function SessionPage() {
               </p>
             </div>
 
-            {/* Vibe grid — 2 col + 1 full-width */}
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              {VIBE_OPTIONS.slice(0, 4).map((opt) => {
+            {/* Vibe list — single column */}
+            <div className="flex flex-col gap-3 mt-2">
+              {VIBE_OPTIONS.map((opt) => {
                 const selected = selectedVibe === opt.value;
                 const color = VIBE_COLORS[opt.value] ?? "#E8621A";
                 return (
@@ -994,26 +994,24 @@ export default function SessionPage() {
                       setSelectedVibe(opt.value);
                       vibeInitializedRef.current = true;
                     }}
-                    className="flex flex-col items-start gap-2 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
+                    className="flex items-center gap-4 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
                     style={{
                       borderColor: selected ? color : "transparent",
                       backgroundColor: selected ? `${color}1A` : "#2A2420",
                     }}
                   >
                     <span className="text-3xl">{opt.emoji}</span>
-                    <div>
+                    <div className="flex-1">
                       <p
-                        className="font-display font-black text-base leading-tight transition-colors duration-150"
+                        className="font-display font-black text-base transition-colors duration-150"
                         style={{ color: selected ? color : "white" }}
                       >
                         {opt.label}
                       </p>
-                      <p className="font-body text-xs text-[#8A7F78] mt-1 leading-snug">
-                        {opt.description}
-                      </p>
+                      <p className="font-body text-xs text-[#8A7F78] mt-0.5">{opt.description}</p>
                     </div>
                     <div
-                      className="w-4 h-4 rounded-full border-2 flex items-center justify-center ml-auto transition-all duration-150"
+                      className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150"
                       style={{
                         borderColor: selected ? color : "rgba(255,255,255,0.2)",
                         backgroundColor: selected ? color : "transparent",
@@ -1025,45 +1023,6 @@ export default function SessionPage() {
                 );
               })}
             </div>
-            {/* 5th option — full width */}
-            {(() => {
-              const opt = VIBE_OPTIONS[4];
-              const selected = selectedVibe === opt.value;
-              const color = VIBE_COLORS[opt.value] ?? "#E8621A";
-              return (
-                <button
-                  onClick={() => {
-                    setSelectedVibe(opt.value);
-                    vibeInitializedRef.current = true;
-                  }}
-                  className="flex items-center gap-4 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
-                  style={{
-                    borderColor: selected ? color : "transparent",
-                    backgroundColor: selected ? `${color}1A` : "#2A2420",
-                  }}
-                >
-                  <span className="text-3xl">{opt.emoji}</span>
-                  <div className="flex-1">
-                    <p
-                      className="font-display font-black text-base transition-colors duration-150"
-                      style={{ color: selected ? color : "white" }}
-                    >
-                      {opt.label}
-                    </p>
-                    <p className="font-body text-xs text-[#8A7F78] mt-0.5">{opt.description}</p>
-                  </div>
-                  <div
-                    className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150"
-                    style={{
-                      borderColor: selected ? color : "rgba(255,255,255,0.2)",
-                      backgroundColor: selected ? color : "transparent",
-                    }}
-                  >
-                    {selected && <span className="text-white text-[8px] font-bold">✓</span>}
-                  </div>
-                </button>
-              );
-            })()}
           </div>
         </div>
 
