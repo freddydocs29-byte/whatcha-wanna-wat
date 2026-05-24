@@ -28,6 +28,50 @@ const MIN_DECK_SIZE = 8;
 const DECK_SIZE = 12;
 const VALID_VIBE_MODES: SessionVibeMode[] = ["mix-it-up", "comfort-food", "quick-easy", "healthy", "something-new"];
 
+const SOLO_EXHAUSTED_HEADLINES = [
+  "You swiped left on everything. Bold.",
+  "Nothing landed. Let's fix that.",
+  "Clean sweep. The deck respects it.",
+  "Picky? The app can handle picky.",
+  "You've seen it all. Let's go again.",
+  "The deck has been defeated.",
+];
+
+const DIAG_VIBE_OPTIONS: { value: SessionVibeMode; emoji: string; label: string; description: string }[] = [
+  { value: "comfort-food", emoji: "🔥", label: "Comfort me", description: "The good stuff. Familiar, satisfying." },
+  { value: "quick-easy", emoji: "⚡", label: "Keep it easy", description: "Quick, simple, no-fuss." },
+  { value: "mix-it-up", emoji: "✨", label: "Surprise me", description: "Something unexpected." },
+  { value: "healthy", emoji: "🥗", label: "Healthy reset", description: "Light, fresh, feels good." },
+  { value: "something-new", emoji: "🎉", label: "Something new", description: "Special occasion energy." },
+];
+
+// Reset-1 headline pool (second exhaustion)
+const SOLO_EXHAUSTED_HEADLINES_R1 = [
+  "Still nothing? We're not giving up.",
+  "Round two. Let's get this.",
+  "The deck disagrees with you. Try again.",
+  "You're harder to please than we expected. Respect.",
+];
+
+// Reset-2 headline pool (third exhaustion)
+const SOLO_EXHAUSTED_HEADLINES_R2 = [
+  "We've shown you a lot of meals.",
+  "At this point we're both hungry.",
+  "Three rounds. Still standing.",
+  "The deck is giving everything it has.",
+];
+
+const SOLO_RESET_SS_KEY = "wwe_solo_deck_resets";
+const sharedResetKey = (id: string) => `wwe_shared_deck_resets_${id}`;
+
+const WAITING_HEADLINES = [
+  "Your picks are in. Waiting on them.",
+  "The ball is in their court.",
+  "They're still deciding. Hang tight.",
+  "Almost there. Probably.",
+  "Good things take two people.",
+];
+
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
 
@@ -265,6 +309,27 @@ function DeckContent() {
     () => typeof window !== "undefined" && !localStorage.getItem("watcha_swipe_tip_seen")
   );
   const [showCookOrderModal, setShowCookOrderModal] = useState(false);
+  // ── Solo exhausted diagnostic state ────────────────────────────────────────
+  const [soloExhaustedView, setSoloExhaustedView] = useState<"main" | "top3" | "vibe-select">("main");
+  const [diagSelectedVibe, setDiagSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
+  // Solo reset progression — synced from sessionStorage on mount
+  const [soloResetCount, setSoloResetCount] = useState(0);
+  // ── Shared exhausted partner picks state ───────────────────────────────────
+  const [sharedExhaustedView, setSharedExhaustedView] = useState<"main" | "partner-picks">("main");
+  const [partnerPicks, setPartnerPicks] = useState<Meal[]>([]);
+  const [partnerPicksLoading, setPartnerPicksLoading] = useState(false);
+  // Confirm-lock dialog for partner picks
+  const [confirmMeal, setConfirmMeal] = useState<Meal | null>(null);
+  // Shared reset progression — synced from sessionStorage on mount
+  const [sharedResetCount, setSharedResetCount] = useState(0);
+  // Session code shown in "Start a fresh session" info message
+  const [sharedSessionCode, setSharedSessionCode] = useState<string | null>(null);
+  // Track whether "Start a fresh session" was already tapped (show info message)
+  const [sharedFreshTapped, setSharedFreshTapped] = useState(false);
+  // Partner's user ID — set once bothDone detection resolves
+  const [partnerUserId, setPartnerUserId] = useState<string | null>(null);
+  // Rotating waiting headline index (cycles every 3 s while !bothDone)
+  const [waitingHeadlineIdx, setWaitingHeadlineIdx] = useState(0);
   // ── AI Fresh Ideas state ────────────────────────────────────────────────────
   const [aiMealsLoading, setAiMealsLoading] = useState(false);
   // Tracks IDs of AI-generated meals so the card can show the right label.
@@ -281,6 +346,7 @@ function DeckContent() {
   // rejectionCaptureCountRef: how many times the sheet has shown (cap: 3)
   // rejectionReasonsRef: always-current mirror of rejectionReasons state
   // recentlyPassedCategoriesRef: last ≤3 passed meal categories (for not_feeling_it)
+  const exhaustedHeadlineRef = useRef<string | null>(null);
   const passStreakRef = useRef(0);
   const totalPassesRef = useRef(0);
   const rejectionCaptureCountRef = useRef(0);
@@ -317,6 +383,32 @@ function DeckContent() {
   useEffect(() => {
     setUserId(getUserId());
   }, []);
+
+  // Sync solo/shared reset counters from sessionStorage on mount
+  useEffect(() => {
+    setSoloResetCount(parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0);
+    if (sessionId) {
+      setSharedResetCount(parseInt(sessionStorage.getItem(sharedResetKey(sessionId)) ?? "0", 10) || 0);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch session code when shared deck is exhausted by both users
+  useEffect(() => {
+    if (!bothDone || !sessionId || sharedSessionCode) return;
+    // Try localStorage first (host device)
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("wwe_active_session");
+        if (stored) {
+          const parsed = JSON.parse(stored) as { sessionCode?: string };
+          if (parsed.sessionCode) { setSharedSessionCode(parsed.sessionCode); return; }
+        }
+      } catch { /* ignore */ }
+    }
+    // Fallback: fetch from DB
+    void supabase.from("sessions").select("session_code").eq("id", sessionId).single()
+      .then(({ data }) => { if (data?.session_code) setSharedSessionCode(data.session_code); });
+  }, [bothDone, sessionId, sharedSessionCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check whether the user returned within 10 minutes of a resolved session.
   // Reads a token written to localStorage on acceptance and updates the DB row.
@@ -435,6 +527,9 @@ function DeckContent() {
 
       if (!otherUserId) return;
 
+      // Persist partner ID so other parts of the exhausted UI can query their swipes
+      if (mounted) setPartnerUserId(otherUserId);
+
       const { count } = await supabase
         .from("swipes")
         .select("*", { count: "exact", head: true })
@@ -453,6 +548,33 @@ function DeckContent() {
       clearInterval(interval);
     };
   }, [sessionId, userId, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialise the rotating headline when the solo deck is first exhausted;
+  // reset it so a fresh headline is picked on the next exhaustion.
+  useEffect(() => {
+    const exhausted = currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    if (exhausted && !sessionId) {
+      if (exhaustedHeadlineRef.current === null) {
+        // Read current reset count from sessionStorage (state may lag one render)
+        const resetCount = parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0;
+        exhaustedHeadlineRef.current = pickExhaustedHeadline(resetCount);
+      }
+    } else if (!exhausted) {
+      exhaustedHeadlineRef.current = null;
+      setSoloExhaustedView("main");
+    }
+  }, [currentIndex, rankedMeals.length, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cycle the waiting headline every 3 s while the partner hasn't finished yet.
+  useEffect(() => {
+    if (!sessionId || bothDone) return;
+    const exhausted = currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    if (!exhausted) return;
+    const interval = setInterval(() => {
+      setWaitingHeadlineIdx((i) => (i + 1) % WAITING_HEADLINES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [sessionId, bothDone, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for matches while inside a shared session.
   // Also checks for expiry and surfaces the abandonment banner.
@@ -1407,6 +1529,95 @@ function DeckContent() {
     setExitX(null);
   }
 
+  function pickExhaustedHeadline(resetCount: number): string {
+    // Reset 1 and 2 pools: simple random, no persistence needed
+    if (resetCount === 1) {
+      return SOLO_EXHAUSTED_HEADLINES_R1[Math.floor(Math.random() * SOLO_EXHAUSTED_HEADLINES_R1.length)];
+    }
+    if (resetCount >= 2) {
+      return SOLO_EXHAUSTED_HEADLINES_R2[Math.floor(Math.random() * SOLO_EXHAUSTED_HEADLINES_R2.length)];
+    }
+    // Reset 0: localStorage-tracked rotation across the original pool
+    if (typeof window === "undefined") return SOLO_EXHAUSTED_HEADLINES[0];
+    const seenKey = "wwe_exhausted_headlines_seen";
+    const seen: number[] = JSON.parse(localStorage.getItem(seenKey) ?? "[]");
+    const all = SOLO_EXHAUSTED_HEADLINES.map((_, i) => i);
+    const available = all.filter((i) => !seen.includes(i));
+    const pool = available.length > 0 ? available : all;
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    const newSeen = available.length > 0 ? [...seen, picked] : [picked];
+    localStorage.setItem(seenKey, JSON.stringify(newSeen));
+    return SOLO_EXHAUSTED_HEADLINES[picked];
+  }
+
+  function handleRefreshDeckWithVibe(vibe: SessionVibeMode) {
+    // Increment solo reset counter in sessionStorage and state
+    const nextCount = (parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0) + 1;
+    sessionStorage.setItem(SOLO_RESET_SS_KEY, String(nextCount));
+    setSoloResetCount(nextCount);
+    setSessionVibeMode(vibe);
+    setSoloExhaustedView("main");
+    trackEvent("deck_refreshed", { mode: "solo", vibe });
+    deckFinishedFiredRef.current = false;
+    swipeFatigueFiredRef.current = false;
+    lastAiContextKeyRef.current = null;
+    sessionShownRef.current = new Set();
+    deckRecordedRef.current = false;
+    const ranked = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, vibe, rejectionReasonsRef.current, softAvoidsRef.current);
+    recordSeenSession(ranked.slice(0, DECK_SIZE).map((r) => r.meal.id));
+    deckRecordedRef.current = true;
+    setRankedMeals(ranked.slice(0, DECK_SIZE));
+    setCurrentIndex(0);
+    x.set(0);
+    setExitX(null);
+  }
+
+  async function handleLoadPartnerPicks() {
+    if (!sessionId) return;
+    // Resolve partner ID: prefer state (set during bothDone polling),
+    // fallback to a fresh session query if it hasn't populated yet.
+    let partnerId = partnerUserId;
+    if (!partnerId) {
+      const { data: sessionData } = await supabase
+        .from("sessions")
+        .select("host_user_id, guest_user_id")
+        .eq("id", sessionId)
+        .single();
+      if (!sessionData) return;
+      partnerId =
+        userId === sessionData.host_user_id
+          ? sessionData.guest_user_id
+          : sessionData.host_user_id;
+      if (partnerId) setPartnerUserId(partnerId);
+    }
+    if (!partnerId) return;
+
+    setPartnerPicksLoading(true);
+    // Fetch only the partner's yes-swipes for this session
+    const { data: swipeData } = await supabase
+      .from("swipes")
+      .select("meal_id")
+      .eq("session_id", sessionId)
+      .eq("user_id", partnerId)
+      .eq("decision", "yes");
+
+    if (!swipeData) { setPartnerPicksLoading(false); return; }
+
+    const partnerYesIds = new Set(swipeData.map((s) => s.meal_id as string));
+    // Hydrate from static meals data
+    const picked = meals.filter((m) => partnerYesIds.has(m.id));
+    // Sort by ranked position in current deck, then alphabetically
+    const rankMap = new Map(rankedMeals.map((r, idx) => [r.meal.id, idx]));
+    picked.sort((a, b) => {
+      const ra = rankMap.get(a.id) ?? 9999;
+      const rb = rankMap.get(b.id) ?? 9999;
+      return ra !== rb ? ra - rb : a.name.localeCompare(b.name);
+    });
+    setPartnerPicks(picked);
+    setSharedExhaustedView("partner-picks");
+    setPartnerPicksLoading(false);
+  }
+
   // "Just decide for us" — takes position 0 from the shared deck (the group's
   // top-scored meal) and locks it in immediately without waiting for a mutual swipe.
   // Both users are routed to the same /locked screen via the match-polling mechanism.
@@ -1455,6 +1666,10 @@ function DeckContent() {
   // both-done poller detects the cleared deck_meal_ids and follows automatically.
   async function handleSharedRefreshDeck() {
     if (!sessionId) return;
+    // Increment shared reset counter
+    const nextCount = (parseInt(sessionStorage.getItem(sharedResetKey(sessionId)) ?? "0", 10) || 0) + 1;
+    sessionStorage.setItem(sharedResetKey(sessionId), String(nextCount));
+    setSharedResetCount(nextCount);
     trackEvent("deck_refreshed", { mode: "shared", sessionId });
     setSharedRefreshing(true);
     await supabase.from("swipes").delete().eq("session_id", sessionId);
@@ -1929,13 +2144,20 @@ function DeckContent() {
     // User has swiped through all cards. Keep polling; show match modal if one arrives.
     if (sessionId) {
       return (
-        <main className="min-h-screen bg-[#080808] px-5 pb-6 safe-top text-white">
-          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
-            <header className="flex items-center justify-between">
-              <p className="text-sm text-white/50">Decision Deck</p>
+        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-6 safe-top text-white">
+          {/* Subtle orange radial glow — always visible */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.10) 0%, transparent 65%)" }}
+          />
+          <div className="mx-auto relative flex min-h-screen w-full max-w-md flex-col">
+            <header className="flex items-center justify-between py-4">
+              <span className="font-display font-black text-base text-white">
+                Watcha<span className="text-[#E8621A]">?</span>
+              </span>
               <button
                 onClick={() => router.push("/")}
-                className="text-sm text-white/35 transition hover:text-white/60"
+                className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
               >
                 Back
               </button>
@@ -1943,41 +2165,262 @@ function DeckContent() {
 
             <div className="flex flex-1 flex-col items-center justify-center text-center">
               {bothDone ? (
-                <>
-                  <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
-                    <span className="h-1 w-1 rounded-full bg-white/30" />
-                    No match
-                  </div>
-                  <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
-                    No match this round
-                  </h2>
-                  <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
-                    Want to try a fresh deck?
-                  </p>
-                  <div className="mt-8 w-full">
+                sharedExhaustedView === "partner-picks" ? (
+                  /* ── Partner picks sub-screen ────────────────────────── */
+                  <div className="w-full text-left">
                     <button
-                      onClick={handleSharedRefreshDeck}
-                      disabled={sharedRefreshing}
-                      className="w-full rounded-full bg-white py-4 text-base font-semibold text-black disabled:opacity-50"
-                      style={{ boxShadow: "0 0 24px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)" }}
+                      onClick={() => setSharedExhaustedView("main")}
+                      className="mb-6 font-body text-sm text-[#8A7F78] hover:text-white transition"
                     >
-                      {sharedRefreshing ? "Resetting…" : "Refresh deck"}
+                      ← Back
                     </button>
+                    <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-2">
+                      THEIR YES PILE
+                    </p>
+                    <h2 className="font-display font-black text-2xl text-white leading-tight">
+                      What they liked.
+                    </h2>
+                    <p className="font-body text-sm text-[#8A7F78] mt-2 mb-6">
+                      Pick one as tonight&apos;s compromise.
+                    </p>
+                    {/* Confirm-lock dialog */}
+                    {confirmMeal && (
+                      <div className="fixed inset-0 z-50 flex items-end justify-center">
+                        <div
+                          className="absolute inset-0 bg-black/60"
+                          onClick={() => setConfirmMeal(null)}
+                        />
+                        <div className="relative w-full max-w-md bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+                          <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+                          <p className="font-display font-black text-xl text-white text-center">
+                            Lock in {confirmMeal.name} as tonight&apos;s pick?
+                          </p>
+                          <div className="flex flex-col gap-3 mt-6">
+                            <button
+                              onClick={() => {
+                                addToHistory(confirmMeal);
+                                saveDecidedMeal({ ...confirmMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
+                                if (sessionId) sessionStorage.removeItem(sharedResetKey(sessionId));
+                                router.push("/");
+                              }}
+                              className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
+                              style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                            >
+                              Yes, let&apos;s eat →
+                            </button>
+                            <button
+                              onClick={() => setConfirmMeal(null)}
+                              className="w-full rounded-full border border-white/10 bg-transparent py-3 font-body text-sm text-[#8A7F78] transition hover:text-white active:scale-[0.98]"
+                            >
+                              Keep looking
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {partnerPicks.length === 0 ? (
+                      <p className="font-body text-sm text-[#8A7F78] text-center py-8">
+                        They haven&apos;t swiped yet. Check back soon.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {partnerPicks.map((meal) => (
+                          <button
+                            key={meal.id}
+                            onClick={() => setConfirmMeal(meal)}
+                            className="w-full text-left rounded-[20px] overflow-hidden bg-[#2A2420] border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+                          >
+                            <div className="w-full bg-[#3D3733]" style={{ aspectRatio: "16/9" }}>
+                              <img src={meal.image || FALLBACK_IMAGE} alt={meal.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="p-4">
+                              <p className="font-display font-black text-xl text-white">{meal.name}</p>
+                              <p className="font-body text-sm text-white/70 mt-1">{meal.description}</p>
+                              {meal.tags && meal.tags.length > 0 && (
+                                <div className="flex gap-1.5 flex-wrap mt-2">
+                                  {meal.tags.slice(0, 3).map((tag) => (
+                                    <span key={tag} className="bg-white/10 text-white/70 font-body text-xs px-2.5 py-1 rounded-full">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </>
+                ) : (
+                  /* ── Shared no-match main screen ─────────────────────── */
+                  <div className="w-full">
+                    <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-6">
+                      DECK COMPLETE
+                    </p>
+                    {sharedResetCount >= 2 ? (
+                      /* ── Shared terminal: exhausted all resets ──────── */
+                      <>
+                        <h2 className="font-display font-black text-2xl text-white text-center leading-tight">
+                          You&apos;ve both seen everything.
+                        </h2>
+                        <p className="font-body text-sm text-[#8A7F78] text-center mt-2 mb-8">
+                          Sometimes the answer isn&apos;t on the menu. Take a break and come back with fresh eyes.
+                        </p>
+                        <div className="flex flex-col gap-3 w-full text-left">
+                          {/* See what they liked — always available */}
+                          <button
+                            onClick={() => void handleLoadPartnerPicks()}
+                            disabled={partnerPicksLoading}
+                            className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200 disabled:opacity-60"
+                          >
+                            <span className="text-2xl flex-shrink-0">👀</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-display font-black text-base text-white">
+                                {partnerPicksLoading ? "Loading…" : "See what they liked"}
+                              </p>
+                              <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                                Browse their yes pile and pick a compromise
+                              </p>
+                            </div>
+                            <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                          </button>
+                          {/* Go home */}
+                          <button
+                            onClick={() => router.push("/")}
+                            className="mt-2 w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
+                            style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                          >
+                            Go home
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      /* ── Standard shared no-match options ───────────── */
+                      <>
+                        <h2 className="font-display font-black text-3xl text-white leading-tight">
+                          You&apos;ve both swiped everything.
+                        </h2>
+                        <p className="font-body text-sm text-[#8A7F78] mt-3 mb-10">
+                          Still no match. Here&apos;s what you can do.
+                        </p>
+                        <div className="flex flex-col gap-3 w-full text-left">
+                          {/* See what they liked */}
+                          <button
+                            onClick={() => void handleLoadPartnerPicks()}
+                            disabled={partnerPicksLoading}
+                            className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200 disabled:opacity-60"
+                          >
+                            <span className="text-2xl flex-shrink-0">👀</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-display font-black text-base text-white">
+                                {partnerPicksLoading ? "Loading…" : "See what they liked"}
+                              </p>
+                              <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                                Browse their yes pile and pick a compromise
+                              </p>
+                            </div>
+                            <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                          </button>
+                          {/* Fresh session — shows info message after tapping */}
+                          {sharedFreshTapped ? (
+                            <div className="bg-[#2A2420] rounded-[18px] p-4 text-center">
+                              <p className="font-body text-sm text-[#8A7F78]">
+                                Both of you need to choose this to start fresh.{sharedSessionCode ? " Share the session code again: " : ""}
+                                {sharedSessionCode && (
+                                  <span className="font-display font-black text-white">{sharedSessionCode}</span>
+                                )}
+                              </p>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setSharedFreshTapped(true)}
+                              disabled={sharedRefreshing}
+                              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200 disabled:opacity-60"
+                            >
+                              <span className="text-2xl flex-shrink-0">🔄</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-display font-black text-base text-white">
+                                  Start a fresh session
+                                </p>
+                                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Build a new deck together</p>
+                              </div>
+                              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                            </button>
+                          )}
+                          {/* Go home */}
+                          <button
+                            onClick={() => router.push("/")}
+                            className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+                          >
+                            <span className="text-2xl flex-shrink-0">🏠</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-display font-black text-base text-white">Go home</p>
+                              <p className="font-body text-xs text-[#8A7F78] mt-0.5">Navigate home without action</p>
+                            </div>
+                            <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
               ) : (
-                <>
-                  <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/45">
-                    <span className="h-1 w-1 rounded-full bg-white/30" />
-                    Your picks are in
-                  </div>
-                  <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em]">
-                    Waiting for them…
-                  </h2>
-                  <p className="mt-3 max-w-[28ch] text-sm leading-6 text-white/55">
-                    You&apos;ll see a match as soon as you both agree on something.
+                /* ── Branded waiting screen ──────────────────────────────── */
+                <div className="flex flex-col items-center w-full">
+                  {/* Status eyebrow */}
+                  <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-10">
+                    YOUR PICKS ARE IN
                   </p>
-                </>
+                  {/* Avatar pair */}
+                  <div className="flex items-center gap-5 mb-10">
+                    {/* Your avatar — filled orange */}
+                    <div className="flex flex-col items-center gap-2">
+                      <div
+                        className="w-14 h-14 rounded-full bg-[#E8621A] flex items-center justify-center"
+                        style={{ boxShadow: "0 0 24px rgba(232,98,26,0.35)" }}
+                      >
+                        <span className="font-display font-black text-2xl text-white">✓</span>
+                      </div>
+                      <span className="font-body text-xs text-[#8A7F78]">You</span>
+                    </div>
+                    {/* Connector dots */}
+                    <div className="flex gap-1 pb-4">
+                      <span className="w-1 h-1 rounded-full bg-[#3D3733]" />
+                      <span className="w-1 h-1 rounded-full bg-[#3D3733]" />
+                      <span className="w-1 h-1 rounded-full bg-[#3D3733]" />
+                    </div>
+                    {/* Partner avatar — hollow with pulsing orange ring */}
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative w-14 h-14">
+                        {/* Pulsing ring */}
+                        <div
+                          className="absolute inset-0 rounded-full border-2 border-[#E8621A] animate-ping opacity-40"
+                        />
+                        <div
+                          className="w-14 h-14 rounded-full border-2 border-[#E8621A]/60 bg-[#2A2420] flex items-center justify-center"
+                        >
+                          <span className="font-display font-black text-2xl text-[#E8621A]/50">?</span>
+                        </div>
+                      </div>
+                      <span className="font-body text-xs text-[#8A7F78]">Them</span>
+                    </div>
+                  </div>
+                  {/* Rotating headline */}
+                  <h2 className="font-display font-black text-2xl text-white leading-tight max-w-[22ch]">
+                    {WAITING_HEADLINES[waitingHeadlineIdx]}
+                  </h2>
+                  {/* Subtext */}
+                  <p className="font-body text-sm text-[#8A7F78] text-center mt-3 max-w-[28ch]">
+                    You&apos;ll see a match the moment you both agree.
+                  </p>
+                  {/* Ghost home button */}
+                  <button
+                    onClick={() => router.push("/")}
+                    className="mt-12 font-body text-sm text-[#8A7F78]/60 hover:text-[#8A7F78] transition-colors"
+                  >
+                    Go home for now →
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -2120,84 +2563,348 @@ function DeckContent() {
     }
 
     // ── Solo exhausted state ───────────────────────────────────────────────
+    if (topPicksMode) {
+      return (
+        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-6 safe-top text-white">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
+          </div>
+          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+            <header className="flex items-center justify-between">
+              <span className="font-display font-black text-base text-white">
+                Watcha<span className="text-[#E8621A]">?</span>
+              </span>
+              <button
+                onClick={() => router.push("/")}
+                className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
+              >
+                {isChangeMeal && existingMeal ? `Keep ${existingMeal.meal.name}` : "Back"}
+              </button>
+            </header>
+            <div className="flex flex-1 flex-col items-center justify-center text-center">
+              <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-[#2A2420] px-3.5 py-1.5 font-body text-xs text-[#8A7F78]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#E8621A]" />
+                Round 2 complete
+              </div>
+              <h2 className="mt-4 font-display font-black text-3xl text-white leading-tight">
+                That&apos;s your best set
+              </h2>
+              <p className="font-body mt-3 max-w-[28ch] text-sm leading-relaxed text-[#8A7F78]">
+                You&apos;ve gone through your strongest matches. Want to try a new direction?
+              </p>
+              <p className="font-body mt-3 text-xs text-[#8A7F78]/60">You&apos;re close 👀</p>
+              <div className="mt-8 w-full flex flex-col gap-3">
+                <button
+                  onClick={() => { setTopPicksMode(false); setCurrentIndex(0); }}
+                  className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
+                >
+                  Start over
+                </button>
+                <button
+                  onClick={() => router.push("/browse")}
+                  className="w-full rounded-full border border-white/10 bg-[#2A2420] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                >
+                  Browse all meals
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    // ── Solo branded two-step end-of-deck experience ───────────────────────
+    const headline = exhaustedHeadlineRef.current ?? SOLO_EXHAUSTED_HEADLINES[0];
+
+    // Helper to clear solo reset counter and navigate home
+    function clearAndGoHome() {
+      sessionStorage.removeItem(SOLO_RESET_SS_KEY);
+      setSoloResetCount(0);
+      router.push("/");
+    }
+
+    // Helper to decide + navigate home (canonical path)
+    function lockInMeal(meal: Meal) {
+      sessionStorage.removeItem(SOLO_RESET_SS_KEY);
+      setSoloResetCount(0);
+      addToHistory(meal);
+      saveDecidedMeal({ ...meal, decidedAt: new Date().toISOString(), mode: "solo" });
+      router.push("/");
+    }
+
+    // ── Easter egg: reset 3+ (terminal state) ─────────────────────────────
+    if (soloResetCount >= 3) {
+      const forcedMeal = rankedMeals[0]?.meal;
+      return (
+        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-10 safe-top text-white">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "radial-gradient(ellipse 80% 50% at 50% 20%, rgba(232,98,26,0.18) 0%, transparent 65%)" }}
+          />
+          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center text-center px-4">
+            {/* Pulsing app icon */}
+            <div
+              className="w-24 h-24 bg-[#E8621A] rounded-[22%] flex items-center justify-center mb-10 animate-pulse"
+              style={{ boxShadow: "0 0 60px rgba(232,98,26,0.45)" }}
+            >
+              <span className="font-display font-black text-6xl text-white">?</span>
+            </div>
+            <h2 className="font-display font-black text-4xl text-white text-center leading-tight">
+              Okay. We tried.
+            </h2>
+            <p className="font-body text-base text-[#8A7F78] text-center mt-3 max-w-xs">
+              You&apos;ve seen everything we&apos;ve got. Multiple times. The app has done its job — now it&apos;s your turn.
+            </p>
+            {forcedMeal && (
+              <>
+                <button
+                  onClick={() => lockInMeal(forcedMeal)}
+                  className="mt-10 w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
+                  style={{ boxShadow: "0 0 24px rgba(232,98,26,0.4)" }}
+                >
+                  Just pick something →
+                </button>
+                <p className="font-body text-xs text-[#8A7F78]/60 text-center mt-3">
+                  (It&apos;s {forcedMeal.name}. You&apos;ll be fine.)
+                </p>
+              </>
+            )}
+          </div>
+        </main>
+      );
+    }
+
+    // Sub-screen: top 3 picks
+    if (soloExhaustedView === "top3") {
+      const top3 = rankedMeals.slice(0, 3).map((r) => r.meal);
+      return (
+        <main className="relative min-h-screen overflow-y-auto bg-[#1C1A18] px-5 pb-10 safe-top text-white">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.12) 0%, transparent 65%)" }}
+          />
+          <div className="mx-auto w-full max-w-md flex flex-col pt-safe">
+            <header className="flex items-center justify-between py-4 mb-2">
+              <button
+                onClick={() => setSoloExhaustedView("main")}
+                className="font-body text-sm text-[#8A7F78] hover:text-white transition"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={clearAndGoHome}
+                className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
+              >
+                {isChangeMeal && existingMeal ? `Keep ${existingMeal.meal.name}` : "Home"}
+              </button>
+            </header>
+            <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-2">
+              YOUR BEST OPTIONS
+            </p>
+            <h2 className="font-display font-black text-2xl text-white leading-tight">
+              Your best options.
+            </h2>
+            <p className="font-body text-sm text-[#8A7F78] mt-2 mb-8">
+              These scored highest for you tonight. Pick one.
+            </p>
+            <div className="flex flex-col gap-6 pb-8">
+              {top3.map((meal) => (
+                <div key={meal.id} className="flex flex-col rounded-[20px] overflow-hidden bg-[#2A2420]">
+                  <div className="w-full bg-[#3D3733]" style={{ aspectRatio: "16/9" }}>
+                    <img src={meal.image || FALLBACK_IMAGE} alt={meal.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-4">
+                    <p className="font-display font-black text-xl text-white">{meal.name}</p>
+                    <p className="font-body text-sm text-white/70 mt-1 leading-relaxed">{meal.description}</p>
+                    <button
+                      onClick={() => lockInMeal(meal)}
+                      className="mt-4 w-full rounded-full bg-[#E8621A] py-3 font-display font-black text-base text-white transition active:scale-[0.98]"
+                      style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                    >
+                      Lock this in →
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    // Sub-screen: vibe selector
+    if (soloExhaustedView === "vibe-select") {
+      return (
+        <main className="relative min-h-screen overflow-y-auto bg-[#1C1A18] px-5 pb-10 safe-top text-white">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.12) 0%, transparent 65%)" }}
+          />
+          <div className="mx-auto w-full max-w-md flex flex-col pt-safe">
+            <header className="flex items-center justify-between py-4 mb-2">
+              <button
+                onClick={() => setSoloExhaustedView("main")}
+                className="font-body text-sm text-[#8A7F78] hover:text-white transition"
+              >
+                ← Back
+              </button>
+            </header>
+            <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-2">
+              SET A MOOD
+            </p>
+            <h2 className="font-display font-black text-2xl text-white leading-tight mb-2">
+              Pick a vibe.
+            </h2>
+            <p className="font-body text-sm text-[#8A7F78] mb-6">
+              We&apos;ll rebuild the deck around it.
+            </p>
+            <div className="flex flex-col gap-3">
+              {DIAG_VIBE_OPTIONS.map((opt) => {
+                const selected = diagSelectedVibe === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setDiagSelectedVibe(opt.value)}
+                    className="flex items-center gap-4 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
+                    style={{
+                      borderColor: selected ? "#E8621A" : "transparent",
+                      backgroundColor: selected ? "rgba(232,98,26,0.10)" : "#2A2420",
+                    }}
+                  >
+                    <span className="text-3xl">{opt.emoji}</span>
+                    <div className="flex-1">
+                      <p className="font-display font-black text-base transition-colors duration-150" style={{ color: selected ? "#E8621A" : "white" }}>
+                        {opt.label}
+                      </p>
+                      <p className="font-body text-xs text-[#8A7F78] mt-0.5">{opt.description}</p>
+                    </div>
+                    <div
+                      className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150"
+                      style={{
+                        borderColor: selected ? "#E8621A" : "rgba(255,255,255,0.2)",
+                        backgroundColor: selected ? "#E8621A" : "transparent",
+                      }}
+                    >
+                      {selected && <span className="text-white text-[8px] font-bold">✓</span>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => handleRefreshDeckWithVibe(diagSelectedVibe)}
+              className="mt-8 w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
+              style={{ boxShadow: "0 0 20px rgba(232,98,26,0.35)" }}
+            >
+              Build my deck →
+            </button>
+          </div>
+        </main>
+      );
+    }
+
+    // ── Main acknowledgment + diagnostic screen ────────────────────────────
+    // "Fresh deck" option label changes at reset 2
+    const freshDeckLabel = soloResetCount >= 2 ? "One more try" : "Nothing felt easy enough";
+    const freshDeckSubtext = soloResetCount >= 2 ? "Build one last fresh deck" : "Show me quick, low-effort options";
+
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-6 safe-top text-white">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+      <main className="relative min-h-screen overflow-y-auto bg-[#1C1A18] px-5 pb-10 safe-top text-white">
+        {/* Orange radial glow */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(ellipse 90% 50% at 50% 0%, rgba(232,98,26,0.14) 0%, transparent 65%)" }}
+        />
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
-          <header className="flex items-center justify-between">
+          <header className="flex items-center justify-between py-4">
             <span className="font-display font-black text-base text-white">
               Watcha<span className="text-[#E8621A]">?</span>
             </span>
             <button
-              onClick={() => router.push("/")}
+              onClick={clearAndGoHome}
               className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
             >
-              {isChangeMeal && existingMeal
-                ? `Keep ${existingMeal.meal.name}`
-                : "Back"}
+              {isChangeMeal && existingMeal ? `Keep ${existingMeal.meal.name}` : "Back"}
             </button>
           </header>
 
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            {topPicksMode ? (
-              <>
-                <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-[#2A2420] px-3.5 py-1.5 font-body text-xs text-[#8A7F78]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#E8621A]" />
-                  Round 2 complete
-                </div>
-                <h2 className="mt-4 font-display font-black text-3xl text-white leading-tight">
-                  That&apos;s your best set
-                </h2>
-                <p className="font-body mt-3 max-w-[28ch] text-sm leading-relaxed text-[#8A7F78]">
-                  You&apos;ve gone through your strongest matches. Want to try a new direction?
-                </p>
-                <p className="font-body mt-3 text-xs text-[#8A7F78]/60">You&apos;re close 👀</p>
-                <div className="mt-8 w-full flex flex-col gap-3">
-                  <button
-                    onClick={() => { setTopPicksMode(false); setCurrentIndex(0); }}
-                    className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
-                  >
-                    Start over
-                  </button>
-                  <button
-                    onClick={() => router.push("/browse")}
-                    className="w-full rounded-full border border-white/10 bg-[#2A2420] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
-                  >
-                    Browse all meals
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-[#2A2420] px-3.5 py-1.5 font-body text-xs text-[#8A7F78]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#E8621A]" />
-                  Deck complete
-                </div>
-                <h2 className="font-display font-black text-3xl text-white leading-tight">
-                  No match yet
-                </h2>
-                <p className="font-body mt-3 max-w-[28ch] text-sm leading-relaxed text-[#8A7F78]">
-                  Want to run it back?
-                </p>
-                <div className="mt-8 w-full flex flex-col gap-3">
-                  <button
-                    onClick={handleRefreshDeck}
-                    className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
-                  >
-                    Refresh deck
-                  </button>
-                  <button
-                    onClick={() => router.push("/browse")}
-                    className="w-full rounded-full border border-white/10 bg-[#2A2420] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
-                  >
-                    Browse all
-                  </button>
-                </div>
-              </>
-            )}
+          {/* ── Step 1: Acknowledgment ── */}
+          <div className="flex flex-col items-center pt-8 pb-8 text-center">
+            {/* Status eyebrow */}
+            <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-8">
+              DECK COMPLETE
+            </p>
+            {/* App icon */}
+            <div
+              className="w-24 h-24 bg-[#E8621A] rounded-[22%] flex items-center justify-center mb-8"
+              style={{ boxShadow: "0 0 60px rgba(232,98,26,0.35)" }}
+            >
+              <span className="font-display font-black text-6xl text-white">?</span>
+            </div>
+            {/* Rotating headline */}
+            <h2 className="font-display font-black text-3xl text-white leading-tight max-w-[20ch]">
+              {headline}
+            </h2>
+            {/* Subtext */}
+            <p className="font-body text-sm text-[#8A7F78] text-center mt-3">
+              What was missing?
+            </p>
+          </div>
+
+          {/* ── Step 2: Diagnostic options ── */}
+          <div className="flex flex-col gap-3 pb-8">
+            {/* Option 1: Fresh deck (copy changes at reset 2) */}
+            <button
+              onClick={() => handleRefreshDeckWithVibe("quick-easy")}
+              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+            >
+              <span className="text-2xl flex-shrink-0">😴</span>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="font-display font-black text-base text-white">{freshDeckLabel}</p>
+                <p className="font-body text-xs text-[#8A7F78] mt-0.5">{freshDeckSubtext}</p>
+              </div>
+              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+            </button>
+
+            {/* Option 2: Something exciting */}
+            <button
+              onClick={() => handleRefreshDeckWithVibe("something-new")}
+              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+            >
+              <span className="text-2xl flex-shrink-0">🔥</span>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="font-display font-black text-base text-white">Nothing felt exciting enough</p>
+                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Surprise me with something different</p>
+              </div>
+              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+            </button>
+
+            {/* Option 3: I couldn't decide → top 3 (no reset increment) */}
+            <button
+              onClick={() => setSoloExhaustedView("top3")}
+              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+            >
+              <span className="text-2xl flex-shrink-0">🤔</span>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="font-display font-black text-base text-white">I couldn&apos;t decide</p>
+                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Show me my top 3 and I&apos;ll pick one</p>
+              </div>
+              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+            </button>
+
+            {/* Option 4: Set a new mood */}
+            <button
+              onClick={() => setSoloExhaustedView("vibe-select")}
+              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+            >
+              <span className="text-2xl flex-shrink-0">🎯</span>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="font-display font-black text-base text-white">Let me set a new mood</p>
+                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Choose a vibe and try again</p>
+              </div>
+              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+            </button>
           </div>
         </div>
       </main>
