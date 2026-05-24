@@ -309,6 +309,7 @@ function DeckContent() {
     () => typeof window !== "undefined" && !localStorage.getItem("watcha_swipe_tip_seen")
   );
   const [showCookOrderModal, setShowCookOrderModal] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   // ── Solo exhausted diagnostic state ────────────────────────────────────────
   const [soloExhaustedView, setSoloExhaustedView] = useState<"main" | "top3" | "vibe-select">("main");
   const [diagSelectedVibe, setDiagSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
@@ -389,6 +390,13 @@ function DeckContent() {
 
   useEffect(() => {
     setUserId(getUserId());
+  }, []);
+
+  // Detect guest state (no Supabase auth session) for post-match routing.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsGuest(!user);
+    });
   }, []);
 
   // Mount guard: if user already completed this shared session, skip straight to exhausted UI
@@ -1348,7 +1356,8 @@ function DeckContent() {
       localStorage.removeItem("wwe_active_session");
       localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
     }
-    router.push("/");
+    // Guests (no Supabase auth session) must never land on auth-gated routes.
+    router.push(isGuest ? "/guest-home" : "/");
   }
 
   function handleMatchReject() {
@@ -2625,7 +2634,7 @@ function DeckContent() {
                         disabled={matchConfirming}
                         className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center disabled:opacity-60"
                       >
-                        {matchConfirming ? "Locking in…" : "Back to home"}
+                        {matchConfirming ? "Locking in…" : (isGuest ? "Done for now →" : "Back to home")}
                       </button>
                     </div>
                     {matchConfirmError && (
@@ -3495,7 +3504,7 @@ function DeckContent() {
                     disabled={matchConfirming}
                     className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center disabled:opacity-60"
                   >
-                    {matchConfirming ? "Locking in…" : "Back to home"}
+                    {matchConfirming ? "Locking in…" : (isGuest ? "Done for now →" : "Back to home")}
                   </button>
                 </div>
                 {matchConfirmError && (

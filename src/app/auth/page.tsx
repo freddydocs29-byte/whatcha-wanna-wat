@@ -13,6 +13,7 @@ export default function AuthPage() {
   const searchParams = useSearchParams();
   // Read ?mode=signup|signin from URL — set by the splash screen buttons.
   const initialMode: Mode = searchParams.get("mode") === "signin" ? "signin" : "signup";
+  const fromGuestMatch = searchParams.get("from") === "guest-match";
   const [mode, setMode] = useState<Mode>(initialMode);
 
   const [name, setName] = useState("");
@@ -60,8 +61,10 @@ export default function AuthPage() {
 
         if (data.session) {
           // Email confirmation is disabled — session is live immediately.
-          // Route to onboarding so the user sets their preferences.
-          router.replace("/onboarding");
+          // Guests signing up from the post-match screen already have preferences
+          // from the session setup flow — send them straight to Home so the
+          // decided meal locked state is visible. All other signups go to onboarding.
+          router.replace(fromGuestMatch ? "/" : "/onboarding");
         } else {
           // Email confirmation is enabled — the session won't exist until the
           // user clicks the link in their inbox. Show a waiting screen.
