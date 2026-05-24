@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "./components/BottomNav";
 import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
@@ -25,10 +25,12 @@ import {
   getSavedMealsEnriched,
   addFavorite,
   addToHistory,
+  saveDecidedMeal,
   HistoryEntry,
   type DecidedMeal,
   mealWasManuallyClearedAfter,
 } from "./lib/storage";
+import { meals } from "./data/meals";
 import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
@@ -149,6 +151,10 @@ export default function Home() {
     status: string;
     vibe?: string;
   } | null>(null);
+  const [userDoneSwiping, setUserDoneSwiping] = useState(false);
+  const [partnerDoneSwiping, setPartnerDoneSwiping] = useState(false);
+  const [showMatchCelebration, setShowMatchCelebration] = useState(false);
+  const matchCelebrationShownRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     async function checkAndRoute() {
@@ -303,7 +309,9 @@ export default function Home() {
     setLockedHeadline(generated);
   }, [decidedMealId, decidedMealDecidedAt, resolvedUserName]);
 
-  // Load and validate any active shared session from localStorage
+  // Load, validate, and poll any active shared session from localStorage.
+  // Handles matched state directly on the home screen so the user sees their
+  // match without re-entering the deck.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = localStorage.getItem("wwe_active_session");
@@ -328,28 +336,116 @@ export default function Home() {
       return;
     }
 
-    // Query live status from Supabase
     const sessionId = parsed.sessionId;
-    void (async () => {
+    let mounted = true;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    // Read immediately on mount — don't wait for the async query to resolve
+    const doneSwiping = localStorage.getItem(`wwe_session_swiping_done_${sessionId}`) === 'true';
+    setUserDoneSwiping(doneSwiping);
+
+    const checkSession = async () => {
+      if (!mounted) return;
       try {
         const { data } = await supabase
           .from("sessions")
-          .select("status, vibe, session_code")
+          .select("status, vibe, session_code, locked_meal_id, host_user_id, guest_user_id, deck_meal_ids")
           .eq("id", sessionId)
           .single();
-        if (!data || data.status === "expired" || data.status === "matched") {
+
+        if (!mounted) return;
+
+        if (!data || data.status === "expired") {
           localStorage.removeItem("wwe_active_session");
+          localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
+          setActiveSession(null);
+          setUserDoneSwiping(false);
+          setPartnerDoneSwiping(false);
+          if (intervalId) clearInterval(intervalId);
           return;
         }
+
+        if (data.status === "matched") {
+          // Show celebration flash once per matched session, then surface the decided meal.
+          // locked_meal_id is the real session field that holds the matched meal.
+          if (!matchCelebrationShownRef.current.has(sessionId)) {
+            matchCelebrationShownRef.current.add(sessionId);
+            const meal = meals.find((m) => m.id === data.locked_meal_id);
+            if (meal) {
+              const decidedAt = new Date().toISOString();
+              const decidedMealData: DecidedMeal = { ...meal, decidedAt, mode: "shared", sessionId };
+              addToHistory(meal);
+              saveDecidedMeal(decidedMealData);
+              // Update React state directly so the decided-state UI appears immediately
+              setDecidedMealState(decidedMealData);
+              setTodaysPick({ meal, chosenAt: decidedAt });
+            }
+            setShowMatchCelebration(true);
+            setTimeout(() => { if (mounted) setShowMatchCelebration(false); }, 2000);
+          }
+          localStorage.removeItem("wwe_active_session");
+          localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
+          setActiveSession(null);
+          setUserDoneSwiping(false);
+          setPartnerDoneSwiping(false);
+          if (intervalId) clearInterval(intervalId);
+          return;
+        }
+
+        // For active/swiping sessions, detect whether the partner has finished swiping.
+        // deck_meal_ids.length is the canonical shared deck size.
+        // Distinct meal_id count in swipes table is the partner's progress.
+        const deckSize = (data.deck_meal_ids as string[] | null)?.length ?? 0;
+        if (deckSize > 0) {
+          const currentUserId = getUserId();
+          const partnerId =
+            data.host_user_id === currentUserId ? data.guest_user_id : data.host_user_id;
+          if (partnerId) {
+            const { data: partnerSwipes } = await supabase
+              .from("swipes")
+              .select("meal_id")
+              .eq("session_id", sessionId)
+              .eq("user_id", partnerId);
+            if (mounted && partnerSwipes) {
+              const distinctCount = new Set(partnerSwipes.map((s) => s.meal_id)).size;
+              setPartnerDoneSwiping(distinctCount >= deckSize);
+            }
+          }
+        }
+
         setActiveSession({
           sessionId,
           sessionCode: data.session_code ?? null,
           status: data.status,
           vibe: data.vibe ?? undefined,
         });
+        // Re-read flag on every poll tick — the separate effect only fires when sessionId changes
+        const done = localStorage.getItem(`wwe_session_swiping_done_${sessionId}`) === 'true';
+        setUserDoneSwiping(done);
       } catch {}
-    })();
-  }, []);
+    };
+
+    void checkSession();
+    intervalId = setInterval(() => { void checkSession(); }, 4000);
+
+    return () => {
+      mounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync userDoneSwiping from localStorage whenever the active session changes.
+  // partnerDoneSwiping resets to false here; the polling updates it independently.
+  useEffect(() => {
+    if (!activeSession) {
+      setUserDoneSwiping(false);
+      setPartnerDoneSwiping(false);
+      return;
+    }
+    const done = typeof window !== 'undefined' &&
+      localStorage.getItem(`wwe_session_swiping_done_${activeSession.sessionId}`) === 'true';
+    setUserDoneSwiping(done);
+  }, [activeSession?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleResumeBanner() {
     if (!activeSession) return;
@@ -505,6 +601,49 @@ export default function Home() {
 
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+
+  // Banner variant drives copy and visual styling.
+  // Evaluated once per render from stable state so the JSX stays declarative.
+  const bannerVariant: 'waiting' | 'ready' | 'swiping' | 'partner-done' | 'user-done' | 'both-done' =
+    !activeSession ? 'swiping' :
+    activeSession.status === 'waiting' ? 'waiting' :
+    activeSession.status === 'ready' ? 'ready' :
+    (activeSession.status === 'swiping' || activeSession.status === 'active') && !userDoneSwiping && partnerDoneSwiping ? 'partner-done' :
+    (activeSession.status === 'swiping' || activeSession.status === 'active') && userDoneSwiping && partnerDoneSwiping ? 'both-done' :
+    (activeSession.status === 'swiping' || activeSession.status === 'active') && userDoneSwiping && !partnerDoneSwiping ? 'user-done' :
+    'swiping';
+
+  const bannerBorderClass =
+    bannerVariant === 'partner-done' ? 'border-[#4A7C59]/50' :
+    bannerVariant === 'both-done' ? 'border-[#C9983A]/40' :
+    'border-[#E8621A]/40';
+
+  const bannerBoxShadow =
+    bannerVariant === 'partner-done' ? '0 0 24px rgba(74,124,89,0.2)' :
+    '0 0 20px rgba(232,98,26,0.15)';
+
+  const bannerDotClass =
+    bannerVariant === 'partner-done' ? 'bg-[#4A7C59]' :
+    bannerVariant === 'both-done' ? 'bg-[#C9983A]' :
+    'bg-[#E8621A]';
+
+  const bannerDotPingClass =
+    bannerVariant === 'partner-done' ? 'bg-[#4A7C59]/70' : 'bg-[#E8621A]/70';
+
+  const bannerHeadline =
+    bannerVariant === 'waiting' ? 'Waiting for your partner' :
+    bannerVariant === 'ready' ? 'Your partner joined! Tap to continue' :
+    bannerVariant === 'partner-done' ? 'Your partner finished swiping' :
+    bannerVariant === 'user-done' ? "You\u2019re done swiping" :
+    bannerVariant === 'both-done' ? 'No match yet' :
+    'Session in progress \u00b7 Tap to keep swiping';
+
+  const bannerSubtext: string | null =
+    bannerVariant === 'partner-done' ? 'Your turn to finish \u00b7 Tap to keep swiping' :
+    bannerVariant === 'user-done' ? `Waiting on their picks\u00b7 Code: ${activeSession?.sessionCode ?? ''}` :
+    bannerVariant === 'both-done' ? 'You both finished swiping \u00b7 See what they liked' :
+    bannerVariant === 'waiting' && activeSession?.sessionCode ? `Code: ${activeSession.sessionCode}` :
+    null;
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
@@ -678,14 +817,15 @@ export default function Home() {
               {/* 3. HERO CARD — Active session banner OR Deciding Together */}
               {activeSession ? (
                 <section
-                  className="rounded-[24px] p-5 mt-6 border border-white/[0.08] bg-[#2A2420] cursor-pointer"
+                  className={`rounded-[24px] p-5 mt-6 border bg-[#2A2420] cursor-pointer transition-all duration-300 ${bannerBorderClass}`}
+                  style={{ boxShadow: bannerBoxShadow }}
                   onClick={handleResumeBanner}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/70 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8621A]" />
+                        <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${bannerDotPingClass} opacity-75`} />
+                        <span className={`relative inline-flex h-2 w-2 rounded-full ${bannerDotClass}${bannerVariant === 'partner-done' ? ' animate-pulse' : ''}`} />
                       </span>
                       <span className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase">
                         Active session
@@ -701,22 +841,20 @@ export default function Home() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-[#E8621A]/10 flex items-center justify-center text-xl flex-shrink-0">
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${bannerVariant === 'partner-done' ? 'bg-[#4A7C59]/10' : 'bg-[#E8621A]/10'}`}>
                       👥
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-display font-black text-base text-white">
-                        {activeSession.status === "waiting" && "Waiting for your partner"}
-                        {activeSession.status === "ready" && "Your partner joined! Tap to continue"}
-                        {activeSession.status === "swiping" && "Session in progress · Tap to keep swiping"}
+                        {bannerHeadline}
                       </p>
-                      {activeSession.sessionCode && (
+                      {bannerSubtext && (
                         <p className="font-body text-xs text-[#8A7F78] mt-0.5">
-                          Code: {activeSession.sessionCode}
+                          {bannerSubtext}
                         </p>
                       )}
                     </div>
-                    <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
+                    <span className={`text-lg flex-shrink-0 ${bannerVariant === 'partner-done' ? 'text-[#4A7C59]' : 'text-[#E8621A]'}`}>→</span>
                   </div>
                 </section>
               ) : (
@@ -985,6 +1123,19 @@ export default function Home() {
                 Yes, clear it
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Match celebration flash — shown once for 2 s when the partner completes a match */}
+      {showMatchCelebration && (
+        <div className="fixed inset-x-0 top-0 z-[100] flex items-center justify-center px-5 pt-safe-top pt-4">
+          <div
+            className="w-full max-w-md rounded-[20px] bg-[#4A7C59] px-6 py-4 text-center"
+            style={{ boxShadow: "0 0 40px rgba(74,124,89,0.5)" }}
+          >
+            <p className="font-display font-black text-xl text-white">You matched! 🎉</p>
+            <p className="font-body text-sm text-white/80 mt-1">Dinner is decided.</p>
           </div>
         </div>
       )}

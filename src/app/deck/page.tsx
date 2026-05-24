@@ -363,6 +363,7 @@ function DeckContent() {
   const [showAbandonmentBanner, setShowAbandonmentBanner] = useState(false);
   const [userId, setUserId] = useState<string>("");
   const [bothDone, setBothDone] = useState(false);
+  const [bypassToExhausted, setBypassToExhausted] = useState(false);
   const [sharedRefreshing, setSharedRefreshing] = useState(false);
   const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
   // Refs so polling/async callbacks always see current values without stale closures
@@ -383,6 +384,15 @@ function DeckContent() {
   useEffect(() => {
     setUserId(getUserId());
   }, []);
+
+  // Mount guard: if user already completed this shared session, skip straight to exhausted UI
+  useEffect(() => {
+    if (!sessionId || typeof window === 'undefined') return;
+    if (localStorage.getItem(`wwe_session_swiping_done_${sessionId}`) === 'true') {
+      setBypassToExhausted(true);
+      setSharedLoading(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync solo/shared reset counters from sessionStorage on mount
   useEffect(() => {
@@ -409,6 +419,18 @@ function DeckContent() {
     void supabase.from("sessions").select("session_code").eq("id", sessionId).single()
       .then(({ data }) => { if (data?.session_code) setSharedSessionCode(data.session_code); });
   }, [bothDone, sessionId, sharedSessionCode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist a completion flag once the user finishes swiping their shared deck.
+  // Only written after the deck has actually loaded (rankedMeals.length > 0) to avoid
+  // false positives on mount before the deck fetch completes.
+  useEffect(() => {
+    if (!sessionId || typeof window === 'undefined') return;
+    const deckLoaded = rankedMeals.length > 0;
+    const naturallyExhausted = currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    if ((deckLoaded && naturallyExhausted) || bypassToExhausted) {
+      localStorage.setItem(`wwe_session_swiping_done_${sessionId}`, 'true');
+    }
+  }, [bypassToExhausted, currentIndex, rankedMeals.length, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check whether the user returned within 10 minutes of a resolved session.
   // Reads a token written to localStorage on acceptance and updates the DB row.
@@ -497,7 +519,7 @@ function DeckContent() {
   // Uses currentIndex / rankedMeals.length (state values) instead of the derived
   // `isExhausted` const to avoid a temporal-dead-zone issue with the dep array.
   useEffect(() => {
-    const exhausted = currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
     if (!sessionId || !userId || !exhausted) return;
 
     const totalDeckSize = Math.min(rankedMeals.length, DECK_SIZE);
@@ -547,12 +569,12 @@ function DeckContent() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [sessionId, userId, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sessionId, userId, bypassToExhausted, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialise the rotating headline when the solo deck is first exhausted;
   // reset it so a fresh headline is picked on the next exhaustion.
   useEffect(() => {
-    const exhausted = currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
     if (exhausted && !sessionId) {
       if (exhaustedHeadlineRef.current === null) {
         // Read current reset count from sessionStorage (state may lag one render)
@@ -563,18 +585,18 @@ function DeckContent() {
       exhaustedHeadlineRef.current = null;
       setSoloExhaustedView("main");
     }
-  }, [currentIndex, rankedMeals.length, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bypassToExhausted, currentIndex, rankedMeals.length, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cycle the waiting headline every 3 s while the partner hasn't finished yet.
   useEffect(() => {
     if (!sessionId || bothDone) return;
-    const exhausted = currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
     if (!exhausted) return;
     const interval = setInterval(() => {
       setWaitingHeadlineIdx((i) => (i + 1) % WAITING_HEADLINES.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, [sessionId, bothDone, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sessionId, bothDone, bypassToExhausted, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for matches while inside a shared session.
   // Also checks for expiry and surfaces the abandonment banner.
@@ -596,7 +618,10 @@ function DeckContent() {
         sessionData?.status === "expired" ||
         (sessionData?.expires_at && new Date(sessionData.expires_at) <= new Date())
       ) {
-        if (typeof window !== "undefined") localStorage.removeItem("wwe_active_session");
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("wwe_active_session");
+          localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
+        }
         setSessionExpired(true);
         return;
       }
@@ -1112,7 +1137,7 @@ function DeckContent() {
   const isExiting = exitX !== null;
 
   const totalCount = Math.min(rankedMeals.length, DECK_SIZE);
-  const isExhausted = currentIndex >= totalCount;
+  const isExhausted = bypassToExhausted || currentIndex >= totalCount;
   const decisionsMade = currentIndex;
   const progressPct = totalCount > 0 ? Math.min(100, (decisionsMade / totalCount) * 100) : 0;
   const urgencyMessage = (() => {
@@ -1197,6 +1222,10 @@ function DeckContent() {
   }
 
   async function handleSharedChoose(chosenMeal: Meal) {
+    // Write completion flag immediately when user initiates their final swipe
+    if (sessionId && typeof window !== 'undefined' && currentIndex >= Math.min(rankedMeals.length, DECK_SIZE) - 1) {
+      localStorage.setItem(`wwe_session_swiping_done_${sessionId}`, 'true')
+    }
     trackEvent("card_swiped_yes", {
       mealId: chosenMeal.id,
       swipeIndex: currentIndex,
@@ -1603,9 +1632,16 @@ function DeckContent() {
 
     if (!swipeData) { setPartnerPicksLoading(false); return; }
 
-    const partnerYesIds = new Set(swipeData.map((s) => s.meal_id as string));
-    // Hydrate from static meals data
-    const picked = meals.filter((m) => partnerYesIds.has(m.id));
+    // Dedupe raw swipe rows by meal_id before building the ID set
+    const uniqueSwipeRows = swipeData.filter(
+      (row, idx, self) => idx === self.findIndex((r) => r.meal_id === row.meal_id)
+    );
+    const partnerYesIds = new Set(uniqueSwipeRows.map((s) => s.meal_id as string));
+    // Hydrate from static meals data, then dedupe by meal.id in case the static
+    // meals array contains duplicate entries for the same ID.
+    const picked = meals
+      .filter((m) => partnerYesIds.has(m.id))
+      .filter((meal, idx, self) => idx === self.findIndex((m) => m.id === meal.id));
     // Sort by ranked position in current deck, then alphabetically
     const rankMap = new Map(rankedMeals.map((r, idx) => [r.meal.id, idx]));
     picked.sort((a, b) => {
@@ -1763,6 +1799,10 @@ function DeckContent() {
           }
         });
       }
+    }
+    // Write completion flag immediately when user initiates their final swipe
+    if (sessionId && typeof window !== 'undefined' && currentIndex >= Math.min(rankedMeals.length, DECK_SIZE) - 1) {
+      localStorage.setItem(`wwe_session_swiping_done_${sessionId}`, 'true')
     }
     triggerExit("left", () => setCurrentIndex((i) => i + 1));
   }
@@ -2218,13 +2258,17 @@ function DeckContent() {
                         </div>
                       </div>
                     )}
-                    {partnerPicks.length === 0 ? (
+                    {(() => {
+                      const uniquePartnerPicks = partnerPicks.filter(
+                        (meal, idx, self) => idx === self.findIndex((m) => m.id === meal.id)
+                      );
+                      return uniquePartnerPicks.length === 0 ? (
                       <p className="font-body text-sm text-[#8A7F78] text-center py-8">
                         They haven&apos;t swiped yet. Check back soon.
                       </p>
                     ) : (
                       <div className="flex flex-col gap-4">
-                        {partnerPicks.map((meal) => (
+                        {uniquePartnerPicks.map((meal) => (
                           <button
                             key={meal.id}
                             onClick={() => setConfirmMeal(meal)}
@@ -2249,7 +2293,8 @@ function DeckContent() {
                           </button>
                         ))}
                       </div>
-                    )}
+                    );
+                    })()}
                   </div>
                 ) : (
                   /* ── Shared no-match main screen ─────────────────────── */
@@ -2405,13 +2450,13 @@ function DeckContent() {
                       <span className="font-body text-xs text-[#8A7F78]">Them</span>
                     </div>
                   </div>
-                  {/* Rotating headline */}
+                  {/* Headline */}
                   <h2 className="font-display font-black text-2xl text-white leading-tight max-w-[22ch]">
-                    {WAITING_HEADLINES[waitingHeadlineIdx]}
+                    You&apos;re done swiping.
                   </h2>
                   {/* Subtext */}
                   <p className="font-body text-sm text-[#8A7F78] text-center mt-3 max-w-[28ch]">
-                    You&apos;ll see a match the moment you both agree.
+                    We&apos;ll let you know when there&apos;s a match. They still have time.
                   </p>
                   {/* Ghost home button */}
                   <button

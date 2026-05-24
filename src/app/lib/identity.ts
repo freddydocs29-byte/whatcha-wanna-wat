@@ -86,6 +86,14 @@ export function clearAllLocalState(): void {
   }
   for (const k of aiKeys) sessionStorage.removeItem(k);
 
+  // Clear dynamic shared session swiping completion flags (wwe_session_swiping_done_{sessionId}).
+  const swipingDoneKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("wwe_session_swiping_done_")) swipingDoneKeys.push(k);
+  }
+  for (const k of swipingDoneKeys) localStorage.removeItem(k);
+
 }
 
 /**
