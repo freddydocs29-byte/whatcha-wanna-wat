@@ -11,7 +11,7 @@ export type Meal = {
   /** Set to true on AI-generated meals. Never present on static library meals. */
   aiGenerated?: boolean;
   /** User-facing label shown on the card for AI-generated meals. */
-  aiLabel?: "Fresh idea" | "Made from your pantry";
+  aiLabel?: "Fresh pick" | "Made from your pantry";
 };
 
 export const meals: Meal[] = [

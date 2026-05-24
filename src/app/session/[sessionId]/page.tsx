@@ -74,7 +74,6 @@ const VIBE_COLORS: Record<SessionVibeMode, string> = {
   "mix-it-up":     "#9B70D4",
   "healthy":       "#3DAA72",
   "something-new": "#C9983A",
-  "kid-friendly":  "#E8621A",
 };
 
 const vibeEmoji: Record<string, string> = Object.fromEntries(

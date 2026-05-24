@@ -67,7 +67,6 @@ function buildPrompt(ctx: PromptContext): string {
     "quick-easy": "fast meals under 30 minutes",
     "healthy": "nutritious, light, and wholesome meals",
     "something-new": "bold, adventurous, or globally-inspired dishes",
-    "kid-friendly": "simple, crowd-pleasing meals everyone will enjoy",
   };
   const vibeHint = vibeDescriptions[ctx.vibeMode] ?? "a variety of meals";
 
@@ -145,7 +144,7 @@ REQUIRED JSON STRUCTURE — return exactly this shape:
   ]
 }
 
-LABEL RULE: Set "aiLabel" to "Made from your pantry" if the meal uses 2+ of the available pantry ingredients; otherwise "Fresh idea".
+LABEL RULE: Set "aiLabel" to "Made from your pantry" if the meal uses 2+ of the available pantry ingredients; otherwise "Fresh pick".
 TIME TAG: Include exactly one time tag in tags array: "15 min", "20 min", "25 min", "30 min", "35 min", "40 min", or "45 min".`;
 }
 
@@ -187,7 +186,7 @@ function transformMeal(raw: RawAIMeal, hardNos: string[], fallbackCuisine = "Ame
 
   const rawLabel = typeof raw.aiLabel === "string" ? raw.aiLabel : "";
   const aiLabel: Meal["aiLabel"] =
-    rawLabel === "Made from your pantry" ? "Made from your pantry" : "Fresh idea";
+    rawLabel === "Made from your pantry" ? "Made from your pantry" : "Fresh pick";
 
   const cuisine =
     typeof raw.cuisine === "string" && VALID_CUISINES.has(raw.cuisine)
@@ -222,6 +221,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!apiKey) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[generate-meals] OPENAI_API_KEY is not set");
+      return NextResponse.json({ meals: [], status: "failed", reason: "no_api_key" });
     }
     return NextResponse.json({ meals: [] });
   }
@@ -302,6 +302,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } catch {
       if (process.env.NODE_ENV === "development") {
         console.warn("[generate-meals] Failed to parse OpenAI response:", raw.slice(0, 200));
+        return NextResponse.json({ meals: [], status: "failed", reason: "json_parse_error" });
       }
       return NextResponse.json({ meals: [] });
     }
@@ -321,10 +322,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    if (process.env.NODE_ENV === "development") {
+      return NextResponse.json({
+        meals,
+        status: meals.length === 0 ? "empty" : "ok",
+      });
+    }
     return NextResponse.json({ meals });
   } catch (err) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[generate-meals] Error:", err);
+      return NextResponse.json({
+        meals: [],
+        status: "failed",
+        reason: err instanceof Error ? err.message : "unknown_error",
+      });
     }
     // Always return 200 with empty meals — client handles empty gracefully
     return NextResponse.json({ meals: [] });

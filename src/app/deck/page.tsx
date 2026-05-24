@@ -26,6 +26,7 @@ import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
 const DECK_SIZE = 12;
+const VALID_VIBE_MODES: SessionVibeMode[] = ["mix-it-up", "comfort-food", "quick-easy", "healthy", "something-new"];
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -175,6 +176,63 @@ function interleaveAI(staticDeck: RankedMeal[], aiDeck: RankedMeal[]): RankedMea
   return [...zone1, ...zone2, ...zone3];
 }
 
+/**
+ * After interleaving, guarantee AI meals are not entirely truncated when valid
+ * AI meals exist.
+ *
+ * Rules:
+ *   - Positions 0–2 are always static (trustworthy anchor).
+ *   - At least 1 AI meal must appear within the first 8 cards. If none do,
+ *     the highest-ranked AI meal is moved to position 3.
+ *   - After slicing to deckSize, at least min(2, validAICount) AI meals must
+ *     survive. If the slice would drop them, the last static meals in the deck
+ *     are replaced with AI meals from the tail.
+ *   - Falls back to a plain slice when validAICount === 0.
+ */
+function guaranteeAIInDeck(
+  merged: RankedMeal[],
+  validAICount: number,
+  deckSize: number,
+): RankedMeal[] {
+  if (validAICount === 0) return merged.slice(0, deckSize);
+
+  const AI_FIRST_SLOT = 3; // positions 0–2 are static-only
+  const AI_WINDOW_END = 8; // want at least 1 AI meal within first 8 cards
+
+  const deck = [...merged];
+
+  // Step 1: if no AI meal appears within positions 0–(AI_WINDOW_END-1),
+  // move the highest-ranked AI meal to AI_FIRST_SLOT.
+  const aiInWindowIdx = deck.slice(0, AI_WINDOW_END).findIndex((r) => r.meal.aiGenerated);
+  if (aiInWindowIdx === -1) {
+    const firstAIIdx = deck.findIndex((r) => r.meal.aiGenerated);
+    if (firstAIIdx >= AI_FIRST_SLOT) {
+      const [aiEntry] = deck.splice(firstAIIdx, 1);
+      deck.splice(AI_FIRST_SLOT, 0, aiEntry);
+    }
+  }
+
+  // Step 2: slice, then ensure ≥ min(2, validAICount) AI meals survive.
+  const targetAI = Math.min(2, validAICount);
+  const final = deck.slice(0, deckSize);
+  const aiInFinal = final.filter((r) => r.meal.aiGenerated).length;
+
+  if (aiInFinal < targetAI) {
+    const needed = targetAI - aiInFinal;
+    const aiFromTail = deck.slice(deckSize).filter((r) => r.meal.aiGenerated).slice(0, needed);
+    let toPlace = aiFromTail.length;
+    // Replace the last `toPlace` static meals in the final deck.
+    for (let i = final.length - 1; i >= AI_FIRST_SLOT && toPlace > 0; i--) {
+      if (!final[i].meal.aiGenerated) {
+        final[i] = aiFromTail[aiFromTail.length - toPlace];
+        toPlace--;
+      }
+    }
+  }
+
+  return final;
+}
+
 function DeckContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -191,8 +249,12 @@ function DeckContent() {
   const [topPicksMode, setTopPicksMode] = useState(false);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [cookMode, setCookMode] = useState<SessionCookMode>("either");
-  const vibeParam = searchParams.get("vibe") as SessionVibeMode | null;
-  const [sessionVibeMode, setSessionVibeMode] = useState<SessionVibeMode>(vibeParam ?? "mix-it-up");
+  const vibeParam = searchParams.get("vibe");
+  const [sessionVibeMode, setSessionVibeMode] = useState<SessionVibeMode>(
+    (vibeParam && VALID_VIBE_MODES.includes(vibeParam as SessionVibeMode))
+      ? (vibeParam as SessionVibeMode)
+      : "mix-it-up"
+  );
   const startAtParam = searchParams.get("startAt");
   const [isChoosing, setIsChoosing] = useState(false);
   const [soloLockMeal, setSoloLockMeal] = useState<Meal | null>(null);
@@ -274,7 +336,7 @@ function DeckContent() {
     const load = async () => {
       const { data } = await supabase
         .from("sessions")
-        .select("deck_meal_ids")
+        .select("deck_meal_ids, vibe")
         .eq("id", sessionId)
         .single();
 
@@ -309,6 +371,20 @@ function DeckContent() {
 
       setRankedMeals(ordered.slice(0, DECK_SIZE));
       setSharedLoading(false);
+
+      // Vibe fallback: if the URL param is missing or not a known vibe value,
+      // read vibe from the session row so deck generation uses the host's choice.
+      // Defaults to "mix-it-up" only when the DB value is also absent/invalid.
+      const dbVibe = (data as { deck_meal_ids?: string[]; vibe?: string } | null)?.vibe ?? null;
+      if (!vibeParam || !VALID_VIBE_MODES.includes(vibeParam as SessionVibeMode)) {
+        const fallback = (dbVibe && VALID_VIBE_MODES.includes(dbVibe as SessionVibeMode))
+          ? (dbVibe as SessionVibeMode)
+          : "mix-it-up";
+        setSessionVibeMode(fallback);
+        if (process.env.NODE_ENV === "development") {
+          console.log(`[ai] vibe fallback — URL param: ${vibeParam ?? "null"}, DB value: ${dbVibe ?? "null"}, using: ${fallback}`);
+        }
+      }
 
       // Start tracking session once the shared deck is ready
       if (!trackingSessionPromiseRef.current) {
@@ -1116,6 +1192,9 @@ function DeckContent() {
 
       // ── Double hardGate: server already filtered, client confirms ──────────
       const gated = hardGate(aiRaw, getAllHardNos(prefs));
+      if (process.env.NODE_ENV === "development" && gated.length < aiRaw.length) {
+        console.log(`[ai] filtered by hardgate — before: ${aiRaw.length}, after: ${gated.length} (${aiRaw.length - gated.length} dropped)`);
+      }
       if (gated.length === 0) return;
 
       // Track IDs for the "Fresh idea" / "Made from your pantry" label
@@ -1156,7 +1235,24 @@ function DeckContent() {
 
       // ── Interleave AI meals into the static deck ───────────────────────────
       const merged = interleaveAI(baseStaticDeck, rankedAI);
-      setRankedMeals(merged.slice(0, DECK_SIZE));
+
+      if (process.env.NODE_ENV === "development") {
+        const wouldDrop = merged.filter((r) => r.meal.aiGenerated).length -
+          merged.slice(0, DECK_SIZE).filter((r) => r.meal.aiGenerated).length;
+        if (wouldDrop > 0) {
+          console.log(`[ai] dropped by truncation — ${wouldDrop} meals would have been dropped (applying guarantee)`);
+        }
+      }
+
+      const finalDeck = guaranteeAIInDeck(merged, rankedAI.length, DECK_SIZE);
+
+      if (process.env.NODE_ENV === "development") {
+        const aiInFinal = finalDeck.filter((r) => r.meal.aiGenerated);
+        const firstAIIdx = finalDeck.findIndex((r) => r.meal.aiGenerated);
+        console.log(`[ai] inserted into deck — count: ${aiInFinal.length}, first index: ${firstAIIdx}`);
+      }
+
+      setRankedMeals(finalDeck);
     } catch (err) {
       if (process.env.NODE_ENV === "development") {
         console.warn("[ai-meals] enrichDeckWithAI failed — using static deck:", err);
@@ -2346,7 +2442,7 @@ function DeckContent() {
                   ) : (
                     <span className="text-white/40">✦</span>
                   )}
-                  {meal.aiLabel ?? "Fresh idea"}
+                  {meal.aiLabel ?? "Fresh pick"}
                 </div>
               )}
             </div>

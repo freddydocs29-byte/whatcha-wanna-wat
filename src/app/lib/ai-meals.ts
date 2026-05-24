@@ -97,9 +97,8 @@ export async function fetchAIMeals(req: AIMealRequest): Promise<Meal[]> {
 
   if (process.env.NODE_ENV === "development") {
     console.log(
-      `[ai-meals] Calling /api/generate-meals` +
-        ` · pantry: [${req.pantryIngredients.join(", ")}]` +
-        ` · hardNos: [${req.preferences.hardNos.join(", ")}]` +
+      `[ai] request started` +
+        ` · pantry: [${req.pantryIngredients.join(", ") || "none"}]` +
         ` · vibe: ${req.vibeMode}` +
         ` · time: ${req.timeBucket}`
     );
@@ -113,12 +112,12 @@ export async function fetchAIMeals(req: AIMealRequest): Promise<Meal[]> {
 
   if (!resp.ok) {
     if (process.env.NODE_ENV === "development") {
-      console.warn(`[ai-meals] Server returned ${resp.status}`);
+      console.warn(`[ai] request failed — HTTP ${resp.status}`);
     }
     return [];
   }
 
-  const data: { meals?: Meal[] } = await resp.json();
+  const data: { meals?: Meal[]; status?: string; reason?: string } = await resp.json();
   const meals = data.meals ?? [];
 
   if (meals.length > 0) {
@@ -126,7 +125,12 @@ export async function fetchAIMeals(req: AIMealRequest): Promise<Meal[]> {
   }
 
   if (process.env.NODE_ENV === "development") {
-    console.log(`[ai-meals] Received ${meals.length} meals from server`);
+    if (meals.length === 0) {
+      const reason = data.reason ? ` — reason: ${data.reason}` : (data.status ? ` — status: ${data.status}` : "");
+      console.warn(`[ai] request empty${reason}`);
+    } else {
+      console.log(`[ai] request success — ${meals.length} meals`);
+    }
   }
 
   return meals;

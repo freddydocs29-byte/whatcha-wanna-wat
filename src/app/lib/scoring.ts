@@ -22,7 +22,7 @@ const QUICK_PANTRY_TAGS = ["15 min", "20 min", "25 min"];
 export type RankedMeal = { meal: Meal; reason: string; pantryMatchCount: number };
 export type WhoFor = "solo" | "partner" | "family";
 export type SessionCookMode = "cook" | "order" | "either";
-export type SessionVibeMode = "mix-it-up" | "comfort-food" | "quick-easy" | "healthy" | "something-new" | "kid-friendly";
+export type SessionVibeMode = "mix-it-up" | "comfort-food" | "quick-easy" | "healthy" | "something-new";
 
 /**
  * Minimal profile data needed to score meals for one participant in a shared
@@ -257,8 +257,8 @@ export function hardGate(meals: Meal[], dislikedFoods: string[], hourOverride?: 
  *   Solo:    baseline (no adjustments)
  *
  * Vibe / session nudge (lowest priority — scaled ×0.6 from raw; tracked separately as vibeScore):
- *   Max boost per meal: +0.9 pts (healthy, kid-friendly); +0.6 pts (comfort-food, quick-easy, something-new)
- *   Max penalty:        −0.6 pts (kid-friendly · bold meals)
+ *   Max boost per meal: +0.9 pts (healthy); +0.6 pts (comfort-food, quick-easy, something-new)
+ *   Max penalty:        −0.6 pts (something-new · comfort/casual meals)
  *   Guardrail: capped at +0.25 if pre-vibe score < 1.0 (weak-match protection)
  *
  *   comfort-food:   +1.0 comfort-food cat / +0.65 crowd-pleaser/indulgent / +0.35 classic-italian/kid;
@@ -270,8 +270,6 @@ export function hardGate(meals: Meal[], dislikedFoods: string[], hourOverride?: 
  *                   −0.75 heavy/indulgent
  *   something-new:  +1.0 bold-flavors cat / +0.75 elevated / +0.5 mediterranean-fresh / +0.35 Flavorful;
  *                   −0.5 comfort/casual, −0.35 Kid-friendly/Crowd-pleaser
- *   kid-friendly:   +1.5 Kid-friendly tag / +1.0 Crowd pleaser / +0.6 comfort-food cat / +0.35 quick-casual;
- *                   −1.0 bold-flavors, −0.5 elevated/Flavorful
  *
  * Reason priority (first match wins):
  *   1. Cuisine match
@@ -783,21 +781,6 @@ export function scoreMeal(
       legacyVibeScore += Math.min(1.5, healthyBoost);
       if (isHeavy) legacyVibeScore -= 0.75;
 
-    } else if (vibe === "kid-friendly") {
-      const hasKid       = hasTag("Kid-friendly");
-      const hasCrowd     = hasTag("Crowd pleaser");
-      const isComfortCat = vibecat.includes("comfort food");
-      const isQuickCas   = vibecat.includes("quick & casual");
-      const isBoldCat    = vibecat.includes("bold flavors");
-      const isElevated   = vibecat.includes("elevated");
-      const hasFlavorful = hasTag("Flavorful");
-      if (hasKid)            { legacyVibeScore += 1.5; setReason("A sure hit with the whole table"); }
-      else if (hasCrowd)     { legacyVibeScore += 1.0; setReason("Everyone will eat this without complaint"); }
-      else if (isComfortCat) { legacyVibeScore += 0.6; }
-      else if (isQuickCas)   { legacyVibeScore += 0.35; }
-      if (isBoldCat)    legacyVibeScore -= 1.0;
-      if (isElevated)   legacyVibeScore -= 0.5;
-      if (hasFlavorful) legacyVibeScore -= 0.5;
     }
 
     legacyVibeScore *= 0.6; // kept in sync with sessionVibeMode scaling
@@ -813,9 +796,9 @@ export function scoreMeal(
   //   similar preference quality — it must never lift a weak match above a
   //   strong one. Accumulated in vibeScore for dev logging.
   //
-  //   Max boost per meal: +1.5 pts (healthy, kid-friendly)
+  //   Max boost per meal: +1.5 pts (healthy)
   //                       +1.0 pts (comfort-food, quick-easy, something-new)
-  //   Max penalty:        −1.0 pts (kid-friendly · bold meals)
+  //   Max penalty:        −0.75 pts (healthy · heavy meals)
 
   if (cookMode !== "either") {
     const scat = meal.category.toLowerCase();
@@ -907,22 +890,6 @@ export function scoreMeal(
       else if (hasFlavorful)  { sessionVibeScore += 0.35; }
       if (isBasic)    sessionVibeScore -= 0.5;
       if (isFamiliar) sessionVibeScore -= 0.35;
-
-    } else if (sessionVibeMode === "kid-friendly") {
-      const hasKid       = hasVTag("Kid-friendly");
-      const hasCrowd     = hasVTag("Crowd pleaser");
-      const isComfortCat = scat.includes("comfort food");
-      const isQuickCas   = scat.includes("quick & casual");
-      const isBoldCat    = scat.includes("bold flavors");
-      const isElevated   = scat.includes("elevated");
-      const hasFlavorful = hasVTag("Flavorful");
-      if (hasKid)            { sessionVibeScore += 1.5; setReason("A sure hit with the whole table"); }
-      else if (hasCrowd)     { sessionVibeScore += 1.0; setReason("Everyone will eat this without complaint"); }
-      else if (isComfortCat) { sessionVibeScore += 0.6; }
-      else if (isQuickCas)   { sessionVibeScore += 0.35; }
-      if (isBoldCat)    sessionVibeScore -= 1.0;
-      if (isElevated)   sessionVibeScore -= 0.5;
-      if (hasFlavorful) sessionVibeScore -= 0.5;
     }
 
     // Reduce all session-selector influence by ~40% so preference + learned behavior
