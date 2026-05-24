@@ -376,6 +376,8 @@ function DeckContent() {
   const matchPendingAdvanceRef = useRef(false);
   // Guard: poll-detected match writes status:"matched" once per meal; reset on reject
   const matchWrittenRef = useRef(false);
+  // Guard: direct-swipe match detection writes status:"matched" once; reset on reject
+  const directMatchPersistedRef = useRef(false);
 
   function setMatchedMeal(meal: Meal | null) {
     matchedMealRef.current = meal;
@@ -1268,6 +1270,27 @@ function DeckContent() {
     if (isMatch && !rejectedMatchIdsRef.current.has(chosenMeal.id)) {
       matchPendingAdvanceRef.current = true;
       setMatchedMeal(chosenMeal);
+
+      // Immediately write matched state so the other user's Home polling can
+      // detect it without waiting for a button tap.
+      if (!directMatchPersistedRef.current && sessionId && chosenMeal.id) {
+        directMatchPersistedRef.current = true;
+        const { error: directWriteError } = await supabase
+          .from("sessions")
+          .update({
+            status: "matched",
+            locked_meal_id: chosenMeal.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", sessionId);
+        if (directWriteError) {
+          console.error("[match] failed to write on direct detection:", directWriteError.message);
+          directMatchPersistedRef.current = false;
+        } else {
+          console.log("[match] wrote matched state on direct detection:", chosenMeal.id);
+        }
+      }
+
       return;
     }
 
@@ -1333,6 +1356,7 @@ function DeckContent() {
     trackEvent("match_started_over", { mealId: matchedMeal.id, sessionId });
     rejectedMatchIdsRef.current.add(matchedMeal.id);
     matchWrittenRef.current = false; // allow next poll-detected match to write
+    directMatchPersistedRef.current = false; // allow next direct-swipe match to write
     const shouldAdvance = matchPendingAdvanceRef.current;
     matchPendingAdvanceRef.current = false;
     setMatchedMeal(null);
