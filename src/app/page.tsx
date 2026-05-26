@@ -36,6 +36,7 @@ import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
+import { recordAcceptedDecision } from "./lib/session-tracking";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -376,9 +377,20 @@ export default function Home() {
               const decidedMealData: DecidedMeal = { ...meal, decidedAt, mode: "shared", sessionId };
               addToHistory(meal);
               saveDecidedMeal(decidedMealData);
+
+              // Write this user's accepted decision row unless the deck already
+              // wrote it (via handleMatchConfirm or handleJustDecide).
+              const guardKey = `wwe_decision_written_${sessionId}_${meal.id}`;
+              if (!localStorage.getItem(guardKey)) {
+                localStorage.setItem(guardKey, "1");
+                void recordAcceptedDecision({ meal, positionInDeck: 0 });
+              }
+
               // Update React state directly so the decided-state UI appears immediately
               setDecidedMealState(decidedMealData);
               setTodaysPick({ meal, chosenAt: decidedAt });
+            } else {
+              console.warn("[home] matched session has locked_meal_id not found in catalog:", data.locked_meal_id);
             }
             setShowMatchCelebration(true);
             setTimeout(() => { if (mounted) setShowMatchCelebration(false); }, 2000);

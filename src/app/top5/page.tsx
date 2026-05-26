@@ -25,7 +25,7 @@ import {
   getAllHardNos,
   type RankedMeal,
 } from "../lib/scoring";
-import { inferSessionContext } from "../lib/session-tracking";
+import { inferSessionContext, recordAcceptedDecision } from "../lib/session-tracking";
 import { trackEvent } from "../lib/analytics";
 import { getUserId } from "../lib/identity";
 
@@ -206,6 +206,7 @@ export default function Top5Page() {
       decidedAt: new Date().toISOString(),
       mode: "solo",
     });
+    void recordAcceptedDecision({ meal: selectedMeal.meal, positionInDeck: 0 });
 
     router.push("/");
   }
@@ -221,6 +222,7 @@ export default function Top5Page() {
       decidedAt: new Date().toISOString(),
       mode: "solo",
     });
+    void recordAcceptedDecision({ meal, positionInDeck: 0 });
 
     router.push("/");
   }

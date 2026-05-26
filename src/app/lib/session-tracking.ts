@@ -252,3 +252,39 @@ export async function recordDecision(opts: {
     console.log('[decisions] insert success for meal:', opts.meal.name);
   }
 }
+
+/**
+ * Lightweight accepted-decision write for paths that have no tracking session:
+ * Top 5 lock-in, end-of-deck exhausted picks, and home screen shared match
+ * auto-detection. Writes the same fields as recordDecision() with outcome
+ * fixed to "accepted".
+ */
+export async function recordAcceptedDecision(opts: {
+  meal: Meal;
+  positionInDeck: number;
+}): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const userId = getUserId();
+  if (!userId) return;
+
+  const now = new Date();
+  const { mealPeriod, dayType } = inferSessionContext(now);
+
+  const { error } = await supabase.from("decisions").insert({
+    user_id: userId,
+    meal_id: opts.meal.id,
+    meal_name: opts.meal.name,
+    meal_period: mealPeriod,
+    day_type: dayType,
+    outcome: "accepted",
+    rejection_reason: null,
+    position_in_deck: opts.positionInDeck,
+    decided_at: now.toISOString(),
+    is_ai_generated: opts.meal.aiGenerated ?? false,
+  });
+
+  if (error) {
+    console.error("[decisions] recordAcceptedDecision failed:", error.message);
+  }
+}

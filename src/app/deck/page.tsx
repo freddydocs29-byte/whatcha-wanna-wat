@@ -14,7 +14,7 @@ import { getAvoidSignals, getPreferSignals, checkTriggers, checkCrossSessionNudg
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
-import { createTrackingSession, closeTrackingSession, recordDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
+import { createTrackingSession, closeTrackingSession, recordDecision, recordAcceptedDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
 import SoloLockOverlay from "../components/SoloLockOverlay";
 import { fetchSoftAvoids, upsertSoftAvoids, syncBehavioralSignalsToSupabase, upsertPantryIngredientCounts } from "../lib/supabase-profile";
@@ -1342,6 +1342,12 @@ function DeckContent() {
 
     console.log("[match] session marked matched:", sessionId, matchedMeal.id);
 
+    // Guard against home-screen polling writing a duplicate decision row.
+    // Set synchronously before the async tracking chain resolves.
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`wwe_decision_written_${sessionId}_${matchedMeal.id}`, "1");
+    }
+
     // Record acceptance — fire-and-forget
     trackingClosedRef.current = true;
     trackingSessionPromiseRef.current?.then((tsId) => {
@@ -1746,6 +1752,12 @@ function DeckContent() {
     if (!topMeal || !sessionId) return;
 
     trackEvent("just_decide_tapped", { mealId: topMeal.id, sessionId, positionInDeck: 0 });
+
+    // Guard against home-screen polling writing a duplicate decision row
+    // for the same session+meal combination. Set synchronously before any async work.
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`wwe_decision_written_${sessionId}_${topMeal.id}`, "1");
+    }
 
     // Close tracking session before navigation
     trackingClosedRef.current = true;
@@ -2770,6 +2782,7 @@ function DeckContent() {
       setSoloResetCount(0);
       addToHistory(meal);
       saveDecidedMeal({ ...meal, decidedAt: new Date().toISOString(), mode: "solo" });
+      void recordAcceptedDecision({ meal, positionInDeck: 0 });
       router.push("/");
     }
 
