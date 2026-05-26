@@ -16,6 +16,7 @@ import BottomNav from "../components/BottomNav";
 import { fetchOrCreateProfile } from "../lib/supabase-profile";
 import { getUserId } from "../lib/identity";
 import type { Profile } from "../lib/supabase";
+import { MealDetailDrawer } from "../components/MealDetailDrawer";
 
 
 function formatDate(iso: string): string {
@@ -44,6 +45,8 @@ export default function HistoryPage() {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
 
   useEffect(() => {
     setEntries(getHistory());
@@ -163,6 +166,13 @@ export default function HistoryPage() {
                     {formatDate(entry.chosenAt)} · {formatTime(entry.chosenAt)}
                   </p>
                 </div>
+                <button
+                  onClick={() => { setDrawerMeal(entry.meal); setDrawerOpen(true); }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95] flex-shrink-0"
+                  aria-label="More details"
+                >
+                  <span className="font-body text-sm font-semibold">i</span>
+                </button>
               </div>
 
               {/* Action row */}
@@ -230,6 +240,13 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
+
+      <MealDetailDrawer
+        meal={drawerMeal}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        context="history"
+      />
     </main>
   );
 }

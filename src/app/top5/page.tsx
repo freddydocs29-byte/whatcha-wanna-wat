@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { meals, type Meal } from "../data/meals";
+import { MealDetailDrawer } from "../components/MealDetailDrawer";
 import {
   getPreferences,
   getSavedMeals,
@@ -159,6 +160,8 @@ export default function Top5Page() {
   const [selected, setSelected] = useState<string | null>(null);
   const [locking, setLocking] = useState(false);
   const [hasRefreshed, setHasRefreshed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
 
   useEffect(() => {
     const key = getTop5CacheKey();
@@ -200,6 +203,21 @@ export default function Top5Page() {
     addToHistory(selectedMeal.meal);
     saveDecidedMeal({
       ...selectedMeal.meal,
+      decidedAt: new Date().toISOString(),
+      mode: "solo",
+    });
+
+    router.push("/");
+  }
+
+  function handleLockInMeal(meal: Meal) {
+    if (locking) return;
+    setLocking(true);
+    trackEvent("top5_locked_in", { mealId: meal.id });
+
+    addToHistory(meal);
+    saveDecidedMeal({
+      ...meal,
       decidedAt: new Date().toISOString(),
       mode: "solo",
     });
@@ -279,10 +297,9 @@ export default function Top5Page() {
                 .join(" · ");
 
               return (
-                <button
+                <div
                   key={ranked.meal.id}
-                  onClick={() => handleSelect(ranked.meal.id)}
-                  className="w-full text-left rounded-[20px] p-5 transition-all duration-150 flex gap-4 items-stretch"
+                  className="w-full rounded-[20px] p-5 transition-all duration-150 flex gap-4 items-stretch"
                   style={{
                     backgroundColor: isSelected ? "#FFF4ED" : "#EFEAE3",
                     border: isSelected
@@ -290,8 +307,11 @@ export default function Top5Page() {
                       : "2px solid transparent",
                   }}
                 >
-                  {/* Left: text content */}
-                  <div className="flex-1 min-w-0 flex flex-col">
+                  {/* Left: text content — tapping selects this meal */}
+                  <button
+                    onClick={() => handleSelect(ranked.meal.id)}
+                    className="flex-1 min-w-0 flex flex-col text-left"
+                  >
                     {/* Position + reason row */}
                     <div className="flex items-center gap-2 mb-2">
                       <span
@@ -369,26 +389,36 @@ export default function Top5Page() {
                         </span>
                       </div>
                     )}
-                  </div>
+                  </button>
 
-                  {/* Right: meal image — landscape ratio */}
-                  <div className="shrink-0 w-28 self-stretch rounded-[12px] overflow-hidden flex items-center justify-center"
-                    style={{ backgroundColor: isSelected ? "#FDDEC8" : "#DDD8D0", minHeight: "56px", maxHeight: "90px" }}
-                  >
-                    {ranked.meal.image ? (
-                      <Image
-                        src={ranked.meal.image}
-                        alt={ranked.meal.name}
-                        width={112}
-                        height={75}
-                        className="w-full h-full object-cover"
-                        style={{ display: "block" }}
-                      />
-                    ) : (
-                      <span className="text-3xl">🍽️</span>
-                    )}
+                  {/* Right: info button + meal image */}
+                  <div className="shrink-0 flex flex-col items-end gap-2">
+                    <button
+                      onClick={() => { setDrawerMeal(ranked.meal); setDrawerOpen(true); }}
+                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: isSelected ? "#FDDEC8" : "#DDD8D0" }}
+                    >
+                      <span className="font-body text-sm font-semibold" style={{ color: "#6B6360" }}>i</span>
+                    </button>
+                    <div
+                      className="w-28 flex-1 rounded-[12px] overflow-hidden flex items-center justify-center"
+                      style={{ backgroundColor: isSelected ? "#FDDEC8" : "#DDD8D0", minHeight: "56px", maxHeight: "90px" }}
+                    >
+                      {ranked.meal.image ? (
+                        <Image
+                          src={ranked.meal.image}
+                          alt={ranked.meal.name}
+                          width={112}
+                          height={75}
+                          className="w-full h-full object-cover"
+                          style={{ display: "block" }}
+                        />
+                      ) : (
+                        <span className="text-3xl">🍽️</span>
+                      )}
+                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -418,6 +448,17 @@ export default function Top5Page() {
           </div>
         </div>
       )}
+
+      <MealDetailDrawer
+        meal={drawerMeal}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onLockIn={() => {
+          setDrawerOpen(false);
+          if (drawerMeal) handleLockInMeal(drawerMeal);
+        }}
+        context="top5"
+      />
     </div>
   );
 }

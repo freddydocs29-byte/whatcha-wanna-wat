@@ -53,6 +53,7 @@ const APP_STORAGE_KEYS = [
   "wwe_meal_cleared_at",   // timestamp of last manual clear — prevents stale restores
   "wwe_locked_headlines_seen", // last 15 variantIds shown in the decided-state headline
   "wwe_active_session",    // current shared session created by this device
+  "wwe_drawer_hint_seen", // one-time hint pointing to the meal detail drawer
 ] as const;
 
 /**

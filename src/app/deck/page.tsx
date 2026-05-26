@@ -22,6 +22,7 @@ import { getPantryIngredientOrder, type PantryIngredientTiers } from "../lib/pan
 import { type SoftAvoid } from "../lib/supabase";
 import { detectRituals, getRitualLabel, isRitualSuppressed, recordRitualRejection, type RitualDetection } from "../lib/rituals";
 import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
+import { MealDetailDrawer } from "../components/MealDetailDrawer";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
@@ -307,6 +308,11 @@ function DeckContent() {
   );
   const [showSwipeTip, setShowSwipeTip] = useState(
     () => typeof window !== "undefined" && !localStorage.getItem("watcha_swipe_tip_seen")
+  );
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
+  const [drawerHintSeen, setDrawerHintSeen] = useState(
+    () => typeof window !== "undefined" && !!localStorage.getItem("wwe_drawer_hint_seen")
   );
   const [showCookOrderModal, setShowCookOrderModal] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
@@ -1156,6 +1162,12 @@ function DeckContent() {
     setShowSwipeTip(false);
   }
 
+  function dismissDrawerHint() {
+    if (drawerHintSeen) return;
+    localStorage.setItem("wwe_drawer_hint_seen", "1");
+    setDrawerHintSeen(true);
+  }
+
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15]);
   const passOpacity = useTransform(x, [-SWIPE_THRESHOLD, -30], [1, 0]);
@@ -1791,6 +1803,7 @@ function DeckContent() {
 
   function handlePass() {
     dismissHint();
+    dismissDrawerHint();
     if (meal) {
       trackingSwipeCountRef.current += 1;
       trackEvent("card_swiped_no", {
@@ -1910,6 +1923,7 @@ function DeckContent() {
   function handleChoose() {
     if (!meal || isChoosing || isExiting) return;
     dismissHint();
+    dismissDrawerHint();
 
     trackingSwipeCountRef.current += 1;
 
@@ -3262,22 +3276,38 @@ function DeckContent() {
               <div className="inline-flex rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/75 backdrop-blur-sm">
                 {meal.category}
               </div>
-              {aiMealIds.has(meal.id) && (
-                <div
-                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm ${
-                    meal.aiLabel === "Made from your pantry"
-                      ? "border-amber-400/30 bg-black/35 text-amber-300/80"
-                      : "border-white/20 bg-black/35 text-white/60"
+              <div className="flex flex-col items-end gap-1.5">
+                {aiMealIds.has(meal.id) && (
+                  <div
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm ${
+                      meal.aiLabel === "Made from your pantry"
+                        ? "border-amber-400/30 bg-black/35 text-amber-300/80"
+                        : "border-white/20 bg-black/35 text-white/60"
+                    }`}
+                  >
+                    {meal.aiLabel === "Made from your pantry" ? (
+                      <span style={{ filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))" }}>✦</span>
+                    ) : (
+                      <span className="text-white/40">✦</span>
+                    )}
+                    {meal.aiLabel ?? "Fresh pick"}
+                  </div>
+                )}
+                {/* More trigger */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDrawerMeal(meal);
+                    setDrawerOpen(true);
+                    dismissDrawerHint();
+                  }}
+                  className={`inline-flex rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/75 backdrop-blur-sm ${
+                    !drawerHintSeen && currentIndex === 0 ? "animate-pulse" : ""
                   }`}
                 >
-                  {meal.aiLabel === "Made from your pantry" ? (
-                    <span style={{ filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))" }}>✦</span>
-                  ) : (
-                    <span className="text-white/40">✦</span>
-                  )}
-                  {meal.aiLabel ?? "Fresh pick"}
-                </div>
-              )}
+                  more details
+                </button>
+              </div>
             </div>
 
             {/* Layer 5 — Card content (bottom of card) */}
@@ -3363,6 +3393,7 @@ function DeckContent() {
                 </motion.div>
               )}
             </AnimatePresence>
+
           </motion.section>
         </div>
 
@@ -3539,6 +3570,22 @@ function DeckContent() {
         visible={showRejectionSheet}
         onSelect={handleRejectionSelect}
         onDismiss={handleRejectionDismiss}
+      />
+
+      {/* ── Meal detail drawer ────────────────────────────────────────────────── */}
+      <MealDetailDrawer
+        meal={drawerMeal}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onYes={() => {
+          setDrawerOpen(false);
+          handleChoose();
+        }}
+        onSkip={() => {
+          setDrawerOpen(false);
+          handlePass();
+        }}
+        context={sessionId ? "shared" : "solo"}
       />
 
       {/* ── Ingredient sheet backdrop ─────────────────────────────────────── */}

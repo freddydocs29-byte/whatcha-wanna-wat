@@ -9,6 +9,7 @@ import BottomNav from "../components/BottomNav";
 import { fetchOrCreateProfile } from "../lib/supabase-profile";
 import { getUserId } from "../lib/identity";
 import type { Profile } from "../lib/supabase";
+import { MealDetailDrawer } from "../components/MealDetailDrawer";
 
 function StarIcon({ filled }: { filled: boolean }) {
   return filled ? (
@@ -28,6 +29,8 @@ export default function SavedPage() {
   const [favoriteMeals, setFavoriteMeals] = useState<Meal[]>([]);
   const [savedForLater, setSavedForLater] = useState<Meal[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
 
   function refresh() {
     const enriched = getSavedMealsEnriched();
@@ -162,13 +165,22 @@ export default function SavedPage() {
                             </div>
                           </button>
 
-                          <button
-                            onClick={() => handleToggleFavorite(meal)}
-                            className="mt-1 shrink-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-amber-400 transition hover:bg-white/15 active:scale-[0.95]"
-                            aria-label="Remove from favorites"
-                          >
-                            <StarIcon filled />
-                          </button>
+                          <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
+                            <button
+                              onClick={() => { setDrawerMeal(meal); setDrawerOpen(true); }}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/30 transition hover:text-white/55 active:scale-[0.95]"
+                              aria-label="More details"
+                            >
+                              <span className="font-body text-sm font-semibold">i</span>
+                            </button>
+                            <button
+                              onClick={() => handleToggleFavorite(meal)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-amber-400 transition hover:bg-white/15 active:scale-[0.95]"
+                              aria-label="Remove from favorites"
+                            >
+                              <StarIcon filled />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -219,6 +231,13 @@ export default function SavedPage() {
 
                           <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
                             <button
+                              onClick={() => { setDrawerMeal(meal); setDrawerOpen(true); }}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95]"
+                              aria-label="More details"
+                            >
+                              <span className="font-body text-sm font-semibold">i</span>
+                            </button>
+                            <button
                               onClick={() => handleToggleFavorite(meal)}
                               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95]"
                               aria-label="Add to favorites"
@@ -256,6 +275,13 @@ export default function SavedPage() {
           </div>
         </div>
       </div>
+
+      <MealDetailDrawer
+        meal={drawerMeal}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        context="saved"
+      />
     </main>
   );
 }
