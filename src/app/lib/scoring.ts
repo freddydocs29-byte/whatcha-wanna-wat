@@ -90,6 +90,27 @@ const HARD_NO_KEYWORDS: Record<string, string[]> = {
 };
 
 /**
+ * Expands broad onboarding cuisine labels to the specific meal.cuisine values
+ * used in the meal catalogue. Users can pick "Asian" but no meal has cuisine:
+ * "Asian" — this map makes that preference produce real cuisine-match boosts.
+ */
+const CUISINE_EXPANSION: Record<string, string[]> = {
+  Asian:    ["Japanese", "Chinese", "Thai", "Korean", "Vietnamese", "Indian", "Filipino", "Malaysian", "Indonesian"],
+  American: ["American", "Southern", "BBQ", "Tex-Mex"],
+  European: ["Italian", "French", "Spanish", "Greek", "German"],
+  Latin:    ["Mexican", "Cuban", "Peruvian", "Colombian", "Brazilian"],
+};
+
+/**
+ * Expands a user's cuisine list so that broad labels like "Asian" match
+ * specific meal.cuisine values like "Japanese" or "Thai".
+ * Pass the result to any cuisine-match check in place of prefs.cuisines.
+ */
+export function expandCuisines(cuisines: string[]): string[] {
+  return cuisines.flatMap((c) => CUISINE_EXPANSION[c] ?? [c]);
+}
+
+/**
  * Maps new-style dietary restriction labels (onboarding Step 1) to their
  * HARD_NO_KEYWORDS category key. Only Gluten-free and Dairy-free map to hardGate
  * exclusions. Vegetarian / Vegan / Halal / Kosher have no keyword-list entry yet.
@@ -136,11 +157,20 @@ export function getAllHardNos(prefs: UserPreferences | null): string[] {
 /** Returns true if this meal should be removed for the given hard-NO category. */
 function mealViolatesHardNO(meal: Meal, dislikedFoods: string[]): boolean {
   if (dislikedFoods.length === 0) return false;
+  const tagText = Array.isArray(meal.tags) ? meal.tags.join(" ") : "";
+  const ingredientText = Array.isArray(meal.ingredients) ? meal.ingredients.join(" ") : "";
   const searchText = [
     meal.id,
     meal.name,
-    ...(meal.ingredients ?? []),
-  ].join(" ").toLowerCase();
+    tagText,
+    ingredientText,
+    meal.description,
+    meal.category,
+    meal.cuisine,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   return dislikedFoods.some((category) => {
     const keywords = HARD_NO_KEYWORDS[category];
@@ -310,8 +340,10 @@ export function scoreMeal(
   // ── Preference signals ────────────────────────────────────────────────────
 
   if (prefs) {
-    // Cuisine match (+3) — highest reason priority
-    if (meal.cuisine && prefs.cuisines.includes(meal.cuisine)) {
+    // Cuisine match (+2) — highest reason priority
+    // expandCuisines maps broad labels ("Asian") to specific values ("Japanese","Thai",…)
+    const expandedCuisines = expandCuisines(prefs.cuisines);
+    if (meal.cuisine && expandedCuisines.includes(meal.cuisine)) {
       score += 2.0;
       setReason(`You listed ${meal.cuisine} as a favorite`);
     }
@@ -1410,8 +1442,10 @@ function computeOverlapBonus(
   let bonus = 0;
   const reasons: string[] = [];
 
-  // Both users listed this cuisine in their favorite_cuisines
-  const sharedCuisine = (profileA.cuisines.includes(meal.cuisine) && profileB.cuisines.includes(meal.cuisine))
+  // Both users listed this cuisine in their favorite_cuisines (broad labels expanded)
+  const expandedA = expandCuisines(profileA.cuisines);
+  const expandedB = expandCuisines(profileB.cuisines);
+  const sharedCuisine = (expandedA.includes(meal.cuisine) && expandedB.includes(meal.cuisine))
     ? meal.cuisine : undefined;
   if (sharedCuisine) {
     bonus += 2.0;
@@ -1693,7 +1727,7 @@ export function getSharedReason(
   cuisines: string[],
   learnedWeights: TasteProfile | null,
 ): string {
-  if (cuisines.includes(meal.cuisine)) return `You both might enjoy ${meal.cuisine}`;
+  if (expandCuisines(cuisines).includes(meal.cuisine)) return `You both might enjoy ${meal.cuisine}`;
 
   if (learnedWeights) {
     const likedTagMatches = meal.tags.filter(

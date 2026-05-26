@@ -407,11 +407,20 @@ export function savePreferences(prefs: UserPreferences): void {
   localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   // Fire-and-forget sync to Supabase — dietary_restrictions and hard_no_foods are
   // written as separate columns so the two systems stay distinct.
-  upsertProfilePreferences(getUserId(), {
+  const userId = getUserId();
+  const prefPayload = {
     cuisines: prefs.cuisines,
     dietaryRestrictions: prefs.dietaryRestrictions,
     hardNoFoods: prefs.hardNoFoods,
-  }).catch(() => {});
+  };
+  upsertProfilePreferences(userId, prefPayload).catch(() => {
+    console.warn("[prefs] Supabase write failed, retrying in 2s...");
+    setTimeout(() => {
+      upsertProfilePreferences(userId, prefPayload).catch((err) => {
+        console.error("[prefs] Supabase write failed after retry:", err);
+      });
+    }, 2000);
+  });
 }
 
 /** Returns the user's novelty bias (0–1). Defaults to 0.5 (mix of both) if not set. */

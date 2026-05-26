@@ -94,6 +94,7 @@ export function MealDetailDrawer({
 }: MealDetailDrawerProps) {
   const isSwipeContext = context === "solo" || context === "shared";
   const showHint = isSwipeContext;
+  const isTop5 = context === "top5";
 
   if (!meal) return null;
 
@@ -135,10 +136,16 @@ export function MealDetailDrawer({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#1C1A18] rounded-t-[28px] max-h-[90vh] overflow-y-auto"
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={{ top: 0, bottom: 0.2 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 80 || info.velocity.y > 500) onClose();
+            }}
+            className={`fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] max-h-[90vh] overflow-y-auto ${isTop5 ? "bg-[#F5F0E8]" : "bg-[#1C1A18]"}`}
           >
             {/* Drag handle */}
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-5" />
+            <div className={`w-10 h-1 rounded-full mx-auto mt-3 mb-5 ${isTop5 ? "bg-[#6B6360]/25" : "bg-white/20"}`} />
 
             {/* Meal image */}
             <div className="relative mx-4 rounded-[16px] overflow-hidden mb-4" style={{ height: 200 }}>
@@ -149,7 +156,7 @@ export function MealDetailDrawer({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[#2A2420] flex items-center justify-center text-6xl">
+                <div className={`w-full h-full flex items-center justify-center text-6xl ${isTop5 ? "bg-[#DDD8D0]" : "bg-[#2A2420]"}`}>
                   🍽️
                 </div>
               )}
@@ -181,33 +188,33 @@ export function MealDetailDrawer({
             <div className="px-4 flex flex-col gap-3 pb-2">
               {/* Quick stats bar */}
               {hasQuickStats && (
-                <div className="bg-[#252525] rounded-[12px] p-3 flex items-center">
+                <div className={`rounded-[12px] p-3 flex items-center ${isTop5 ? "bg-[#EDE8E0]" : "bg-[#252525]"}`}>
                   {cookTime && (
                     <>
                       <div className="flex-1 text-center">
                         <p className="font-display font-bold text-sm text-[#E8621A]">{cookTime}</p>
-                        <p className="font-body text-[10px] text-white/40 uppercase tracking-wider mt-0.5">Cook time</p>
+                        <p className={`font-body text-[10px] uppercase tracking-wider mt-0.5 ${isTop5 ? "text-[#6B6360]" : "text-white/40"}`}>Cook time</p>
                       </div>
                     </>
                   )}
                   {cookTime && effort && (
-                    <div className="w-px h-8 bg-white/10" />
+                    <div className={`w-px h-8 ${isTop5 ? "bg-[#6B6360]/20" : "bg-white/10"}`} />
                   )}
                   {effort && (
                     <>
                       <div className="flex-1 text-center">
                         <p className="font-display font-bold text-sm text-[#E8621A]">{effort}</p>
-                        <p className="font-body text-[10px] text-white/40 uppercase tracking-wider mt-0.5">Effort</p>
+                        <p className={`font-body text-[10px] uppercase tracking-wider mt-0.5 ${isTop5 ? "text-[#6B6360]" : "text-white/40"}`}>Effort</p>
                       </div>
                     </>
                   )}
                   {(cookTime || effort) && feel && (
-                    <div className="w-px h-8 bg-white/10" />
+                    <div className={`w-px h-8 ${isTop5 ? "bg-[#6B6360]/20" : "bg-white/10"}`} />
                   )}
                   {feel && (
                     <div className="flex-1 text-center">
                       <p className="font-display font-bold text-sm text-[#E8621A]">{feel}</p>
-                      <p className="font-body text-[10px] text-white/40 uppercase tracking-wider mt-0.5">Feel</p>
+                      <p className={`font-body text-[10px] uppercase tracking-wider mt-0.5 ${isTop5 ? "text-[#6B6360]" : "text-white/40"}`}>Feel</p>
                     </div>
                   )}
                 </div>
@@ -215,11 +222,11 @@ export function MealDetailDrawer({
 
               {/* About this meal */}
               {meal.description && (
-                <div className="bg-[#252525] rounded-[12px] p-4">
-                  <p className="font-body text-[10px] text-white/40 uppercase tracking-widest mb-2">
+                <div className={`rounded-[12px] p-4 ${isTop5 ? "bg-[#EDE8E0]" : "bg-[#252525]"}`}>
+                  <p className={`font-body text-[10px] uppercase tracking-widest mb-2 ${isTop5 ? "text-[#6B6360]" : "text-white/40"}`}>
                     ABOUT THIS MEAL
                   </p>
-                  <p className="font-body text-sm text-white/75 leading-relaxed">
+                  <p className={`font-body text-sm leading-relaxed ${isTop5 ? "text-[#2C2825]" : "text-white/75"}`}>
                     {meal.description}
                   </p>
                 </div>
@@ -227,21 +234,21 @@ export function MealDetailDrawer({
 
               {/* Main ingredients */}
               {hasIngredients && (
-                <div className="bg-[#252525] rounded-[12px] p-4">
-                  <p className="font-body text-[10px] text-white/40 uppercase tracking-widest mb-3">
+                <div className={`rounded-[12px] p-4 ${isTop5 ? "bg-[#EDE8E0]" : "bg-[#252525]"}`}>
+                  <p className={`font-body text-[10px] uppercase tracking-widest mb-3 ${isTop5 ? "text-[#6B6360]" : "text-white/40"}`}>
                     MAIN INGREDIENTS
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {displayIngredients.map((ing) => (
                       <span
                         key={ing}
-                        className="bg-[#1C1A18] text-white/80 text-sm px-3 py-1.5 rounded-full border border-white/10"
+                        className={`text-sm px-3 py-1.5 rounded-full border ${isTop5 ? "bg-[#F5F0E8] text-[#2C2825] border-[#6B6360]/20" : "bg-[#1C1A18] text-white/80 border-white/10"}`}
                       >
                         {ing}
                       </span>
                     ))}
                     {extraIngredientCount > 0 && (
-                      <span className="bg-[#1C1A18] text-white/40 text-sm px-3 py-1.5 rounded-full border border-white/10">
+                      <span className={`text-sm px-3 py-1.5 rounded-full border ${isTop5 ? "bg-[#F5F0E8] text-[#6B6360] border-[#6B6360]/20" : "bg-[#1C1A18] text-white/40 border-white/10"}`}>
                         +{extraIngredientCount} more
                       </span>
                     )}
@@ -251,13 +258,13 @@ export function MealDetailDrawer({
 
               {/* Why this works tonight */}
               {hasWhyItFits && (
-                <div className="bg-[#252525] rounded-[12px] p-4">
-                  <p className="font-body text-[10px] text-white/40 uppercase tracking-widest mb-2">
+                <div className={`rounded-[12px] p-4 ${isTop5 ? "bg-[#EDE8E0]" : "bg-[#252525]"}`}>
+                  <p className={`font-body text-[10px] uppercase tracking-widest mb-2 ${isTop5 ? "text-[#6B6360]" : "text-white/40"}`}>
                     WHY THIS WORKS TONIGHT
                   </p>
                   <div className="flex items-start gap-2">
                     <span className="text-[#E8621A] text-base leading-tight mt-0.5">✦</span>
-                    <p className="font-body text-sm text-white/75 leading-relaxed">
+                    <p className={`font-body text-sm leading-relaxed ${isTop5 ? "text-[#2C2825]" : "text-white/75"}`}>
                       {meal.whyItFits}
                     </p>
                   </div>
@@ -266,8 +273,8 @@ export function MealDetailDrawer({
 
               {/* Dietary tags */}
               {hasDietary && (
-                <div className="bg-[#252525] rounded-[12px] p-4">
-                  <p className="font-body text-[10px] text-white/40 uppercase tracking-widest mb-3">
+                <div className={`rounded-[12px] p-4 ${isTop5 ? "bg-[#EDE8E0]" : "bg-[#252525]"}`}>
+                  <p className={`font-body text-[10px] uppercase tracking-widest mb-3 ${isTop5 ? "text-[#6B6360]" : "text-white/40"}`}>
                     DIETARY
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -318,6 +325,15 @@ export function MealDetailDrawer({
                 <button
                   onClick={onClose}
                   className="w-full bg-[#2A2420] text-[#8A7F78] font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
+                >
+                  Close
+                </button>
+              )}
+
+              {isTop5 && !onLockIn && (
+                <button
+                  onClick={onClose}
+                  className="w-full bg-[#DDD8D0] text-[#6B6360] font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
                 >
                   Close
                 </button>

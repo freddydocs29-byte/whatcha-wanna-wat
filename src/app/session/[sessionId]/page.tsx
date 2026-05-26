@@ -51,13 +51,6 @@ const GUEST_HARD_NOS = [
   { label: "None of these", emoji: "✓" },
 ];
 
-const GUEST_HEAT: { value: UserPreferences["spiceLevel"]; label: string; emoji: string }[] = [
-  { value: "mild", label: "Mild", emoji: "🌿" },
-  { value: "medium", label: "Medium", emoji: "🌶️" },
-  { value: "hot", label: "Hot", emoji: "🔥" },
-  { value: "any", label: "No preference", emoji: "🤷" },
-];
-
 // ── Host flow constants ───────────────────────────────────────────────────────
 
 const VIBE_OPTIONS: { value: SessionVibeMode; emoji: string; label: string; description: string }[] = [
@@ -137,11 +130,10 @@ export default function SessionPage() {
 
   // Guest quick-setup state (null = not yet checked)
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-  const [setupStep, setSetupStep] = useState<"intro" | "cuisines" | "dietary" | "hardNos" | "heat">("intro");
+  const [setupStep, setSetupStep] = useState<"intro" | "cuisines" | "dietary" | "hardNos">("intro");
   const [guestCuisines, setGuestCuisines] = useState<string[]>([]);
   const [guestDietaryRestrictions, setGuestDietaryRestrictions] = useState<string[]>([]);
   const [guestHardNos, setGuestHardNos] = useState<string[]>([]);
-  const [guestSpice, setGuestSpice] = useState<UserPreferences["spiceLevel"] | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -411,7 +403,7 @@ export default function SessionPage() {
       cuisines: guestCuisines,
       dietaryRestrictions: guestDietaryRestrictions.filter((f) => f !== "None of these"),
       hardNoFoods: guestHardNos.filter((f) => f !== "None of these"),
-      spiceLevel: guestSpice ?? "any",
+      spiceLevel: "any",
       cookOrOrder: "either",
       kidFriendly: null,
     };
@@ -500,19 +492,16 @@ export default function SessionPage() {
         ? guestCuisines.length > 0
         : setupStep === "dietary"
         ? guestDietaryRestrictions.length > 0
-        : setupStep === "hardNos"
-        ? guestHardNos.length > 0
-        : true; // heat is optional
+        : guestHardNos.length > 0;
 
     async function advanceSetup() {
       if (setupStep === "intro") setSetupStep("cuisines");
       else if (setupStep === "cuisines") setSetupStep("dietary");
       else if (setupStep === "dietary") setSetupStep("hardNos");
-      else if (setupStep === "hardNos") setSetupStep("heat");
       else await completeGuestSetup();
     }
 
-    const stepNum = setupStep === "intro" ? 0 : setupStep === "cuisines" ? 1 : setupStep === "dietary" ? 2 : setupStep === "hardNos" ? 3 : 4;
+    const stepNum = setupStep === "intro" ? 0 : setupStep === "cuisines" ? 1 : setupStep === "dietary" ? 2 : 3;
 
     // ── Intro screen ────────────────────────────────────────────────────────
     if (setupStep === "intro") {
@@ -575,8 +564,7 @@ export default function SessionPage() {
               {setupStep !== "cuisines" ? (
                 <button
                   onClick={() => {
-                    if (setupStep === "heat") setSetupStep("hardNos");
-                    else if (setupStep === "hardNos") setSetupStep("dietary");
+                    if (setupStep === "hardNos") setSetupStep("dietary");
                     else setSetupStep("cuisines");
                   }}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
@@ -594,7 +582,7 @@ export default function SessionPage() {
 
             {/* Progress bar */}
             <div className="flex gap-1.5">
-              {[1, 2, 3, 4].map((n) => (
+              {[1, 2, 3].map((n) => (
                 <div key={n} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.12]">
                   <div
                     className="h-full rounded-full bg-[#E8621A] transition-all duration-500 ease-out"
@@ -607,19 +595,17 @@ export default function SessionPage() {
             {/* Question */}
             <div className="mt-2">
               <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
-                {stepNum} of 4
+                {stepNum} of 3
               </p>
               <h1 className="mt-3 font-display font-black text-3xl text-white leading-tight">
                 {setupStep === "cuisines" && "What are you down for?"}
                 {setupStep === "dietary" && "Any dietary restrictions?"}
                 {setupStep === "hardNos" && "Anything you absolutely won't eat?"}
-                {setupStep === "heat" && "How do you feel about heat?"}
               </h1>
               <p className="mt-2 font-body text-sm text-[#8A7F78]">
                 {setupStep === "cuisines" && "Pick everything that sounds good to you."}
                 {setupStep === "dietary" && "We'll never show you meals that don't work for you."}
                 {setupStep === "hardNos" && "Hard NOs are never shown. Ever."}
-                {setupStep === "heat" && "Optional — skip if you don't mind either way."}
               </p>
             </div>
 
@@ -705,32 +691,6 @@ export default function SessionPage() {
               </div>
             )}
 
-            {setupStep === "heat" && (
-              <div className="flex flex-col gap-2">
-                {GUEST_HEAT.map((opt) => {
-                  const selected = guestSpice === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => setGuestSpice(opt.value)}
-                      className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
-                        selected
-                          ? "border-[#E8621A] bg-[#E8621A]/10"
-                          : "border-transparent bg-[#2A2420]"
-                      }`}
-                    >
-                      <span className="text-2xl">{opt.emoji}</span>
-                      <p className="flex-1 font-display font-black text-base text-white text-left">{opt.label}</p>
-                      <div className={`w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
-                        selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/20"
-                      }`}>
-                        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
 
@@ -745,17 +705,8 @@ export default function SessionPage() {
                 canAdvance && !completingSetup ? "shadow-[0_8px_40px_rgba(232,98,26,0.28)]" : "shadow-none"
               }`}
             >
-              {completingSetup ? "Joining…" : setupStep === "heat" ? "Join session" : "Continue"}
+              {completingSetup ? "Joining…" : setupStep === "hardNos" ? "Join session" : "Continue"}
             </button>
-            {setupStep === "heat" && (
-              <button
-                onClick={() => completeGuestSetup()}
-                disabled={completingSetup}
-                className="mt-3 w-full text-center text-sm text-[#8A7F78] transition hover:text-white/55 disabled:opacity-30"
-              >
-                Skip heat preference
-              </button>
-            )}
           </div>
         </div>
       </main>
