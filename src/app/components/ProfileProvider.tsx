@@ -187,10 +187,22 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
         console.log("[profile] returning user: resolved user_id from auth →", resolvedUserId);
       }
 
+      console.log('[restore] existingAuthProfile:', {
+        userId: existingAuthProfile.user_id,
+        authUserId: existingAuthProfile.auth_user_id,
+        hasMealHistory: !!existingAuthProfile.meal_history?.length,
+        mealHistoryCount: existingAuthProfile.meal_history?.length ?? 0,
+        hasSavedMeals: !!existingAuthProfile.saved_meals?.length,
+        savedMealsCount: existingAuthProfile.saved_meals?.length ?? 0,
+        hasLastDecidedMeal: !!existingAuthProfile.last_decided_meal,
+        hasAvatarUrl: !!existingAuthProfile.avatar_url,
+      })
+
       // Restore saved meals from Supabase profile if localStorage is empty
       if (existingAuthProfile.saved_meals?.length) {
         const localSaved = localStorage.getItem('wwe_saved_meals');
         if (!localSaved || JSON.parse(localSaved).length === 0) {
+          console.log('[restore] writing saved_meals to localStorage:', existingAuthProfile.saved_meals?.length, 'items')
           localStorage.setItem('wwe_saved_meals', JSON.stringify(existingAuthProfile.saved_meals));
           console.log('[saved] restored from Supabase:', existingAuthProfile.saved_meals.length, 'meals');
         }
@@ -200,6 +212,7 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
       if (existingAuthProfile.meal_history?.length) {
         const localHistory = localStorage.getItem('wwe_history');
         if (!localHistory || JSON.parse(localHistory).length === 0) {
+          console.log('[restore] writing meal_history to localStorage:', existingAuthProfile.meal_history?.length, 'items')
           localStorage.setItem('wwe_history', JSON.stringify(existingAuthProfile.meal_history));
           console.log('[history] restored from Supabase:', existingAuthProfile.meal_history.length, 'entries');
         }
