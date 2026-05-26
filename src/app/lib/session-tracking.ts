@@ -141,6 +141,8 @@ export function checkAndMarkReturn(): void {
 export async function createTrackingSession(opts: {
   isGroupSession: boolean;
   groupSessionId?: string;
+  sessionType?: "solo" | "shared";
+  vibe?: string | null;
 }): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
@@ -157,6 +159,8 @@ export async function createTrackingSession(opts: {
       opened_at: now.toISOString(),
       meal_period: mealPeriod,
       day_type: dayType,
+      ...(opts.sessionType ? { session_type: opts.sessionType } : {}),
+      ...(opts.vibe ? { vibe: opts.vibe } : {}),
     })
     .select("id")
     .single();
@@ -194,6 +198,7 @@ export async function closeTrackingSession(opts: {
     .from("user_sessions")
     .update({
       closed_at: now.toISOString(),
+      ended_at: now.toISOString(),
       resolved: opts.resolved,
       swipe_count: opts.swipeCount,
       ...(timeToDecisionSeconds !== null
@@ -222,6 +227,9 @@ export async function recordDecision(opts: {
   positionInDeck: number;
   isAiGenerated: boolean;
   rejectionReason?: string;
+  sessionType?: "solo" | "shared";
+  sharedSessionId?: string | null;
+  vibeSelection?: string | null;
 }): Promise<void> {
   if (typeof window === "undefined") return;
 
@@ -244,6 +252,11 @@ export async function recordDecision(opts: {
     position_in_deck: opts.positionInDeck,
     decided_at: now.toISOString(),
     is_ai_generated: opts.isAiGenerated,
+    session_type: opts.sessionType ?? null,
+    session_id: opts.sharedSessionId ?? null,
+    cuisine_tag: opts.meal.cuisine ?? null,
+    archetype: opts.meal.category ?? null,
+    vibe_selection: opts.vibeSelection ?? null,
   });
 
   if (error) {
@@ -262,6 +275,9 @@ export async function recordDecision(opts: {
 export async function recordAcceptedDecision(opts: {
   meal: Meal;
   positionInDeck: number;
+  sessionType?: "solo" | "top5" | "shared";
+  sessionId?: string | null;
+  vibeSelection?: string | null;
 }): Promise<void> {
   if (typeof window === "undefined") return;
 
@@ -282,6 +298,11 @@ export async function recordAcceptedDecision(opts: {
     position_in_deck: opts.positionInDeck,
     decided_at: now.toISOString(),
     is_ai_generated: opts.meal.aiGenerated ?? false,
+    session_type: opts.sessionType ?? null,
+    session_id: opts.sessionId ?? null,
+    cuisine_tag: opts.meal.cuisine ?? null,
+    archetype: opts.meal.category ?? null,
+    vibe_selection: opts.vibeSelection ?? null,
   });
 
   if (error) {

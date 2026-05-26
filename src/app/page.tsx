@@ -383,7 +383,7 @@ export default function Home() {
               const guardKey = `wwe_decision_written_${sessionId}_${meal.id}`;
               if (!localStorage.getItem(guardKey)) {
                 localStorage.setItem(guardKey, "1");
-                void recordAcceptedDecision({ meal, positionInDeck: 0 });
+                void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "shared", sessionId, vibeSelection: data.vibe ?? null });
               }
 
               // Update React state directly so the decided-state UI appears immediately

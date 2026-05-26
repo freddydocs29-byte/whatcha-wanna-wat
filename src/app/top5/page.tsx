@@ -206,7 +206,7 @@ export default function Top5Page() {
       decidedAt: new Date().toISOString(),
       mode: "solo",
     });
-    void recordAcceptedDecision({ meal: selectedMeal.meal, positionInDeck: 0 });
+    void recordAcceptedDecision({ meal: selectedMeal.meal, positionInDeck: 0, sessionType: "top5", sessionId: null, vibeSelection: null });
 
     router.push("/");
   }
@@ -222,7 +222,7 @@ export default function Top5Page() {
       decidedAt: new Date().toISOString(),
       mode: "solo",
     });
-    void recordAcceptedDecision({ meal, positionInDeck: 0 });
+    void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "top5", sessionId: null, vibeSelection: null });
 
     router.push("/");
   }

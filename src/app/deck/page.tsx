@@ -526,6 +526,8 @@ function DeckContent() {
         trackingSessionPromiseRef.current = createTrackingSession({
           isGroupSession: true,
           groupSessionId: sessionId ?? undefined,
+          sessionType: "shared",
+          vibe: sessionVibeMode,
         });
       }
     };
@@ -954,7 +956,7 @@ function DeckContent() {
         setExitX(null);
         if (!trackingSessionPromiseRef.current) {
           trackingOpenedAtRef.current = new Date();
-          trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false });
+          trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false, sessionType: "solo", vibe: sessionVibeMode });
         }
         return;
       }
@@ -997,7 +999,7 @@ function DeckContent() {
     // pantry/vibe changes which also run this effect)
     if (!trackingSessionPromiseRef.current) {
       trackingOpenedAtRef.current = new Date();
-      trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false });
+      trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false, sessionType: "solo", vibe: sessionVibeMode });
     }
 
     // ── Deterministic AI freshness trigger ──────────────────────────────────
@@ -1358,6 +1360,9 @@ function DeckContent() {
           outcome: "accepted",
           positionInDeck: currentIndex,
           isAiGenerated: aiMealIds.has(matchedMeal.id),
+          sessionType: "shared",
+          sharedSessionId: sessionId,
+          vibeSelection: sessionVibeMode,
         });
         void closeTrackingSession({
           trackingSessionId: tsId,
@@ -1769,6 +1774,9 @@ function DeckContent() {
           outcome: "accepted",
           positionInDeck: 0,
           isAiGenerated: aiMealIds.has(topMeal.id),
+          sessionType: "shared",
+          sharedSessionId: sessionId,
+          vibeSelection: sessionVibeMode,
         });
         void closeTrackingSession({
           trackingSessionId: tsId,
@@ -1995,6 +2003,9 @@ function DeckContent() {
               outcome: "accepted",
               positionInDeck: currentIndex,
               isAiGenerated: aiMealIds.has(chosenMeal.id),
+              sessionType: "solo",
+              sharedSessionId: null,
+              vibeSelection: sessionVibeMode,
             });
             void closeTrackingSession({
               trackingSessionId: tsId,
@@ -2782,7 +2793,7 @@ function DeckContent() {
       setSoloResetCount(0);
       addToHistory(meal);
       saveDecidedMeal({ ...meal, decidedAt: new Date().toISOString(), mode: "solo" });
-      void recordAcceptedDecision({ meal, positionInDeck: 0 });
+      void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "solo", sessionId: null, vibeSelection: sessionVibeMode });
       router.push("/");
     }
 
