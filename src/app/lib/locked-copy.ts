@@ -60,7 +60,6 @@ const SUBHEADLINES = [
   "Lock it in.",
   "Your stomach already knows.",
   "No second-guessing.",
-  "Detroit approves.",
 ];
 
 function randomSubheadline(): string {
@@ -260,7 +259,6 @@ const DEFAULT_LINES: Array<{ text: string; variantId: string }> = [
   { text: "No second-guessing.", variantId: "default-no-second-guess" },
   { text: "Dinner: handled.", variantId: "default-dinner-handled" },
   { text: "The debate is over.", variantId: "default-debate-over" },
-  { text: "Detroit approves.", variantId: "default-detroit-approves" },
   { text: "That's the one.", variantId: "default-thats-the-one" },
   { text: "Trust the process.", variantId: "default-trust-process" },
   { text: "Locked. Don't look back.", variantId: "default-locked-no-lookback" },

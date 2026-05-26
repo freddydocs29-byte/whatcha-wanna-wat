@@ -137,7 +137,7 @@ export default function SessionPage() {
 
   // Guest quick-setup state (null = not yet checked)
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-  const [setupStep, setSetupStep] = useState<"cuisines" | "dietary" | "hardNos" | "heat">("cuisines");
+  const [setupStep, setSetupStep] = useState<"intro" | "cuisines" | "dietary" | "hardNos" | "heat">("intro");
   const [guestCuisines, setGuestCuisines] = useState<string[]>([]);
   const [guestDietaryRestrictions, setGuestDietaryRestrictions] = useState<string[]>([]);
   const [guestHardNos, setGuestHardNos] = useState<string[]>([]);
@@ -494,7 +494,9 @@ export default function SessionPage() {
     };
 
     const canAdvance =
-      setupStep === "cuisines"
+      setupStep === "intro"
+        ? true
+        : setupStep === "cuisines"
         ? guestCuisines.length > 0
         : setupStep === "dietary"
         ? guestDietaryRestrictions.length > 0
@@ -503,13 +505,61 @@ export default function SessionPage() {
         : true; // heat is optional
 
     async function advanceSetup() {
-      if (setupStep === "cuisines") setSetupStep("dietary");
+      if (setupStep === "intro") setSetupStep("cuisines");
+      else if (setupStep === "cuisines") setSetupStep("dietary");
       else if (setupStep === "dietary") setSetupStep("hardNos");
       else if (setupStep === "hardNos") setSetupStep("heat");
       else await completeGuestSetup();
     }
 
-    const stepNum = setupStep === "cuisines" ? 1 : setupStep === "dietary" ? 2 : setupStep === "hardNos" ? 3 : 4;
+    const stepNum = setupStep === "intro" ? 0 : setupStep === "cuisines" ? 1 : setupStep === "dietary" ? 2 : setupStep === "hardNos" ? 3 : 4;
+
+    // ── Intro screen ────────────────────────────────────────────────────────
+    if (setupStep === "intro") {
+      return (
+        <main className="min-h-screen bg-[#1C1A18] text-white">
+          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
+            <div className="pt-10">
+              <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-6">
+                REAL QUICK
+              </p>
+              <h1 className="font-display font-black text-4xl text-white leading-tight">
+                Here&apos;s the deal<span className="text-[#E8621A]">.</span>
+              </h1>
+              <div className="mt-8 flex flex-col">
+                {[
+                  { title: "Takes 30 seconds.", subtitle: "Your answers make tonight's picks way better for both of you." },
+                  { title: "No account needed.", subtitle: "Just swipe. We handle the rest." },
+                  { title: "We build the deck together.", subtitle: "Your preferences + theirs = a deck you'll both actually want." },
+                  { title: "Your picks stay private.", subtitle: "We only share the match." },
+                ].map((item, index) => (
+                  <div key={index} className="flex gap-4 py-4 border-b border-white/[0.06]">
+                    <span className="font-display font-black text-lg text-[#E8621A] w-6 flex-shrink-0">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <p className="font-display font-bold text-base text-white">{item.title}</p>
+                      <p className="font-body text-sm text-[#8A7F78] mt-0.5">{item.subtitle}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="fixed bottom-0 left-0 right-0 z-30">
+            <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
+              <button
+                onClick={advanceSetup}
+                className="w-full rounded-full bg-[#E8621A] px-5 py-[18px] text-center text-[15px] font-display font-black text-white transition hover:opacity-95 active:scale-[0.99] shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
+              >
+                Let&apos;s do it →
+              </button>
+            </div>
+          </div>
+        </main>
+      );
+    }
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">

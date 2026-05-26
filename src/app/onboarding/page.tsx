@@ -76,7 +76,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
 
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
@@ -200,19 +200,49 @@ export default function OnboardingPage() {
             </button>
           )}
           <div className="flex flex-1 gap-1.5">
-            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            {Array.from({ length: TOTAL_STEPS + 1 }).map((_, i) => (
               <div
                 key={i}
                 className={`h-[3px] flex-1 rounded-full ${
-                  i + 1 <= step ? "bg-[#E8621A]" : "bg-[#3D3733]"
+                  i <= step ? "bg-[#E8621A]" : "bg-[#3D3733]"
                 }`}
               />
             ))}
           </div>
         </div>
 
+        {/* ── Step 0: "Here's the deal" intro ─────────────────────────────── */}
+        {step === 0 && (
+          <div className="flex flex-col px-5 pt-10 pb-32">
+            <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-6">
+              IN 90 SECONDS
+            </p>
+            <h1 className="font-display font-black text-4xl text-white leading-tight">
+              Here&apos;s the deal<span className="text-[#E8621A]">.</span>
+            </h1>
+            <div className="mt-8 flex flex-col">
+              {[
+                { title: "No surveys.", subtitle: "A few swipes teach us more than 20 questions." },
+                { title: "No random picks.", subtitle: "Every card is ranked for you, not pulled from a list." },
+                { title: "No infinite scroll.", subtitle: "Fast answer. Done. Every time." },
+                { title: "Works alone. Works better together.", subtitle: "Solo mode or shared — it adapts to how you decide." },
+              ].map((item, index) => (
+                <div key={index} className="flex gap-4 py-4 border-b border-white/[0.06]">
+                  <span className="font-display font-black text-lg text-[#E8621A] w-6 flex-shrink-0">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <p className="font-display font-bold text-base text-white">{item.title}</p>
+                    <p className="font-body text-sm text-[#8A7F78] mt-0.5">{item.subtitle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Animated step content — steps 1–4 only */}
-        {step < 5 && (
+        {step >= 1 && step < 5 && (
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={step}
@@ -442,7 +472,7 @@ export default function OnboardingPage() {
            Steps 1-3 (multi-select): always shown.
            Step 4 (auto-advance): shown only if the user navigated back and already
            has a noveltyBias set so they can proceed without re-selecting. */}
-      {step < 5 && (step <= 3 || (step === 4 && noveltyBias !== null)) && (
+      {step >= 1 && step < 5 && (step <= 3 || (step === 4 && noveltyBias !== null)) && (
         <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
           <div className="mx-auto w-full max-w-md">
             <button
@@ -453,6 +483,20 @@ export default function OnboardingPage() {
               }`}
             >
               Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 0 CTA */}
+      {step === 0 && (
+        <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
+          <div className="mx-auto w-full max-w-md">
+            <button
+              onClick={advance}
+              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99]"
+            >
+              Got it →
             </button>
           </div>
         </div>
