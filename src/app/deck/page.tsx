@@ -1379,8 +1379,10 @@ function DeckContent() {
       localStorage.removeItem("wwe_active_session");
       localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
     }
-    // Guests (no Supabase auth session) must never land on auth-gated routes.
-    router.push(isGuest ? "/guest-home" : "/");
+    // Re-check auth state at navigation time — the mount-time isGuest value may
+    // not yet be settled for guests joining via a share link.
+    const { data: { user: navUser } } = await supabase.auth.getUser();
+    router.push(navUser ? "/" : "/guest-home");
   }
 
   function handleMatchReject() {
