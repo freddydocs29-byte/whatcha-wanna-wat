@@ -143,6 +143,39 @@ async function withRetry<T>(
   return null;
 }
 
+// ─── Restore helper ───────────────────────────────────────────────────────────
+
+/**
+ * Unconditionally writes profile fields to localStorage.
+ * Called on SIGNED_IN (after logout has already cleared localStorage) and on
+ * initial mount when an auth session already exists.
+ * Does NOT check whether localStorage is already populated — post-logout it is
+ * always empty, so the unconditional write is safe.
+ */
+function restoreProfileLocalState(profile: Profile): void {
+  if (profile.saved_meals?.length) {
+    localStorage.setItem('wwe_saved_meals', JSON.stringify(profile.saved_meals));
+    console.log('[restore] saved meals restored:', profile.saved_meals.length);
+  }
+
+  if (profile.meal_history?.length) {
+    localStorage.setItem('wwe_history', JSON.stringify(profile.meal_history));
+    console.log('[restore] meal history restored:', profile.meal_history.length);
+  }
+
+  if (profile.last_decided_meal) {
+    localStorage.setItem('watcha_decided_meal', JSON.stringify(profile.last_decided_meal));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('decidedMealRestored'));
+    }
+  }
+
+  if (profile.avatar_url) {
+    localStorage.setItem('wwe_avatar_url', profile.avatar_url);
+    console.log('[restore] avatar restored:', !!profile.avatar_url);
+  }
+}
+
 // ─── Core initialization ──────────────────────────────────────────────────────
 
 /**
@@ -187,66 +220,19 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
         console.log("[profile] returning user: resolved user_id from auth →", resolvedUserId);
       }
 
-      console.log('[restore] existingAuthProfile:', {
+      console.log('[restore] existingAuthProfile found:', {
         userId: existingAuthProfile.user_id,
-        authUserId: existingAuthProfile.auth_user_id,
-        hasMealHistory: !!existingAuthProfile.meal_history?.length,
         mealHistoryCount: existingAuthProfile.meal_history?.length ?? 0,
-        hasSavedMeals: !!existingAuthProfile.saved_meals?.length,
         savedMealsCount: existingAuthProfile.saved_meals?.length ?? 0,
         hasLastDecidedMeal: !!existingAuthProfile.last_decided_meal,
         hasAvatarUrl: !!existingAuthProfile.avatar_url,
-      })
+      });
 
-      // Restore saved meals from Supabase profile if localStorage is empty
-      if (existingAuthProfile.saved_meals?.length) {
-        const localSaved = localStorage.getItem('wwe_saved_meals');
-        if (!localSaved || JSON.parse(localSaved).length === 0) {
-          console.log('[restore] writing saved_meals to localStorage:', existingAuthProfile.saved_meals?.length, 'items')
-          localStorage.setItem('wwe_saved_meals', JSON.stringify(existingAuthProfile.saved_meals));
-          console.log('[saved] restored from Supabase:', existingAuthProfile.saved_meals.length, 'meals');
-        }
-      }
+      // Restore all profile fields to localStorage.
+      // Unconditional: after logout clearAllLocalState() wiped everything, so
+      // whatever Supabase has is the correct source of truth to write back.
+      restoreProfileLocalState(existingAuthProfile);
 
-      // Restore meal history from Supabase profile if localStorage is empty
-      if (existingAuthProfile.meal_history?.length) {
-        const localHistory = localStorage.getItem('wwe_history');
-        if (!localHistory || JSON.parse(localHistory).length === 0) {
-          console.log('[restore] writing meal_history to localStorage:', existingAuthProfile.meal_history?.length, 'items')
-          localStorage.setItem('wwe_history', JSON.stringify(existingAuthProfile.meal_history));
-          console.log('[history] restored from Supabase:', existingAuthProfile.meal_history.length, 'entries');
-        }
-      }
-
-      // Restore decided meal from Supabase profile — only if within 6 hours
-      console.log('[ProfileProvider] checking last_decided_meal restore:', existingAuthProfile.last_decided_meal)
-      console.log('[ProfileProvider] wwe_meal_cleared_at in localStorage:', localStorage.getItem('wwe_meal_cleared_at'))
-      if (existingAuthProfile.last_decided_meal) {
-        if (mealWasManuallyClearedAfter(existingAuthProfile.last_decided_meal.decidedAt)) {
-          console.log('[decidedMeal] cleared after this meal — not restoring')
-        } else {
-          const decidedAt = new Date(existingAuthProfile.last_decided_meal.decidedAt).getTime()
-          const sixHours = 6 * 60 * 60 * 1000
-          const isExpired = Date.now() - decidedAt > sixHours
-
-          if (!isExpired) {
-            // Only restore if still within 6 hours
-            const localMeal = localStorage.getItem('watcha_decided_meal')
-            if (!localMeal) {
-              localStorage.setItem('watcha_decided_meal', JSON.stringify(existingAuthProfile.last_decided_meal))
-              console.log('[decidedMeal] restored from Supabase:', existingAuthProfile.last_decided_meal.name)
-              window.dispatchEvent(new Event('decidedMealRestored'))
-            }
-          } else {
-            // Expired — clear it from Supabase silently
-            console.log('[decidedMeal] expired — clearing from Supabase')
-            await supabase
-              .from('profiles')
-              .update({ last_decided_meal: null })
-              .eq('user_id', existingAuthProfile.user_id)
-          }
-        }
-      }
       // Mark that Step 1 handled the decided-meal check so Step 2b skips the
       // duplicate restoreDecidedMealFromProfile call for returning users.
       decidedMealHandledByStep1 = true;
@@ -480,11 +466,28 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
         resetAnonymousId();
         setProfileReady(true);
         router.push("/");
-      } else if (
-        event === "SIGNED_IN" ||
-        event === "TOKEN_REFRESHED" ||
-        event === "USER_UPDATED"
-      ) {
+      } else if (event === "SIGNED_IN") {
+        // Fetch the auth-linked profile and restore localStorage directly —
+        // bypassing boot() so the bootRan guard cannot skip the restore.
+        // After the restore, reset the guard and run boot() for the full
+        // preferences / weights / seen merge.
+        console.log('[ProfileProvider] SIGNED_IN — restoring profile state directly');
+        void (async () => {
+          const authUid = await getAuthUserId();
+          if (authUid) {
+            const existingProfile = await fetchProfileByAuthUserId(authUid);
+            if (existingProfile) {
+              console.log('[ProfileProvider] SIGNED_IN profile found — calling restoreProfileLocalState');
+              restoreProfileLocalState(existingProfile);
+            } else {
+              console.log('[ProfileProvider] SIGNED_IN — no existing profile found for auth uid');
+            }
+          }
+          // Reset guard so boot() runs the full merge (prefs, weights, seen).
+          bootRan.current = false;
+          void boot();
+        })();
+      } else if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         // Re-run the full init so auth is linked and profile is re-merged.
         void boot();
       }
