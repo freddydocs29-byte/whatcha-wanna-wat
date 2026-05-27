@@ -1326,14 +1326,16 @@ function DeckContent() {
     setMatchConfirmError(null);
     trackEvent("match_confirmed", { mealId: matchedMeal.id, sessionId });
 
-    const { error } = await supabase
+    const { data: matchedSessionData, error } = await supabase
       .from("sessions")
       .update({
         status: "matched",
         locked_meal_id: matchedMeal.id,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", sessionId);
+      .eq("id", sessionId)
+      .select("created_at")
+      .single();
 
     if (error) {
       console.error("[match] failed to update session:", error.message);
@@ -1343,6 +1345,12 @@ function DeckContent() {
     }
 
     console.log("[match] session marked matched:", sessionId, matchedMeal.id);
+
+    // Calculate time from shared session creation to match
+    const matchSessionStart = matchedSessionData?.created_at ?? null;
+    const matchTimeToMatchSeconds = matchSessionStart
+      ? Math.max(0, Math.round((Date.now() - new Date(matchSessionStart).getTime()) / 1000))
+      : null;
 
     // Record partner relationship — fire-and-forget
     {
@@ -1384,6 +1392,7 @@ function DeckContent() {
           sessionType: "shared",
           sharedSessionId: sessionId,
           vibeSelection: sessionVibeMode,
+          timeToMatchSeconds: matchTimeToMatchSeconds,
         });
         void closeTrackingSession({
           trackingSessionId: tsId,
@@ -1781,6 +1790,17 @@ function DeckContent() {
 
     trackEvent("just_decide_tapped", { mealId: topMeal.id, sessionId, positionInDeck: 0 });
 
+    // Fetch session start time before any async writes so it's available in the closure
+    const { data: justDecideSession } = await supabase
+      .from("sessions")
+      .select("created_at")
+      .eq("id", sessionId)
+      .single();
+    const justDecideStart = justDecideSession?.created_at ?? null;
+    const justDecideTimeToMatch = justDecideStart
+      ? Math.max(0, Math.round((Date.now() - new Date(justDecideStart).getTime()) / 1000))
+      : null;
+
     // Guard against home-screen polling writing a duplicate decision row
     // for the same session+meal combination. Set synchronously before any async work.
     if (typeof window !== "undefined") {
@@ -1800,6 +1820,7 @@ function DeckContent() {
           sessionType: "shared",
           sharedSessionId: sessionId,
           vibeSelection: sessionVibeMode,
+          timeToMatchSeconds: justDecideTimeToMatch,
         });
         void closeTrackingSession({
           trackingSessionId: tsId,
@@ -2373,6 +2394,20 @@ function DeckContent() {
                                 addToHistory(confirmMeal);
                                 saveDecidedMeal({ ...confirmMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
                                 if (sessionId) sessionStorage.removeItem(sharedResetKey(sessionId));
+                                void recordAcceptedDecision({ meal: confirmMeal, positionInDeck: 0, sessionType: "shared", sessionId: sessionId ?? null, vibeSelection: sessionVibeMode });
+                                if (!trackingClosedRef.current) {
+                                  trackingClosedRef.current = true;
+                                  trackingSessionPromiseRef.current?.then((tsId) => {
+                                    if (tsId && trackingOpenedAtRef.current) {
+                                      void closeTrackingSession({
+                                        trackingSessionId: tsId,
+                                        resolved: true,
+                                        swipeCount: trackingSwipeCountRef.current,
+                                        openedAt: trackingOpenedAtRef.current,
+                                      });
+                                    }
+                                  });
+                                }
                                 router.push("/");
                               }}
                               className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
@@ -2823,6 +2858,22 @@ function DeckContent() {
       addToHistory(meal);
       saveDecidedMeal({ ...meal, decidedAt: new Date().toISOString(), mode: "solo" });
       void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "solo", sessionId: null, vibeSelection: sessionVibeMode });
+      // Close the tracking session that was opened at deck mount
+      if (!trackingClosedRef.current) {
+        trackingClosedRef.current = true;
+        trackingSessionPromiseRef.current?.then((tsId) => {
+          if (tsId && trackingOpenedAtRef.current) {
+            void closeTrackingSession({
+              trackingSessionId: tsId,
+              resolved: true,
+              swipeCount: trackingSwipeCountRef.current,
+              openedAt: trackingOpenedAtRef.current,
+            });
+          } else if (process.env.NODE_ENV === "development") {
+            console.warn("[session-tracking] lockInMeal: no tracking session, skipping close");
+          }
+        });
+      }
       router.push("/");
     }
 

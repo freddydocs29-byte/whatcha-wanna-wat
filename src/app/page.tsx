@@ -350,7 +350,7 @@ export default function Home() {
       try {
         const { data } = await supabase
           .from("sessions")
-          .select("id, status, locked_meal_id, host_user_id, guest_user_id, deck_meal_ids, session_code, vibe, expires_at")
+          .select("id, status, locked_meal_id, host_user_id, guest_user_id, deck_meal_ids, session_code, vibe, expires_at, created_at")
           .eq("id", sessionId)
           .single();
 
@@ -383,7 +383,11 @@ export default function Home() {
               const guardKey = `wwe_decision_written_${sessionId}_${meal.id}`;
               if (!localStorage.getItem(guardKey)) {
                 localStorage.setItem(guardKey, "1");
-                void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "shared", sessionId, vibeSelection: data.vibe ?? null });
+                const homeSessionStart = data.created_at ?? null;
+                const homeTimeToMatch = homeSessionStart
+                  ? Math.max(0, Math.round((Date.now() - new Date(homeSessionStart).getTime()) / 1000))
+                  : null;
+                void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "shared", sessionId, vibeSelection: data.vibe ?? null, timeToMatchSeconds: homeTimeToMatch });
               }
 
               // Update React state directly so the decided-state UI appears immediately

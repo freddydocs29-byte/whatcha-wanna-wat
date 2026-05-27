@@ -230,6 +230,7 @@ export async function recordDecision(opts: {
   sessionType?: "solo" | "shared";
   sharedSessionId?: string | null;
   vibeSelection?: string | null;
+  timeToMatchSeconds?: number | null;
 }): Promise<void> {
   if (typeof window === "undefined") return;
 
@@ -257,6 +258,7 @@ export async function recordDecision(opts: {
     cuisine_tag: opts.meal.cuisine ?? null,
     archetype: opts.meal.category ?? null,
     vibe_selection: opts.vibeSelection ?? null,
+    time_to_match_seconds: opts.timeToMatchSeconds ?? null,
   });
 
   if (error) {
@@ -278,6 +280,7 @@ export async function recordAcceptedDecision(opts: {
   sessionType?: "solo" | "top5" | "shared";
   sessionId?: string | null;
   vibeSelection?: string | null;
+  timeToMatchSeconds?: number | null;
 }): Promise<void> {
   if (typeof window === "undefined") return;
 
@@ -303,6 +306,7 @@ export async function recordAcceptedDecision(opts: {
     cuisine_tag: opts.meal.cuisine ?? null,
     archetype: opts.meal.category ?? null,
     vibe_selection: opts.vibeSelection ?? null,
+    time_to_match_seconds: opts.timeToMatchSeconds ?? null,
   });
 
   if (error) {
