@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
+import FlameCard from "../components/FlameCard";
+import type { FlameCardProps } from "../components/FlameCard";
 import {
   getPreferences,
   savePreferences,
@@ -21,9 +23,17 @@ import {
   updateProfileMeta,
   uploadAvatar,
 } from "../lib/supabase-profile";
-import { detectRituals, getRitualLabel, type RitualDetection } from "../lib/rituals";
+import { detectRituals, type RitualDetection } from "../lib/rituals";
 import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import { supabase, type SoftAvoid } from "../lib/supabase";
+import {
+  getSoloDNA,
+  getCouplesDNA,
+  getLatestPartner,
+  type SoloDNA,
+  type CouplesDNA,
+} from "../lib/dna";
+import { getSoloInsights, getCouplesInsights } from "../lib/dna-insights";
 
 // ── Option constants ──────────────────────────────────────────────────────────
 
@@ -89,6 +99,13 @@ function initials(name: string | null | undefined): string {
     .join("");
 }
 
+function formatSeconds(s: number): string {
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -116,6 +133,20 @@ export default function ProfilePage() {
   const [softAvoids, setSoftAvoids] = useState<SoftAvoid[]>([]);
   const [rituals, setRituals] = useState<RitualDetection[]>([]);
 
+  // ── DNA state (loaded separately) ─────────────────────────────────────────
+  const [dnaLoading, setDnaLoading] = useState(true);
+  const [soloDNA, setSoloDNA] = useState<SoloDNA | null>(null);
+  const [soloInsights, setSoloInsights] = useState<string[]>([]);
+  const [couplesDNA, setCouplesDNA] = useState<CouplesDNA | null>(null);
+  const [couplesInsights, setCouplesInsights] = useState<string[]>([]);
+  const [partnerName, setPartnerName] = useState<string | null>(null);
+
+  // ── FlameCard overlay ──────────────────────────────────────────────────────
+  const [flameOverlay, setFlameOverlay] = useState<"solo" | "couples" | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const flameCardRef = useRef<HTMLDivElement>(null);
+
   // ── Saved toast ────────────────────────────────────────────────────────────
   const [savedVisible, setSavedVisible] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,8 +157,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Sync reads — all available immediately from localStorage.
-    // Fall back to empty defaults if localStorage was wiped (e.g. after sign-out)
-    // so the page never gets stuck on a blank screen from a null prefs guard.
     setPrefs(getPreferences() ?? {
       cuisines: [],
       dietaryRestrictions: [],
@@ -142,7 +171,7 @@ export default function ProfilePage() {
 
     const userId = getUserId();
 
-    // Check auth session and load full profile in parallel
+    // ── Identity load (auth + profile + avoids + rituals) ──────────────────
     Promise.all([
       getAuthUserId(),
       fetchOrCreateProfile(userId),
@@ -151,30 +180,62 @@ export default function ProfilePage() {
     ])
       .then(([authUid, profile, avoids, _rituals]) => {
         setAuthUserId(authUid);
-
         if (profile?.display_name) {
           setDisplayName(profile.display_name);
           setNameInput(profile.display_name);
         }
-        if (profile?.avatar_url) {
-          setAvatarUrl(profile.avatar_url);
-        }
-        // Supabase novelty_bias wins over localStorage value if set
-        if (profile?.novelty_bias != null) {
-          setNoveltyBias(profile.novelty_bias);
-        }
-
+        if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+        if (profile?.novelty_bias != null) setNoveltyBias(profile.novelty_bias);
         const now = Date.now();
         setSoftAvoids(avoids.filter((sa) => new Date(sa.expiresAt).getTime() > now));
         setRituals(_rituals.filter((r) => r.confidence >= 0.6));
       })
-      .catch((err) => {
-        console.warn("[profile] async load error:", err);
-      })
-      .finally(() => {
-        setAsyncLoading(false);
-      });
-  }, []);
+      .catch((err) => console.warn("[profile] identity load error:", err))
+      .finally(() => setAsyncLoading(false));
+
+    // ── DNA load (runs in parallel with identity) ───────────────────────────
+    (async () => {
+      try {
+        const [dna, partnerRel, selfProfile] = await Promise.all([
+          getSoloDNA(userId),
+          getLatestPartner(userId),
+          fetchOrCreateProfile(userId),
+        ]);
+
+        setSoloDNA(dna);
+
+        if (dna.totalDecisions >= 3) {
+          const insights = await getSoloInsights(
+            dna,
+            selfProfile?.display_name ?? undefined
+          ).catch(() => []);
+          setSoloInsights(insights);
+        }
+
+        if (partnerRel) {
+          const [couplesDna, partnerProf] = await Promise.all([
+            getCouplesDNA(userId, partnerRel.partnerId),
+            fetchOrCreateProfile(partnerRel.partnerId),
+          ]);
+          setCouplesDNA(couplesDna);
+          setPartnerName(partnerProf?.display_name ?? null);
+
+          const ci = await getCouplesInsights(
+            couplesDna,
+            selfProfile?.display_name ?? undefined,
+            partnerProf?.display_name ?? undefined,
+            userId,
+            partnerRel.partnerId
+          ).catch(() => []);
+          setCouplesInsights(ci);
+        }
+      } catch (err) {
+        console.warn("[profile] DNA load error:", err);
+      } finally {
+        setDnaLoading(false);
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Preference update helpers ──────────────────────────────────────────────
 
@@ -202,10 +263,7 @@ export default function ProfilePage() {
 
   function toggleDisliked(label: string) {
     if (!prefs) return;
-    if (label === "None of these") {
-      update({ hardNoFoods: [] });
-      return;
-    }
+    if (label === "None of these") { update({ hardNoFoods: [] }); return; }
     const next = prefs.hardNoFoods.includes(label)
       ? prefs.hardNoFoods.filter((f) => f !== label)
       : [...prefs.hardNoFoods, label];
@@ -243,25 +301,11 @@ export default function ProfilePage() {
     if (!file) return;
     setAvatarUploading(true);
     setAvatarError(null);
-
     const userId = getUserId();
     const url = await uploadAvatar(userId, file);
-
-    if (!url) {
-      setAvatarError("Photo didn't upload. Try again.");
-      setAvatarUploading(false);
-      return;
-    }
-
+    if (!url) { setAvatarError("Photo didn't upload. Try again."); setAvatarUploading(false); return; }
     const saved = await updateProfileMeta(userId, { avatarUrl: url });
-
-    if (!saved) {
-      setAvatarError("Photo uploaded, but didn't save. Try again.");
-      setAvatarUploading(false);
-      return;
-    }
-
-    // Only update the visible avatar after both upload and profile save succeed.
+    if (!saved) { setAvatarError("Photo uploaded, but didn't save. Try again."); setAvatarUploading(false); return; }
     setAvatarUrl(url);
     setAvatarUploading(false);
   }
@@ -274,68 +318,50 @@ export default function ProfilePage() {
     router.push("/");
   }
 
-  // ── Section 2 derived data (sync — from localStorage taste profile) ────────
+  // ── Share handler (html2canvas) ────────────────────────────────────────────
 
-  const isTimeTag = (tag: string) => /^\d+ min$/i.test(tag);
-
-  const topLikedTags = tasteProfile
-    ? Object.entries(tasteProfile.likedTags)
-        .filter(([tag]) => !isTimeTag(tag))
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([tag]) => tag)
-    : [];
-
-  const topDislikedTags = tasteProfile
-    ? Object.entries(tasteProfile.dislikedTags)
-        .filter(([tag]) => !isTimeTag(tag))
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 2)
-        .map(([tag]) => tag)
-    : [];
-
-  // ── Section 3 derived data (sync — from localStorage history) ─────────────
-
-  const interactionCount = tasteProfile?.interactionCount ?? 0;
-  const mealsTriedCount = new Set(history.map((e) => e.meal.id)).size;
-
-  const topCategory: string | null = (() => {
-    if (history.length < 5) return null;
-    const freq: Record<string, number> = {};
-    for (const e of history) {
-      freq[e.meal.category] = (freq[e.meal.category] ?? 0) + 1;
-    }
-    return Object.entries(freq).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
-  })();
-
-  // ── Flavor profile bars ────────────────────────────────────────────────────
-
-  const flavorBars = tasteProfile
-    ? Object.entries(tasteProfile.likedCategories)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
-    : [];
-
-  const maxFlavor = flavorBars[0]?.[1] ?? 1;
-
-  // ── Top cuisines (from prefs + history counts) ────────────────────────────
-
-  const cuisineCountMap: Record<string, number> = {};
-  for (const e of history) {
-    if (e.meal.cuisine) {
-      cuisineCountMap[e.meal.cuisine] = (cuisineCountMap[e.meal.cuisine] ?? 0) + 1;
+  async function handleShare() {
+    if (!flameCardRef.current) return;
+    setSharing(true);
+    setShareError(null);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(flameCardRef.current, {
+        backgroundColor: "#1C1A18",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) { setShareError("Couldn't share. Try saving the image."); setSharing(false); return; }
+        const file = new File([blob], "watcha-flavor-profile.png", { type: "image/png" });
+        if (typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: "My Watcha? Flavor Profile" });
+          } catch (err) {
+            if (err instanceof Error && err.name !== "AbortError") {
+              setShareError("Couldn't share. Try saving the image.");
+            }
+          }
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "watcha-flavor-profile.png";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        setSharing(false);
+      }, "image/png");
+    } catch {
+      setShareError("Couldn't share. Try saving the image.");
+      setSharing(false);
     }
   }
-  const topCuisines = (prefs?.cuisines ?? [])
-    .map((label) => ({
-      label,
-      emoji: CUISINES.find((c) => c.label === label)?.emoji ?? "🍽️",
-      count: cuisineCountMap[label] ?? 0,
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 4);
 
-  // ── Member since ──────────────────────────────────────────────────────────
+  // ── Derived data ──────────────────────────────────────────────────────────
+
+  const mealsTriedCount = new Set(history.map((e) => e.meal.id)).size;
 
   const memberSince = (() => {
     if (history.length === 0) return null;
@@ -343,18 +369,63 @@ export default function ProfilePage() {
     return new Date(oldest.chosenAt).toLocaleDateString("en-US", { month: "short", year: "numeric" });
   })();
 
-  // ── Insight text ─────────────────────────────────────────────────────────
+  // ── DNA derived data ───────────────────────────────────────────────────────
 
-  const insightText = (() => {
-    if (topLikedTags.length === 0 && !topCategory) return null;
-    const parts: string[] = [];
-    if (topCategory) parts.push(topCategory);
-    if (topLikedTags[0]) parts.push(topLikedTags[0]);
-    return parts;
-  })();
+  const soloTopThree = soloDNA?.topCuisines.slice(0, 3) ?? [];
+  const soloMaxPct = soloTopThree[0]?.pct ?? 1;
+  const activeTags = soloDNA?.flavorTags.filter((t) => t.active).map((t) => t.tag) ?? [];
+  const hardNosList = prefs?.hardNoFoods ?? [];
 
-  // Guard for the single render frame before the useEffect fires.
-  // After that frame prefs is guaranteed non-null (defaults are set in the effect above).
+  const couplesTopTwo = couplesDNA?.mutualCuisines.slice(0, 2) ?? [];
+  const couplesMaxPct = couplesTopTwo[0]?.pct ?? 1;
+
+  // ── FlameCard props (built for overlay) ───────────────────────────────────
+
+  const soloCardProps: FlameCardProps | null =
+    soloDNA && soloDNA.totalDecisions >= 3
+      ? {
+          mode: "solo",
+          userName: displayName || undefined,
+          data: {
+            totalDecisions: soloDNA.totalDecisions,
+            totalSessions: soloDNA.totalSessions,
+            topCuisine: soloDNA.topCuisines[0]?.cuisine,
+            topCuisinePct: soloDNA.topCuisines[0]?.pct,
+            cuisineBreakdown: soloDNA.topCuisines.slice(0, 3),
+            flavorTags: activeTags.slice(0, 5),
+            hardNos: hardNosList.length ? hardNosList : undefined,
+            allTimeNumber1: soloDNA.allTimeNumber1
+              ? { mealName: soloDNA.allTimeNumber1.mealName, count: soloDNA.allTimeNumber1.count }
+              : undefined,
+            fastestMatchSeconds: soloDNA.fastestMatchSeconds,
+            currentStreak: soloDNA.currentStreakDays,
+            insights: soloInsights,
+          },
+        }
+      : null;
+
+  const couplesCardProps: FlameCardProps | null = couplesDNA
+    ? {
+        mode: "couples",
+        userName: displayName || undefined,
+        partnerName: partnerName || undefined,
+        data: {
+          totalMatchesTogether: couplesDNA.totalMatchesTogether,
+          totalSessions: couplesDNA.totalSessionsTogether,
+          topCuisine: couplesDNA.mutualCuisines[0]?.cuisine,
+          topCuisinePct: couplesDNA.mutualCuisines[0]?.pct,
+          cuisineBreakdown: couplesDNA.mutualCuisines.slice(0, 3),
+          allTimeNumber1: couplesDNA.allTimeNumber1Together
+            ? { mealName: couplesDNA.allTimeNumber1Together.mealName, count: couplesDNA.allTimeNumber1Together.count }
+            : undefined,
+          fastestMatchSeconds: couplesDNA.fastestMatchTogether,
+          insights: couplesInsights,
+        },
+      }
+    : null;
+
+  // ── Guard: single render frame before useEffect fires ─────────────────────
+
   if (!prefs) {
     return (
       <div className="min-h-screen bg-[#1C1A18] flex items-center justify-center">
@@ -381,9 +452,10 @@ export default function ProfilePage() {
         Saved
       </span>
 
-      {/* ── 1. Profile header ─────────────────────────────────────────────────── */}
+      {/* ──────────────────────────────────────────────────────────────────────
+          SECTION 1 — Identity (keep as-is)
+      ────────────────────────────────────────────────────────────────────── */}
       <div className="px-5 pt-6 pb-2">
-
         {/* Avatar top right */}
         <div className="flex items-center justify-end mb-6">
           <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
@@ -503,30 +575,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── 2. Insight card ───────────────────────────────────────────────────── */}
-      {insightText && (
-        <div className="mx-5 mt-5 bg-[#2A2420] rounded-[18px] p-5 border-l-4 border-[#E8621A]">
-          <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase">
-            WATCHA? KNOWS YOU
-          </p>
-          <p className="font-display font-black text-base text-white leading-snug mt-2">
-            You tend to go for{" "}
-            {insightText[0] && (
-              <span className="text-[#E8621A]">{insightText[0]}</span>
-            )}
-            {insightText[1] && (
-              <>
-                {" "}with a{" "}
-                <span className="text-[#E8621A]">{insightText[1]}</span>
-                {" "}vibe
-              </>
-            )}
-            .
-          </p>
-        </div>
-      )}
-
-      {/* ── 3. Stats row ─────────────────────────────────────────────────────── */}
+      {/* ── Stats row ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 mx-5 mt-6">
         <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
           <span className="font-display font-black text-3xl text-[#E8621A]">{history.length}</span>
@@ -542,76 +591,272 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── 3b. Flavor Profile entry card ────────────────────────────────────── */}
-      <div className="mx-5 mt-5">
-        <button
-          onClick={() => router.push("/profile/card")}
-          className="w-full flex items-center justify-between bg-[#2A2420] rounded-[18px] px-5 py-4 border border-[#E8621A20]"
-        >
-          <div className="text-left">
-            <p className="font-display font-black text-base text-white">
-              View my Flavor Profile
-            </p>
-            <p className="font-body text-xs text-[#8A7F78] mt-0.5">
-              See what your dinner decisions say about you.
-            </p>
-          </div>
-          <span className="text-[#E8621A] text-lg flex-shrink-0 ml-4">Open →</span>
-        </button>
-      </div>
+      {/* ──────────────────────────────────────────────────────────────────────
+          SECTION 2 — Your Flame (solo DNA)
+      ────────────────────────────────────────────────────────────────────── */}
+      <div className="px-5 mt-10">
+        <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-5">
+          YOUR FLAME
+        </p>
 
-      {/* ── 4. Flavor profile bars ───────────────────────────────────────────── */}
-      {flavorBars.length > 0 && (
-        <div className="px-5 mt-8">
-          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-4">
-            FLAVOR PROFILE
-          </p>
-          {flavorBars.map(([cat, val]) => {
-            const pct = Math.round((val / maxFlavor) * 100);
-            return (
-              <div key={cat} className="flex items-center gap-3 mb-3">
-                <span className="font-body text-sm text-white/80 w-16 flex-shrink-0">
-                  {shortCategory(cat)}
-                </span>
-                <div className="flex-1 h-2 bg-[#3D3733] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#E8621A] rounded-full"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <span className="font-display font-bold text-sm text-[#E8621A] w-10 text-right flex-shrink-0">
-                  {pct}%
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── 4. Top cuisines ──────────────────────────────────────────────────── */}
-      {topCuisines.length > 0 && (
-        <div className="px-5 mt-8">
-          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
-            TOP CUISINES
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {topCuisines.map(({ label, emoji, count }) => (
-              <div key={label} className="bg-[#2A2420] rounded-[16px] p-4 flex items-center gap-3">
-                <span className="text-2xl flex-shrink-0">{emoji}</span>
-                <div className="min-w-0">
-                  <p className="font-display font-bold text-base text-white">{label}</p>
-                  <p className="font-body text-xs text-[#8A7F78] mt-0.5">
-                    {count > 0 ? `Decided ${count}×` : "In your list"}
-                  </p>
-                </div>
+        {dnaLoading ? (
+          /* Skeleton */
+          <div>
+            <div className="h-7 w-52 rounded-full bg-white/[0.06] animate-pulse mb-2" />
+            <div className="h-4 w-36 rounded-full bg-white/[0.04] animate-pulse mb-6" />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 mb-3">
+                <div className="h-3 w-16 rounded-full bg-white/[0.04] animate-pulse flex-shrink-0" />
+                <div className="flex-1 h-1.5 rounded-full bg-[#3D3733] animate-pulse" />
+                <div className="h-3 w-8 rounded-full bg-white/[0.04] animate-pulse flex-shrink-0" />
               </div>
             ))}
           </div>
+        ) : soloDNA && soloDNA.totalDecisions < 3 ? (
+          /* Not enough data */
+          <div className="flex flex-col items-center text-center py-6">
+            <p className="font-display font-black text-2xl text-white leading-snug mb-2">
+              Your Flame is still warming up.
+            </p>
+            <p className="font-body text-sm text-[#8A7F78] leading-relaxed mb-6">
+              Make a few more dinner decisions and we'll have something real to say.
+            </p>
+            <button
+              onClick={() => router.push("/")}
+              className="font-display font-black text-sm px-6 py-3.5 rounded-full bg-[#E8621A] text-white"
+            >
+              Go decide →
+            </button>
+          </div>
+        ) : soloDNA ? (
+          /* Full flame content */
+          <div>
+            {/* Hero */}
+            <p className="font-display font-black text-2xl text-white leading-tight">
+              {soloDNA.topCuisines[0]?.cuisine ?? "Your taste"} runs the table
+            </p>
+            {soloDNA.topCuisines[0]?.pct != null && (
+              <p className="font-body text-sm text-[#8A7F78] mt-1">
+                {soloDNA.topCuisines[0].pct}% of your decisions
+              </p>
+            )}
+
+            {/* Cuisine bars — top 3 */}
+            {soloTopThree.length > 0 && (
+              <div className="mt-5 flex flex-col gap-2.5">
+                {soloTopThree.map(({ cuisine, pct }) => {
+                  const barW = Math.round((pct / soloMaxPct) * 100);
+                  return (
+                    <div key={cuisine}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
+                        <span className="font-display font-bold text-sm text-[#E8621A]">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#3D3733" }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${barW}%`, background: "linear-gradient(90deg, #E8621A, #c4440e)" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Flavor tags */}
+            {(activeTags.length > 0 || hardNosList.length > 0) && (
+              <div className="mt-5">
+                {activeTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {activeTags.slice(0, 5).map((tag) => (
+                      <span
+                        key={tag}
+                        className="font-body text-xs font-semibold px-3 py-1.5 rounded-full"
+                        style={{ background: "#E8621A20", color: "#E8621A", border: "1px solid #E8621A40" }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {hardNosList.length > 0 && (
+                  <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                    <span className="font-body text-xs text-[#8A7F78]">Never showing:</span>
+                    {hardNosList.map((item) => (
+                      <span
+                        key={item}
+                        className="font-body text-xs px-2.5 py-1 rounded-full line-through"
+                        style={{ background: "#3D3733", color: "#8A7F78" }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* All-time #1 */}
+            {soloDNA.allTimeNumber1 && (
+              <div
+                className="mt-5 rounded-[14px] px-4 py-4 border"
+                style={{ background: "#2A2420", borderColor: "#E8621A30" }}
+              >
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-[#E8621A] mb-1">
+                  ALL-TIME #1
+                </p>
+                <p className="font-display font-black text-lg text-white leading-tight">
+                  {soloDNA.allTimeNumber1.mealName}
+                </p>
+                {soloDNA.allTimeNumber1.count > 1 && (
+                  <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                    Chosen {soloDNA.allTimeNumber1.count}×
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* AI Insights */}
+            {soloInsights.length > 0 && (
+              <div className="mt-5">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
+                  WHAT THE DATA SAYS
+                </p>
+                <div className="flex flex-col gap-3">
+                  {soloInsights.slice(0, 2).map((text, i) => (
+                    <div key={i} className="border-l-2 border-[#E8621A]/40 pl-3">
+                      <p className="font-body text-sm text-white/80 leading-snug">{text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Share button */}
+            <button
+              onClick={() => setFlameOverlay("solo")}
+              className="mt-6 w-full font-display font-black text-sm py-4 rounded-full bg-[#E8621A] text-white"
+            >
+              Share my Flavor Card →
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────
+          SECTION 3 — Deciding Together (couples DNA, hidden if no partner)
+      ────────────────────────────────────────────────────────────────────── */}
+      {!dnaLoading && couplesDNA && (
+        <div className="px-5 mt-10">
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex-1 h-px bg-white/[0.08]" />
+            <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase flex-shrink-0">
+              DECIDING TOGETHER
+            </p>
+            <div className="flex-1 h-px bg-white/[0.08]" />
+          </div>
+
+          {/* Partner header */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center flex-shrink-0">
+              <span className="font-display font-black text-base text-[#E8621A]">
+                {initials(partnerName)}
+              </span>
+            </div>
+            <div>
+              <p className="font-display font-black text-base text-white">
+                {partnerName ?? "Someone you matched with"}
+              </p>
+              <p className="font-body text-xs text-[#8A7F78]">Your dinner partner</p>
+            </div>
+          </div>
+
+          {/* Shared stats row */}
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
+              <span className="font-display font-black text-xl text-[#E8621A]">
+                {couplesDNA.totalMatchesTogether > 0 ? couplesDNA.totalMatchesTogether : "—"}
+              </span>
+              <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Matches</span>
+            </div>
+            <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
+              <span className="font-display font-black text-xl text-[#E8621A]">
+                {couplesDNA.totalSessionsTogether > 0 ? couplesDNA.totalSessionsTogether : "—"}
+              </span>
+              <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Sessions</span>
+            </div>
+            <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
+              <span className="font-display font-black text-xl text-[#E8621A]">
+                {couplesDNA.fastestMatchTogether != null
+                  ? formatSeconds(couplesDNA.fastestMatchTogether)
+                  : "—"}
+              </span>
+              <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Fastest</span>
+            </div>
+          </div>
+
+          {/* Mutual top 2 cuisines */}
+          {couplesTopTwo.length > 0 && (
+            <div className="mb-5">
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
+                MUTUAL FAVOURITES
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {couplesTopTwo.map(({ cuisine, pct }) => {
+                  const barW = Math.round((pct / couplesMaxPct) * 100);
+                  return (
+                    <div key={cuisine}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
+                        <span className="font-display font-bold text-sm text-[#E8621A]">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#3D3733" }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${barW}%`, background: "linear-gradient(90deg, #E8621A, #c4440e)" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Couples AI insights */}
+          {couplesInsights.length > 0 && (
+            <div className="mb-5">
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
+                WHAT THE DATA SAYS
+              </p>
+              <div className="flex flex-col gap-3">
+                {couplesInsights.slice(0, 2).map((text, i) => (
+                  <div key={i} className="border-l-2 border-[#E8621A]/40 pl-3">
+                    <p className="font-body text-sm text-white/80 leading-snug">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* See full couples card */}
+          <button
+            onClick={() => setFlameOverlay("couples")}
+            className="w-full font-display font-black text-sm py-3.5 rounded-full border border-white/20 text-[#8A7F78]"
+          >
+            See full couples card →
+          </button>
         </div>
       )}
 
-      {/* ── 5. Dietary restrictions ──────────────────────────────────────────── */}
-      <div className="px-5 mt-8">
+      {/* ──────────────────────────────────────────────────────────────────────
+          SECTION 4 — Library (keep as-is)
+      ────────────────────────────────────────────────────────────────────── */}
+
+      {/* Dietary restrictions */}
+      <div className="px-5 mt-10">
         <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
           DIETARY RESTRICTIONS
         </p>
@@ -633,7 +878,6 @@ export default function ProfilePage() {
             + Add
           </button>
         </div>
-        {/* Inline add picker */}
         {showAddDietary && (
           <div className="flex flex-wrap gap-2 mt-3">
             {DIETARY_OPTIONS.filter(
@@ -651,7 +895,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* ── 6. Hard NOs ──────────────────────────────────────────────────────── */}
+      {/* Hard NOs */}
       <div className="px-5 mt-8">
         <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
           HARD NOs — NEVER SHOWING THESE
@@ -674,7 +918,6 @@ export default function ProfilePage() {
             + Add
           </button>
         </div>
-        {/* Inline add picker */}
         {showAddHardNo && (
           <div className="flex flex-wrap gap-2 mt-3">
             {DISLIKED_FOODS.filter(
@@ -695,6 +938,62 @@ export default function ProfilePage() {
       {/* ── Bottom nav ───────────────────────────────────────────────────────── */}
       <BottomNav />
 
+      {/* ──────────────────────────────────────────────────────────────────────
+          FlameCard overlay (slides up from bottom)
+      ────────────────────────────────────────────────────────────────────── */}
+      <div
+        className={`fixed inset-0 z-50 flex flex-col transition-all duration-300 ${
+          flameOverlay ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {/* Dark backdrop */}
+        <div
+          className="absolute inset-0 bg-black/70"
+          onClick={() => { setFlameOverlay(null); setShareError(null); }}
+        />
+
+        {/* Sheet */}
+        <div
+          className={`relative mt-auto bg-[#1C1A18] rounded-t-[24px] max-h-[92vh] overflow-y-auto transition-transform duration-300 ${
+            flameOverlay ? "translate-y-0" : "translate-y-full"
+          }`}
+        >
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+
+          {/* Card */}
+          <div className="px-5 pt-3 pb-4">
+            {flameOverlay === "solo" && soloCardProps && (
+              <FlameCard ref={flameCardRef} {...soloCardProps} />
+            )}
+            {flameOverlay === "couples" && couplesCardProps && (
+              <FlameCard ref={flameCardRef} {...couplesCardProps} />
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="px-5 pb-8 flex flex-col gap-3">
+            <button
+              onClick={() => { setFlameOverlay(null); setShareError(null); }}
+              className="w-full font-display font-black text-sm py-3 rounded-full border border-white/20 text-[#8A7F78]"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => void handleShare()}
+              disabled={sharing}
+              className="w-full font-display font-black text-sm py-4 rounded-full bg-[#E8621A] text-white disabled:opacity-60"
+            >
+              {sharing ? "Making your card…" : "Share →"}
+            </button>
+            {shareError && (
+              <p className="font-body text-xs text-center text-[#8A7F78]">{shareError}</p>
+            )}
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

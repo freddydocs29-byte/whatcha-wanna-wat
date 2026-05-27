@@ -36,7 +36,6 @@ import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
-import { recordAcceptedDecision } from "./lib/session-tracking";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -378,17 +377,9 @@ export default function Home() {
               addToHistory(meal);
               saveDecidedMeal(decidedMealData);
 
-              // Write this user's accepted decision row unless the deck already
-              // wrote it (via handleMatchConfirm or handleJustDecide).
-              const guardKey = `wwe_decision_written_${sessionId}_${meal.id}`;
-              if (!localStorage.getItem(guardKey)) {
-                localStorage.setItem(guardKey, "1");
-                const homeSessionStart = data.created_at ?? null;
-                const homeTimeToMatch = homeSessionStart
-                  ? Math.max(0, Math.round((Date.now() - new Date(homeSessionStart).getTime()) / 1000))
-                  : null;
-                void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "shared", sessionId, vibeSelection: data.vibe ?? null, timeToMatchSeconds: homeTimeToMatch });
-              }
+              // Decision rows for both users are written atomically by the
+              // record_shared_match_decision RPC when the confirming user taps
+              // confirm. Nothing to write here.
 
               // Update React state directly so the decided-state UI appears immediately
               setDecidedMealState(decidedMealData);

@@ -1326,74 +1326,55 @@ function DeckContent() {
     setMatchConfirmError(null);
     trackEvent("match_confirmed", { mealId: matchedMeal.id, sessionId });
 
-    const { data: matchedSessionData, error } = await supabase
+    // Fetch session created_at for time-to-match calculation
+    const { data: matchedSessionData } = await supabase
       .from("sessions")
-      .update({
-        status: "matched",
-        locked_meal_id: matchedMeal.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sessionId)
       .select("created_at")
+      .eq("id", sessionId)
       .single();
 
-    if (error) {
-      console.error("[match] failed to update session:", error.message);
-      setMatchConfirmError("We found the match, but couldn't lock it in. Try again.");
-      setMatchConfirming(false);
-      return;
-    }
-
-    console.log("[match] session marked matched:", sessionId, matchedMeal.id);
-
-    // Calculate time from shared session creation to match
     const matchSessionStart = matchedSessionData?.created_at ?? null;
     const matchTimeToMatchSeconds = matchSessionStart
       ? Math.max(0, Math.round((Date.now() - new Date(matchSessionStart).getTime()) / 1000))
       : null;
 
-    // Record partner relationship — fire-and-forget
-    {
-      const userId = getUserId();
-      const partnerId = partnerUserId;
-      if (sessionId && userId && partnerId) {
-        supabase
-          .rpc("record_partner_relationship_match", {
-            p_user_id_a: userId,
-            p_user_id_b: partnerId,
-            p_session_id: sessionId,
-          })
-          .then(({ error }) => {
-            if (error) {
-              console.warn("[relationship] RPC failed:", error.message);
-            } else {
-              console.log("[relationship] match relationship recorded");
-            }
-          });
-      }
+    const now = new Date();
+    const { mealPeriod, dayType } = inferSessionContext(now);
+
+    // Single RPC: updates session status, writes both users' decision rows,
+    // and upserts the partner relationship atomically.
+    const { error } = await supabase.rpc("record_shared_match_decision", {
+      p_session_id: sessionId,
+      p_meal_id: matchedMeal.id,
+      p_meal_name: matchedMeal.name,
+      p_meal_period: mealPeriod,
+      p_day_type: dayType,
+      p_is_ai_generated: aiMealIds.has(matchedMeal.id),
+      p_cuisine_tag: matchedMeal.cuisine ?? null,
+      p_archetype: matchedMeal.category ?? null,
+      p_vibe_selection: sessionVibeMode ?? null,
+      p_time_to_match_seconds: matchTimeToMatchSeconds,
+    });
+
+    if (error) {
+      console.error("[match] record_shared_match_decision failed:", error.message);
+      setMatchConfirmError("We found the match, but couldn't lock it in. Try again.");
+      setMatchConfirming(false);
+      return;
     }
 
-    // Guard against home-screen polling writing a duplicate decision row.
-    // Set synchronously before the async tracking chain resolves.
+    console.log("[match] shared match decision recorded:", sessionId, matchedMeal.id);
+
+    // Guard: prevent the home-screen polling loop from writing a duplicate
+    // decision row for the current user (the RPC already wrote both rows).
     if (typeof window !== "undefined") {
       localStorage.setItem(`wwe_decision_written_${sessionId}_${matchedMeal.id}`, "1");
     }
 
-    // Record acceptance — fire-and-forget
+    // Close the tracking session — no need to call recordDecision, RPC handled it.
     trackingClosedRef.current = true;
     trackingSessionPromiseRef.current?.then((tsId) => {
       if (tsId && trackingOpenedAtRef.current) {
-        void recordDecision({
-          trackingSessionId: tsId,
-          meal: matchedMeal,
-          outcome: "accepted",
-          positionInDeck: currentIndex,
-          isAiGenerated: aiMealIds.has(matchedMeal.id),
-          sessionType: "shared",
-          sharedSessionId: sessionId,
-          vibeSelection: sessionVibeMode,
-          timeToMatchSeconds: matchTimeToMatchSeconds,
-        });
         void closeTrackingSession({
           trackingSessionId: tsId,
           resolved: true,
@@ -1801,27 +1782,38 @@ function DeckContent() {
       ? Math.max(0, Math.round((Date.now() - new Date(justDecideStart).getTime()) / 1000))
       : null;
 
-    // Guard against home-screen polling writing a duplicate decision row
-    // for the same session+meal combination. Set synchronously before any async work.
+    const { mealPeriod: jdMealPeriod, dayType: jdDayType } = inferSessionContext(new Date());
+
+    // Single RPC: updates session status, writes both users' decision rows,
+    // and upserts the partner relationship atomically.
+    const { error: jdError } = await supabase.rpc("record_shared_match_decision", {
+      p_session_id: sessionId,
+      p_meal_id: topMeal.id,
+      p_meal_name: topMeal.name,
+      p_meal_period: jdMealPeriod,
+      p_day_type: jdDayType,
+      p_is_ai_generated: aiMealIds.has(topMeal.id),
+      p_cuisine_tag: topMeal.cuisine ?? null,
+      p_archetype: topMeal.category ?? null,
+      p_vibe_selection: sessionVibeMode ?? null,
+      p_time_to_match_seconds: justDecideTimeToMatch,
+    });
+
+    if (jdError) {
+      console.error("[just-decide] record_shared_match_decision failed:", jdError.message);
+      // Non-fatal: partner can still see the match via session polling.
+      // Continue to local state updates and navigation.
+    }
+
+    // Guard: prevent home-screen polling from writing a duplicate decision row.
     if (typeof window !== "undefined") {
       localStorage.setItem(`wwe_decision_written_${sessionId}_${topMeal.id}`, "1");
     }
 
-    // Close tracking session before navigation
+    // Close tracking session — RPC handled the decision row write.
     trackingClosedRef.current = true;
     trackingSessionPromiseRef.current?.then((tsId) => {
       if (tsId && trackingOpenedAtRef.current) {
-        void recordDecision({
-          trackingSessionId: tsId,
-          meal: topMeal,
-          outcome: "accepted",
-          positionInDeck: 0,
-          isAiGenerated: aiMealIds.has(topMeal.id),
-          sessionType: "shared",
-          sharedSessionId: sessionId,
-          vibeSelection: sessionVibeMode,
-          timeToMatchSeconds: justDecideTimeToMatch,
-        });
         void closeTrackingSession({
           trackingSessionId: tsId,
           resolved: true,
@@ -1830,15 +1822,6 @@ function DeckContent() {
         });
       }
     });
-
-    await supabase
-      .from("sessions")
-      .update({
-        status: "matched",
-        locked_meal_id: topMeal.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sessionId);
 
     addToHistory(topMeal);
     saveDecidedMeal({ ...topMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });

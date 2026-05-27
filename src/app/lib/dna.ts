@@ -333,6 +333,28 @@ export async function getSoloDNA(userId: string): Promise<SoloDNA> {
   };
 }
 
+export async function getLatestPartner(
+  userId: string
+): Promise<{ partnerId: string } | null> {
+  // user_id_a / user_id_b are stored sorted alphabetically
+  const { data } = await supabase
+    .from("partner_relationships")
+    .select("user_id_a, user_id_b, session_count")
+    .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`)
+    .order("session_count", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  const partnerId =
+    (data.user_id_a as string) === userId
+      ? (data.user_id_b as string)
+      : (data.user_id_a as string);
+
+  return { partnerId };
+}
+
 export async function getCouplesDNA(
   userIdA: string,
   userIdB: string
@@ -349,13 +371,27 @@ export async function getCouplesDNA(
 
   if (!relationship) return emptyCouplesDNA();
 
-  // All accepted shared decisions for both users
-  const { data: sharedDecisions } = await supabase
-    .from("decisions")
-    .select("*")
-    .in("user_id", [userIdA, userIdB])
-    .eq("session_type", "shared")
-    .eq("outcome", "accepted");
+  // Collect only the session IDs that belong to this exact pair so we don't
+  // accidentally include shared decisions from sessions with other partners.
+  const { data: pairSessions } = await supabase
+    .from("sessions")
+    .select("id")
+    .or(
+      `and(host_user_id.eq.${userIdA},guest_user_id.eq.${userIdB}),and(host_user_id.eq.${userIdB},guest_user_id.eq.${userIdA})`
+    );
+
+  const pairSessionIds = (pairSessions ?? []).map((s) => (s as { id: string }).id);
+
+  // All accepted shared decisions for both users, scoped to this pair's sessions
+  const { data: sharedDecisions } = pairSessionIds.length
+    ? await supabase
+        .from("decisions")
+        .select("*")
+        .in("user_id", [userIdA, userIdB])
+        .eq("session_type", "shared")
+        .eq("outcome", "accepted")
+        .in("session_id", pairSessionIds)
+    : { data: [] };
 
   if (!sharedDecisions?.length) {
     // Return relationship counts even when no decision rows exist yet
