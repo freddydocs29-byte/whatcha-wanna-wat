@@ -314,7 +314,7 @@ async function main() {
   console.log(
     ` Batch this run     : ${targets.length} (size: ${BATCH_SIZE})`
   );
-  console.log(` Model              : dall-e-3  1024×1792  standard`);
+  console.log(` Model              : gpt-image-1  1024×1024  standard`);
   console.log(` Estimated cost     : ~$${(targets.length * 0.04).toFixed(2)}`);
   console.log(
     ` Auto-write         : ${
@@ -357,28 +357,23 @@ async function main() {
 
     try {
       // 1. Generate
-      console.log(`     › Generating with DALL-E 3...`);
+      console.log(`     › Generating with gpt-image-1...`);
       const response = await openai.images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: buildPrompt(meal.name),
-        size: "1024x1792",
-        quality: "standard",
+        size: "1024x1024",
+        quality: "medium",
         n: 1,
       });
 
       const firstImage = response.data?.[0];
-      if (!firstImage || !firstImage.url) {
-        throw new Error("OpenAI returned no image URL");
+      if (!firstImage || !firstImage.b64_json) {
+        throw new Error("OpenAI returned no image data");
       }
-      const tempUrl = firstImage.url;
 
-      // 2. Download
-      console.log(`     › Downloading...`);
-      const imageRes = await fetch(tempUrl);
-      if (!imageRes.ok) {
-        throw new Error(`Download failed: HTTP ${imageRes.status}`);
-      }
-      const buffer = Buffer.from(await imageRes.arrayBuffer());
+      // 2. Decode base64
+      console.log(`     › Decoding image...`);
+      const buffer = Buffer.from(firstImage.b64_json, "base64");
 
       // 3. Upload to Supabase Storage
       const fileName = `${meal.id}.jpg`;

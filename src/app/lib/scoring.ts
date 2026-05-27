@@ -95,10 +95,13 @@ const HARD_NO_KEYWORDS: Record<string, string[]> = {
  * "Asian" — this map makes that preference produce real cuisine-match boosts.
  */
 const CUISINE_EXPANSION: Record<string, string[]> = {
-  Asian:    ["Japanese", "Chinese", "Thai", "Korean", "Vietnamese", "Indian", "Filipino", "Malaysian", "Indonesian"],
-  American: ["American", "Southern", "BBQ", "Tex-Mex"],
-  European: ["Italian", "French", "Spanish", "Greek", "German"],
-  Latin:    ["Mexican", "Cuban", "Peruvian", "Colombian", "Brazilian"],
+  Asian:           ["Japanese", "Chinese", "Thai", "Korean", "Vietnamese", "Indian", "Filipino", "Malaysian", "Indonesian"],
+  American:        ["American", "Southern", "BBQ", "Tex-Mex"],
+  European:        ["Italian", "French", "Spanish", "Greek", "German"],
+  Latin:           ["Mexican", "Cuban", "Peruvian", "Colombian", "Brazilian"],
+  Mediterranean:   ["Mediterranean", "Greek", "Spanish", "Turkish", "Lebanese"],
+  "Middle Eastern":["Middle Eastern", "Lebanese", "Turkish", "Persian", "Israeli", "Moroccan"],
+  African:         ["Moroccan", "Ethiopian", "West African"],
 };
 
 /**

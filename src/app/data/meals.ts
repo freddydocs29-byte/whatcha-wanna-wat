@@ -2781,18 +2781,6 @@ export const meals: Meal[] = [
     whyItFits: "Bold flavors to kickstart your day!",
     image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/chilaquiles.jpg",
   },
-
-  {
-    id: "tacos-al-pastor",
-    name: "Tacos Al Pastor",
-    cuisine: "Mexican",
-    category: "Quick & casual",
-    description: "Savory pork marinated in pineapple and spices, served on soft corn tortillas with onion and cilantro. A taco lover's dream!",
-    tags: ["20 min","Easy","Kid-friendly","Flavorful"],
-    ingredients: ["Pork","Pineapple","Corn Tortillas","Onion","Cilantro"],
-    whyItFits: "Tacos with authentic flavors",
-    image: "",
-  },
   {
     id: "tostadas",
     name: "Tostadas",
@@ -2814,17 +2802,6 @@ export const meals: Meal[] = [
     ingredients: ["Chicken","Rice","Tomatoes","Bell Peppers","Spices"],
     whyItFits: "A comforting family favorite",
     image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/arroz-con-pollo.jpg",
-  },
-  {
-    id: "carnitas",
-    name: "Carnitas",
-    cuisine: "Mexican",
-    category: "Bold flavors",
-    description: "Slow-cooked pork that's tender and flavorful, perfect for tacos or burritos. A true Mexican staple!",
-    tags: ["60 min","High effort","Bold","Flavorful"],
-    ingredients: ["Pork","Spices","Orange Juice","Onion","Garlic"],
-    whyItFits: "Bold, tender, and addictive",
-    image: "",
   },
 
   {
@@ -3138,18 +3115,6 @@ export const meals: Meal[] = [
   },
 
   {
-    id: "bibimbap",
-    name: "Bibimbap",
-    cuisine: "Korean",
-    category: "Quick & casual",
-    description: "A colorful rice bowl topped with a variety of sautéed vegetables, a fried egg, and spicy gochujang sauce. Perfect for a quick lunch or dinner!",
-    tags: ["20 min","Easy","Kid-friendly"],
-    ingredients: ["Rice","Mixed Vegetables","Egg","Gochujang","Sesame Oil"],
-    whyItFits: "Each bowl is a vibrant masterpiece.",
-    image: "",
-  },
-
-  {
     id: "pho-bo",
     name: "Phở Bò",
     cuisine: "Vietnamese",
@@ -3159,17 +3124,6 @@ export const meals: Meal[] = [
     ingredients: ["Beef","Rice Noodles","Beef Broth","Basil","Lime"],
     whyItFits: "The beef broth is simmered for hours!",
     image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pho-bo.jpg",
-  },
-  {
-    id: "banh-mi",
-    name: "Bánh Mì",
-    cuisine: "Vietnamese",
-    category: "Quick & casual",
-    description: "A crispy baguette stuffed with savory meats and fresh vegetables, perfect for a quick lunch on the go.",
-    tags: ["20 min","Easy","Kid-friendly","Fresh"],
-    ingredients: ["Baguette","Pork","Pickled Vegetables","Cilantro","Chili"],
-    whyItFits: "It's Vietnam's famous street food staple!",
-    image: "",
   },
   {
     id: "goi-cuon",
@@ -3325,18 +3279,6 @@ export const meals: Meal[] = [
     whyItFits: "The runny egg adds creaminess to the noodles!",
     image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/trang-mien.jpg",
   },
-
-  {
-    id: "pad-thai",
-    name: "Pad Thai",
-    cuisine: "Thai",
-    category: "Quick & casual",
-    description: "A classic Thai stir-fried noodle dish tossed with shrimp, tofu, or chicken, and topped with crushed peanuts. It's a perfect blend of sweet, sour, and salty in every bite.",
-    tags: ["15 min","Easy","Flavorful","Kid-friendly"],
-    ingredients: ["Rice Noodles","Shrimp","Tofu","Peanuts","Bean Sprouts"],
-    whyItFits: "Street food staple of Thailand, beloved worldwide.",
-    image: "",
-  },
   {
     id: "tom-yum-goong",
     name: "Tom Yum Goong",
@@ -3369,17 +3311,6 @@ export const meals: Meal[] = [
     ingredients: ["Green Papaya","Lime","Chili","Fish Sauce","Tomatoes"],
     whyItFits: "A favorite street food bursting with freshness.",
     image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/som-tam.jpg",
-  },
-  {
-    id: "massaman-curry",
-    name: "Massaman Curry",
-    cuisine: "Thai",
-    category: "Elevated",
-    description: "A rich and hearty curry with a unique blend of spices, tender meat, and potatoes. This dish is a comforting choice for those who enjoy a hint of sweetness.",
-    tags: ["40 min","Medium effort","Nutritious","Comfort"],
-    ingredients: ["Coconut Milk","Massaman Curry Paste","Beef","Potatoes","Peanuts"],
-    whyItFits: "A fusion of Thai and Muslim flavors that warms your soul.",
-    image: "",
   },
   {
     id: "panang-curry",
@@ -3512,18 +3443,6 @@ export const meals: Meal[] = [
     ingredients: ["Ground Chicken","Basil","Chilies","Soy Sauce","Egg"],
     whyItFits: "A popular street food that packs a serious punch!",
     image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pad-krapow.jpg",
-  },
-
-  {
-    id: "butter-chicken",
-    name: "Butter Chicken",
-    cuisine: "Indian",
-    category: "Comfort food",
-    description: "Creamy and rich, this butter chicken features tender marinated chicken simmered in a luscious tomato-based gravy. Perfect with naan or rice!",
-    tags: ["60 min","Flavorful","Medium effort","Comfort"],
-    ingredients: ["Chicken","Tomatoes","Cream","Butter","Spices"],
-    whyItFits: "The velvety gravy makes it a classic!",
-    image: "",
   },
   {
     id: "chole-bhature",
@@ -3700,18 +3619,6 @@ export const meals: Meal[] = [
     ingredients: ["Wheat Flour","Fenugreek","Spices","Yogurt","Oil"],
     whyItFits: "A healthy twist on traditional flatbreads!",
     image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/methi-thepla.jpg",
-  },
-
-  {
-    id: "jerk-chicken",
-    name: "Jerk Chicken",
-    cuisine: "Caribbean",
-    category: "Bold flavors",
-    description: "Spicy, smoky, and succulent, this jerk chicken is marinated with a blend of aromatic spices for a taste explosion. Perfect for grilling or oven-baking!",
-    tags: ["45 min","Easy","Flavorful","Comfort"],
-    ingredients: ["Chicken","Jerk Seasoning","Scallions","Thyme"],
-    whyItFits: "Authentic Jamaican spice blend brings the heat!",
-    image: "",
   },
   {
     id: "curried-goat",
@@ -3921,7 +3828,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Easy","Kid-friendly","Flavorful"],
     ingredients: ["Ground Beef","Onion","Cilantro","Spices","Tomato Sauce"],
     whyItFits: "Grilled perfection with Moroccan spice blend.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/kefta-meatballs.jpg",
   },
   {
     id: "harira-soup",
@@ -3932,7 +3839,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Medium effort","Nutritious","Comfort"],
     ingredients: ["Lentils","Chickpeas","Tomatoes","Spices","Cilantro"],
     whyItFits: "Traditional soup that brings warmth and comfort.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/harira-soup.jpg",
   },
   {
     id: "pastilla",
@@ -3943,7 +3850,7 @@ export const meals: Meal[] = [
     tags: ["60 min","High effort","Elevated","Flavorful"],
     ingredients: ["Chicken","Phyllo Dough","Almonds","Cinnamon","Sugar"],
     whyItFits: "An extravagant dish showcasing Moroccan culinary artistry.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/pastilla.jpg",
   },
   {
     id: "zucchini-fritters",
@@ -3954,7 +3861,7 @@ export const meals: Meal[] = [
     tags: ["20 min","Easy","Kid-friendly","Fresh"],
     ingredients: ["Zucchini","Flour","Eggs","Cilantro","Spices"],
     whyItFits: "A popular street food that’s fun and quick.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/zucchini-fritters.jpg",
   },
   {
     id: "spicy-carrot-salad",
@@ -3965,7 +3872,7 @@ export const meals: Meal[] = [
     tags: ["15 min","Easy","Vegan","Light"],
     ingredients: ["Carrots","Olive Oil","Lemon Juice","Cumin","Chili Powder"],
     whyItFits: "A classic Moroccan salad highlighting vibrant flavors.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spicy-carrot-salad.jpg",
   },
   {
     id: "tagine-of-vegetables",
@@ -3976,7 +3883,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Medium effort","Vegetarian","Nutritious"],
     ingredients: ["Carrots","Bell Peppers","Onions","Spices","Olive Oil"],
     whyItFits: "A vibrant vegetable medley capturing Moroccan essence.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/tagine-of-vegetables.jpg",
   },
   {
     id: "moroccan-chicken-skewers",
@@ -3987,7 +3894,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly","Flavorful"],
     ingredients: ["Chicken","Cumin","Paprika","Garlic","Olive Oil"],
     whyItFits: "Quick and easy skewers capturing Moroccan warmth.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/moroccan-chicken-skewers.jpg",
   },
   {
     id: "briouat",
@@ -3998,7 +3905,7 @@ export const meals: Meal[] = [
     tags: ["45 min","Medium effort","Flavorful","Elevated"],
     ingredients: ["Phyllo Dough","Ground Meat","Almonds","Spices","Egg"],
     whyItFits: "Authentically Moroccan, a tasty bite-sized treat.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/briouat.jpg",
   },
   {
     id: "moroccan-pizza",
@@ -4009,7 +3916,7 @@ export const meals: Meal[] = [
     tags: ["30 min","Easy","Kid-friendly","Flavorful"],
     ingredients: ["Flatbread","Ground Beef","Spices","Herbs","Cheese"],
     whyItFits: "Moroccan flair on a classic favorite.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/moroccan-pizza.jpg",
   },
   {
     id: "orange-salad",
@@ -4020,7 +3927,7 @@ export const meals: Meal[] = [
     tags: ["15 min","Easy","Vegan","Light"],
     ingredients: ["Oranges","Olive Oil","Cinnamon","Mint","Sugar"],
     whyItFits: "A traditional Moroccan treat to cleanse the palate.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/orange-salad.jpg",
   },
   {
     id: "saffron-rice",
@@ -4031,7 +3938,7 @@ export const meals: Meal[] = [
     tags: ["35 min","Easy","Comfort","Flavorful"],
     ingredients: ["Rice","Saffron","Chicken Broth","Onion","Spices"],
     whyItFits: "A signature side that enhances Moroccan dining.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/saffron-rice.jpg",
   },
   {
     id: "spiced-pumpkin-soup",
@@ -4042,6 +3949,6 @@ export const meals: Meal[] = [
     tags: ["40 min","Medium effort","Nutritious","Comfort"],
     ingredients: ["Pumpkin","Onion","Cumin","Ginger","Cream"],
     whyItFits: "Utilizes seasonal produce for rich flavors.",
-    image: "",
+    image: "https://kqbkqyuapwpihqgftncs.supabase.co/storage/v1/object/public/meal-images/spiced-pumpkin-soup.jpg",
   },
 ];
