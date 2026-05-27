@@ -95,6 +95,14 @@ export function clearAllLocalState(): void {
   }
   for (const k of swipingDoneKeys) localStorage.removeItem(k);
 
+  // Clear dynamic DNA insight cache keys (wwe_insights_{userId} and wwe_insights_{userIdA}_{userIdB}).
+  const insightKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("wwe_insights_")) insightKeys.push(k);
+  }
+  for (const k of insightKeys) localStorage.removeItem(k);
+
 }
 
 /**
