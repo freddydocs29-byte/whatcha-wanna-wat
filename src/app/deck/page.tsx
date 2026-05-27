@@ -1344,6 +1344,27 @@ function DeckContent() {
 
     console.log("[match] session marked matched:", sessionId, matchedMeal.id);
 
+    // Record partner relationship — fire-and-forget
+    {
+      const userId = getUserId();
+      const partnerId = partnerUserId;
+      if (sessionId && userId && partnerId) {
+        supabase
+          .rpc("record_partner_relationship_match", {
+            p_user_id_a: userId,
+            p_user_id_b: partnerId,
+            p_session_id: sessionId,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.warn("[relationship] RPC failed:", error.message);
+            } else {
+              console.log("[relationship] match relationship recorded");
+            }
+          });
+      }
+    }
+
     // Guard against home-screen polling writing a duplicate decision row.
     // Set synchronously before the async tracking chain resolves.
     if (typeof window !== "undefined") {
