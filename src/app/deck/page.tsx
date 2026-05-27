@@ -2590,13 +2590,19 @@ function DeckContent() {
                   <p className="font-body text-sm text-[#8A7F78] text-center mt-3 max-w-[28ch]">
                     We&apos;ll let you know when there&apos;s a match. They still have time.
                   </p>
-                  {/* Ghost home button */}
+                  {/* Leave session button */}
                   <button
-                    onClick={() => router.push("/")}
-                    className="mt-12 font-body text-sm text-[#8A7F78]/60 hover:text-[#8A7F78] transition-colors"
+                    onClick={() => {
+                      localStorage.removeItem('wwe_active_session');
+                      router.push('/');
+                    }}
+                    className="font-body text-sm text-[#8A7F78] hover:text-white/60 transition-colors duration-200 mt-6"
                   >
-                    Go home for now →
+                    Leave session for now →
                   </button>
+                  <p className="font-body text-xs text-[#8A7F78]/50 text-center mt-2">
+                    You&apos;ll still match if they swipe yes on something you liked.
+                  </p>
                 </div>
               )}
             </div>
