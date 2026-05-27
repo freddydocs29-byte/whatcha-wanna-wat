@@ -542,6 +542,24 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* ── 3b. Flavor Profile entry card ────────────────────────────────────── */}
+      <div className="mx-5 mt-5">
+        <button
+          onClick={() => router.push("/profile/card")}
+          className="w-full flex items-center justify-between bg-[#2A2420] rounded-[18px] px-5 py-4 border border-[#E8621A20]"
+        >
+          <div className="text-left">
+            <p className="font-display font-black text-base text-white">
+              View my Flavor Profile
+            </p>
+            <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+              See what your dinner decisions say about you.
+            </p>
+          </div>
+          <span className="text-[#E8621A] text-lg flex-shrink-0 ml-4">Open →</span>
+        </button>
+      </div>
+
       {/* ── 4. Flavor profile bars ───────────────────────────────────────────── */}
       {flavorBars.length > 0 && (
         <div className="px-5 mt-8">
