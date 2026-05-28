@@ -211,13 +211,14 @@ export async function getSoloDNA(userId: string): Promise<SoloDNA> {
     if (d.cuisine_tag)
       cuisineCounts[d.cuisine_tag] = (cuisineCounts[d.cuisine_tag] ?? 0) + 1;
   });
+  const taggedCount = rows.filter((d) => d.cuisine_tag).length;
   const topCuisines = Object.entries(cuisineCounts)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
     .map(([cuisine, count]) => ({
       cuisine,
       count,
-      pct: Math.round((count / rows.length) * 100),
+      pct: taggedCount > 0 ? Math.round((count / taggedCount) * 100) : 0,
     }));
 
   // All-time #1 meal
@@ -355,6 +356,56 @@ export async function getLatestPartner(
   return { partnerId };
 }
 
+export type PartnerInfo = {
+  partnerId: string;
+  sessionCount: number;
+  matchCount: number;
+  lastSessionAt: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+export async function getAllPartners(userId: string): Promise<PartnerInfo[]> {
+  const { data: relationships } = await supabase
+    .from("partner_relationships")
+    .select("user_id_a, user_id_b, session_count, match_count")
+    .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`)
+    .order("session_count", { ascending: false });
+
+  if (!relationships?.length) return [];
+
+  const partnerIds = relationships.map((r) =>
+    (r.user_id_a as string) === userId
+      ? (r.user_id_b as string)
+      : (r.user_id_a as string)
+  );
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, display_name, avatar_url")
+    .in("user_id", partnerIds);
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p) => [p.user_id as string, p])
+  );
+
+  return relationships.map((r) => {
+    const partnerId =
+      (r.user_id_a as string) === userId
+        ? (r.user_id_b as string)
+        : (r.user_id_a as string);
+    const profile = profileMap.get(partnerId);
+    return {
+      partnerId,
+      sessionCount: (r.session_count as number) ?? 0,
+      matchCount: (r.match_count as number) ?? 0,
+      lastSessionAt: null,
+      displayName: (profile?.display_name as string | null) ?? null,
+      avatarUrl: (profile?.avatar_url as string | null) ?? null,
+    };
+  });
+}
+
 export async function getCouplesDNA(
   userIdA: string,
   userIdB: string
@@ -393,16 +444,29 @@ export async function getCouplesDNA(
         .in("session_id", pairSessionIds)
     : { data: [] };
 
-  if (!sharedDecisions?.length) {
-    // Return relationship counts even when no decision rows exist yet
+  // Only include sessions where BOTH users have an accepted row — ignore
+  // one-sided rows from incomplete/legacy sessions so couples DNA is never
+  // computed from partial data.
+  const grouped = new Map<string, { a: DecisionRow[]; b: DecisionRow[] }>();
+  (sharedDecisions ?? []).forEach((d) => {
+    const sid = (d as DecisionRow).session_id ?? "";
+    if (!grouped.has(sid)) grouped.set(sid, { a: [], b: [] });
+    const group = grouped.get(sid)!;
+    if ((d as DecisionRow).user_id === userIdA) group.a.push(d as DecisionRow);
+    else group.b.push(d as DecisionRow);
+  });
+  const rows: DecisionRow[] = [...grouped.values()]
+    .filter((g) => g.a.length > 0 && g.b.length > 0)
+    .flatMap((g) => [...g.a, ...g.b]);
+
+  if (!rows.length) {
+    // Return relationship counts even when no complete shared sessions exist yet
     return {
       ...emptyCouplesDNA(),
       totalMatchesTogether: (relationship.match_count as number) ?? 0,
       totalSessionsTogether: (relationship.session_count as number) ?? 0,
     };
   }
-
-  const rows = sharedDecisions as DecisionRow[];
 
   // Mutual cuisines
   const mutualCuisineCounts: Record<string, number> = {};
@@ -411,14 +475,14 @@ export async function getCouplesDNA(
       mutualCuisineCounts[d.cuisine_tag] =
         (mutualCuisineCounts[d.cuisine_tag] ?? 0) + 1;
   });
-  const total = rows.length;
+  const taggedCount = rows.filter((d) => d.cuisine_tag).length;
   const mutualCuisines = Object.entries(mutualCuisineCounts)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
     .map(([cuisine, count]) => ({
       cuisine,
       count,
-      pct: Math.round((count / total) * 100),
+      pct: taggedCount > 0 ? Math.round((count / taggedCount) * 100) : 0,
     }));
 
   // All-time #1 together

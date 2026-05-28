@@ -30,9 +30,10 @@ import { supabase, type SoftAvoid } from "../lib/supabase";
 import {
   getSoloDNA,
   getCouplesDNA,
-  getLatestPartner,
+  getAllPartners,
   type SoloDNA,
   type CouplesDNA,
+  type PartnerInfo,
 } from "../lib/dna";
 import { getSoloInsights, getCouplesInsights } from "../lib/dna-insights";
 
@@ -141,6 +142,9 @@ export default function ProfilePage() {
   const [couplesDNA, setCouplesDNA] = useState<CouplesDNA | null>(null);
   const [couplesInsights, setCouplesInsights] = useState<string[]>([]);
   const [partnerName, setPartnerName] = useState<string | null>(null);
+  const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
+  const [partners, setPartners] = useState<PartnerInfo[]>([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
 
   // ── FlameCard overlay ──────────────────────────────────────────────────────
   const [flameOverlay, setFlameOverlay] = useState<"solo" | "couples" | null>(null);
@@ -197,13 +201,14 @@ export default function ProfilePage() {
     // ── DNA load (runs in parallel with identity) ───────────────────────────
     (async () => {
       try {
-        const [dna, partnerRel, selfProfile] = await Promise.all([
+        const [dna, allPartners, selfProfile] = await Promise.all([
           getSoloDNA(userId),
-          getLatestPartner(userId),
+          getAllPartners(userId),
           fetchOrCreateProfile(userId),
         ]);
 
         setSoloDNA(dna);
+        setPartners(allPartners);
 
         if (dna.totalDecisions >= 3) {
           const insights = await getSoloInsights(
@@ -213,20 +218,21 @@ export default function ProfilePage() {
           setSoloInsights(insights);
         }
 
-        if (partnerRel) {
-          const [couplesDna, partnerProf] = await Promise.all([
-            getCouplesDNA(userId, partnerRel.partnerId),
-            fetchOrCreateProfile(partnerRel.partnerId),
-          ]);
+        if (allPartners.length > 0) {
+          const firstPartner = allPartners[0];
+          setSelectedPartnerId(firstPartner.partnerId);
+          setPartnerName(firstPartner.displayName);
+          setPartnerAvatarUrl(firstPartner.avatarUrl);
+
+          const couplesDna = await getCouplesDNA(userId, firstPartner.partnerId);
           setCouplesDNA(couplesDna);
-          setPartnerName(partnerProf?.display_name ?? null);
 
           const ci = await getCouplesInsights(
             couplesDna,
             selfProfile?.display_name ?? undefined,
-            partnerProf?.display_name ?? undefined,
+            firstPartner.displayName ?? undefined,
             userId,
-            partnerRel.partnerId
+            firstPartner.partnerId
           ).catch(() => []);
           setCouplesInsights(ci);
         }
@@ -357,6 +363,34 @@ export default function ProfilePage() {
     } catch {
       setShareError("Couldn't share. Try saving the image.");
       setSharing(false);
+    }
+  }
+
+  // ── Partner selector ─────────────────────────────────────────────────────
+
+  async function handlePartnerSelect(partnerId: string) {
+    if (partnerId === selectedPartnerId) return;
+    const partner = partners.find((p) => p.partnerId === partnerId);
+    if (!partner) return;
+    setSelectedPartnerId(partnerId);
+    setPartnerName(partner.displayName);
+    setPartnerAvatarUrl(partner.avatarUrl);
+    setCouplesDNA(null);
+    setCouplesInsights([]);
+    try {
+      const uid = getUserId();
+      const couplesDna = await getCouplesDNA(uid, partnerId);
+      setCouplesDNA(couplesDna);
+      const ci = await getCouplesInsights(
+        couplesDna,
+        displayName || undefined,
+        partner.displayName ?? undefined,
+        uid,
+        partnerId
+      ).catch(() => []);
+      setCouplesInsights(ci);
+    } catch (err) {
+      console.warn("[profile] couples DNA switch error:", err);
     }
   }
 
@@ -748,8 +782,62 @@ export default function ProfilePage() {
       {/* ──────────────────────────────────────────────────────────────────────
           SECTION 3 — Deciding Together (couples DNA, hidden if no partner)
       ────────────────────────────────────────────────────────────────────── */}
-      {!dnaLoading && couplesDNA && (
+      {!dnaLoading && partners.length > 0 && (
         <div className="px-5 mt-10">
+          {/* Multi-partner selector — shown only when 2+ partners */}
+          {partners.length > 1 && (
+            <div
+              className="flex overflow-x-auto gap-4 pb-2 mb-5 -mx-5 px-5"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {partners.map((p) => {
+                const selected = selectedPartnerId === p.partnerId;
+                const firstName = p.displayName
+                  ? p.displayName.trim().split(/\s+/)[0]
+                  : "Someone";
+                return (
+                  <button
+                    key={p.partnerId}
+                    onClick={() => void handlePartnerSelect(p.partnerId)}
+                    className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                  >
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${
+                        selected
+                          ? "ring-2 ring-[#E8621A] ring-offset-2 ring-offset-[#1C1A18]"
+                          : ""
+                      }`}
+                      style={{
+                        background: "#2A2420",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      {p.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.avatarUrl}
+                          alt={firstName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="font-display font-black text-sm text-[#E8621A]">
+                          {initials(p.displayName)}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`font-body text-[10px] text-center max-w-[48px] truncate ${
+                        selected ? "text-white" : "text-[#8A7F78]"
+                      }`}
+                    >
+                      {firstName}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-white/[0.08]" />
@@ -761,10 +849,19 @@ export default function ProfilePage() {
 
           {/* Partner header */}
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center flex-shrink-0">
-              <span className="font-display font-black text-base text-[#E8621A]">
-                {initials(partnerName)}
-              </span>
+            <div className="w-10 h-10 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {partnerAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={partnerAvatarUrl}
+                  alt={partnerName ?? ""}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="font-display font-black text-base text-[#E8621A]">
+                  {initials(partnerName)}
+                </span>
+              )}
             </div>
             <div>
               <p className="font-display font-black text-base text-white">
@@ -774,81 +871,90 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Shared stats row */}
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
-              <span className="font-display font-black text-xl text-[#E8621A]">
-                {couplesDNA.totalMatchesTogether > 0 ? couplesDNA.totalMatchesTogether : "—"}
-              </span>
-              <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Matches</span>
-            </div>
-            <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
-              <span className="font-display font-black text-xl text-[#E8621A]">
-                {couplesDNA.totalSessionsTogether > 0 ? couplesDNA.totalSessionsTogether : "—"}
-              </span>
-              <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Sessions</span>
-            </div>
-            <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
-              <span className="font-display font-black text-xl text-[#E8621A]">
-                {couplesDNA.fastestMatchTogether != null
-                  ? formatSeconds(couplesDNA.fastestMatchTogether)
-                  : "—"}
-              </span>
-              <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Fastest</span>
-            </div>
-          </div>
-
-          {/* Mutual top 2 cuisines */}
-          {couplesTopTwo.length > 0 && (
-            <div className="mb-5">
-              <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
-                MUTUAL FAVOURITES
-              </p>
-              <div className="flex flex-col gap-2.5">
-                {couplesTopTwo.map(({ cuisine, pct }) => {
-                  const barW = Math.round((pct / couplesMaxPct) * 100);
-                  return (
-                    <div key={cuisine}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
-                        <span className="font-display font-bold text-sm text-[#E8621A]">{pct}%</span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#3D3733" }}>
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${barW}%`, background: "linear-gradient(90deg, #E8621A, #c4440e)" }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* Data — loading spinner while switching partners */}
+          {couplesDNA ? (
+            <>
+              {/* Shared stats row */}
+              <div className="grid grid-cols-3 gap-2 mb-5">
+                <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
+                  <span className="font-display font-black text-xl text-[#E8621A]">
+                    {couplesDNA.totalMatchesTogether > 0 ? couplesDNA.totalMatchesTogether : "—"}
+                  </span>
+                  <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Matches</span>
+                </div>
+                <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
+                  <span className="font-display font-black text-xl text-[#E8621A]">
+                    {couplesDNA.totalSessionsTogether > 0 ? couplesDNA.totalSessionsTogether : "—"}
+                  </span>
+                  <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Sessions</span>
+                </div>
+                <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
+                  <span className="font-display font-black text-xl text-[#E8621A]">
+                    {couplesDNA.fastestMatchTogether != null
+                      ? formatSeconds(couplesDNA.fastestMatchTogether)
+                      : "—"}
+                  </span>
+                  <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Fastest</span>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Couples AI insights */}
-          {couplesInsights.length > 0 && (
-            <div className="mb-5">
-              <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
-                WHAT THE DATA SAYS
-              </p>
-              <div className="flex flex-col gap-3">
-                {couplesInsights.slice(0, 2).map((text, i) => (
-                  <div key={i} className="border-l-2 border-[#E8621A]/40 pl-3">
-                    <p className="font-body text-sm text-white/80 leading-snug">{text}</p>
+              {/* Mutual top 2 cuisines */}
+              {couplesTopTwo.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
+                    MUTUAL FAVOURITES
+                  </p>
+                  <div className="flex flex-col gap-2.5">
+                    {couplesTopTwo.map(({ cuisine, pct }) => {
+                      const barW = Math.round((pct / couplesMaxPct) * 100);
+                      return (
+                        <div key={cuisine}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
+                            <span className="font-display font-bold text-sm text-[#E8621A]">{pct}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#3D3733" }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${barW}%`, background: "linear-gradient(90deg, #E8621A, #c4440e)" }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Couples AI insights */}
+              {couplesInsights.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
+                    WHAT THE DATA SAYS
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {couplesInsights.slice(0, 2).map((text, i) => (
+                      <div key={i} className="border-l-2 border-[#E8621A]/40 pl-3">
+                        <p className="font-body text-sm text-white/80 leading-snug">{text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* See full couples card */}
+              <button
+                onClick={() => setFlameOverlay("couples")}
+                className="w-full font-display font-black text-sm py-3.5 rounded-full border border-white/20 text-[#8A7F78]"
+              >
+                See full couples card →
+              </button>
+            </>
+          ) : (
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-2 border-white/20 border-t-[#E8621A] rounded-full animate-spin" />
             </div>
           )}
-
-          {/* See full couples card */}
-          <button
-            onClick={() => setFlameOverlay("couples")}
-            className="w-full font-display font-black text-sm py-3.5 rounded-full border border-white/20 text-[#8A7F78]"
-          >
-            See full couples card →
-          </button>
         </div>
       )}
 
