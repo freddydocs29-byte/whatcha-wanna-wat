@@ -37,6 +37,7 @@ import { trackEvent } from "./lib/analytics";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
 import FlavorTypeReveal from "./components/FlavorTypeReveal";
+import { checkAndTriggerTypeReveal } from "./lib/type-reveal-trigger";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -386,6 +387,8 @@ export default function Home() {
               // Update React state directly so the decided-state UI appears immediately
               setDecidedMealState(decidedMealData);
               setTodaysPick({ meal, chosenAt: decidedAt });
+              // Fire and forget — never blocks the match flow.
+              void checkAndTriggerTypeReveal();
             } else {
               console.warn("[home] matched session has locked_meal_id not found in catalog:", data.locked_meal_id);
             }

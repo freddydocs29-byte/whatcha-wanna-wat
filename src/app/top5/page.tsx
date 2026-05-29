@@ -26,6 +26,7 @@ import {
   type RankedMeal,
 } from "../lib/scoring";
 import { inferSessionContext, recordAcceptedDecision } from "../lib/session-tracking";
+import { checkAndTriggerTypeReveal } from "../lib/type-reveal-trigger";
 import { trackEvent } from "../lib/analytics";
 import { getUserId } from "../lib/identity";
 
@@ -207,6 +208,7 @@ export default function Top5Page() {
       mode: "solo",
     });
     void recordAcceptedDecision({ meal: selectedMeal.meal, positionInDeck: 0, sessionType: "top5", sessionId: null, vibeSelection: null });
+    void checkAndTriggerTypeReveal();
 
     router.push("/");
   }
@@ -223,6 +225,7 @@ export default function Top5Page() {
       mode: "solo",
     });
     void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "top5", sessionId: null, vibeSelection: null });
+    void checkAndTriggerTypeReveal();
 
     router.push("/");
   }

@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { getUserId } from "./identity";
 import type { Meal } from "../data/meals";
+import { checkAndTriggerTypeReveal } from "./type-reveal-trigger";
 
 // ── Context inference ────────────────────────────────────────────────────────
 
@@ -311,5 +312,8 @@ export async function recordAcceptedDecision(opts: {
 
   if (error) {
     console.error("[decisions] recordAcceptedDecision failed:", error.message);
+  } else if (opts.sessionType === "solo" || opts.sessionType === "shared") {
+    // Fire and forget — never blocks the decision write or UI.
+    void checkAndTriggerTypeReveal();
   }
 }
