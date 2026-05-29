@@ -503,6 +503,15 @@ export default function Home() {
     if (pathname === "/") checkPendingTypeReveal();
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 4. After a decision locks in, give the background type-reveal check ~3 s to
+  //    finish, then poll once more — so the reveal fires without requiring a
+  //    focus/visibility event or a Profile visit.
+  useEffect(() => {
+    if (!decidedMeal) return;
+    const timer = setTimeout(() => checkPendingTypeReveal(), 3000);
+    return () => clearTimeout(timer);
+  }, [decidedMealId, decidedMealDecidedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Sync userDoneSwiping from localStorage whenever the active session changes.
   // partnerDoneSwiping resets to false here; the polling updates it independently.
   useEffect(() => {

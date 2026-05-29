@@ -266,6 +266,10 @@ export async function recordDecision(opts: {
     console.error('[decisions] insert failed:', error.message, error.details, error.hint);
   } else {
     console.log('[decisions] insert success for meal:', opts.meal.name);
+    if (opts.outcome === "accepted") {
+      console.log("[type-reveal] decision recorded — firing background check");
+      void checkAndTriggerTypeReveal();
+    }
   }
 }
 
@@ -312,7 +316,8 @@ export async function recordAcceptedDecision(opts: {
 
   if (error) {
     console.error("[decisions] recordAcceptedDecision failed:", error.message);
-  } else if (opts.sessionType === "solo" || opts.sessionType === "shared") {
+  } else {
+    console.log("[type-reveal] decision recorded — firing background check");
     // Fire and forget — never blocks the decision write or UI.
     void checkAndTriggerTypeReveal();
   }

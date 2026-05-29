@@ -54,5 +54,5 @@ export async function checkAndTriggerTypeReveal(): Promise<void> {
 
   // getFlavorType handles the pending-flag write and caching internally.
   await getFlavorType(dna, "solo", undefined, userId);
-  console.log('[type-reveal] type computed, pending flag set?', localStorage.getItem('wwe_type_reveal_pending'));
+  console.log("[type-reveal] background check complete, pending:", localStorage.getItem("wwe_type_reveal_pending"));
 }
