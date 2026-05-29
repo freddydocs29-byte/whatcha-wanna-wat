@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import type { SoloDNA } from "../../lib/dna";
+import type { SoloDNA, CouplesDNA } from "../../lib/dna";
 import type { BaseFlavorType } from "../../lib/flavor-type";
 
 // ── Type descriptions ─────────────────────────────────────────────────────────
@@ -49,21 +49,45 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = (await req.json()) as {
       baseType: BaseFlavorType;
-      dna: SoloDNA;
+      dna?: SoloDNA;
+      couplesDna?: CouplesDNA;
       userName?: string;
     };
 
-    const { baseType, dna, userName } = body;
-    if (!baseType || !dna) {
+    const { baseType, dna, couplesDna, userName } = body;
+    if (!baseType || (!dna && !couplesDna)) {
       return NextResponse.json({ name: null, tagline: null });
     }
 
     const nameStr = userName ? `User name: ${userName}\n` : "";
-    const top1 = dna.topCuisines[0];
-    const top2 = dna.topCuisines[1];
-    const top3 = dna.topCuisines[2];
+    let userPrompt: string;
 
-    const userPrompt = `${nameStr}Base type: ${baseType} (${TYPE_DESCRIPTIONS[baseType]})
+    if (couplesDna) {
+      // ── Couples prompt ────────────────────────────────────────────────────
+      const top1 = couplesDna.mutualCuisines[0];
+      const top2 = couplesDna.mutualCuisines[1];
+      const top3 = couplesDna.mutualCuisines[2];
+
+      userPrompt = `${nameStr}Base type: ${baseType} (${TYPE_DESCRIPTIONS[baseType]})
+
+Key behavioral data (from this couple's shared sessions):
+- Top mutual cuisine: ${top1 ? `${top1.cuisine} (${top1.pct}%)` : "unknown"}
+${top2 ? `- 2nd mutual cuisine: ${top2.cuisine} (${top2.pct}%)` : ""}
+${top3 ? `- 3rd mutual cuisine: ${top3.cuisine} (${top3.pct}%)` : ""}
+- All-time #1 together: ${couplesDna.allTimeNumber1Together ? `${couplesDna.allTimeNumber1Together.mealName} (matched ${couplesDna.allTimeNumber1Together.count}×)` : "none"}
+- Total matches together: ${couplesDna.totalMatchesTogether}
+- Unique cuisines explored together: ${couplesDna.mutualCuisines.length}
+- Avg time to match: ${couplesDna.avgMatchTimeTogether != null ? `${couplesDna.avgMatchTimeTogether}s` : "unknown"}
+
+This is a COUPLES eating type — name how this pair decides food together.
+Return ONLY: { "name": "...", "tagline": "..." }`;
+    } else if (dna) {
+      // ── Solo prompt ───────────────────────────────────────────────────────
+      const top1 = dna.topCuisines[0];
+      const top2 = dna.topCuisines[1];
+      const top3 = dna.topCuisines[2];
+
+      userPrompt = `${nameStr}Base type: ${baseType} (${TYPE_DESCRIPTIONS[baseType]})
 
 Key behavioral data:
 - Top cuisine: ${top1 ? `${top1.cuisine} (${top1.pct}%)` : "unknown"}
@@ -77,6 +101,9 @@ ${top3 ? `- 3rd cuisine: ${top3.cuisine} (${top3.pct}%)` : ""}
 
 Generate a name and tagline for this person. Reference their specific data.
 Return ONLY: { "name": "...", "tagline": "..." }`;
+    } else {
+      return NextResponse.json({ name: null, tagline: null });
+    }
 
     const openai = new OpenAI({ apiKey });
 

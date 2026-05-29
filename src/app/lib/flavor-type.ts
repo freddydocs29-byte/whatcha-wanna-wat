@@ -1,7 +1,10 @@
-import type { SoloDNA } from "./dna";
+import type { SoloDNA, CouplesDNA } from "./dna";
 import { getUserId } from "./identity";
+import { supabase } from "./supabase";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+export type FlavorTypeContext = "solo" | { partnerId: string };
 
 export type BaseFlavorType =
   | "anchor"
@@ -67,10 +70,16 @@ interface FlavorTypeCache {
   decisionCount: number;
 }
 
-function readCache(userId: string): FlavorTypeCache | null {
+/** Returns the full localStorage key for a given user + context. */
+function contextCacheKey(userId: string, context: FlavorTypeContext): string {
+  if (context === "solo") return `${CACHE_PREFIX}solo_${userId}`;
+  return `${CACHE_PREFIX}partner_${userId}_${context.partnerId}`;
+}
+
+function readCache(key: string): FlavorTypeCache | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(`${CACHE_PREFIX}${userId}`);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw) as FlavorTypeCache;
   } catch {
@@ -78,16 +87,22 @@ function readCache(userId: string): FlavorTypeCache | null {
   }
 }
 
-function writeCache(userId: string, data: FlavorTypeCache): void {
+function writeCache(key: string, data: FlavorTypeCache): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(`${CACHE_PREFIX}${userId}`, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
   } catch {
     // Storage quota exceeded — non-fatal
   }
 }
 
-// ── Classifier ────────────────────────────────────────────────────────────────
+// ── Type guard ────────────────────────────────────────────────────────────────
+
+function isSoloDNA(dna: SoloDNA | CouplesDNA): dna is SoloDNA {
+  return "totalDecisions" in dna;
+}
+
+// ── Solo classifier ───────────────────────────────────────────────────────────
 
 /**
  * Applies behavioral rules to SoloDNA in priority order and returns the
@@ -245,7 +260,133 @@ export function classifyFlavorType(dna: SoloDNA): {
   };
 }
 
-// ── AI name generator ─────────────────────────────────────────────────────────
+// ── Couples classifier ────────────────────────────────────────────────────────
+
+/**
+ * Applies behavioral rules to CouplesDNA in priority order and returns the
+ * best-fit base type for this pair's shared eating behavior.
+ */
+export function classifyCouplesFlavorType(dna: CouplesDNA): {
+  baseType: BaseFlavorType;
+  confidence: number;
+  signals: FlavorTypeResult["signals"];
+} {
+  const uniqueCuisines = dna.mutualCuisines.length;
+  const topCuisinePct = dna.mutualCuisines[0]?.pct ?? 0;
+  const repeatMealCount = dna.allTimeNumber1Together?.count ?? 0;
+  const repeatMeal = repeatMealCount >= 2;
+
+  // Comfort active if either partner has the tag active
+  const comfortTagActive =
+    dna.userAFlavorTags.some((t) => t.tag === "Comfort Seeker" && t.active) ||
+    dna.userBFlavorTags.some((t) => t.tag === "Comfort Seeker" && t.active);
+
+  const totalMatches = dna.totalMatchesTogether;
+
+  // ── Purist — very narrow shared taste ────────────────────────────────────
+  if (uniqueCuisines < 3 && totalMatches >= 7) {
+    return {
+      baseType: "purist",
+      confidence: Math.min(0.95, 0.7 + (3 - uniqueCuisines) * 0.1),
+      signals: [
+        {
+          label: "Mutual cuisines",
+          value: String(uniqueCuisines),
+          strength: Math.max(0, 1 - uniqueCuisines / 3),
+        },
+        {
+          label: "Shared matches",
+          value: String(totalMatches),
+          strength: Math.min(1, totalMatches / 20),
+        },
+      ],
+    };
+  }
+
+  // ── Anchor — always lands on the same cuisine together ───────────────────
+  if (topCuisinePct >= 70 && repeatMealCount >= 2) {
+    return {
+      baseType: "anchor",
+      confidence: Math.min(
+        0.95,
+        0.6 + (topCuisinePct - 70) / 100 + (repeatMealCount - 2) * 0.03
+      ),
+      signals: [
+        {
+          label: "Top mutual cuisine",
+          value: `${dna.mutualCuisines[0]?.cuisine ?? ""} ${topCuisinePct}%`,
+          strength: topCuisinePct / 100,
+        },
+        {
+          label: "Repeat match count",
+          value: `${repeatMealCount}×`,
+          strength: Math.min(1, repeatMealCount / 5),
+        },
+      ],
+    };
+  }
+
+  // ── Creature of Habit — same meal matched 3+ times together ──────────────
+  if (repeatMealCount >= 3) {
+    return {
+      baseType: "creature_of_habit",
+      confidence: Math.min(0.95, 0.6 + (repeatMealCount - 3) * 0.05),
+      signals: [
+        {
+          label: "All-time #1 together",
+          value: dna.allTimeNumber1Together?.mealName ?? "",
+          strength: 1,
+        },
+        {
+          label: "Times matched",
+          value: `${repeatMealCount}×`,
+          strength: Math.min(1, repeatMealCount / 7),
+        },
+      ],
+    };
+  }
+
+  // ── Comfort Seeker — comfort food drives shared matches ───────────────────
+  if (comfortTagActive && topCuisinePct < 60) {
+    return {
+      baseType: "comfort_seeker",
+      confidence: 0.65,
+      signals: [
+        { label: "Comfort tag", value: "Active", strength: 0.8 },
+        {
+          label: "Top cuisine spread",
+          value: `${topCuisinePct}%`,
+          strength: Math.max(0, (60 - topCuisinePct) / 60),
+        },
+      ],
+    };
+  }
+
+  // ── Explorer — high mutual cuisine variety, no repeats ───────────────────
+  if (uniqueCuisines >= 5 && !repeatMeal) {
+    return {
+      baseType: "explorer",
+      confidence: Math.min(0.9, 0.6 + (uniqueCuisines - 5) * 0.04),
+      signals: [
+        {
+          label: "Mutual cuisines",
+          value: String(uniqueCuisines),
+          strength: Math.min(1, uniqueCuisines / 8),
+        },
+        { label: "Repeat matches", value: "None", strength: 0.7 },
+      ],
+    };
+  }
+
+  // ── Wildcard — no clear shared pattern ───────────────────────────────────
+  return {
+    baseType: "wildcard",
+    confidence: 0.4,
+    signals: [{ label: "Pattern clarity", value: "Low", strength: 0.3 }],
+  };
+}
+
+// ── AI name generators ────────────────────────────────────────────────────────
 
 async function generateFlavorTypeName(
   baseType: BaseFlavorType,
@@ -268,56 +409,149 @@ async function generateFlavorTypeName(
   }
 }
 
+async function generateCouplesFlavorTypeName(
+  baseType: BaseFlavorType,
+  dna: CouplesDNA,
+  userName?: string
+): Promise<{ name: string; tagline: string }> {
+  const fallback = FALLBACK_NAMES[baseType];
+  try {
+    const res = await fetch("/api/flavor-type", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ baseType, couplesDna: dna, userName }),
+    });
+    if (!res.ok) return fallback;
+    const data = (await res.json()) as { name?: string | null; tagline?: string | null };
+    if (!data.name || !data.tagline) return fallback;
+    return { name: data.name, tagline: data.tagline };
+  } catch {
+    return fallback;
+  }
+}
+
+// ── Supabase upsert ───────────────────────────────────────────────────────────
+
+async function upsertFlavorType(
+  userId: string,
+  context: FlavorTypeContext,
+  result: FlavorTypeResult
+): Promise<void> {
+  const { error } = await supabase.from("flavor_types").upsert(
+    {
+      user_id: userId,
+      context: context === "solo" ? "solo" : context.partnerId,
+      base_type: result.baseType,
+      personalized_name: result.personalizedName,
+      tagline: result.tagline,
+      confidence: result.confidence,
+      session_count: result.sessionCount,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,context" }
+  );
+  if (error) console.warn("[flavor-type] Supabase upsert failed:", error);
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 /**
  * Returns the user's flavor type, including an AI-generated personalized name.
  *
- * Returns null when dna.totalDecisions < 7 — not enough data to assign a type.
+ * For solo context: returns null when dna.totalDecisions < 7.
+ * For partner context: returns null when dna.totalMatchesTogether < 7.
+ *
+ * Cache keys are context-specific:
+ *   Solo:    wwe_flavor_type_solo_{userId}
+ *   Partner: wwe_flavor_type_partner_{userId}_{partnerId}
  *
  * Result is cached in localStorage and regenerated when:
  * - No cache exists
- * - 5+ new decisions since last generation
+ * - 5+ new decisions/matches since last generation
  * - The base type would change
+ *
+ * Only upserts to Supabase when userId is explicitly provided.
  */
 export async function getFlavorType(
-  dna: SoloDNA,
-  userName?: string
+  dna: SoloDNA | CouplesDNA,
+  context: FlavorTypeContext,
+  userName?: string,
+  userId?: string
 ): Promise<FlavorTypeResult | null> {
-  if (dna.totalDecisions < 7) return null;
+  const resolvedUserId = userId ?? getUserId();
+  const key = contextCacheKey(resolvedUserId, context);
 
-  const userId = getUserId();
-  const classified = classifyFlavorType(dna);
+  if (isSoloDNA(dna)) {
+    // ── Solo path ────────────────────────────────────────────────────────────
+    if (dna.totalDecisions < 7) return null;
 
-  // Check cache — serve if still valid and type hasn't changed
-  const cached = readCache(userId);
-  if (cached) {
-    const decisionDelta = dna.totalDecisions - cached.decisionCount;
-    if (
-      decisionDelta < NEW_DECISIONS_THRESHOLD &&
-      cached.result.baseType === classified.baseType
-    ) {
-      return cached.result;
+    const classified = classifyFlavorType(dna);
+
+    const cached = readCache(key);
+    if (cached) {
+      const decisionDelta = dna.totalDecisions - cached.decisionCount;
+      if (
+        decisionDelta < NEW_DECISIONS_THRESHOLD &&
+        cached.result.baseType === classified.baseType
+      ) {
+        return cached.result;
+      }
     }
+
+    const { name, tagline } = await generateFlavorTypeName(
+      classified.baseType,
+      dna,
+      userName
+    );
+
+    const result: FlavorTypeResult = {
+      baseType: classified.baseType,
+      confidence: classified.confidence,
+      personalizedName: name,
+      tagline,
+      signals: classified.signals,
+      assignedAt: new Date().toISOString(),
+      sessionCount: dna.totalSessions,
+    };
+
+    writeCache(key, { result, decisionCount: dna.totalDecisions });
+    if (userId) void upsertFlavorType(userId, context, result);
+    return result;
+  } else {
+    // ── Couples path ─────────────────────────────────────────────────────────
+    if (dna.totalMatchesTogether < 7) return null;
+
+    const classified = classifyCouplesFlavorType(dna);
+
+    const cached = readCache(key);
+    if (cached) {
+      const matchDelta = dna.totalMatchesTogether - cached.decisionCount;
+      if (
+        matchDelta < NEW_DECISIONS_THRESHOLD &&
+        cached.result.baseType === classified.baseType
+      ) {
+        return cached.result;
+      }
+    }
+
+    const { name, tagline } = await generateCouplesFlavorTypeName(
+      classified.baseType,
+      dna,
+      userName
+    );
+
+    const result: FlavorTypeResult = {
+      baseType: classified.baseType,
+      confidence: classified.confidence,
+      personalizedName: name,
+      tagline,
+      signals: classified.signals,
+      assignedAt: new Date().toISOString(),
+      sessionCount: dna.totalSessionsTogether,
+    };
+
+    writeCache(key, { result, decisionCount: dna.totalMatchesTogether });
+    if (userId) void upsertFlavorType(userId, context, result);
+    return result;
   }
-
-  // Generate fresh personalized name via AI (falls back to static name on failure)
-  const { name, tagline } = await generateFlavorTypeName(
-    classified.baseType,
-    dna,
-    userName
-  );
-
-  const result: FlavorTypeResult = {
-    baseType: classified.baseType,
-    confidence: classified.confidence,
-    personalizedName: name,
-    tagline,
-    signals: classified.signals,
-    assignedAt: new Date().toISOString(),
-    sessionCount: dna.totalSessions,
-  };
-
-  writeCache(userId, { result, decisionCount: dna.totalDecisions });
-  return result;
 }

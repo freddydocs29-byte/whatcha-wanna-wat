@@ -143,6 +143,7 @@ export default function ProfilePage() {
   const [soloInsights, setSoloInsights] = useState<string[]>([]);
   const [flavorType, setFlavorType] = useState<FlavorTypeResult | null>(null);
   const [couplesDNA, setCouplesDNA] = useState<CouplesDNA | null>(null);
+  const [couplesFlavorType, setCouplesFlavorType] = useState<FlavorTypeResult | null>(null);
   const [couplesInsights, setCouplesInsights] = useState<string[]>([]);
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
@@ -234,7 +235,7 @@ export default function ProfilePage() {
 
         // Flavor type — only reveals after 7 decisions; null below that threshold
         if (data.solo) {
-          getFlavorType(data.solo, selfProfile?.display_name ?? undefined)
+          getFlavorType(data.solo, "solo", selfProfile?.display_name ?? undefined, userId)
             .then(setFlavorType)
             .catch(() => { /* non-fatal */ });
         }
@@ -255,6 +256,18 @@ export default function ProfilePage() {
               firstPartner.partnerId
             ).catch(() => []);
             setCouplesInsights(ci);
+
+            // Couples flavor type — only when 7+ shared accepted matches
+            if (data.couples.totalMatchesTogether >= 7) {
+              getFlavorType(
+                data.couples,
+                { partnerId: firstPartner.partnerId },
+                selfProfile?.display_name ?? undefined,
+                userId
+              )
+                .then(setCouplesFlavorType)
+                .catch(() => { /* non-fatal */ });
+            }
           }
         }
       } catch (err) {
@@ -398,6 +411,7 @@ export default function ProfilePage() {
     setPartnerAvatarUrl(partner.avatarUrl);
     setCouplesDNA(null);
     setCouplesInsights([]);
+    setCouplesFlavorType(null);
     try {
       const uid = getUserId();
       const res = await fetch(
@@ -415,6 +429,18 @@ export default function ProfilePage() {
           partnerId
         ).catch(() => []);
         setCouplesInsights(ci);
+
+        // Couples flavor type — only when 7+ shared accepted matches
+        if (data.couples.totalMatchesTogether >= 7) {
+          getFlavorType(
+            data.couples,
+            { partnerId },
+            displayName || undefined,
+            uid
+          )
+            .then(setCouplesFlavorType)
+            .catch(() => { /* non-fatal */ });
+        }
       }
     } catch (err) {
       console.warn("[profile] couples DNA switch error:", err);
@@ -948,6 +974,21 @@ export default function ProfilePage() {
                   <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Fastest</span>
                 </div>
               </div>
+
+              {/* Couples flavor type — only shown when 7+ matches produced a result */}
+              {couplesFlavorType && (
+                <div className="mb-5">
+                  <p className="font-display font-black text-xl text-white leading-tight">
+                    {couplesFlavorType.personalizedName}
+                  </p>
+                  <p className="font-body text-xs text-[#E8621A] mt-0.5">
+                    {getBaseTypeLabel(couplesFlavorType.baseType)}
+                  </p>
+                  <p className="font-body text-sm text-white/70 mt-1">
+                    {couplesFlavorType.tagline}
+                  </p>
+                </div>
+              )}
 
               {/* Mutual top 2 cuisines */}
               {couplesTopTwo.length > 0 && (
