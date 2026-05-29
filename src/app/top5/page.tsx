@@ -163,6 +163,8 @@ export default function Top5Page() {
   const [hasRefreshed, setHasRefreshed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
+  const [lockedTop5Meal, setLockedTop5Meal] = useState<Meal | null>(null);
+  const [lockedTop5Rank, setLockedTop5Rank] = useState<number | null>(null);
 
   useEffect(() => {
     const key = getTop5CacheKey();
@@ -192,6 +194,15 @@ export default function Top5Page() {
 
   const selectedMeal = top5.find((r) => r.meal.id === selected);
 
+  // Auto-navigate home after the lock-in confirmation is shown
+  useEffect(() => {
+    if (!lockedTop5Meal) return;
+    const timer = setTimeout(() => {
+      router.replace("/");
+    }, 2200);
+    return () => clearTimeout(timer);
+  }, [lockedTop5Meal, router]);
+
   function handleSelect(id: string) {
     setSelected((prev) => (prev === id ? null : id));
   }
@@ -210,7 +221,9 @@ export default function Top5Page() {
     void recordAcceptedDecision({ meal: selectedMeal.meal, positionInDeck: 0, sessionType: "top5", sessionId: null, vibeSelection: null });
     void checkAndTriggerTypeReveal();
 
-    router.push("/");
+    const rank = top5.findIndex((r) => r.meal.id === selectedMeal.meal.id) + 1;
+    setLockedTop5Meal(selectedMeal.meal);
+    setLockedTop5Rank(rank);
   }
 
   function handleLockInMeal(meal: Meal) {
@@ -227,7 +240,115 @@ export default function Top5Page() {
     void recordAcceptedDecision({ meal, positionInDeck: 0, sessionType: "top5", sessionId: null, vibeSelection: null });
     void checkAndTriggerTypeReveal();
 
-    router.push("/");
+    const rank = top5.findIndex((r) => r.meal.id === meal.id) + 1;
+    setLockedTop5Meal(meal);
+    setLockedTop5Rank(rank);
+  }
+
+  // ── Lock-in confirmation screen ─────────────────────────────────────────────
+  if (lockedTop5Meal) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-6"
+        style={{ backgroundColor: "#FAF6F1", color: "#1C1A18" }}
+      >
+        <div className="w-full max-w-sm flex flex-col items-center gap-6">
+
+          {/* Green checkmark — animates in first */}
+          <div
+            className="relative flex items-center justify-center"
+            style={{ animation: "checkPop 0.45s cubic-bezier(0.34,1.56,0.64,1) both" }}
+          >
+            <div className="absolute w-40 h-40 rounded-full bg-[#4A7C59]/15 animate-pulse" />
+            <div
+              className="w-28 h-28 rounded-full bg-[#4A7C59] flex items-center justify-center relative z-10"
+              style={{ boxShadow: "0 0 48px rgba(74,124,89,0.35)" }}
+            >
+              <span className="font-display font-black text-5xl text-white">✓</span>
+            </div>
+          </div>
+
+          {/* Content — fades up after check lands */}
+          <div
+            className="w-full flex flex-col items-center gap-6"
+            style={{ animation: "contentRise 0.5s ease-out 0.35s both" }}
+          >
+            {/* Eyebrow */}
+            <p
+              className="font-body font-semibold text-[11px] tracking-[0.18em] uppercase"
+              style={{ color: "#E8621A" }}
+            >
+              Tonight&apos;s Pick
+            </p>
+
+            {/* Headline */}
+            <p
+              className="font-display font-black text-3xl text-center leading-tight"
+              style={{ color: "#1C1A18" }}
+            >
+              Top 5 made the call.
+            </p>
+
+            {/* Meal card */}
+            <div
+              className="w-full rounded-[24px] overflow-hidden"
+              style={{ backgroundColor: "#EFEAE3" }}
+            >
+              {lockedTop5Meal.image ? (
+                <Image
+                  src={lockedTop5Meal.image}
+                  alt={lockedTop5Meal.name}
+                  width={400}
+                  height={260}
+                  className="w-full object-cover"
+                  style={{ height: "220px" }}
+                />
+              ) : (
+                <div
+                  className="w-full flex items-center justify-center"
+                  style={{ height: "220px" }}
+                >
+                  <span className="text-6xl">🍽️</span>
+                </div>
+              )}
+              <div className="px-6 py-5">
+                <p
+                  className="font-display font-black text-2xl leading-tight"
+                  style={{ color: "#1C1A18" }}
+                >
+                  {lockedTop5Meal.name}
+                </p>
+                <p
+                  className="font-body text-sm mt-2"
+                  style={{ color: "#6B6360" }}
+                >
+                  Ranked #{lockedTop5Rank} in tonight&apos;s Top 5
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <p
+              className="font-body text-xs"
+              style={{ color: "#A89F99" }}
+            >
+              Taking you home…
+            </p>
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes checkPop {
+            from { opacity: 0; transform: scale(0.5); }
+            to   { opacity: 1; transform: scale(1); }
+          }
+          @keyframes contentRise {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
