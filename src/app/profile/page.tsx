@@ -153,6 +153,9 @@ export default function ProfilePage() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [partnerSoloBaseType, setPartnerSoloBaseType] = useState<BaseFlavorType | null>(null);
 
+  // ── Tracks whether flavorType was pre-populated from localStorage ─────────
+  const flavorTypePreloadedRef = useRef(false);
+
   // ── FlameCard overlay ──────────────────────────────────────────────────────
   const [flameOverlay, setFlameOverlay] = useState<"solo" | "couples" | null>(null);
   const [sharing, setSharing] = useState(false);
@@ -190,7 +193,10 @@ export default function ProfilePage() {
       const ftRaw = localStorage.getItem(ftCacheKey);
       if (ftRaw) {
         const ftCached = JSON.parse(ftRaw) as { result: FlavorTypeResult; decisionCount: number };
-        if (ftCached.result?.personalizedName) setFlavorType(ftCached.result);
+        if (ftCached.result?.personalizedName) {
+          setFlavorType(ftCached.result);
+          flavorTypePreloadedRef.current = true;
+        }
       }
     } catch { /* non-fatal */ }
 
@@ -247,10 +253,46 @@ export default function ProfilePage() {
           setSoloInsights(insights);
         }
 
-        // Flavor type — only reveals after 7 decisions; null below that threshold
+        // Flavor type — only reveals after 7 decisions; null below that threshold.
+        // Resolution order:
+        //   1. localStorage cache (pre-populated synchronously at mount, above)
+        //   2. Supabase flavor_types (fallback if cache was cleared)
+        //   3. getFlavorType (compute fresh — never overwrites a valid cached value with null)
         if (data.solo) {
           getFlavorType(data.solo, "solo", selfProfile?.display_name ?? undefined, userId)
-            .then(setFlavorType)
+            .then((result) => {
+              if (result !== null) {
+                // Fresh or cache-hit result — always use it.
+                setFlavorType(result);
+              } else if (!flavorTypePreloadedRef.current) {
+                // getFlavorType returned null (DNA has < 7 decisions) and localStorage
+                // had no cached type. Try Supabase flavor_types as fallback in case
+                // the type was generated on another device or the cache was cleared.
+                void (async () => {
+                  try {
+                    const { data: ftRow } = await supabase
+                      .from("flavor_types")
+                      .select("base_type, personalized_name, tagline, confidence, session_count, updated_at")
+                      .eq("user_id", userId)
+                      .eq("context", "solo")
+                      .single();
+                    if (ftRow?.personalized_name && ftRow.base_type) {
+                      setFlavorType({
+                        baseType: ftRow.base_type as BaseFlavorType,
+                        confidence: (ftRow.confidence as number | null) ?? 0,
+                        personalizedName: ftRow.personalized_name as string,
+                        tagline: (ftRow.tagline as string | null) ?? "",
+                        signals: [],
+                        assignedAt: (ftRow.updated_at as string | null) ?? new Date().toISOString(),
+                        sessionCount: (ftRow.session_count as number | null) ?? 0,
+                      });
+                    }
+                  } catch { /* non-fatal */ }
+                })();
+              }
+              // If result is null AND localStorage was pre-populated, do nothing —
+              // keep the pre-populated value; the stale DNA shouldn't erase it.
+            })
             .catch(() => { /* non-fatal */ });
         }
 

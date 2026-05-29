@@ -86,20 +86,44 @@ Return ONLY: { "name": "...", "tagline": "..." }`;
       const top1 = dna.topCuisines[0];
       const top2 = dna.topCuisines[1];
       const top3 = dna.topCuisines[2];
+      // Only surface all-time #1 meal when it has been chosen 3+ times —
+      // a single appearance is noise, not a pattern.
+      const number1Line = dna.allTimeNumber1 && dna.allTimeNumber1.count >= 3
+        ? `- All-time #1 meal: ${dna.allTimeNumber1.mealName} (chosen ${dna.allTimeNumber1.count}×)`
+        : `- All-time #1 meal: none (no meal chosen 3+ times)`;
+      const rutLine = dna.rutType
+        ? `- Current rut: ${dna.rutType === "cuisine" ? dna.rutCuisine : dna.rutCategory} for ${dna.rutLength} decisions straight`
+        : "";
 
       userPrompt = `${nameStr}Base type: ${baseType} (${TYPE_DESCRIPTIONS[baseType]})
 
-Key behavioral data:
+Key behavioral data (aggregate across ALL decisions):
 - Top cuisine: ${top1 ? `${top1.cuisine} (${top1.pct}%)` : "unknown"}
 ${top2 ? `- 2nd cuisine: ${top2.cuisine} (${top2.pct}%)` : ""}
 ${top3 ? `- 3rd cuisine: ${top3.cuisine} (${top3.pct}%)` : ""}
-- All-time #1 meal: ${dna.allTimeNumber1 ? `${dna.allTimeNumber1.mealName} (chosen ${dna.allTimeNumber1.count}×)` : "none"}
+${number1Line}
 - Most active time: ${dna.mostActiveTimeOfDay ?? "unknown"}
 - Most active day type: ${dna.mostActiveDayType ?? "unknown"}
+- Current streak: ${dna.currentStreakDays > 0 ? `${dna.currentStreakDays} days` : "none"}
+${rutLine}
 - Total decisions: ${dna.totalDecisions}
 - Unique cuisines tried: ${dna.topCuisines.length}
 
-Generate a name and tagline for this person. Reference their specific data.
+IMPORTANT:
+The name must reflect the user's OVERALL behavioral pattern across all decisions, not their most recent meal. Do not use a specific meal name unless it is the all-time #1 meal and was decided 3+ times. Prefer cuisine, behavior, time-of-day, rut, and repeated patterns over one-off meal names.
+
+Examples:
+Good:
+- "The Morning Comfort Loyalist"
+- "The American Breakfast Explorer"
+- "The Weekday Routine Adventurer"
+- "The Comfort Food Strategist"
+
+Bad:
+- "The Mac & Cheese Morning Maven" if mac & cheese only appeared once
+- "The Focaccia Fanatic" if focaccia was just the latest decision
+
+Generate a name and tagline for this person. Reference their specific aggregate data.
 Return ONLY: { "name": "...", "tagline": "..." }`;
     } else {
       return NextResponse.json({ name: null, tagline: null });
