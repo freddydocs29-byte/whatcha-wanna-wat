@@ -94,7 +94,7 @@ function shortCategory(cat: string): string {
 
 /** Returns up to 2 uppercase initials from a display name. */
 function initials(name: string | null | undefined): string {
-  if (!name) return "Y";
+  if (!name?.trim()) return "?";
   return name
     .trim()
     .split(/\s+/)
@@ -1154,7 +1154,7 @@ export default function ProfilePage() {
 
             {/* Sheet */}
             <motion.div
-              className="relative mt-auto bg-[#1C1A18] rounded-t-[24px] max-h-[92vh] overflow-y-auto"
+              className="relative mt-auto bg-[#1C1A18] rounded-t-[24px] max-h-[90dvh] flex flex-col"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -1174,34 +1174,37 @@ export default function ProfilePage() {
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
 
-              {/* Card */}
-              <div className="px-5 pt-3 pb-4">
-                {flameOverlay === "solo" && soloCardProps && (
-                  <FlameCard ref={flameCardRef} {...soloCardProps} />
-                )}
-                {flameOverlay === "couples" && couplesCardProps && (
-                  <FlameCard ref={flameCardRef} {...couplesCardProps} />
-                )}
-              </div>
+              {/* Scrollable content */}
+              <div className="overflow-y-auto flex-1">
+                {/* Card */}
+                <div className="px-5 pt-3 pb-4">
+                  {flameOverlay === "solo" && soloCardProps && (
+                    <FlameCard ref={flameCardRef} {...soloCardProps} />
+                  )}
+                  {flameOverlay === "couples" && couplesCardProps && (
+                    <FlameCard ref={flameCardRef} {...couplesCardProps} />
+                  )}
+                </div>
 
-              {/* Actions */}
-              <div className="px-5 pb-8 flex flex-col gap-3">
-                <button
-                  onClick={() => { setFlameOverlay(null); setShareError(null); }}
-                  className="w-full font-display font-black text-sm py-3 rounded-full border border-white/20 text-[#8A7F78]"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => void handleShare()}
-                  disabled={sharing}
-                  className="w-full font-display font-black text-sm py-4 rounded-full bg-[#E8621A] text-white disabled:opacity-60"
-                >
-                  {sharing ? "Making your card…" : "Share →"}
-                </button>
-                {shareError && (
-                  <p className="font-body text-xs text-center text-[#8A7F78]">{shareError}</p>
-                )}
+                {/* Actions */}
+                <div className="px-5 pb-8 flex flex-col gap-3">
+                  <button
+                    onClick={() => { setFlameOverlay(null); setShareError(null); }}
+                    className="w-full font-display font-black text-sm py-3 rounded-full border border-white/20 text-[#8A7F78]"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => void handleShare()}
+                    disabled={sharing}
+                    className="w-full font-display font-black text-sm py-4 rounded-full bg-[#E8621A] text-white disabled:opacity-60"
+                  >
+                    {sharing ? "Making your card…" : "Share →"}
+                  </button>
+                  {shareError && (
+                    <p className="font-body text-xs text-center text-[#8A7F78]">{shareError}</p>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
