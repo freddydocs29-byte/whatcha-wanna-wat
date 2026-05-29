@@ -37,7 +37,9 @@ import {
   getFlavorType,
   getBaseTypeLabel,
   type FlavorTypeResult,
+  type BaseFlavorType,
 } from "../lib/flavor-type";
+import { getCompatibilityPairing } from "../lib/compatibility";
 
 // ── Option constants ──────────────────────────────────────────────────────────
 
@@ -149,6 +151,7 @@ export default function ProfilePage() {
   const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+  const [partnerSoloBaseType, setPartnerSoloBaseType] = useState<BaseFlavorType | null>(null);
 
   // ── FlameCard overlay ──────────────────────────────────────────────────────
   const [flameOverlay, setFlameOverlay] = useState<"solo" | "couples" | null>(null);
@@ -245,6 +248,21 @@ export default function ProfilePage() {
           setSelectedPartnerId(firstPartner.partnerId);
           setPartnerName(firstPartner.displayName);
           setPartnerAvatarUrl(firstPartner.avatarUrl);
+
+          // Fetch partner's solo base type for compatibility pairing
+          void (async () => {
+            try {
+              const { data } = await supabase
+                .from("flavor_types")
+                .select("base_type")
+                .eq("user_id", firstPartner.partnerId)
+                .eq("context", "solo")
+                .single();
+              setPartnerSoloBaseType(
+                (data?.base_type as BaseFlavorType | null) ?? null
+              );
+            } catch { /* non-fatal */ }
+          })();
 
           if (data.couples) {
             setCouplesDNA(data.couples);
@@ -412,6 +430,22 @@ export default function ProfilePage() {
     setCouplesDNA(null);
     setCouplesInsights([]);
     setCouplesFlavorType(null);
+    setPartnerSoloBaseType(null);
+
+    // Fetch new partner's solo base type for compatibility pairing
+    void (async () => {
+      try {
+        const { data } = await supabase
+          .from("flavor_types")
+          .select("base_type")
+          .eq("user_id", partnerId)
+          .eq("context", "solo")
+          .single();
+        setPartnerSoloBaseType(
+          (data?.base_type as BaseFlavorType | null) ?? null
+        );
+      } catch { /* non-fatal */ }
+    })();
     try {
       const uid = getUserId();
       const res = await fetch(
@@ -465,6 +499,11 @@ export default function ProfilePage() {
   const hardNosList = prefs?.hardNoFoods ?? [];
 
   const couplesTopTwo = couplesDNA?.mutualCuisines.slice(0, 2) ?? [];
+
+  const compatibilityPairing =
+    flavorType && partnerSoloBaseType
+      ? getCompatibilityPairing(flavorType.baseType, partnerSoloBaseType)
+      : null;
   const couplesMaxPct = couplesTopTwo[0]?.pct ?? 1;
 
   // ── FlameCard props (built for overlay) ───────────────────────────────────
@@ -986,6 +1025,21 @@ export default function ProfilePage() {
                   </p>
                   <p className="font-body text-sm text-white/70 mt-1">
                     {couplesFlavorType.tagline}
+                  </p>
+                </div>
+              )}
+
+              {/* Compatibility pairing — only when both users have assigned solo types */}
+              {compatibilityPairing && (
+                <div className="bg-[#2A2420] rounded-[16px] p-4 mt-4 border-l-4 border-[#E8621A]">
+                  <p className="text-[#E8621A] text-[10px] font-semibold tracking-widest uppercase mb-1">
+                    YOUR DYNAMIC
+                  </p>
+                  <p className="font-display font-black text-lg text-white">
+                    {compatibilityPairing.name}
+                  </p>
+                  <p className="font-body text-sm text-[#8A7F78] mt-1">
+                    {compatibilityPairing.description}
                   </p>
                 </div>
               )}
