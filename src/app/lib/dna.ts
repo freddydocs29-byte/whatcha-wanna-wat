@@ -38,6 +38,15 @@ export type SoloDNA = {
   longestStreakDays: number;
   mostActiveTimeOfDay: "morning" | "afternoon" | "latenight" | null;
   mostActiveDayType: "weekday" | "weekend" | null;
+  firstMatchEver: string | null;
+  inRut: boolean;
+  rutType: "cuisine" | "category" | null;
+  rutCuisine: string | null;
+  rutCategory: string | null;
+  rutLength: number;
+  longestRut: number;
+  longestRutType: "cuisine" | "category" | null;
+  longestRutValue: string | null;
 };
 
 export type CouplesDNA = {
@@ -69,6 +78,15 @@ function emptyDNA(): SoloDNA {
     longestStreakDays: 0,
     mostActiveTimeOfDay: null,
     mostActiveDayType: null,
+    firstMatchEver: null,
+    inRut: false,
+    rutType: null,
+    rutCuisine: null,
+    rutCategory: null,
+    rutLength: 0,
+    longestRut: 0,
+    longestRutType: null,
+    longestRutValue: null,
   };
 }
 
@@ -173,6 +191,72 @@ function computeStreak(decisions: DecisionRow[]): { current: number; longest: nu
   }
 
   return { current, longest };
+}
+
+function computeRut(
+  decisions: DecisionRow[],
+  field: "cuisine_tag" | "archetype"
+): {
+  inRut: boolean;
+  rutValue: string | null;
+  rutLength: number;
+  longestRut: number;
+  longestRutValue: string | null;
+} {
+  const valid = decisions.filter((d) => d[field]);
+
+  if (valid.length < 4) {
+    return {
+      inRut: false,
+      rutValue: null,
+      rutLength: 0,
+      longestRut: 0,
+      longestRutValue: null,
+    };
+  }
+
+  const sorted = [...valid].sort(
+    (a, b) => new Date(a.decided_at).getTime() - new Date(b.decided_at).getTime()
+  );
+
+  let currentStreak = 1;
+  let currentValue = sorted[0][field] as string;
+  let longestRut = 1;
+  let longestRutValue: string | null = currentValue;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const value = sorted[i][field] as string;
+
+    if (value === currentValue) {
+      currentStreak++;
+    } else {
+      currentStreak = 1;
+      currentValue = value;
+    }
+
+    if (currentStreak > longestRut) {
+      longestRut = currentStreak;
+      longestRutValue = currentValue;
+    }
+  }
+
+  const lastValue = sorted[sorted.length - 1][field] as string;
+  let currentRutLength = 0;
+
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (sorted[i][field] === lastValue) currentRutLength++;
+    else break;
+  }
+
+  const inRut = currentRutLength >= 4;
+
+  return {
+    inRut,
+    rutValue: inRut ? lastValue : null,
+    rutLength: inRut ? currentRutLength : 0,
+    longestRut: longestRut >= 4 ? longestRut : 0,
+    longestRutValue: longestRut >= 4 ? longestRutValue : null,
+  };
 }
 
 /** Maps DB meal_period values to the three SoloDNA time-of-day buckets. */
@@ -282,6 +366,53 @@ export async function getSoloDNA(userId: string): Promise<SoloDNA> {
   const fastestMatchSeconds =
     matchTimes.length > 0 ? Math.min(...matchTimes) : null;
 
+  // First shared match ever — derived from accepted shared decisions
+  const sharedDecisions = rows.filter((d) => d.session_type === "shared");
+  const firstMatchEver =
+    sharedDecisions.length > 0
+      ? sharedDecisions.reduce((earliest, d) =>
+          new Date(d.decided_at) < new Date(earliest.decided_at) ? d : earliest
+        ).decided_at
+      : null;
+
+  // Rut detection — cuisine and category/archetype
+  const cuisineRut = computeRut(rows, "cuisine_tag");
+  const categoryRut = computeRut(rows, "archetype");
+
+  // Pick the stronger/current rut: prefer active cuisine rut, then active category
+  // rut, then whichever has the longer historical rut.
+  let inRut = false;
+  let rutType: SoloDNA["rutType"] = null;
+  let rutCuisine: string | null = null;
+  let rutCategory: string | null = null;
+  let rutLength = 0;
+
+  if (cuisineRut.inRut) {
+    inRut = true;
+    rutType = "cuisine";
+    rutCuisine = cuisineRut.rutValue;
+    rutLength = cuisineRut.rutLength;
+  } else if (categoryRut.inRut) {
+    inRut = true;
+    rutType = "category";
+    rutCategory = categoryRut.rutValue;
+    rutLength = categoryRut.rutLength;
+  }
+
+  const longestRut = Math.max(cuisineRut.longestRut, categoryRut.longestRut);
+  let longestRutType: SoloDNA["longestRutType"] = null;
+  let longestRutValue: string | null = null;
+
+  if (longestRut >= 4) {
+    if (cuisineRut.longestRut >= categoryRut.longestRut) {
+      longestRutType = "cuisine";
+      longestRutValue = cuisineRut.longestRutValue;
+    } else {
+      longestRutType = "category";
+      longestRutValue = categoryRut.longestRutValue;
+    }
+  }
+
   // Streak
   const { current: currentStreakDays, longest: longestStreakDays } =
     computeStreak(rows);
@@ -331,6 +462,15 @@ export async function getSoloDNA(userId: string): Promise<SoloDNA> {
     longestStreakDays,
     mostActiveTimeOfDay,
     mostActiveDayType,
+    firstMatchEver,
+    inRut,
+    rutType,
+    rutCuisine,
+    rutCategory,
+    rutLength,
+    longestRut,
+    longestRutType,
+    longestRutValue,
   };
 }
 

@@ -46,11 +46,27 @@ function isCacheValid(cache: InsightCache, currentDecisionCount: number): boolea
 function soloFallbacks(dna: SoloDNA): string[] {
   const topCuisine = dna.topCuisines[0]?.cuisine ?? "Your top cuisine";
   const topCuisinePct = dna.topCuisines[0]?.pct ?? 0;
-  return [
+  const fallbacks: string[] = [
     `${topCuisine} wins ${topCuisinePct}% of the time. The data doesn't lie.`,
     `${dna.totalDecisions} decisions made. Zero regrets.`,
     `${dna.currentStreakDays} day streak. The indecision era is over.`,
   ];
+  if (dna.inRut) {
+    const label = dna.rutCuisine ?? dna.rutCategory;
+    if (label) {
+      fallbacks.push(`${label} for ${dna.rutLength} decisions straight. Rut or ritual?`);
+    }
+  } else if (dna.longestRutValue && dna.longestRut >= 4) {
+    fallbacks.push(`Your longest ${dna.longestRutValue} streak hit ${dna.longestRut}. That's a pattern.`);
+  }
+  if (dna.firstMatchEver) {
+    const date = new Date(dna.firstMatchEver).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    fallbacks.push(`First shared match: ${date}. Been deciding together ever since.`);
+  }
+  return fallbacks.slice(0, 3);
 }
 
 function couplesFallbacks(dna: CouplesDNA): string[] {

@@ -2373,11 +2373,26 @@ function DeckContent() {
                           </p>
                           <div className="flex flex-col gap-3 mt-6">
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 addToHistory(confirmMeal);
                                 saveDecidedMeal({ ...confirmMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
                                 if (sessionId) sessionStorage.removeItem(sharedResetKey(sessionId));
-                                void recordAcceptedDecision({ meal: confirmMeal, positionInDeck: 0, sessionType: "shared", sessionId: sessionId ?? null, vibeSelection: sessionVibeMode });
+                                let confirmTimeToMatch: number | null = null;
+                                if (sessionId) {
+                                  try {
+                                    const { data: confirmSessionData } = await supabase
+                                      .from("sessions")
+                                      .select("created_at")
+                                      .eq("id", sessionId)
+                                      .single();
+                                    confirmTimeToMatch = confirmSessionData?.created_at
+                                      ? Math.max(0, Math.round((Date.now() - new Date(confirmSessionData.created_at).getTime()) / 1000))
+                                      : null;
+                                  } catch {
+                                    console.warn("[partner-picks] could not fetch session created_at for time_to_match");
+                                  }
+                                }
+                                void recordAcceptedDecision({ meal: confirmMeal, positionInDeck: 0, sessionType: "shared", sessionId: sessionId ?? null, vibeSelection: sessionVibeMode, timeToMatchSeconds: confirmTimeToMatch });
                                 if (!trackingClosedRef.current) {
                                   trackingClosedRef.current = true;
                                   trackingSessionPromiseRef.current?.then((tsId) => {

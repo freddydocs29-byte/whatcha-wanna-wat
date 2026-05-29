@@ -36,6 +36,15 @@ function buildSoloPrompt(dna: SoloDNA, userName?: string): string {
     totalSessions: dna.totalSessions,
     mostActiveTimeOfDay: dna.mostActiveTimeOfDay,
     mostActiveDayType: dna.mostActiveDayType,
+    firstMatchEver: dna.firstMatchEver ?? null,
+    inRut: dna.inRut,
+    rutType: dna.rutType,
+    rutCuisine: dna.rutCuisine,
+    rutCategory: dna.rutCategory,
+    rutLength: dna.rutLength,
+    longestRut: dna.longestRut,
+    longestRutType: dna.longestRutType,
+    longestRutValue: dna.longestRutValue,
   };
   return `${nameStr}Generate 3 solo insights from this DNA data:\n${JSON.stringify(data, null, 2)}\n\nReturn ONLY: { "insights": ["...", "...", "..."] }`;
 }
