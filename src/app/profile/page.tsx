@@ -28,9 +28,6 @@ import { detectRituals, type RitualDetection } from "../lib/rituals";
 import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import { supabase, type SoftAvoid } from "../lib/supabase";
 import {
-  getSoloDNA,
-  getCouplesDNA,
-  getAllPartners,
   type SoloDNA,
   type CouplesDNA,
   type PartnerInfo,
@@ -198,21 +195,32 @@ export default function ProfilePage() {
       .catch((err) => console.warn("[profile] identity load error:", err))
       .finally(() => setAsyncLoading(false));
 
-    // ── DNA load (runs in parallel with identity) ───────────────────────────
+    // ── DNA load (single endpoint, runs in parallel with identity) ────────
     (async () => {
       try {
-        const [dna, allPartners, selfProfile] = await Promise.all([
-          getSoloDNA(userId),
-          getAllPartners(userId),
+        const [fetchRes, selfProfile] = await Promise.all([
+          fetch(`/api/profile/dna?userId=${encodeURIComponent(userId)}`),
           fetchOrCreateProfile(userId),
         ]);
 
-        setSoloDNA(dna);
+        if (!fetchRes.ok) throw new Error(`DNA API ${fetchRes.status}`);
+
+        const data = (await fetchRes.json()) as {
+          solo: SoloDNA | null;
+          couples: CouplesDNA | null;
+          soloInsights: null;
+          couplesInsights: null;
+          partners: PartnerInfo[] | null;
+        };
+
+        const allPartners = data.partners ?? [];
+        setSoloDNA(data.solo);
         setPartners(allPartners);
 
-        if (dna.totalDecisions >= 3) {
+        // Insights use localStorage — generate client-side after receiving DNA
+        if (data.solo && data.solo.totalDecisions >= 3) {
           const insights = await getSoloInsights(
-            dna,
+            data.solo,
             selfProfile?.display_name ?? undefined
           ).catch(() => []);
           setSoloInsights(insights);
@@ -224,17 +232,17 @@ export default function ProfilePage() {
           setPartnerName(firstPartner.displayName);
           setPartnerAvatarUrl(firstPartner.avatarUrl);
 
-          const couplesDna = await getCouplesDNA(userId, firstPartner.partnerId);
-          setCouplesDNA(couplesDna);
-
-          const ci = await getCouplesInsights(
-            couplesDna,
-            selfProfile?.display_name ?? undefined,
-            firstPartner.displayName ?? undefined,
-            userId,
-            firstPartner.partnerId
-          ).catch(() => []);
-          setCouplesInsights(ci);
+          if (data.couples) {
+            setCouplesDNA(data.couples);
+            const ci = await getCouplesInsights(
+              data.couples,
+              selfProfile?.display_name ?? undefined,
+              firstPartner.displayName ?? undefined,
+              userId,
+              firstPartner.partnerId
+            ).catch(() => []);
+            setCouplesInsights(ci);
+          }
         }
       } catch (err) {
         console.warn("[profile] DNA load error:", err);
@@ -379,16 +387,22 @@ export default function ProfilePage() {
     setCouplesInsights([]);
     try {
       const uid = getUserId();
-      const couplesDna = await getCouplesDNA(uid, partnerId);
-      setCouplesDNA(couplesDna);
-      const ci = await getCouplesInsights(
-        couplesDna,
-        displayName || undefined,
-        partner.displayName ?? undefined,
-        uid,
-        partnerId
-      ).catch(() => []);
-      setCouplesInsights(ci);
+      const res = await fetch(
+        `/api/profile/dna?userId=${encodeURIComponent(uid)}&partnerId=${encodeURIComponent(partnerId)}`
+      );
+      if (!res.ok) throw new Error(`DNA API ${res.status}`);
+      const data = (await res.json()) as { couples: CouplesDNA | null };
+      if (data.couples) {
+        setCouplesDNA(data.couples);
+        const ci = await getCouplesInsights(
+          data.couples,
+          displayName || undefined,
+          partner.displayName ?? undefined,
+          uid,
+          partnerId
+        ).catch(() => []);
+        setCouplesInsights(ci);
+      }
     } catch (err) {
       console.warn("[profile] couples DNA switch error:", err);
     }
