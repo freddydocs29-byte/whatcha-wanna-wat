@@ -36,6 +36,7 @@ import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
+import FlavorTypeReveal from "./components/FlavorTypeReveal";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -145,6 +146,7 @@ export default function Home() {
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [lockedHeadline, setLockedHeadline] = useState<LockedMealHeadlineResult | null>(null);
+  const [typeRevealData, setTypeRevealData] = useState<{ typeName: string; tagline: string } | null>(null);
   const [activeSession, setActiveSession] = useState<{
     sessionId: string;
     sessionCode: string | null;
@@ -441,6 +443,27 @@ export default function Home() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Consume wwe_type_reveal_pending on mount.
+  // Sets wwe_type_revealed immediately so no subsequent recompute can re-queue
+  // the reveal, then stores the data in state for the overlay to read.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("wwe_type_reveal_pending");
+    if (!raw) return;
+    // Mark as permanently shown before parsing — prevents any race where the
+    // component unmounts before onDismiss fires.
+    localStorage.setItem("wwe_type_revealed", "true");
+    localStorage.removeItem("wwe_type_reveal_pending");
+    try {
+      const { typeName, tagline } = JSON.parse(raw) as { typeName: string; tagline: string };
+      if (typeName && tagline) {
+        setTypeRevealData({ typeName, tagline });
+      }
+    } catch {
+      // Malformed flag — already cleared above, nothing to show.
+    }
+  }, []);
+
   // Sync userDoneSwiping from localStorage whenever the active session changes.
   // partnerDoneSwiping resets to false here; the polling updates it independently.
   useEffect(() => {
@@ -466,6 +489,15 @@ export default function Home() {
   function handleDismissBanner() {
     localStorage.removeItem("wwe_active_session");
     setActiveSession(null);
+  }
+
+  function handleRevealDismiss() {
+    setTypeRevealData(null);
+  }
+
+  function handleRevealViewProfile() {
+    setTypeRevealData(null);
+    router.push("/profile");
   }
 
   function openClearModal() {
@@ -1132,6 +1164,16 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Flavor type reveal — shown once when solo type is first assigned */}
+      {typeRevealData && (
+        <FlavorTypeReveal
+          typeName={typeRevealData.typeName}
+          tagline={typeRevealData.tagline}
+          onDismiss={handleRevealDismiss}
+          onViewProfile={handleRevealViewProfile}
+        />
       )}
 
       {/* Match celebration flash — shown once for 2 s when the partner completes a match */}

@@ -516,6 +516,30 @@ export async function getFlavorType(
 
     writeCache(key, { result, decisionCount: dna.totalDecisions });
     if (userId) void upsertFlavorType(userId, context, result);
+
+    // Set reveal-pending flag on the very first solo type assignment only.
+    // Guards:
+    //   - solo context (never partner)
+    //   - fresh compute only (cache hit returns early above)
+    //   - enough decisions to be meaningful
+    //   - no pending flag already waiting to be consumed
+    //   - wwe_type_revealed is not set (permanent "already shown" marker)
+    if (
+      context === "solo" &&
+      dna.totalDecisions >= 7 &&
+      typeof window !== "undefined" &&
+      !localStorage.getItem("wwe_type_reveal_pending") &&
+      localStorage.getItem("wwe_type_revealed") !== "true"
+    ) {
+      localStorage.setItem(
+        "wwe_type_reveal_pending",
+        JSON.stringify({
+          typeName: result.personalizedName,
+          tagline: result.tagline,
+        })
+      );
+    }
+
     return result;
   } else {
     // ── Couples path ─────────────────────────────────────────────────────────
