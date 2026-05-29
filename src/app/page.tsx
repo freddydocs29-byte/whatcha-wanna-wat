@@ -391,7 +391,6 @@ export default function Home() {
               setDecidedMealState(decidedMealData);
               setTodaysPick({ meal, chosenAt: decidedAt });
               // Fire and forget — never blocks the match flow.
-              console.log('[type-reveal] decision recorded — firing background check');
               void checkAndTriggerTypeReveal();
             } else {
               console.warn("[home] matched session has locked_meal_id not found in catalog:", data.locked_meal_id);
@@ -477,7 +476,6 @@ export default function Home() {
 
   // 1. Check on home mount.
   useEffect(() => {
-    console.log('[type-reveal] home mount — checking pending flag:', localStorage.getItem('wwe_type_reveal_pending'));
     checkPendingTypeReveal();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -486,8 +484,6 @@ export default function Home() {
     if (typeof window === "undefined") return;
     const onFocus = () => checkPendingTypeReveal();
     const onVisibility = () => {
-      console.log('[type-reveal] visibility changed to:', document.visibilityState);
-      console.log('[type-reveal] pending flag value:', localStorage.getItem('wwe_type_reveal_pending'));
       if (document.visibilityState === "visible") checkPendingTypeReveal();
     };
     window.addEventListener("focus", onFocus);

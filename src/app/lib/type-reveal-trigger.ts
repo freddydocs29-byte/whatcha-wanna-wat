@@ -17,16 +17,9 @@ import { getFlavorType } from "./flavor-type";
  * call that finds >= 7 accepted decisions.
  */
 export async function checkAndTriggerTypeReveal(): Promise<void> {
-  console.log('[type-reveal] checkAndTriggerTypeReveal called');
   if (typeof window === "undefined") return;
-  if (localStorage.getItem("wwe_type_revealed") === "true") {
-    console.log('[type-reveal] already revealed — skipping');
-    return;
-  }
-  if (localStorage.getItem("wwe_type_reveal_pending")) {
-    console.log('[type-reveal] already pending — skipping');
-    return;
-  }
+  if (localStorage.getItem("wwe_type_revealed") === "true") return;
+  if (localStorage.getItem("wwe_type_reveal_pending")) return;
 
   const userId = getUserId();
   if (!userId) return;
@@ -38,13 +31,7 @@ export async function checkAndTriggerTypeReveal(): Promise<void> {
     .eq("user_id", userId)
     .eq("outcome", "accepted");
 
-  console.log('[type-reveal] decision count:', count);
-  if (!count || count < 7) {
-    console.log('[type-reveal] not enough decisions — skipping');
-    return;
-  }
-
-  console.log('[type-reveal] threshold crossed — computing type');
+  if (!count || count < 7) return;
 
   // Threshold crossed — compute solo DNA and derive the flavor type.
   // Dynamic import avoids any circular-dependency risk at module load time.
@@ -54,5 +41,4 @@ export async function checkAndTriggerTypeReveal(): Promise<void> {
 
   // getFlavorType handles the pending-flag write and caching internally.
   await getFlavorType(dna, "solo", undefined, userId);
-  console.log("[type-reveal] background check complete, pending:", localStorage.getItem("wwe_type_reveal_pending"));
 }

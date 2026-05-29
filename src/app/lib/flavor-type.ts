@@ -494,12 +494,6 @@ export async function getFlavorType(
         decisionDelta < NEW_DECISIONS_THRESHOLD &&
         cached.result.baseType === classified.baseType
       ) {
-        console.log('[type-reveal] getFlavorType cache hit:', {
-          key,
-          baseType: cached.result.baseType,
-          decisionCount: cached.decisionCount,
-          currentDecisions: dna.totalDecisions,
-        });
         return cached.result;
       }
     }

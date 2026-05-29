@@ -607,11 +607,6 @@ export default function ProfilePage() {
 
   // ── Guard: single render frame before useEffect fires ─────────────────────
 
-  console.log('[type-reveal] profile type render state:', {
-    soloDNADecisions: soloDNA?.totalDecisions,
-    hasFlavorType: !!flavorType,
-    flavorTypeName: flavorType?.personalizedName,
-  });
 
   if (!prefs) {
     return (
