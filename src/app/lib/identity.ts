@@ -103,6 +103,14 @@ export function clearAllLocalState(): void {
   }
   for (const k of insightKeys) localStorage.removeItem(k);
 
+  // Clear dynamic flavor type cache keys (wwe_flavor_type_{userId}).
+  const flavorTypeKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("wwe_flavor_type_")) flavorTypeKeys.push(k);
+  }
+  for (const k of flavorTypeKeys) localStorage.removeItem(k);
+
 }
 
 /**

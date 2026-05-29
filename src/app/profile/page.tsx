@@ -33,6 +33,11 @@ import {
   type PartnerInfo,
 } from "../lib/dna";
 import { getSoloInsights, getCouplesInsights } from "../lib/dna-insights";
+import {
+  getFlavorType,
+  getBaseTypeLabel,
+  type FlavorTypeResult,
+} from "../lib/flavor-type";
 
 // ── Option constants ──────────────────────────────────────────────────────────
 
@@ -136,6 +141,7 @@ export default function ProfilePage() {
   const [dnaLoading, setDnaLoading] = useState(true);
   const [soloDNA, setSoloDNA] = useState<SoloDNA | null>(null);
   const [soloInsights, setSoloInsights] = useState<string[]>([]);
+  const [flavorType, setFlavorType] = useState<FlavorTypeResult | null>(null);
   const [couplesDNA, setCouplesDNA] = useState<CouplesDNA | null>(null);
   const [couplesInsights, setCouplesInsights] = useState<string[]>([]);
   const [partnerName, setPartnerName] = useState<string | null>(null);
@@ -224,6 +230,13 @@ export default function ProfilePage() {
             selfProfile?.display_name ?? undefined
           ).catch(() => []);
           setSoloInsights(insights);
+        }
+
+        // Flavor type — only reveals after 7 decisions; null below that threshold
+        if (data.solo) {
+          getFlavorType(data.solo, selfProfile?.display_name ?? undefined)
+            .then(setFlavorType)
+            .catch(() => { /* non-fatal */ });
         }
 
         if (allPartners.length > 0) {
@@ -435,6 +448,7 @@ export default function ProfilePage() {
       ? {
           mode: "solo",
           userName: displayName || undefined,
+          flavorType: flavorType ?? undefined,
           data: {
             totalDecisions: soloDNA.totalDecisions,
             totalSessions: soloDNA.totalSessions,
@@ -680,6 +694,29 @@ export default function ProfilePage() {
         ) : soloDNA ? (
           /* Full flame content */
           <div>
+            {/* Flavor type block — shown above cuisine bars */}
+            {soloDNA.totalDecisions < 7 ? (
+              <div className="mb-5">
+                <p className="font-body text-sm text-[#8A7F78]">Still learning you…</p>
+                <p className="font-body text-xs text-[#8A7F78]/60 mt-0.5">
+                  {7 - soloDNA.totalDecisions}{" "}
+                  {7 - soloDNA.totalDecisions === 1 ? "more decision" : "more decisions"} until your type is revealed
+                </p>
+              </div>
+            ) : flavorType ? (
+              <div className="mb-5">
+                <p className="font-display font-black text-2xl text-white leading-tight">
+                  {flavorType.personalizedName}
+                </p>
+                <p className="font-body text-xs text-[#E8621A] mt-0.5">
+                  {getBaseTypeLabel(flavorType.baseType)}
+                </p>
+                <p className="font-body text-sm text-white/70 mt-1">
+                  {flavorType.tagline}
+                </p>
+              </div>
+            ) : null}
+
             {/* Hero */}
             <p className="font-display font-black text-2xl text-white leading-tight">
               {soloDNA.topCuisines[0]?.cuisine ?? "Your taste"} runs the table

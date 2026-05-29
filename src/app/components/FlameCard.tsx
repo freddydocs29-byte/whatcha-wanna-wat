@@ -1,11 +1,14 @@
 "use client";
 
 import { forwardRef } from "react";
+import type { FlavorTypeResult } from "../lib/flavor-type";
+import { getBaseTypeLabel } from "../lib/flavor-type";
 
 export type FlameCardProps = {
   mode: "solo" | "couples";
   userName?: string;
   partnerName?: string;
+  flavorType?: FlavorTypeResult;
   data: {
     totalDecisions?: number;
     totalSessions?: number;
@@ -33,7 +36,7 @@ function formatSeconds(s: number): string {
 }
 
 const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
-  { mode, userName, partnerName, data },
+  { mode, userName, partnerName, flavorType, data },
   ref
 ) {
   const {
@@ -61,7 +64,7 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
       ? `${userName}'s Flame`
       : "Your Flame";
 
-  // Hero headline
+  // Hero headline (used only when no flavorType is provided)
   const heroLine = topCuisine
     ? `${topCuisine} runs the table`
     : "Your taste runs deep";
@@ -112,19 +115,44 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
           className="rounded-[16px] px-5 py-5"
           style={{ background: "#2A2420" }}
         >
-          <p
-            className="font-display font-black text-3xl leading-tight"
-            style={{ color: "#FFFFFF" }}
-          >
-            {heroLine}
-          </p>
-          {topCuisinePct != null && topCuisinePct > 0 && (
-            <p
-              className="font-body text-sm mt-1.5"
-              style={{ color: "#8A7F78" }}
-            >
-              {topCuisinePct}% of your decisions
-            </p>
+          {flavorType ? (
+            <>
+              <p
+                className="font-display font-black text-3xl leading-tight"
+                style={{ color: "#FFFFFF" }}
+              >
+                {flavorType.personalizedName}
+              </p>
+              <p
+                className="font-body text-xs mt-1"
+                style={{ color: "#E8621A" }}
+              >
+                {getBaseTypeLabel(flavorType.baseType)}
+              </p>
+              <p
+                className="font-body text-sm mt-1.5"
+                style={{ color: "#8A7F78" }}
+              >
+                {flavorType.tagline}
+              </p>
+            </>
+          ) : (
+            <>
+              <p
+                className="font-display font-black text-3xl leading-tight"
+                style={{ color: "#FFFFFF" }}
+              >
+                {heroLine}
+              </p>
+              {topCuisinePct != null && topCuisinePct > 0 && (
+                <p
+                  className="font-body text-sm mt-1.5"
+                  style={{ color: "#8A7F78" }}
+                >
+                  {topCuisinePct}% of your decisions
+                </p>
+              )}
+            </>
           )}
         </div>
 
