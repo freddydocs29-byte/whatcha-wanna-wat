@@ -183,6 +183,17 @@ export default function ProfilePage() {
 
     const userId = getUserId();
 
+    // Pre-populate flavorType from localStorage cache to avoid showing "Still
+    // learning" when soloDNA is temporarily stale after a fresh reveal.
+    const ftCacheKey = `wwe_flavor_type_solo_${userId}`;
+    try {
+      const ftRaw = localStorage.getItem(ftCacheKey);
+      if (ftRaw) {
+        const ftCached = JSON.parse(ftRaw) as { result: FlavorTypeResult; decisionCount: number };
+        if (ftCached.result?.personalizedName) setFlavorType(ftCached.result);
+      }
+    } catch { /* non-fatal */ }
+
     // ── Identity load (auth + profile + avoids + rituals) ──────────────────
     Promise.all([
       getAuthUserId(),
@@ -759,16 +770,11 @@ export default function ProfilePage() {
         ) : soloDNA ? (
           /* Full flame content */
           <div>
-            {/* Flavor type block — shown above cuisine bars */}
-            {soloDNA.totalDecisions < 7 ? (
-              <div className="mb-5">
-                <p className="font-body text-sm text-[#8A7F78]">Still learning you…</p>
-                <p className="font-body text-xs text-[#8A7F78]/60 mt-0.5">
-                  {7 - soloDNA.totalDecisions}{" "}
-                  {7 - soloDNA.totalDecisions === 1 ? "more decision" : "more decisions"} until your type is revealed
-                </p>
-              </div>
-            ) : flavorType ? (
+            {/* Flavor type block — shown above cuisine bars.
+                flavorType is checked first: if cache already exists (e.g. after a
+                reveal that hasn't synced back to totalDecisions yet), show it
+                immediately instead of falling through to "Still learning". */}
+            {flavorType ? (
               <div className="mb-5">
                 <p className="font-display font-black text-2xl text-white leading-tight">
                   {flavorType.personalizedName}
@@ -778,6 +784,14 @@ export default function ProfilePage() {
                 </p>
                 <p className="font-body text-sm text-white/70 mt-1">
                   {flavorType.tagline}
+                </p>
+              </div>
+            ) : soloDNA.totalDecisions < 7 ? (
+              <div className="mb-5">
+                <p className="font-body text-sm text-[#8A7F78]">Still learning you…</p>
+                <p className="font-body text-xs text-[#8A7F78]/60 mt-0.5">
+                  {7 - soloDNA.totalDecisions}{" "}
+                  {7 - soloDNA.totalDecisions === 1 ? "more decision" : "more decisions"} until your type is revealed
                 </p>
               </div>
             ) : null}

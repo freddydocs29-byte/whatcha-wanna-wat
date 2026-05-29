@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import BottomNav from "./components/BottomNav";
 import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
 import SplashScreen from "./components/SplashScreen";
@@ -124,6 +124,7 @@ function deriveInsights(history: HistoryEntry[]): string[] {
 
 export default function Home() {
   const router = useRouter();
+  const pathname = usePathname();
   // showSplash: true when no Supabase session exists (logged-out user)
   // ready: true when session confirmed and home data loaded
   // While neither is set, we're waiting for the auth check — render null.
@@ -158,6 +159,8 @@ export default function Home() {
   const [partnerDoneSwiping, setPartnerDoneSwiping] = useState(false);
   const [showMatchCelebration, setShowMatchCelebration] = useState(false);
   const matchCelebrationShownRef = useRef<Set<string>>(new Set());
+  // Mirrors typeRevealData so event handlers added in [] effects don't get stale closures.
+  const typeRevealDataRef = useRef<{ typeName: string; tagline: string } | null>(null);
 
   useEffect(() => {
     async function checkAndRoute() {
@@ -446,26 +449,55 @@ export default function Home() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Consume wwe_type_reveal_pending on mount.
-  // Sets wwe_type_revealed immediately so no subsequent recompute can re-queue
-  // the reveal, then stores the data in state for the overlay to read.
+  // Keep the ref in sync so event handlers wired with [] deps always see the
+  // latest typeRevealData without needing a stale closure.
+  useEffect(() => { typeRevealDataRef.current = typeRevealData; }, [typeRevealData]);
+
+  // Consumes wwe_type_reveal_pending and fires the overlay exactly once.
+  // Guarded against SSR and double-show.
+  function checkPendingTypeReveal() {
+    if (typeof window === "undefined") return;
+    if (typeRevealDataRef.current) return; // already showing — don't double-fire
+
+    const revealPending = localStorage.getItem("wwe_type_reveal_pending");
+    if (!revealPending) return;
+
+    try {
+      const { typeName, tagline } = JSON.parse(revealPending) as { typeName: string; tagline: string };
+      // Mark revealed before updating state — prevents any race if component
+      // unmounts before onDismiss fires.
+      localStorage.setItem("wwe_type_revealed", "true");
+      localStorage.removeItem("wwe_type_reveal_pending");
+      setTypeRevealData({ typeName, tagline });
+    } catch {
+      localStorage.removeItem("wwe_type_reveal_pending");
+    }
+  }
+
+  // 1. Check on home mount.
+  useEffect(() => {
+    checkPendingTypeReveal();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 2. Check on window focus (tab switch / app return) and visibilitychange.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("wwe_type_reveal_pending");
-    if (!raw) return;
-    // Mark as permanently shown before parsing — prevents any race where the
-    // component unmounts before onDismiss fires.
-    localStorage.setItem("wwe_type_revealed", "true");
-    localStorage.removeItem("wwe_type_reveal_pending");
-    try {
-      const { typeName, tagline } = JSON.parse(raw) as { typeName: string; tagline: string };
-      if (typeName && tagline) {
-        setTypeRevealData({ typeName, tagline });
-      }
-    } catch {
-      // Malformed flag — already cleared above, nothing to show.
-    }
-  }, []);
+    const onFocus = () => checkPendingTypeReveal();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") checkPendingTypeReveal();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 3. Check whenever the client-side pathname becomes "/" (bottom-nav navigation).
+  useEffect(() => {
+    if (pathname === "/") checkPendingTypeReveal();
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync userDoneSwiping from localStorage whenever the active session changes.
   // partnerDoneSwiping resets to false here; the polling updates it independently.
