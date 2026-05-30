@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
 import FlameCard from "../components/FlameCard";
 import type { FlameCardProps } from "../components/FlameCard";
+import FlavorTypeCard from "../components/FlavorTypeCard";
+import CardRevealOverlay from "../components/CardRevealOverlay";
 import {
   getPreferences,
   savePreferences,
@@ -156,11 +158,15 @@ export default function ProfilePage() {
   // ── Tracks whether flavorType was pre-populated from localStorage ─────────
   const flavorTypePreloadedRef = useRef(false);
 
-  // ── FlameCard overlay ──────────────────────────────────────────────────────
-  const [flameOverlay, setFlameOverlay] = useState<"solo" | "couples" | null>(null);
+  // ── FlameCard overlay (couples only) ──────────────────────────────────────
+  const [flameOverlay, setFlameOverlay] = useState<"couples" | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const flameCardRef = useRef<HTMLDivElement>(null);
+
+  // ── FlavorTypeCard reveal (solo) ───────────────────────────────────────────
+  const [revealOpen, setRevealOpen] = useState(false);
+  const flavorCardRef = useRef<HTMLDivElement>(null);
 
   // ── Saved toast ────────────────────────────────────────────────────────────
   const [savedVisible, setSavedVisible] = useState(false);
@@ -467,6 +473,75 @@ export default function ProfilePage() {
       }, "image/png");
     } catch {
       setShareError("Couldn't share. Try saving the image.");
+      setSharing(false);
+    }
+  }
+
+  // ── FlavorTypeCard share / save ───────────────────────────────────────────
+
+  async function handleFlavorShare() {
+    if (!flavorCardRef.current) return;
+    setSharing(true);
+    setShareError(null);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(flavorCardRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) { setShareError("Couldn't share. Try saving the image."); setSharing(false); return; }
+        const file = new File([blob], "watcha-flavor-card.png", { type: "image/png" });
+        if (typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: "My Watcha? Flavor Card" });
+          } catch (err) {
+            if (err instanceof Error && err.name !== "AbortError") {
+              setShareError("Couldn't share. Try saving the image.");
+            }
+          }
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "watcha-flavor-card.png";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        setSharing(false);
+      }, "image/png");
+    } catch {
+      setShareError("Couldn't share. Try saving the image.");
+      setSharing(false);
+    }
+  }
+
+  async function handleFlavorSave() {
+    if (!flavorCardRef.current) return;
+    setSharing(true);
+    setShareError(null);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(flavorCardRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob((blob) => {
+        if (!blob) { setSharing(false); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "watcha-flavor-card.png";
+        a.click();
+        URL.revokeObjectURL(url);
+        setSharing(false);
+      }, "image/png");
+    } catch {
+      setShareError("Couldn't save. Try again.");
       setSharing(false);
     }
   }
@@ -941,9 +1016,9 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Share button */}
+            {/* Share button — opens FlavorTypeCard reveal */}
             <button
-              onClick={() => setFlameOverlay("solo")}
+              onClick={() => { setRevealOpen(true); setShareError(null); }}
               className="mt-6 w-full font-display font-black text-sm py-4 rounded-full bg-[#E8621A] text-white"
             >
               Share my Flavor Card →
@@ -1249,10 +1324,10 @@ export default function ProfilePage() {
       <BottomNav />
 
       {/* ──────────────────────────────────────────────────────────────────────
-          FlameCard overlay (slides up from bottom, swipe down to close)
+          FlameCard overlay — couples only (slides up from bottom)
       ────────────────────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {flameOverlay && (
+        {flameOverlay === "couples" && (
           <div className="fixed inset-0 z-50 flex flex-col">
             {/* Dark backdrop */}
             <motion.div
@@ -1289,10 +1364,7 @@ export default function ProfilePage() {
               <div className="overflow-y-auto flex-1">
                 {/* Card */}
                 <div className="px-5 pt-3 pb-4">
-                  {flameOverlay === "solo" && soloCardProps && (
-                    <FlameCard ref={flameCardRef} {...soloCardProps} />
-                  )}
-                  {flameOverlay === "couples" && couplesCardProps && (
+                  {couplesCardProps && (
                     <FlameCard ref={flameCardRef} {...couplesCardProps} />
                   )}
                 </div>
@@ -1321,6 +1393,28 @@ export default function ProfilePage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ──────────────────────────────────────────────────────────────────────
+          FlavorTypeCard reveal overlay — solo (full-screen animated reveal)
+      ────────────────────────────────────────────────────────────────────── */}
+      {soloDNA && flavorType && (
+        <CardRevealOverlay
+          open={revealOpen}
+          onClose={() => { setRevealOpen(false); setShareError(null); setSharing(false); }}
+          onShare={() => void handleFlavorShare()}
+          onSave={() => void handleFlavorSave()}
+          sharing={sharing}
+          shareError={shareError}
+        >
+          <FlavorTypeCard
+            ref={flavorCardRef}
+            flavorType={flavorType}
+            userName={displayName || undefined}
+            soloDNA={soloDNA}
+            hardNos={hardNosList.length ? hardNosList : undefined}
+          />
+        </CardRevealOverlay>
+      )}
     </main>
   );
 }
