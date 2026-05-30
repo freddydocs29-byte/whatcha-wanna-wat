@@ -6,10 +6,17 @@ const VIBES = [
   { key: "comfort", emoji: "☕", label: "Comfort", scriptText: "comfort food" },
   { key: "spicy", emoji: "🌶️", label: "Spicy", scriptText: "something spicy" },
   { key: "fresh", emoji: "🥗", label: "Fresh", scriptText: "something fresh" },
+  { key: "quick", emoji: "⚡", label: "Quick", scriptText: "something quick" },
+  { key: "healthy", emoji: "🥦", label: "Healthy", scriptText: "something healthy" },
+  { key: "elevated", emoji: "✨", label: "Elevated", scriptText: "something elevated" },
+  { key: "bold", emoji: "🔥", label: "Bold", scriptText: "bold flavors" },
+  { key: "classic", emoji: "🍝", label: "Classic", scriptText: "a classic dish" },
 ] as const;
 
+type VibeKey = (typeof VIBES)[number]["key"];
+
 // Per-vibe color themes — subtle and premium
-const VIBE_THEMES: Record<string, {
+const VIBE_THEMES: Record<VibeKey, {
   cardBg: string;
   accentBar: string;
   scriptColor: string;
@@ -37,6 +44,41 @@ const VIBE_THEMES: Record<string, {
     activePillBg: "#3D7A54",
     activePillBorder: "#4A7C59",
   },
+  quick: {
+    cardBg: "#1A1F2D",
+    accentBar: "#3A6BC8",
+    scriptColor: "#5A8AE8",
+    activePillBg: "#3A6BC8",
+    activePillBorder: "#4A7BD8",
+  },
+  healthy: {
+    cardBg: "#1B2A1A",
+    accentBar: "#4A8C3A",
+    scriptColor: "#6AB85A",
+    activePillBg: "#4A8C3A",
+    activePillBorder: "#5A9C4A",
+  },
+  elevated: {
+    cardBg: "#221E2A",
+    accentBar: "#8A6AC8",
+    scriptColor: "#A888E8",
+    activePillBg: "#8A6AC8",
+    activePillBorder: "#9A7AD8",
+  },
+  bold: {
+    cardBg: "#2A1A18",
+    accentBar: "#C83A14",
+    scriptColor: "#E84C28",
+    activePillBg: "#C83A14",
+    activePillBorder: "#D84A24",
+  },
+  classic: {
+    cardBg: "#2A2218",
+    accentBar: "#C89A3A",
+    scriptColor: "#E8B85A",
+    activePillBg: "#C89A3A",
+    activePillBorder: "#D8AA4A",
+  },
 };
 
 interface V3VibeCardProps {
@@ -45,7 +87,7 @@ interface V3VibeCardProps {
 }
 
 export default function V3VibeCard({ isSolo = false, onSeeTop5 }: V3VibeCardProps) {
-  const [activeVibe, setActiveVibe] = useState<string>("comfort");
+  const [activeVibe, setActiveVibe] = useState<VibeKey>("comfort");
   const currentVibe = VIBES.find((v) => v.key === activeVibe)!;
   const theme = VIBE_THEMES[activeVibe];
 

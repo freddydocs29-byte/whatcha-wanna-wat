@@ -47,6 +47,7 @@ import V3PostMatchHome from "./components/v3/V3PostMatchHome";
 import V3LockedMealCard from "./components/v3/V3LockedMealCard";
 import V3MealActionRows from "./components/v3/V3MealActionRows";
 import V3BottomNav from "./components/v3/V3BottomNav";
+import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -156,6 +157,7 @@ export default function Home() {
   const [showEatModal, setShowEatModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [resolvedAvatarUrl, setResolvedAvatarUrl] = useState<string | null>(null);
   const [lockedHeadline, setLockedHeadline] = useState<LockedMealHeadlineResult | null>(null);
   const [typeRevealData, setTypeRevealData] = useState<{ typeName: string; tagline: string } | null>(null);
   const [activeSession, setActiveSession] = useState<{
@@ -222,7 +224,11 @@ export default function Home() {
       if (decided) setDecidedSaved(getSavedMealsEnriched().some((s) => s.meal.id === decided.id));
       if (pick) setSaved(getSavedMealsEnriched().some((s) => s.meal.id === pick.meal.id));
       setStreak(getStreak());
-      fetchProfileByAuthUserId(session.user.id).then(setProfile).catch(() => {});
+      fetchProfileByAuthUserId(session.user.id).then((p) => {
+        setProfile(p);
+        const url = p?.avatar_url ?? localStorage.getItem('wwe_avatar_url');
+        if (url) setResolvedAvatarUrl(url);
+      }).catch(() => {});
       setReady(true);
 
       // Track once per browser session so repeated navigations don't re-fire.
@@ -707,7 +713,47 @@ export default function Home() {
   }
 
   const hour = new Date().getHours();
-  const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+  const timeOfDay =
+    hour < 12 ? "morning" :
+    hour < 17 ? "afternoon" :
+    hour < 21 ? "evening" :
+    "latenight";
+
+  // Rotating headlines keyed by time-of-day. Cycles daily (by day-of-month)
+  // so the headline feels fresh without jumping on every re-render.
+  const headlinesByTime: Record<string, string[]> = {
+    morning: [
+      "What are we eating today? ☀️",
+      "Let's plan today's meals. 🍳",
+      "Good food starts with a plan. ☕",
+      "Let's make today delicious. 🌅",
+    ],
+    afternoon: [
+      "What's the plan for dinner? 🍴",
+      "Let's figure out tonight's move. 🍴",
+      "Time to decide what we're eating. 🕐",
+      "Dinner won't plan itself. 🍽️",
+    ],
+    evening: [
+      "Let's figure out tonight's move. 🍴",
+      "What's for dinner tonight? 🌙",
+      "Time to make the call. 🍽️",
+      "Tonight's menu — let's decide. ✨",
+    ],
+    latenight: [
+      "Late night snack? Let's figure it out. 🌙",
+      "Still hungry? We've got you. 🍜",
+      "Night owl eats. Let's decide. 🦉",
+      "What are we doing about food? 🌙",
+    ],
+  };
+  const dayOfMonth = new Date().getDate();
+  const headlineOptions = headlinesByTime[timeOfDay];
+  const rotatingHeadline = headlineOptions[dayOfMonth % headlineOptions.length];
+
+  // Greeting line — late night gets its own phrasing instead of "Good latenight"
+  const greetingPhrase =
+    timeOfDay === "latenight" ? "Still up" : `Good ${timeOfDay}`;
 
   // Banner variant drives copy and visual styling.
   // Evaluated once per render from stable state so the JSX stays declarative.
@@ -845,11 +891,72 @@ export default function Home() {
       ) : (
         /* ── PRE-DECISION STATE ──────────────────────────────── */
         <div className="flex-1 flex flex-col min-h-0">
-          <V3PeopleSelector onChange={(ids) => setSelectedPeopleIds(ids)} />
-          <V3VibeCard
-            isSolo={selectedPeopleIds.length === 0}
-            onSeeTop5={() => router.push("/top5")}
-          />
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            {/* ── Hero greeting ─────────────────────────────── */}
+            {(() => {
+              const firstName = profile?.display_name?.split(" ")[0] ?? null;
+              return (
+                <div className="px-[18px] pt-3 pb-5 shrink-0">
+                  <p
+                    className="text-[20px] leading-[1.3]"
+                    style={{
+                      fontFamily: "'Dancing Script', cursive",
+                      color: "#E8621A",
+                    }}
+                  >
+                    {`${greetingPhrase}${firstName ? `, ${firstName}` : ""}.`}
+                  </p>
+                  <p
+                    className="text-[26px] font-black text-white leading-[1.15] mt-[2px]"
+                    style={{ fontFamily: "var(--font-nunito)" }}
+                  >
+                    {rotatingHeadline}
+                  </p>
+                </div>
+              );
+            })()}
+
+            <V3PeopleSelector
+              people={[]}
+              avatarUrl={resolvedAvatarUrl}
+              displayName={profile?.display_name}
+              onChange={(ids) => setSelectedPeopleIds(ids)}
+            />
+            <V3VibeCard
+              isSolo={selectedPeopleIds.length === 0}
+              onSeeTop5={() => router.push("/top5")}
+            />
+            {/* ── Recent Wins ───────────────────────────────── */}
+            {(() => {
+              const MEAL_EMOJI: Record<string, string> = {
+                "Comfort food": "🍲",
+                "Quick & casual": "🍔",
+                "Healthy": "🥗",
+                "Bold flavors": "🌶️",
+                "Elevated": "✨",
+                "Classic Italian": "🍝",
+                "Mediterranean": "🥙",
+                "Fresh": "🥗",
+                "Crowd pleaser": "🍕",
+              };
+              const wins: WinItem[] = recentHistory.map((entry) => ({
+                image: entry.meal.image || undefined,
+                emoji: MEAL_EMOJI[entry.meal.category] ?? "🍽️",
+                name: entry.meal.name,
+                day: new Date(entry.chosenAt).toLocaleDateString("en-US", { weekday: "short" }),
+                isFavorite: false,
+              }));
+              return (
+                <V3RecentWins
+                  wins={wins}
+                  onSeeAll={() => router.push("/history")}
+                />
+              );
+            })()}
+          </div>
+
+          {/* CTA — pinned at the bottom */}
           <V3PrimaryDecisionCTA
             isSolo={selectedPeopleIds.length === 0}
             hasGuests={selectedPeopleIds.length > 0}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 export interface PersonV3 {
@@ -10,6 +11,14 @@ export interface PersonV3 {
 interface V3PeopleSelectorProps {
   people?: PersonV3[];
   onChange?: (selectedIds: string[]) => void;
+  avatarUrl?: string | null;
+  displayName?: string | null;
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
 }
 
 const AvatarSilhouette = () => (
@@ -19,14 +28,11 @@ const AvatarSilhouette = () => (
   </svg>
 );
 
-const MOCK_PEOPLE: PersonV3[] = [
-  { id: "bree", name: "Bree" },
-  { id: "jaylen", name: "Jaylen" },
-];
-
 export default function V3PeopleSelector({
-  people = MOCK_PEOPLE,
+  people = [],
   onChange,
+  avatarUrl,
+  displayName,
 }: V3PeopleSelectorProps) {
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -38,12 +44,31 @@ export default function V3PeopleSelector({
     onChange?.(next);
   };
 
+  const initials = displayName ? getInitials(displayName) : null;
+
   return (
     <div className="flex gap-[10px] px-[18px] mb-[14px] overflow-x-auto items-start shrink-0">
       {/* You — always selected, not togglable */}
       <div className="flex flex-col items-center gap-[5px] shrink-0">
         <div className="w-[58px] h-[58px] rounded-full bg-[#2A2420] flex items-center justify-center relative overflow-hidden border-[2.5px] border-[#E8621A]">
-          <AvatarSilhouette />
+          {avatarUrl ? (
+            <Image
+              src={avatarUrl}
+              alt={displayName ?? "You"}
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          ) : initials ? (
+            <span
+              className="text-[18px] font-black text-white"
+              style={{ fontFamily: "var(--font-nunito)" }}
+            >
+              {initials}
+            </span>
+          ) : (
+            <AvatarSilhouette />
+          )}
           {/* "P" primary badge bottom-left */}
           <div
             className="absolute bottom-[1px] left-[1px] w-[15px] h-[15px] rounded-full bg-[#E8621A] border-2 border-[#1C1A18] flex items-center justify-center text-[7px] text-white font-extrabold"
