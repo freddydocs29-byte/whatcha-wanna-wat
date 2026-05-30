@@ -1,4 +1,15 @@
+"use client";
+
+import Link from "next/link";
+
 type NavTab = "home" | "saved" | "history" | "profile";
+
+const TAB_HREFS: Record<NavTab, string> = {
+  home: "/",
+  saved: "/saved",
+  history: "/history",
+  profile: "/profile",
+};
 
 interface V3BottomNavProps {
   active?: NavTab;
@@ -46,8 +57,9 @@ export default function V3BottomNav({ active = "home" }: V3BottomNavProps) {
       {TABS.map((tab) => {
         const isActive = tab.key === active;
         return (
-          <div
+          <Link
             key={tab.key}
+            href={TAB_HREFS[tab.key]}
             className="flex flex-col items-center gap-1 cursor-pointer px-3 py-1"
           >
             <span
@@ -65,7 +77,7 @@ export default function V3BottomNav({ active = "home" }: V3BottomNavProps) {
             >
               {tab.label}
             </span>
-          </div>
+          </Link>
         );
       })}
     </nav>

@@ -38,6 +38,15 @@ import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/lock
 import { generateSessionCode } from "./lib/session-code";
 import FlavorTypeReveal from "./components/FlavorTypeReveal";
 import { checkAndTriggerTypeReveal } from "./lib/type-reveal-trigger";
+import V3AppShell from "./components/v3/V3AppShell";
+import V3WatchaHeader from "./components/v3/V3WatchaHeader";
+import V3PeopleSelector from "./components/v3/V3PeopleSelector";
+import V3VibeCard from "./components/v3/V3VibeCard";
+import V3PrimaryDecisionCTA from "./components/v3/V3PrimaryDecisionCTA";
+import V3PostMatchHome from "./components/v3/V3PostMatchHome";
+import V3LockedMealCard from "./components/v3/V3LockedMealCard";
+import V3MealActionRows from "./components/v3/V3MealActionRows";
+import V3BottomNav from "./components/v3/V3BottomNav";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -159,6 +168,9 @@ export default function Home() {
   const [partnerDoneSwiping, setPartnerDoneSwiping] = useState(false);
   const [showMatchCelebration, setShowMatchCelebration] = useState(false);
   const matchCelebrationShownRef = useRef<Set<string>>(new Set());
+  // V3 Home shell state
+  const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
+  const [decidedSaved, setDecidedSaved] = useState(false);
   // Mirrors typeRevealData so event handlers added in [] effects don't get stale closures.
   const typeRevealDataRef = useRef<{ typeName: string; tagline: string } | null>(null);
 
@@ -207,6 +219,7 @@ export default function Home() {
       setTodaysPick(pick);
       const decided = getDecidedMeal();
       setDecidedMealState(decided);
+      if (decided) setDecidedSaved(getSavedMealsEnriched().some((s) => s.meal.id === decided.id));
       if (pick) setSaved(getSavedMealsEnriched().some((s) => s.meal.id === pick.meal.id));
       setStreak(getStreak());
       fetchProfileByAuthUserId(session.user.id).then(setProfile).catch(() => {});
@@ -669,6 +682,17 @@ export default function Home() {
     }
   }
 
+  function toggleSaveDecidedMeal() {
+    if (!decidedMeal) return;
+    if (decidedSaved) {
+      removeSavedMeal(decidedMeal.id);
+      setDecidedSaved(false);
+    } else {
+      saveMeal(decidedMeal);
+      setDecidedSaved(true);
+    }
+  }
+
   // Auth check in flight — render nothing to avoid a flash of splash for signed-in users.
   if (!showSplash && !ready) return null;
 
@@ -729,286 +753,128 @@ export default function Home() {
     null;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-      </div>
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-32 safe-top">
-        <div className="relative z-10 flex min-h-screen flex-col">
+    <V3AppShell>
+      {/* ── V3 Header ───────────────────────────────────────── */}
+      <V3WatchaHeader hasNotification={false} />
 
-          {/* 1. TOP HEADER ROW */}
-          <header className="flex items-center justify-between pt-4">
-            <div />
-            <Link
-              href="/profile"
-              className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
-            >
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
-                : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
-              }
-            </Link>
-          </header>
-
-          {todaysPick ? (
-            <>
-              {/* DECIDED STATE — Good Call layout */}
-
-              {/* 2. Headline */}
-              <section className="mt-8">
-                <h1 className="font-display font-black text-4xl text-white leading-tight">
-                  {lockedHeadline?.headline ?? "Good call."}
-                </h1>
-                <h1 className="font-display font-black text-4xl text-[#E8621A] leading-tight text-balance">
-                  {lockedHeadline?.subheadline ?? "Stop thinking about it."}
-                </h1>
-                <p className="font-body text-base text-[#8A7F78] mt-2">
-                  Tonight&apos;s decision is done.
-                </p>
-              </section>
-
-              {/* 3. Tonight's match card */}
-              <div
-                className="w-full bg-[#2A2420] rounded-[20px] p-5 mt-6 border border-[#4A7C59]/30"
-                style={{ boxShadow: "0 0 30px rgba(74,124,89,0.12)" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase">
-                    TONIGHT&apos;S MATCH
-                  </p>
-                  <button
-                    onClick={() => setShowDismissConfirm(true)}
-                    className="text-[#8A7F78] text-base leading-none hover:text-white/60 active:scale-90 transition-all duration-[150ms] w-6 h-6 flex items-center justify-center"
-                    aria-label="Dismiss tonight's pick"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0">
-                    ✓
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-black text-xl text-white">
-                        🍽️ {todaysPick.meal.name}
-                      </span>
-                    </div>
-                    <p className="font-body text-xs text-[#8A7F78] mt-1">
-                      {decidedMeal?.mode === "shared" ? "Decided with your partner" : "Decided just for you"} · just now
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => { trackEvent("lets_eat_clicked", { mealId: todaysPick.meal.id }); setShowEatModal(true); }}
-                    className="bg-[#4A7C59] text-white font-display font-black text-sm px-4 py-2.5 rounded-full whitespace-nowrap flex-shrink-0"
-                  >
-                    Let&apos;s eat 🙌
-                  </button>
-                </div>
-              </div>
-
-              {/* 4. Action cards */}
-              <div className="flex flex-col gap-3 mt-4">
-                <Link
-                  href="/deck?change=1"
-                  className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left"
-                >
-                  <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                    🔄
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display font-black text-base text-white">Changed your mind?</p>
-                    <p className="font-body text-sm text-[#8A7F78] mt-0.5">Start a new deck any time.</p>
-                  </div>
-                  <span className="text-[#8A7F78] text-lg">→</span>
-                </Link>
-
-                <button
-                  onClick={toggleSave}
-                  className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left"
-                >
-                  <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                    ⭐
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display font-black text-base text-white">
-                      {saved ? `Saved — ${todaysPick.meal.name}` : `Save ${todaysPick.meal.name}`}
-                    </p>
-                    <p className="font-body text-sm text-[#8A7F78] mt-0.5">
-                      {saved ? "Tap to remove from favorites." : "Add to your favorites."}
-                    </p>
-                  </div>
-                  <span className="text-[#8A7F78] text-lg">{saved ? "✓" : "→"}</span>
-                </button>
-              </div>
-
-              {/* 5. Streak section */}
-              <div className="mt-8">
-                <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
-                  YOUR STREAK
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
-                    <span className="font-display font-black text-3xl text-[#E8621A]">
-                      {historyCount}
-                    </span>
-                    <span className="font-body text-xs text-[#8A7F78] text-center mt-1">
-                      Decisions made
-                    </span>
-                  </div>
-                  <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
-                    <span className="font-display font-black text-3xl text-[#E8621A]">
-                      {streak}
-                    </span>
-                    <span className="font-body text-xs text-[#8A7F78] text-center mt-1">
-                      Days in a row
-                    </span>
-                  </div>
-                  <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
-                    <span className="font-display font-black text-3xl text-[#E8621A]">
-                      2min
-                    </span>
-                    <span className="font-body text-xs text-[#8A7F78] text-center mt-1">
-                      Avg. decision time
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* UNDECIDED STATE — normal home layout */}
-
-              {/* 2. GREETING BLOCK */}
-              <section className="mt-8">
-                <h1 className="font-display font-black text-4xl text-white leading-tight">
-                  It&apos;s {timeOfDay} in Detroit.
-                  <br />
-                  <span className="text-[#E8621A]">Watcha wanna eat?</span>
-                </h1>
-                <p className="font-body text-base text-[#8A7F78] mt-2">
-                  Your deck is ready.
-                </p>
-                {streak >= 1 && (
-                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs text-white/70">
-                    🔥 {streak} day streak
-                  </div>
-                )}
-              </section>
-
-              {/* 3. HERO CARD — Active session banner OR Deciding Together */}
-              {activeSession ? (
-                <section
-                  className={`rounded-[24px] p-5 mt-6 border bg-[#2A2420] cursor-pointer transition-all duration-300 ${bannerBorderClass}`}
-                  style={{ boxShadow: bannerBoxShadow }}
-                  onClick={handleResumeBanner}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="relative flex h-2 w-2">
-                        <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${bannerDotPingClass} opacity-75`} />
-                        <span className={`relative inline-flex h-2 w-2 rounded-full ${bannerDotClass}${bannerVariant === 'partner-done' ? ' animate-pulse' : ''}`} />
-                      </span>
-                      <span className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase">
-                        Active session
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDismissBanner(); }}
-                      className="text-[#8A7F78] text-base leading-none hover:text-white/50 w-6 h-6 flex items-center justify-center"
-                      aria-label="Dismiss session banner"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${bannerVariant === 'partner-done' ? 'bg-[#4A7C59]/10' : 'bg-[#E8621A]/10'}`}>
-                      👥
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display font-black text-base text-white">
-                        {bannerHeadline}
-                      </p>
-                      {bannerSubtext && (
-                        <p className="font-body text-xs text-[#8A7F78] mt-0.5">
-                          {bannerSubtext}
-                        </p>
-                      )}
-                    </div>
-                    <span className={`text-lg flex-shrink-0 ${bannerVariant === 'partner-done' ? 'text-[#4A7C59]' : 'text-[#E8621A]'}`}>→</span>
-                  </div>
-                </section>
-              ) : (
-                <section className="bg-[#E8621A] rounded-[24px] p-6 mt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col">
-                      <div className="w-14 h-14 rounded-[14px] bg-white/20 flex items-center justify-center text-3xl">
-                        👥
-                      </div>
-                      <h2 className="font-display font-black text-xl text-white mt-3">
-                        Deciding Together
-                      </h2>
-                      <p className="font-body text-sm text-white/80 mt-1">
-                        Swipe with your group. Match on what everyone actually wants.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { trackEvent("decide_with_someone_clicked"); void handleDecideWithSomeone(); }}
-                    disabled={creatingSession}
-                    className="w-full bg-[#1C1A18] text-white font-display font-black text-base py-4 rounded-full mt-5 flex items-center justify-center gap-2 disabled:opacity-60"
-                  >
-                    {creatingSession ? "Creating…" : "Start shared session →"}
-                  </button>
-                  {sessionError && (
-                    <p className="mt-3 text-center text-sm text-red-400">
-                      {sessionError}
-                    </p>
-                  )}
-                </section>
-              )}
-
-              {/* 4. SECONDARY CARDS ROW */}
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <Link href="/deck" className="bg-[#2A2420] rounded-[20px] p-5 flex flex-col">
-                  <span className="text-2xl">🎯</span>
-                  <p className="font-display font-black text-lg text-white mt-3">Just Me</p>
-                  <p className="font-body text-sm text-[#8A7F78] mt-1">Solo swipe. Fast answer.</p>
-                </Link>
-                <Link href="/top5" className="bg-white rounded-[20px] p-5 flex flex-col">
-                  <span className="text-2xl">✨</span>
-                  <p className="font-display font-black text-lg text-[#1C1A18] mt-3">Tonight&apos;s Top 5</p>
-                  <p className="font-body text-sm text-[#8A7F78] mt-1">Your best options, ranked.</p>
-                </Link>
-              </div>
-            </>
-          )}
-
-          {/* RECENTLY DECIDED SECTION — always visible */}
-          {recentHistory.length > 0 && (
-            <div className="mt-8">
-              <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
-                Recently Decided
-              </p>
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                {recentHistory.map((entry) => (
-                  <span
-                    key={entry.meal.id + entry.chosenAt}
-                    className="flex items-center gap-2 bg-[#2A2420] text-white font-body text-sm font-medium px-4 py-2 rounded-full whitespace-nowrap"
-                  >
-                    🍽️ {entry.meal.name}
-                  </span>
-                ))}
-              </div>
+      {/* ── Active session banner (preserved, inline) ──────── */}
+      {activeSession && (
+        <section
+          className={`mx-[14px] mb-2 rounded-[20px] p-4 border bg-[#2A2420] cursor-pointer transition-all duration-300 shrink-0 ${bannerBorderClass}`}
+          style={{ boxShadow: bannerBoxShadow }}
+          onClick={handleResumeBanner}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${bannerDotPingClass} opacity-75`} />
+                <span className={`relative inline-flex h-2 w-2 rounded-full ${bannerDotClass}${bannerVariant === 'partner-done' ? ' animate-pulse' : ''}`} />
+              </span>
+              <span className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase">
+                Active session
+              </span>
             </div>
-          )}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDismissBanner(); }}
+              className="text-[#8A7F78] text-base leading-none hover:text-white/50 w-6 h-6 flex items-center justify-center"
+              aria-label="Dismiss session banner"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${bannerVariant === 'partner-done' ? 'bg-[#4A7C59]/10' : 'bg-[#E8621A]/10'}`}>
+              👥
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-black text-sm text-white">
+                {bannerHeadline}
+              </p>
+              {bannerSubtext && (
+                <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                  {bannerSubtext}
+                </p>
+              )}
+            </div>
+            <span className={`text-lg flex-shrink-0 ${bannerVariant === 'partner-done' ? 'text-[#4A7C59]' : 'text-[#E8621A]'}`}>→</span>
+          </div>
+        </section>
+      )}
 
-          {/* 6. BOTTOM NAV */}
-          <BottomNav />
+      {decidedMeal ? (
+        /* ── POST-DECISION STATE ─────────────────────────────── */
+        <div className="flex-1 overflow-y-auto flex flex-col pb-2">
+          <V3PostMatchHome
+            mealName={decidedMeal.name}
+            headline={lockedHeadline?.headline ?? "Dinner is\nlocked in."}
+            sub={lockedHeadline?.subheadline ?? `You chose ${decidedMeal.name}.`}
+            avatarCount={decidedMeal.mode === "shared" ? 2 : 1}
+          />
+          <V3LockedMealCard
+            mealName={decidedMeal.name}
+            tags={[decidedMeal.cuisine, decidedMeal.category].filter(Boolean).join(" • ")}
+            cookTime={decidedMeal.tags.find((t) => /\d+\s*min/i.test(t)) ?? "—"}
+            spice={decidedMeal.tags.some((t) => /spic/i.test(t)) ? "🌶️🌶️" : "Mild"}
+            matchScore={decidedMeal.mode === "shared" ? "Matched!" : "Your pick"}
+            onClear={openClearModal}
+            onSave={toggleSaveDecidedMeal}
+          />
+          <V3MealActionRows
+            mealName={decidedMeal.name}
+            actions={[
+              {
+                icon: "🍽️",
+                title: "Let's eat",
+                sub: "Cook it or order in",
+                onClick: () => {
+                  if (todaysPick) {
+                    trackEvent("lets_eat_clicked", { mealId: todaysPick.meal.id });
+                    setShowEatModal(true);
+                  }
+                },
+              },
+              {
+                icon: "🔄",
+                title: "Change my mind",
+                sub: "Start a new deck",
+                onClick: () => router.push("/deck?change=1"),
+              },
+            ]}
+          />
         </div>
-      </div>
+      ) : (
+        /* ── PRE-DECISION STATE ──────────────────────────────── */
+        <div className="flex-1 flex flex-col min-h-0">
+          <V3PeopleSelector onChange={(ids) => setSelectedPeopleIds(ids)} />
+          <V3VibeCard
+            isSolo={selectedPeopleIds.length === 0}
+            onSeeTop5={() => router.push("/top5")}
+          />
+          <V3PrimaryDecisionCTA
+            isSolo={selectedPeopleIds.length === 0}
+            hasGuests={selectedPeopleIds.length > 0}
+            onClick={() => {
+              if (selectedPeopleIds.length === 0) {
+                router.push("/deck");
+              } else {
+                trackEvent("decide_with_someone_clicked");
+                void handleDecideWithSomeone();
+              }
+            }}
+          />
+          {sessionError && (
+            <p className="text-center text-sm text-red-400 px-4 pb-2 shrink-0">
+              {sessionError}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Bottom nav ─────────────────────────────────────── */}
+      <V3BottomNav active="home" />
+
+      {/* ── Preserved modals (fixed/z-50, untouched) ──────── */}
+
       {showClearModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-5 pb-10">
           <div
@@ -1164,7 +1030,9 @@ export default function Home() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowDismissConfirm(false)}
           />
+
           <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.06] bg-[#2A2420] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+
             <p className="font-display font-black text-xl text-white tracking-tight">Clear meal?</p>
             <p className="font-body text-sm text-[#8A7F78] mt-2 leading-relaxed">
               This will remove tonight&apos;s pick and take you back to the home screen.
@@ -1232,6 +1100,7 @@ export default function Home() {
           </div>
         </div>
       )}
-    </main>
+    </V3AppShell>
   );
 }
+
