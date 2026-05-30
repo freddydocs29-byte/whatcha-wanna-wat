@@ -11,23 +11,55 @@ export type FlavorTypeCardProps = {
   userName?: string;
   soloDNA: SoloDNA;
   hardNos?: string[];
+  exportMode?: boolean;
 };
+
+// Export surface: 1080×1920 (9:16 story). Cards are authored at ~390px wide;
+// in exportMode the dispatcher wraps them in a scale container so they fill
+// the 1080×1920 canvas without touching any internal style values.
+const NATURAL_CARD_WIDTH = 390;
+const EXPORT_CANVAS_WIDTH = 1080;
+const EXPORT_CANVAS_HEIGHT = 1920;
+const EXPORT_SCALE = EXPORT_CANVAS_WIDTH / NATURAL_CARD_WIDTH; // ≈ 2.769
+const EXPORT_NATURAL_HEIGHT = Math.ceil(EXPORT_CANVAS_HEIGHT / EXPORT_SCALE); // 694px
 
 // ── Root dispatcher ───────────────────────────────────────────────────────────
 
 const FlavorTypeCard = forwardRef<HTMLDivElement, FlavorTypeCardProps>(
-  function FlavorTypeCard(props, ref) {
-    switch (props.flavorType.baseType) {
-      case "night_owl":      return <NightOwlCard      {...props} ref={ref} />;
-      case "wildcard":       return <WildcardCard       {...props} ref={ref} />;
-      case "explorer":       return <ExplorerCard       {...props} ref={ref} />;
-      case "comfort_seeker": return <ComfortSeekerCard  {...props} ref={ref} />;
-      case "purist":         return <PuristCard         {...props} ref={ref} />;
-      case "diplomat":       return <DiplomatCard       {...props} ref={ref} />;
-      case "creature_of_habit": return <CreatureCard    {...props} ref={ref} />;
-      case "anchor":         return <AnchorCard         {...props} ref={ref} />;
-      default:               return <NightOwlCard       {...props} ref={ref} />;
+  function FlavorTypeCard({ exportMode, ...props }, ref) {
+    function renderCard() {
+      switch (props.flavorType.baseType) {
+        case "night_owl":         return <NightOwlCard      {...props} ref={ref} />;
+        case "wildcard":          return <WildcardCard       {...props} ref={ref} />;
+        case "explorer":          return <ExplorerCard       {...props} ref={ref} />;
+        case "comfort_seeker":    return <ComfortSeekerCard  {...props} ref={ref} />;
+        case "purist":            return <PuristCard         {...props} ref={ref} />;
+        case "diplomat":          return <DiplomatCard       {...props} ref={ref} />;
+        case "creature_of_habit": return <CreatureCard       {...props} ref={ref} />;
+        case "anchor":            return <AnchorCard         {...props} ref={ref} />;
+        default:                  return <NightOwlCard       {...props} ref={ref} />;
+      }
     }
+
+    // In exportMode the card is rendered at its natural ~390px width inside a
+    // scale wrapper so that it fills the 1080×1920 off-screen export container.
+    // html2canvas captures the outer container (exportCardRef), not this element.
+    if (exportMode) {
+      return (
+        <div
+          style={{
+            width: NATURAL_CARD_WIDTH,
+            minHeight: EXPORT_NATURAL_HEIGHT,
+            transformOrigin: "top left",
+            transform: `scale(${EXPORT_SCALE})`,
+          }}
+        >
+          {renderCard()}
+        </div>
+      );
+    }
+
+    return renderCard();
   }
 );
 

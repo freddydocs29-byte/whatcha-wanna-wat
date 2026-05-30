@@ -63,7 +63,7 @@ export default function CardRevealOverlay({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* ── Suspense text ─────────────────────────────────────────────────── */}
+          {/* ── Suspense loading ──────────────────────────────────────────────── */}
           <AnimatePresence>
             {phase === "suspense" && (
               <motion.div
@@ -73,14 +73,55 @@ export default function CardRevealOverlay({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.35 }}
               >
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-                  <p
-                    className="font-display font-black text-xl text-white/30 tracking-widest uppercase"
-                    style={{ letterSpacing: "0.2em" }}
-                  >
-                    Your Flavor Card
-                  </p>
+                <div className="flex flex-col items-center text-center px-8" style={{ gap: 20 }}>
+                  {/* Orange spinning ring with glow */}
+                  <div className="relative" style={{ width: 56, height: 56 }}>
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background:
+                          "radial-gradient(circle, rgba(232,98,26,0.18) 0%, transparent 70%)",
+                      }}
+                    />
+                    <div
+                      className="absolute inset-0 rounded-full animate-spin"
+                      style={{
+                        border: "1.5px solid rgba(232,98,26,0.12)",
+                        borderTopColor: "#E8621A",
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col items-center" style={{ gap: 10 }}>
+                    {/* Eyebrow */}
+                    <p
+                      className="font-display font-black"
+                      style={{
+                        color: "#E8621A",
+                        fontSize: 10,
+                        letterSpacing: "0.22em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Watcha? Read the Room
+                    </p>
+
+                    {/* Main line */}
+                    <p
+                      className="font-display font-black text-white"
+                      style={{ fontSize: 23, letterSpacing: "-0.4px", lineHeight: 1.2 }}
+                    >
+                      Building your flavor card.
+                    </p>
+
+                    {/* Subtext */}
+                    <p
+                      className="font-body"
+                      style={{ color: "#5C5249", fontSize: 13, lineHeight: 1.5 }}
+                    >
+                      One sec — we&apos;re making it look like you.
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             )}

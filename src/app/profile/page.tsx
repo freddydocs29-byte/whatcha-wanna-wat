@@ -167,6 +167,8 @@ export default function ProfilePage() {
   // ── FlavorTypeCard reveal (solo) ───────────────────────────────────────────
   const [revealOpen, setRevealOpen] = useState(false);
   const flavorCardRef = useRef<HTMLDivElement>(null);
+  // Hidden off-screen export surface (1080×1920) captured by html2canvas
+  const exportCardRef = useRef<HTMLDivElement>(null);
 
   // ── Saved toast ────────────────────────────────────────────────────────────
   const [savedVisible, setSavedVisible] = useState(false);
@@ -480,14 +482,16 @@ export default function ProfilePage() {
   // ── FlavorTypeCard share / save ───────────────────────────────────────────
 
   async function handleFlavorShare() {
-    if (!flavorCardRef.current) return;
+    const target = exportCardRef.current ?? flavorCardRef.current;
+    if (!target) return;
+    const isExport = !!exportCardRef.current;
     setSharing(true);
     setShareError(null);
     try {
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(flavorCardRef.current, {
+      const canvas = await html2canvas(target, {
         backgroundColor: null,
-        scale: 2,
+        scale: isExport ? 1 : 2,
         useCORS: true,
         logging: false,
       });
@@ -519,14 +523,16 @@ export default function ProfilePage() {
   }
 
   async function handleFlavorSave() {
-    if (!flavorCardRef.current) return;
+    const target = exportCardRef.current ?? flavorCardRef.current;
+    if (!target) return;
+    const isExport = !!exportCardRef.current;
     setSharing(true);
     setShareError(null);
     try {
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(flavorCardRef.current, {
+      const canvas = await html2canvas(target, {
         backgroundColor: null,
-        scale: 2,
+        scale: isExport ? 1 : 2,
         useCORS: true,
         logging: false,
       });
@@ -1414,6 +1420,27 @@ export default function ProfilePage() {
             hardNos={hardNosList.length ? hardNosList : undefined}
           />
         </CardRevealOverlay>
+      )}
+
+      {/* ── Hidden off-screen export surface for html2canvas ─────────────────
+          Rendered at fixed 1080×1920 so the saved image matches the card
+          design exactly, independent of the overlay's responsive layout.
+      ──────────────────────────────────────────────────────────────────── */}
+      {soloDNA && flavorType && revealOpen && (
+        <div
+          ref={exportCardRef}
+          className="fixed overflow-hidden bg-black"
+          style={{ left: -9999, top: 0, width: 1080, height: 1920 }}
+          aria-hidden="true"
+        >
+          <FlavorTypeCard
+            flavorType={flavorType}
+            userName={displayName || undefined}
+            soloDNA={soloDNA}
+            hardNos={hardNosList.length ? hardNosList : undefined}
+            exportMode
+          />
+        </div>
       )}
     </main>
   );
