@@ -5,6 +5,28 @@ interface V3LockedMealCardProps {
   spice?: string;
   matchScore?: string;
   onClear?: () => void;
+  onSave?: () => void;
+  onDetails?: () => void;
+}
+
+// Bookmark icon — small, clean
+function BookmarkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M17 3H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2z" />
+    </svg>
+  );
+}
+
+// Info icon — small, clean
+function InfoIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="8.5" />
+      <line x1="12" y1="12" x2="12" y2="16" />
+    </svg>
+  );
 }
 
 export default function V3LockedMealCard({
@@ -14,6 +36,8 @@ export default function V3LockedMealCard({
   spice = "🌶️🌶️🌶️",
   matchScore = "98% Match",
   onClear,
+  onSave,
+  onDetails,
 }: V3LockedMealCardProps) {
   return (
     <div className="mx-[14px] mb-3 bg-[#2A2420] rounded-[18px] px-4 py-[14px] border border-[#4A7C59]/20 relative overflow-hidden shrink-0">
@@ -44,12 +68,36 @@ export default function V3LockedMealCard({
             {tags}
           </div>
         </div>
-        <button
-          onClick={onClear}
-          className="w-[30px] h-[30px] rounded-full bg-[#3D3733] border border-white/10 flex items-center justify-center text-xs text-[#8A7F78] cursor-pointer shrink-0 mt-[2px] transition-all hover:bg-red-800/30 hover:text-[#E07070] hover:border-red-500/30"
-        >
-          ✕
-        </button>
+
+        {/* Small utility icon buttons: bookmark · info · clear */}
+        <div className="flex gap-[6px] items-center mt-[2px] shrink-0">
+          {/* Save / Bookmark */}
+          <button
+            onClick={onSave}
+            title="Save meal"
+            className="w-[30px] h-[30px] rounded-full bg-[#3D3733] border border-white/10 flex items-center justify-center text-[#8A7F78] cursor-pointer transition-all hover:bg-[#4A7C59]/30 hover:text-[#6BAF7A] hover:border-[#4A7C59]/40"
+          >
+            <BookmarkIcon />
+          </button>
+
+          {/* Details / Info */}
+          <button
+            onClick={onDetails}
+            title="Meal details"
+            className="w-[30px] h-[30px] rounded-full bg-[#3D3733] border border-white/10 flex items-center justify-center text-[#8A7F78] cursor-pointer transition-all hover:bg-[#E8621A]/20 hover:text-[#E8621A] hover:border-[#E8621A]/30"
+          >
+            <InfoIcon />
+          </button>
+
+          {/* Clear / Change */}
+          <button
+            onClick={onClear}
+            title="Change meal"
+            className="w-[30px] h-[30px] rounded-full bg-[#3D3733] border border-white/10 flex items-center justify-center text-xs text-[#8A7F78] cursor-pointer shrink-0 transition-all hover:bg-red-800/30 hover:text-[#E07070] hover:border-red-500/30"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Stats grid */}

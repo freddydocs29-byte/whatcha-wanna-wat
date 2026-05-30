@@ -15,7 +15,6 @@ import V3AppShell from "../components/v3/V3AppShell";
 import V3WatchaHeader from "../components/v3/V3WatchaHeader";
 import V3PeopleSelector from "../components/v3/V3PeopleSelector";
 import V3VibeCard from "../components/v3/V3VibeCard";
-import V3ActionDrawer from "../components/v3/V3ActionDrawer";
 import V3BottomNav from "../components/v3/V3BottomNav";
 import V3PrimaryDecisionCTA from "../components/v3/V3PrimaryDecisionCTA";
 import V3RecentWins from "../components/v3/V3RecentWins";
@@ -31,16 +30,11 @@ const dancingScript = Dancing_Script({
 });
 
 // ── Preview state types ─────────────────────────────────────────────
-type PreviewMode =
-  | "shared-home"
-  | "solo-home"
-  | "drawer-open"
-  | "post-match";
+type PreviewMode = "shared-home" | "solo-home" | "post-match";
 
 const MODES: { key: PreviewMode; label: string }[] = [
   { key: "shared-home", label: "Shared Home" },
   { key: "solo-home", label: "Solo Home" },
-  { key: "drawer-open", label: "Action Drawer" },
   { key: "post-match", label: "Post-Match" },
 ];
 
@@ -51,18 +45,8 @@ const MOCK_PEOPLE = [
 ];
 
 // ── Shared Home screen ──────────────────────────────────────────────
-function SharedHomeScreen({
-  onOpenDrawer,
-}: {
-  onOpenDrawer: () => void;
-}) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+function SharedHomeScreen() {
   const [hasGuests, setHasGuests] = useState(false);
-
-  const handleOpen = () => {
-    onOpenDrawer();
-    setDrawerOpen(true);
-  };
 
   return (
     <V3AppShell>
@@ -94,29 +78,16 @@ function SharedHomeScreen({
       <V3PrimaryDecisionCTA
         isSolo={false}
         hasGuests={hasGuests}
-        onClick={handleOpen}
+        onClick={() => {}}
       />
 
       <V3BottomNav active="home" />
-
-      {/* Drawer lives inside shell so it overlays correctly */}
-      <V3ActionDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      />
     </V3AppShell>
   );
 }
 
 // ── Solo Home screen ────────────────────────────────────────────────
-function SoloHomeScreen({ onOpenDrawer }: { onOpenDrawer: () => void }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const handleOpen = () => {
-    onOpenDrawer();
-    setDrawerOpen(true);
-  };
-
+function SoloHomeScreen() {
   return (
     <V3AppShell>
       <V3WatchaHeader hasNotification />
@@ -141,62 +112,9 @@ function SoloHomeScreen({ onOpenDrawer }: { onOpenDrawer: () => void }) {
       <V3VibeCard isSolo />
       <V3RecentWins />
 
-      <V3PrimaryDecisionCTA isSolo hasGuests={false} onClick={handleOpen} />
+      <V3PrimaryDecisionCTA isSolo hasGuests={false} onClick={() => {}} />
 
       <V3BottomNav active="home" />
-
-      <V3ActionDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        options={[
-          { icon: "👤", title: "Just me", sub: "Solo deck, fast for you", primary: true },
-          { icon: "👥", title: "Invite someone", sub: "Decide together" },
-          { icon: "🏆", title: "Top 5 tonight", sub: "See the best picks now" },
-          { icon: "🎲", title: "Surprise me", sub: "Let Watcha choose" },
-        ]}
-      />
-    </V3AppShell>
-  );
-}
-
-// ── Drawer-open screen ──────────────────────────────────────────────
-function DrawerOpenScreen({ onClose }: { onClose: () => void }) {
-  const [drawerOpen, setDrawerOpen] = useState(true);
-
-  return (
-    <V3AppShell>
-      <V3WatchaHeader hasNotification />
-
-      <div
-        className="text-[19px] font-semibold text-[#E8621A] px-5 mb-[3px]"
-        style={{ fontFamily: "'Dancing Script', cursive" }}
-      >
-        Good evening, Fred.
-      </div>
-      <div
-        className="text-[28px] font-black text-white leading-[1.15] px-5 mb-4"
-        style={{ fontFamily: "var(--font-nunito)" }}
-      >
-        Let&apos;s figure out
-        <br />
-        tonight&apos;s move. 🍴
-      </div>
-
-      <V3PeopleSelector people={MOCK_PEOPLE} />
-      <V3VibeCard />
-      <V3RecentWins />
-
-      <V3PrimaryDecisionCTA isSolo={false} hasGuests />
-
-      <V3BottomNav active="home" />
-
-      <V3ActionDrawer
-        isOpen={drawerOpen}
-        onClose={() => {
-          setDrawerOpen(false);
-          onClose();
-        }}
-      />
     </V3AppShell>
   );
 }
@@ -222,7 +140,18 @@ function PostMatchScreen({ onClear }: { onClear: () => void }) {
         onClear={onClear}
       />
 
-      <V3MealActionRows mealName="Tikka Masala" />
+      {/* Minimal action row — Save and Details are now on the card */}
+      <V3MealActionRows
+        mealName="Tikka Masala"
+        actions={[
+          {
+            icon: "🔄",
+            title: "Change my mind",
+            sub: "Start a new session",
+            onClick: onClear,
+          },
+        ]}
+      />
 
       <V3RecentWins />
 
@@ -234,10 +163,6 @@ function PostMatchScreen({ onClear }: { onClear: () => void }) {
 // ── Preview page ────────────────────────────────────────────────────
 export default function V3PreviewPage() {
   const [mode, setMode] = useState<PreviewMode>("shared-home");
-  const [drawerLog, setDrawerLog] = useState<string[]>([]);
-
-  const log = (msg: string) =>
-    setDrawerLog((prev) => [`${new Date().toLocaleTimeString()} — ${msg}`, ...prev.slice(0, 4)]);
 
   return (
     // Dancing Script injected at page level only
@@ -328,21 +253,11 @@ export default function V3PreviewPage() {
 
               {/* Rendered screen */}
               <div className="flex flex-col" style={{ minHeight: 700 }}>
-                {mode === "shared-home" && (
-                  <SharedHomeScreen onOpenDrawer={() => log("Drawer opened (shared)")} />
-                )}
-                {mode === "solo-home" && (
-                  <SoloHomeScreen onOpenDrawer={() => log("Drawer opened (solo)")} />
-                )}
-                {mode === "drawer-open" && (
-                  <DrawerOpenScreen onClose={() => log("Drawer closed")} />
-                )}
+                {mode === "shared-home" && <SharedHomeScreen />}
+                {mode === "solo-home" && <SoloHomeScreen />}
                 {mode === "post-match" && (
                   <PostMatchScreen
-                    onClear={() => {
-                      log("Meal cleared → switching to shared-home");
-                      setMode("shared-home");
-                    }}
+                    onClear={() => setMode("shared-home")}
                   />
                 )}
               </div>
@@ -363,13 +278,11 @@ export default function V3PreviewPage() {
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             {mode === "shared-home" &&
-              "People-first home. Tap Bree or Jaylen to toggle them into the group. Watch the CTA label update. Tap the slide CTA to open the action drawer."}
+              "People-first home. Tap Bree or Jaylen to toggle them in. Watch the CTA label update. Tap vibes to see the card shift mood and color."}
             {mode === "solo-home" &&
-              "Solo mode — people row shows only You. Vibe card context updates. CTA reads 'Start my deck'."}
-            {mode === "drawer-open" &&
-              "Action drawer open state. Tap overlay or ✕ to close. Four paths: Together, Just me, Top 5, Surprise me."}
+              "Solo mode — people row shows only You. Vibe card context updates. CTA reads 'Start my deck'. Vibes swipeable."}
             {mode === "post-match" &&
-              "Post-match decided home. Hero card with match copy. Locked meal card with Let's Eat swipe. Action rows below. ✕ clears the meal and resets."}
+              "Post-match decided home. Hero card with match copy. Locked meal card with bookmark, info, and clear actions. Let's Eat swipe below. ✕ resets."}
           </div>
 
           {/* Component list for this mode */}
@@ -392,18 +305,6 @@ export default function V3PreviewPage() {
                     "V3RecentWins",
                     "V3PrimaryDecisionCTA",
                     "V3BottomNav",
-                    "V3ActionDrawer",
-                  ]
-                : mode === "drawer-open"
-                ? [
-                    "V3AppShell",
-                    "V3WatchaHeader",
-                    "V3PeopleSelector",
-                    "V3VibeCard",
-                    "V3RecentWins",
-                    "V3PrimaryDecisionCTA",
-                    "V3BottomNav",
-                    "V3ActionDrawer (open)",
                   ]
                 : [
                     "V3AppShell",
@@ -428,30 +329,9 @@ export default function V3PreviewPage() {
             </ul>
           </div>
 
-          {/* Event log */}
-          {drawerLog.length > 0 && (
-            <div className="bg-[#2A2420] rounded-[16px] p-5 border border-white/[0.05]">
-              <div
-                className="text-[10px] font-bold tracking-[2px] uppercase text-[#8A7F78] mb-3"
-                style={{ fontFamily: "var(--font-manrope)" }}
-              >
-                Interaction log
-              </div>
-              {drawerLog.map((entry, i) => (
-                <div
-                  key={i}
-                  className="text-[12px] text-[#8A7F78] mb-1"
-                  style={{ fontFamily: "var(--font-manrope)" }}
-                >
-                  {entry}
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Safety note */}
           <div
-            className="mt-6 p-4 rounded-[12px] border border-[#4A7C59]/30 bg-[#4A7C59]/[0.06] text-[12px] text-[#6BAF7A] leading-relaxed"
+            className="mt-2 p-4 rounded-[12px] border border-[#4A7C59]/30 bg-[#4A7C59]/[0.06] text-[12px] text-[#6BAF7A] leading-relaxed"
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             ✓ Production home route unchanged
