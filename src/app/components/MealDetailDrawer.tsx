@@ -1,9 +1,10 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type Meal } from "../data/meals";
 
-export type MealDetailDrawerContext = "solo" | "shared" | "top5" | "saved" | "history";
+export type MealDetailDrawerContext = "solo" | "shared" | "top5" | "saved" | "history" | "home-win";
 
 export type MealDetailDrawerProps = {
   meal: Meal | null;
@@ -96,6 +97,9 @@ export function MealDetailDrawer({
   const showHint = isSwipeContext;
   const isTop5 = context === "top5";
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [atScrollTop, setAtScrollTop] = useState(true);
+
   if (!meal) return null;
 
   const cookTime = parseCookTime(meal.tags);
@@ -136,14 +140,19 @@ export function MealDetailDrawer({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-            drag="y"
+            drag={atScrollTop ? "y" : false}
             dragConstraints={{ top: 0 }}
             dragElastic={{ top: 0, bottom: 0.2 }}
             onDragEnd={(_, info) => {
               if (info.offset.y > 80 || info.velocity.y > 500) onClose();
             }}
-            className={`fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] max-h-[90vh] overflow-y-auto ${isTop5 ? "bg-[#F5F0E8]" : "bg-[#1C1A18]"}`}
+            className={`fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] max-h-[90vh] ${isTop5 ? "bg-[#F5F0E8]" : "bg-[#1C1A18]"}`}
           >
+            <div
+              ref={scrollRef}
+              onScroll={(e) => setAtScrollTop(e.currentTarget.scrollTop === 0)}
+              className="overflow-y-auto max-h-[90vh]"
+            >
             {/* Drag handle */}
             <div className={`w-10 h-1 rounded-full mx-auto mt-3 mb-5 ${isTop5 ? "bg-[#6B6360]/25" : "bg-white/20"}`} />
 
@@ -330,6 +339,26 @@ export function MealDetailDrawer({
                 </button>
               )}
 
+              {context === "home-win" && (
+                <div className="flex flex-col gap-3">
+                  {onLockIn && (
+                    <button
+                      onClick={onLockIn}
+                      className="w-full bg-[#E8621A] text-white font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
+                      style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                    >
+                      Let&apos;s eat →
+                    </button>
+                  )}
+                  <button
+                    onClick={onClose}
+                    className="w-full bg-[#2A2420] text-[#8A7F78] font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+
               {isTop5 && !onLockIn && (
                 <button
                   onClick={onClose}
@@ -349,6 +378,7 @@ export function MealDetailDrawer({
 
             {/* Safe area spacer */}
             <div className="h-4" />
+            </div>{/* end inner scroll container */}
           </motion.div>
         </>
       )}

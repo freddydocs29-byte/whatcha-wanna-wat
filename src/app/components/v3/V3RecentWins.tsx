@@ -9,9 +9,10 @@ export interface WinItem {
 interface V3RecentWinsProps {
   wins?: WinItem[];
   onSeeAll?: () => void;
+  onMealClick?: (index: number) => void;
 }
 
-export default function V3RecentWins({ wins, onSeeAll }: V3RecentWinsProps) {
+export default function V3RecentWins({ wins, onSeeAll, onMealClick }: V3RecentWinsProps) {
   if (!wins || wins.length === 0) return null;
 
   return (
@@ -39,7 +40,11 @@ export default function V3RecentWins({ wins, onSeeAll }: V3RecentWinsProps) {
         style={{ scrollbarWidth: "none" } as React.CSSProperties}
       >
         {wins.map((win, i) => (
-          <div key={i} className="shrink-0 w-[76px]">
+          <button
+            key={i}
+            className="shrink-0 w-[76px] text-left bg-transparent border-0 p-0 cursor-pointer"
+            onClick={() => onMealClick?.(i)}
+          >
             <div className="w-[76px] h-[72px] rounded-[12px] bg-[#2A2420] overflow-hidden mb-[5px] relative">
               {win.image ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
@@ -69,7 +74,7 @@ export default function V3RecentWins({ wins, onSeeAll }: V3RecentWinsProps) {
             >
               {win.day}
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

@@ -30,7 +30,8 @@ import {
   type DecidedMeal,
   mealWasManuallyClearedAfter,
 } from "./lib/storage";
-import { meals } from "./data/meals";
+import { meals, type Meal } from "./data/meals";
+import { MealDetailDrawer } from "./components/MealDetailDrawer";
 import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
@@ -178,6 +179,7 @@ export default function Home() {
   const [decidedSaved, setDecidedSaved] = useState(false);
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
   const [showInviteDrawer, setShowInviteDrawer] = useState(false);
+  const [selectedRecentMeal, setSelectedRecentMeal] = useState<Meal | null>(null);
   // Mirrors typeRevealData so event handlers added in [] effects don't get stale closures.
   const typeRevealDataRef = useRef<{ typeName: string; tagline: string } | null>(null);
 
@@ -1013,6 +1015,12 @@ export default function Home() {
                 <V3RecentWins
                   wins={wins}
                   onSeeAll={() => router.push("/history")}
+                  onMealClick={(index) => {
+                    const entry = recentHistory[index];
+                    if (!entry) return;
+                    const fullMeal = meals.find((m) => m.id === entry.meal.id) ?? null;
+                    setSelectedRecentMeal(fullMeal);
+                  }}
                 />
               );
             })()}
@@ -1269,6 +1277,27 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Recent Wins meal detail drawer */}
+      <MealDetailDrawer
+        meal={selectedRecentMeal}
+        isOpen={selectedRecentMeal !== null}
+        onClose={() => setSelectedRecentMeal(null)}
+        context="home-win"
+        onLockIn={() => {
+          if (!selectedRecentMeal) return;
+          const decidedAt = new Date().toISOString();
+          // Use "solo" mode — this is a personal re-selection from history
+          // TODO: if a dedicated session_type for "recent_win" is added to the schema, use it here
+          const decidedMealData: DecidedMeal = { ...selectedRecentMeal, decidedAt, mode: "solo" };
+          addToHistory(selectedRecentMeal);
+          saveDecidedMeal(decidedMealData);
+          setDecidedMealState(decidedMealData);
+          setTodaysPick({ meal: selectedRecentMeal, chosenAt: decidedAt });
+          void checkAndTriggerTypeReveal();
+          setSelectedRecentMeal(null);
+        }}
+      />
 
       {/* Invite drawer */}
       <V3InviteDrawer

@@ -35,11 +35,11 @@ const VIBE_THEMES: Record<VibeKey, {
     activePillBorder: "#4A7BD8",
   },
   "surprise-us": {
-    cardBg: "#221E2A",
-    accentBar: "#8A6AC8",
-    scriptColor: "#A888E8",
-    activePillBg: "#8A6AC8",
-    activePillBorder: "#9A7AD8",
+    cardBg: "#1A2828",
+    accentBar: "#2AB8A8",
+    scriptColor: "#3AD8C8",
+    activePillBg: "#2AB8A8",
+    activePillBorder: "#35C8B8",
   },
   "healthy-reset": {
     cardBg: "#1A2820",
