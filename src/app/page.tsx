@@ -43,6 +43,8 @@ import V3AppShell from "./components/v3/V3AppShell";
 import V3WatchaHeader from "./components/v3/V3WatchaHeader";
 import V3PeopleSelector from "./components/v3/V3PeopleSelector";
 import V3VibeCard from "./components/v3/V3VibeCard";
+import V3ContextReadCard from "./components/v3/V3ContextReadCard";
+import type { SessionVibeMode } from "./lib/scoring";
 import V3PrimaryDecisionCTA from "./components/v3/V3PrimaryDecisionCTA";
 import V3PostMatchHome from "./components/v3/V3PostMatchHome";
 import V3LockedMealCard from "./components/v3/V3LockedMealCard";
@@ -180,6 +182,9 @@ export default function Home() {
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
   const [showInviteDrawer, setShowInviteDrawer] = useState(false);
   const [selectedRecentMeal, setSelectedRecentMeal] = useState<Meal | null>(null);
+  const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("comfort-food");
+  const [showCodeEntry, setShowCodeEntry] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
   // Mirrors typeRevealData so event handlers added in [] effects don't get stale closures.
   const typeRevealDataRef = useRef<{ typeName: string; tagline: string } | null>(null);
 
@@ -617,7 +622,7 @@ export default function Home() {
             host_user_id: hostId,
             status: "waiting",
             expires_at: expiresAt,
-            vibe: "mix-it-up",
+            vibe: selectedVibe,
             cooking_intent: "either",
             session_code: sessionCode,
           })
@@ -1030,10 +1035,34 @@ export default function Home() {
                 setSelectedPeopleIds((prev) => prev.filter((s) => s !== id));
               }}
             />
-            <V3VibeCard
-              isSolo={selectedPeopleIds.length === 0}
-              onSeeTop5={() => router.push("/top5")}
-            />
+            {/* ── Have a code? link — hidden when active session banner is showing ── */}
+            {!activeSession && (
+              <div className="flex justify-center mb-2 shrink-0">
+                <button
+                  onClick={() => setShowCodeEntry(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent border border-[#3D3733] cursor-pointer"
+                >
+                  <span className="text-[11px] font-semibold text-[#6A6260]" style={{ fontFamily: "var(--font-manrope)" }}>
+                    Have a code?
+                  </span>
+                  <span className="text-[#E8621A] text-[11px] leading-none">›</span>
+                </button>
+              </div>
+            )}
+            {selectedPeopleIds.length === 0 ? (
+              <V3ContextReadCard
+                timeOfDay={timeOfDay}
+                insights={insights}
+                hardNos={profile?.hard_no_foods ?? []}
+                recentHistory={recentHistory}
+                onSeeTop5={() => router.push("/top5")}
+              />
+            ) : (
+              <V3VibeCard
+                onSeeTop5={() => router.push("/top5")}
+                onVibeChange={(vibe) => setSelectedVibe(vibe)}
+              />
+            )}
             {/* ── Recent Wins ───────────────────────────────── */}
             {(() => {
               const MEAL_EMOJI: Record<string, string> = {
@@ -1092,6 +1121,42 @@ export default function Home() {
 
       {/* ── Bottom nav ─────────────────────────────────────── */}
       <V3BottomNav active="home" />
+
+      {/* ── Code entry bottom sheet ────────────────────────── */}
+      {showCodeEntry && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowCodeEntry(false)}
+          />
+          <div className="relative bg-[#2A2420] rounded-t-3xl p-6">
+            <div className="w-9 h-1 bg-[#3D3733] rounded-full mx-auto mb-6" />
+            <p className="font-display font-black text-2xl text-white mb-1">Enter a code</p>
+            <p className="font-body text-sm text-[#8A7F78] mb-6">Your friend&apos;s session code — like RICE-64</p>
+            <input
+              type="text"
+              placeholder="e.g. RICE-64"
+              maxLength={10}
+              autoFocus
+              className="w-full bg-[#1C1A18] border border-[#3D3733] rounded-2xl px-4 py-4 font-display font-black text-2xl text-white text-center uppercase tracking-widest placeholder:text-[#3D3733] focus:outline-none focus:border-[#E8621A] mb-4"
+              onChange={(e) => setCodeInput(e.target.value.toUpperCase().trim())}
+            />
+            <button
+              onClick={() => router.push(`/join/${codeInput}`)}
+              disabled={codeInput.length < 3}
+              className="w-full bg-[#E8621A] disabled:opacity-40 text-white font-display font-black text-lg py-4 rounded-2xl mb-3"
+            >
+              Join session →
+            </button>
+            <button
+              onClick={() => setShowCodeEntry(false)}
+              className="w-full text-[#8A7F78] font-body text-sm py-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Preserved modals (fixed/z-50, untouched) ──────── */}
 

@@ -72,7 +72,7 @@ function SharedHomeScreen() {
         people={MOCK_PEOPLE}
         onChange={(ids) => setHasGuests(ids.length > 0)}
       />
-      <V3VibeCard isSolo={false} />
+      <V3VibeCard />
       <V3RecentWins />
 
       <V3PrimaryDecisionCTA
@@ -109,7 +109,7 @@ function SoloHomeScreen() {
 
       {/* Solo people row — only "You" selected */}
       <V3PeopleSelector people={[]} />
-      <V3VibeCard isSolo />
+      <V3VibeCard />
       <V3RecentWins />
 
       <V3PrimaryDecisionCTA isSolo hasGuests={false} onClick={() => {}} />

@@ -113,7 +113,7 @@ export default function SessionPage() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
 
   // Host flow state
-  const [hostStep, setHostStep] = useState<"vibe" | "sharing" | "waiting">("vibe");
+  const [hostStep, setHostStep] = useState<"sharing" | "waiting">("sharing");
   // false = re-entry (skip intro steps); true = first-time host flow
   const [hostNeedsOnboarding, setHostNeedsOnboarding] = useState(true);
   const [showStartSwiping, setShowStartSwiping] = useState(false);
@@ -953,123 +953,7 @@ export default function SessionPage() {
     );
   }
 
-  // ── Host: vibe selector (Change 1) ────────────────────────────────────────
-  if (role === "host" && hostNeedsOnboarding && hostStep === "vibe") {
-    const activeColor = VIBE_COLORS[selectedVibe] ?? "#E8621A";
-    const activeLabel = VIBE_OPTIONS.find((o) => o.value === selectedVibe)?.label ?? "";
-
-    return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-        <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
-          }}
-        />
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-32">
-          <div className="flex flex-col gap-6 pt-6">
-
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <Link
-                href="/"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
-              >
-                ←
-              </Link>
-              <span className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
-                New session
-              </span>
-              <div className="w-10" />
-            </div>
-
-            {/* Headline — active label shown in vibe color */}
-            <div className="mt-2">
-              <h1 className="font-display font-black text-4xl text-white leading-tight">
-                What&apos;s the vibe tonight?
-              </h1>
-              <p
-                className="font-body text-base mt-2 transition-colors duration-200"
-                style={{ color: activeLabel ? activeColor : "#8A7F78" }}
-              >
-                {activeLabel || "Pick a mood. We'll build your deck around it."}
-              </p>
-            </div>
-
-            {/* Vibe list — single column */}
-            <div className="flex flex-col gap-3 mt-2">
-              {VIBE_OPTIONS.map((opt) => {
-                const selected = selectedVibe === opt.value;
-                const color = VIBE_COLORS[opt.value] ?? "#E8621A";
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setSelectedVibe(opt.value);
-                      vibeInitializedRef.current = true;
-                    }}
-                    className="flex items-center gap-4 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
-                    style={{
-                      borderColor: selected ? color : "transparent",
-                      backgroundColor: selected ? `${color}1A` : "#2A2420",
-                    }}
-                  >
-                    <span className="text-3xl">{opt.emoji}</span>
-                    <div className="flex-1">
-                      <p
-                        className="font-display font-black text-base transition-colors duration-150"
-                        style={{ color: selected ? color : "white" }}
-                      >
-                        {opt.label}
-                      </p>
-                      <p className="font-body text-xs text-[#8A7F78] mt-0.5">{opt.description}</p>
-                    </div>
-                    <div
-                      className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150"
-                      style={{
-                        borderColor: selected ? color : "rgba(255,255,255,0.2)",
-                        backgroundColor: selected ? color : "transparent",
-                      }}
-                    >
-                      {selected && <span className="text-white text-[8px] font-bold">✓</span>}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Sticky CTA */}
-        <div className="fixed bottom-0 left-0 right-0 z-30">
-          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
-            <button
-              onClick={() => handleVibeSelect(selectedVibe)}
-              disabled={savingVibe}
-              className="w-full rounded-full px-5 py-[18px] text-center font-display font-black text-[15px] text-white transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
-              style={{
-                backgroundColor: savingVibe ? "#8A7F78" : activeColor,
-                boxShadow: savingVibe ? "none" : `0 8px 40px ${activeColor}45`,
-              }}
-            >
-              {savingVibe ? "Saving…" : "Build our deck →"}
-            </button>
-            <button
-              onClick={() => handleVibeSelect(null)}
-              disabled={savingVibe}
-              className="mt-3 w-full text-center text-sm text-[#8A7F78] transition hover:text-white/55 disabled:opacity-30"
-            >
-              Skip — surprise us
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // ── Host: sharing screen (Change 2) ──────────────────────────────────────
+  // ── Host: sharing screen (vibe already set from home) ───────────────────
   if (role === "host" && hostNeedsOnboarding && hostStep === "sharing") {
     const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
 
@@ -1085,12 +969,12 @@ export default function SessionPage() {
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 pb-10 text-center">
 
           {/* Back */}
-          <button
-            onClick={() => setHostStep("vibe")}
+          <Link
+            href="/"
             className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
           >
             ←
-          </button>
+          </Link>
 
           <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-8">
             Share your session
@@ -1102,6 +986,16 @@ export default function SessionPage() {
           <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
             Send this code or link. They join, you both swipe, and a match picks your dinner.
           </p>
+
+          {/* Read-only vibe pill */}
+          {session?.vibe && vibeEmoji[session.vibe] && (
+            <div className="flex items-center gap-2 mt-4 bg-[#2A2420] rounded-full px-4 py-2 border border-white/[0.06]">
+              <span className="text-base">{vibeEmoji[session.vibe]}</span>
+              <span className="font-body text-sm text-[#8A7F78]">
+                Vibe: <span className="text-white font-semibold">{vibeName[session.vibe]}</span>
+              </span>
+            </div>
+          )}
 
           {/* Session code — prominent display */}
           <div className="mt-8 w-full bg-[#2A2420] rounded-[24px] p-6 border border-white/[0.06]">

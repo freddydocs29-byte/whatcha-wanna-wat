@@ -1,19 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import type { SessionVibeMode } from "../../lib/scoring";
 
-const VIBES = [
-  { key: "comfort-me",    emoji: "🔥", label: "Comfort me",         scriptText: "the good stuff"           },
-  { key: "keep-it-easy",  emoji: "⚡", label: "Keep it easy",       scriptText: "quick & simple"           },
-  { key: "surprise-us",   emoji: "✨", label: "Surprise us",        scriptText: "something unexpected"     },
-  { key: "healthy-reset", emoji: "🥗", label: "Healthy reset",      scriptText: "light & fresh"            },
-  { key: "celebrate",     emoji: "🎉", label: "Celebrate something", scriptText: "special occasion energy" },
+const VIBES: { key: SessionVibeMode; emoji: string; label: string; scriptText: string }[] = [
+  { key: "comfort-food",  emoji: "🔥", label: "Comfort me",         scriptText: "the good stuff"           },
+  { key: "quick-easy",    emoji: "⚡", label: "Keep it easy",       scriptText: "quick & simple"           },
+  { key: "mix-it-up",     emoji: "✨", label: "Surprise us",        scriptText: "something unexpected"     },
+  { key: "healthy",       emoji: "🥗", label: "Healthy reset",      scriptText: "light & fresh"            },
+  { key: "something-new", emoji: "🎉", label: "Celebrate something", scriptText: "special occasion energy" },
 ] as const;
 
-type VibeKey = (typeof VIBES)[number]["key"];
-
 // Per-vibe color themes — subtle and premium
-const VIBE_THEMES: Record<VibeKey, {
+const VIBE_THEMES: Record<SessionVibeMode, {
   cardBg: string;
   glowColor: string;
   accentBar: string;
@@ -21,7 +20,7 @@ const VIBE_THEMES: Record<VibeKey, {
   activePillBg: string;
   activePillBorder: string;
 }> = {
-  "comfort-me": {
+  "comfort-food": {
     cardBg: "#251F1A",
     glowColor: "rgba(232,98,26,0.07)",
     accentBar: "#E8621A",
@@ -29,7 +28,7 @@ const VIBE_THEMES: Record<VibeKey, {
     activePillBg: "#E8621A",
     activePillBorder: "#E8621A",
   },
-  "keep-it-easy": {
+  "quick-easy": {
     cardBg: "#181D2A",
     glowColor: "rgba(58,107,200,0.07)",
     accentBar: "#3A6BC8",
@@ -37,7 +36,7 @@ const VIBE_THEMES: Record<VibeKey, {
     activePillBg: "#3A6BC8",
     activePillBorder: "#4A7BD8",
   },
-  "surprise-us": {
+  "mix-it-up": {
     cardBg: "#182424",
     glowColor: "rgba(42,184,168,0.07)",
     accentBar: "#2AB8A8",
@@ -45,7 +44,7 @@ const VIBE_THEMES: Record<VibeKey, {
     activePillBg: "#2AB8A8",
     activePillBorder: "#35C8B8",
   },
-  "healthy-reset": {
+  "healthy": {
     cardBg: "#182420",
     glowColor: "rgba(61,122,84,0.07)",
     accentBar: "#3D7A54",
@@ -53,7 +52,7 @@ const VIBE_THEMES: Record<VibeKey, {
     activePillBg: "#3D7A54",
     activePillBorder: "#4A7C59",
   },
-  "celebrate": {
+  "something-new": {
     cardBg: "#251E14",
     glowColor: "rgba(200,154,58,0.07)",
     accentBar: "#C89A3A",
@@ -64,14 +63,19 @@ const VIBE_THEMES: Record<VibeKey, {
 };
 
 interface V3VibeCardProps {
-  isSolo?: boolean;
   onSeeTop5?: () => void;
+  onVibeChange?: (vibe: SessionVibeMode) => void;
 }
 
-export default function V3VibeCard({ isSolo = false, onSeeTop5 }: V3VibeCardProps) {
-  const [activeVibe, setActiveVibe] = useState<VibeKey>("comfort-me");
+export default function V3VibeCard({ onSeeTop5, onVibeChange }: V3VibeCardProps) {
+  const [activeVibe, setActiveVibe] = useState<SessionVibeMode>("comfort-food");
   const currentVibe = VIBES.find((v) => v.key === activeVibe)!;
   const theme = VIBE_THEMES[activeVibe];
+
+  function handleVibeClick(key: SessionVibeMode) {
+    setActiveVibe(key);
+    onVibeChange?.(key);
+  }
 
   return (
     <div
@@ -140,7 +144,7 @@ export default function V3VibeCard({ isSolo = false, onSeeTop5 }: V3VibeCardProp
           {VIBES.map((vibe) => (
             <button
               key={vibe.key}
-              onClick={() => setActiveVibe(vibe.key)}
+              onClick={() => handleVibeClick(vibe.key)}
               className={`flex items-center gap-[5px] px-[12px] py-[7px] rounded-full text-[12px] font-semibold border transition-all cursor-pointer shrink-0 ${
                 activeVibe === vibe.key
                   ? "text-white"
@@ -168,7 +172,7 @@ export default function V3VibeCard({ isSolo = false, onSeeTop5 }: V3VibeCardProp
             className="text-[10px]"
             style={{ fontFamily: "var(--font-manrope)", color: "#504844" }}
           >
-            Based on: {isSolo ? "you, tonight" : "everyone, tonight"}
+            Based on: everyone, tonight
           </span>
           <button
             onClick={onSeeTop5}
