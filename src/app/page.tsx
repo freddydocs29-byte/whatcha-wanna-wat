@@ -974,17 +974,6 @@ export default function Home() {
             mealName={decidedMeal.name}
             actions={[
               {
-                icon: "🍽️",
-                title: "Let's eat",
-                sub: "Cook it or order in",
-                onClick: () => {
-                  if (todaysPick) {
-                    trackEvent("lets_eat_clicked", { mealId: todaysPick.meal.id });
-                    setShowEatModal(true);
-                  }
-                },
-              },
-              {
                 icon: "🔄",
                 title: "Change my mind",
                 sub: "Start a new deck",
