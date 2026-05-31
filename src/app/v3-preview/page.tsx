@@ -128,7 +128,11 @@ function PostMatchScreen({ onClear }: { onClear: () => void }) {
       <V3PostMatchHome
         mealName="Tikka Masala"
         headline={"Great minds\neat alike."}
-        avatarCount={3}
+        avatars={[
+          { initials: "ME" },
+          { initials: "P1" },
+          { initials: "P2" },
+        ]}
       />
 
       <V3LockedMealCard

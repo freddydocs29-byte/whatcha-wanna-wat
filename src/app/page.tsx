@@ -757,6 +757,26 @@ export default function Home() {
     }
   }
 
+  function handleCookDirect() {
+    if (!decidedMeal) return;
+    recordPickIfNew();
+    window.open(
+      `https://www.google.com/search?q=how+to+cook+${encodeURIComponent(decidedMeal.name)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
+  function handleOrderDirect() {
+    if (!decidedMeal) return;
+    recordPickIfNew();
+    window.open(
+      `https://www.google.com/search?q=order+${encodeURIComponent(decidedMeal.name)}+delivery`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
   function toggleSaveDecidedMeal() {
     if (!decidedMeal) return;
     if (decidedSaved) {
@@ -923,7 +943,20 @@ export default function Home() {
             mealName={decidedMeal.name}
             headline={lockedHeadline?.headline ?? "Dinner is\nlocked in."}
             sub={lockedHeadline?.subheadline ?? `You chose ${decidedMeal.name}.`}
-            avatarCount={decidedMeal.mode === "shared" ? 2 : 1}
+            avatars={(() => {
+              const meInitials = profile?.display_name
+                ? profile.display_name.split(" ").filter(Boolean).map((n) => n[0].toUpperCase()).join("").slice(0, 2)
+                : null;
+              const meAvatar = { avatarUrl: resolvedAvatarUrl, initials: meInitials ?? "?" };
+              if (decidedMeal.mode === "shared" && partners.length > 0) {
+                const partner = partners[0];
+                const partnerInitials = partner.displayName
+                  ? partner.displayName.split(" ").filter(Boolean).map((n) => n[0].toUpperCase()).join("").slice(0, 2)
+                  : null;
+                return [meAvatar, { avatarUrl: partner.avatarUrl ?? null, initials: partnerInitials ?? "?" }];
+              }
+              return [meAvatar];
+            })()}
             mealImage={decidedMeal.image || undefined}
           />
           <V3LockedMealCard
@@ -934,6 +967,8 @@ export default function Home() {
             matchScore={decidedMeal.mode === "shared" ? "Matched!" : "Your pick"}
             onClear={openClearModal}
             onSave={toggleSaveDecidedMeal}
+            onCook={handleCookDirect}
+            onOrder={handleOrderDirect}
           />
           <V3MealActionRows
             mealName={decidedMeal.name}

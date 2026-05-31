@@ -1,11 +1,18 @@
+interface AvatarItem {
+  avatarUrl?: string | null;
+  initials?: string | null;
+}
+
 interface V3PostMatchHomeProps {
   mealName?: string;
   headline?: string;
   sub?: string;
-  avatarCount?: number;
+  /** Real avatar data for each participant. Replaces the old avatarCount placeholder. */
+  avatars?: AvatarItem[];
   mealImage?: string;
 }
 
+/** Fallback silhouette — only rendered when no avatarUrl and no initials */
 const AvatarSilhouette = () => (
   <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
     <circle cx="15" cy="10" r="5.5" fill="#5A5350" />
@@ -17,7 +24,7 @@ export default function V3PostMatchHome({
   mealName = "Tikka Masala",
   headline = "Great minds\neat alike.",
   sub,
-  avatarCount = 3,
+  avatars = [],
   mealImage,
 }: V3PostMatchHomeProps) {
   const displaySub = sub ?? `Everyone said yes to ${mealName}.`;
@@ -124,22 +131,37 @@ export default function V3PostMatchHome({
           </div>
         </div>
 
-        {/* Avatar row */}
-        <div className="flex gap-[6px] items-center">
-          {Array.from({ length: Math.min(avatarCount, 3) }).map((_, i) => (
-            <div key={i} className="relative shrink-0">
-              <div className="w-[38px] h-[38px] rounded-full bg-[#3D3733] flex items-center justify-center border-2 border-white/25 overflow-hidden">
-                <AvatarSilhouette />
+        {/* Avatar row — only real participants, no fake silhouettes */}
+        {avatars.length > 0 && (
+          <div className="flex gap-[6px] items-center">
+            {avatars.map((av, i) => (
+              <div key={i} className="relative shrink-0">
+                <div className="w-[38px] h-[38px] rounded-full bg-[#3D3733] flex items-center justify-center border-2 border-white/25 overflow-hidden">
+                  {av.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={av.avatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : av.initials ? (
+                    <span
+                      className="text-[13px] font-bold text-white"
+                      style={{ fontFamily: "var(--font-nunito)" }}
+                    >
+                      {av.initials}
+                    </span>
+                  ) : (
+                    <AvatarSilhouette />
+                  )}
+                </div>
+                <div className="absolute bottom-[-1px] right-[-1px] w-[14px] h-[14px] rounded-full bg-[#4A7C59] border-[1.5px] border-[#1C1A18] flex items-center justify-center text-[7px] text-white font-bold">
+                  ✓
+                </div>
               </div>
-              <div className="absolute bottom-[-1px] right-[-1px] w-[14px] h-[14px] rounded-full bg-[#4A7C59] border-[1.5px] border-[#1C1A18] flex items-center justify-center text-[7px] text-white font-bold">
-                ✓
-              </div>
-            </div>
-          ))}
-          <div className="w-[38px] h-[38px] rounded-full border-2 border-dashed border-white/30 flex items-center justify-center text-[18px] text-white/45">
-            +
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

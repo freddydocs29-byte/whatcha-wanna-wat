@@ -1,3 +1,6 @@
+"use client";
+import { useRef, useState } from "react";
+
 interface V3LockedMealCardProps {
   mealName?: string;
   tags?: string;
@@ -7,6 +10,8 @@ interface V3LockedMealCardProps {
   onClear?: () => void;
   onSave?: () => void;
   onDetails?: () => void;
+  onCook?: () => void;
+  onOrder?: () => void;
 }
 
 // Bookmark icon — small, clean
@@ -29,6 +34,8 @@ function InfoIcon() {
   );
 }
 
+const THRESHOLD = 75;
+
 export default function V3LockedMealCard({
   mealName = "Tikka Masala",
   tags = "Indian • Creamy • Spicy",
@@ -38,7 +45,47 @@ export default function V3LockedMealCard({
   onClear,
   onSave,
   onDetails,
+  onCook,
+  onOrder,
 }: V3LockedMealCardProps) {
+  const [dragX, setDragX] = useState(0);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const didTrigger = useRef(false);
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    isDragging.current = true;
+    didTrigger.current = false;
+    startX.current = e.clientX;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!isDragging.current || didTrigger.current) return;
+    const dx = e.clientX - startX.current;
+    setDragX(Math.max(-THRESHOLD * 1.15, Math.min(THRESHOLD * 1.15, dx)));
+  }
+
+  function handlePointerUp() {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    if (!didTrigger.current) {
+      if (dragX <= -THRESHOLD) {
+        didTrigger.current = true;
+        onCook?.();
+      } else if (dragX >= THRESHOLD) {
+        didTrigger.current = true;
+        onOrder?.();
+      }
+    }
+    setDragX(0);
+  }
+
+  const cookProgress = Math.max(0, Math.min(1, -dragX / THRESHOLD));
+  const orderProgress = Math.max(0, Math.min(1, dragX / THRESHOLD));
+  const clampedDrag = Math.max(-THRESHOLD * 1.1, Math.min(THRESHOLD * 1.1, dragX));
+  const isMoving = dragX !== 0;
+
   return (
     <div className="mx-[14px] mb-3 bg-[#2A2420] rounded-[18px] px-4 py-[14px] border border-[#4A7C59]/20 relative overflow-hidden shrink-0">
       {/* Green accent bar at top */}
@@ -136,7 +183,7 @@ export default function V3LockedMealCard({
         ))}
       </div>
 
-      {/* Let's Eat bidirectional swipe (static visual) */}
+      {/* Let's Eat bidirectional swipe — interactive */}
       <div>
         <div className="flex justify-between px-1 mb-[6px]">
           <span
@@ -152,24 +199,66 @@ export default function V3LockedMealCard({
             📱 Order →
           </span>
         </div>
-        <div className="relative h-[54px] rounded-[14px] overflow-hidden cursor-grab">
-          {/* Cook layer (left) */}
+
+        <div
+          className="relative h-[54px] rounded-[14px] overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none"
+          style={{ background: "#3D3733", border: "1px solid rgba(255,255,255,0.06)" }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
+          {/* Cook reveal layer — green, fades in as user drags left */}
           <div
-            className="absolute inset-0 bg-[#4A7C59] rounded-[14px] flex items-center pl-[22px] text-[15px] font-black text-white"
-            style={{ fontFamily: "var(--font-nunito)" }}
+            className="absolute inset-0"
+            style={{
+              background: `rgba(74,124,89,${cookProgress})`,
+              transition: isMoving ? "none" : "background 0.2s",
+            }}
+          />
+          {/* Order reveal layer — orange, fades in as user drags right */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `rgba(232,98,26,${orderProgress})`,
+              transition: isMoving ? "none" : "background 0.2s",
+            }}
+          />
+
+          {/* Cook label — revealed on left drag */}
+          <div
+            className="absolute left-[18px] inset-y-0 flex items-center pointer-events-none"
+            style={{ opacity: cookProgress }}
           >
-            🍳 We&apos;re cooking
+            <span
+              className="text-[15px] font-black text-white"
+              style={{ fontFamily: "var(--font-nunito)" }}
+            >
+              🍳 We&apos;re cooking
+            </span>
           </div>
-          {/* Order layer (right) */}
+
+          {/* Order label — revealed on right drag */}
           <div
-            className="absolute inset-0 bg-[#E8621A] rounded-[14px] flex items-center justify-end pr-[22px] text-[15px] font-black text-white"
-            style={{ fontFamily: "var(--font-nunito)" }}
+            className="absolute right-[18px] inset-y-0 flex items-center pointer-events-none"
+            style={{ opacity: orderProgress }}
           >
-            Let&apos;s order 📱
+            <span
+              className="text-[15px] font-black text-white"
+              style={{ fontFamily: "var(--font-nunito)" }}
+            >
+              Let&apos;s order 📱
+            </span>
           </div>
-          {/* Resting pill (top) */}
+
+          {/* Center knob — translates with drag, fades as colour reveals */}
           <div
-            className="absolute inset-0 bg-[#3D3733] rounded-[14px] border border-white/[0.06] flex items-center justify-between px-[18px]"
+            className="absolute inset-0 flex items-center justify-between px-[18px] pointer-events-none"
+            style={{
+              transform: `translateX(${clampedDrag}px)`,
+              opacity: Math.max(0, 1 - Math.max(cookProgress, orderProgress) * 1.4),
+              transition: isMoving ? "none" : "transform 0.25s ease, opacity 0.25s ease",
+            }}
           >
             <span
               className="text-[11px] text-[#5A5350]"
