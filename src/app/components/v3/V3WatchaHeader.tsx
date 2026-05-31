@@ -10,12 +10,12 @@ export default function V3WatchaHeader({
   showShare = false,
 }: V3WatchaHeaderProps) {
   return (
-    <div className="flex justify-between items-center px-[18px] py-2 shrink-0">
+    <div className="flex justify-between items-center px-[18px] pt-[14px] pb-[10px] shrink-0">
       {/* Hamburger */}
-      <button className="w-9 h-9 rounded-[10px] bg-[#2A2420] flex items-center justify-center border-0 cursor-pointer">
+      <button className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer">
         <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
           <rect width="16" height="2" rx="1" fill="white" />
-          <rect y="5" width="16" height="2" rx="1" fill="white" />
+          <rect y="5" width="10" height="2" rx="1" fill="white" />
           <rect y="10" width="16" height="2" rx="1" fill="white" />
         </svg>
       </button>
@@ -23,13 +23,13 @@ export default function V3WatchaHeader({
       {/* Logo — "Watcha" Nunito bold + "wanna eat?" Dancing Script */}
       <div className="text-center leading-none">
         <span
-          className="block text-xl font-black text-white leading-none"
+          className="block text-[21px] font-black text-white leading-none tracking-[-0.3px]"
           style={{ fontFamily: "var(--font-nunito)" }}
         >
           Watcha
         </span>
         <span
-          className="block text-[17px] font-bold text-[#E8621A] leading-[1.1]"
+          className="block text-[17px] font-bold text-[#E8621A] leading-[1.15]"
           style={{ fontFamily: "'Dancing Script', cursive" }}
         >
           wanna eat?
@@ -39,7 +39,7 @@ export default function V3WatchaHeader({
       {/* Right side: bell + optional share */}
       <div className="flex gap-[7px]">
         <div className="relative">
-          <button className="w-9 h-9 rounded-[10px] bg-[#2A2420] flex items-center justify-center border-0 cursor-pointer">
+          <button className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
               <path
                 d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
@@ -56,7 +56,7 @@ export default function V3WatchaHeader({
         </div>
 
         {showShare && (
-          <button className="w-9 h-9 rounded-[10px] bg-[#2A2420] flex items-center justify-center border-0 cursor-pointer">
+          <button className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
               <path
                 d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"

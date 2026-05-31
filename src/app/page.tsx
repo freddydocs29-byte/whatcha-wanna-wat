@@ -241,7 +241,12 @@ export default function Home() {
       // Fire-and-forget — never blocks Home from showing
       const userId = getUserId();
       getAllPartners(userId).then((list) => {
-        setPartners(list.slice(0, 3));
+        const hiddenRaw = typeof window !== "undefined"
+          ? localStorage.getItem(`wwe_hidden_home_partners_${userId}`)
+          : null;
+        const hiddenIds = new Set<string>(hiddenRaw ? JSON.parse(hiddenRaw) : []);
+        const visible = list.filter((p) => !hiddenIds.has(p.partnerId));
+        setPartners(visible.slice(0, 3));
       }).catch((err) => {
         console.warn("[home] partner_relationships fetch failed — showing only You + Invite", err);
       });
@@ -954,21 +959,28 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto flex flex-col">
             {/* ── Hero greeting ─────────────────────────────── */}
             {(() => {
+              // First name only — "Fred" not "Fred Paul" or a full username
               const firstName = profile?.display_name?.split(" ")[0] ?? null;
               return (
-                <div className="px-[18px] pt-3 pb-5 shrink-0">
+                <div className="px-[18px] pt-[14px] pb-[20px] shrink-0">
                   <p
-                    className="text-[20px] leading-[1.3]"
+                    className="leading-[1.25]"
                     style={{
                       fontFamily: "'Dancing Script', cursive",
+                      fontSize: "22px",
                       color: "#E8621A",
                     }}
                   >
                     {`${greetingPhrase}${firstName ? `, ${firstName}` : ""}.`}
                   </p>
                   <p
-                    className="text-[26px] font-black text-white leading-[1.15] mt-[2px]"
-                    style={{ fontFamily: "var(--font-nunito)" }}
+                    className="font-black text-white mt-[5px]"
+                    style={{
+                      fontFamily: "var(--font-nunito)",
+                      fontSize: "28px",
+                      lineHeight: "1.18",
+                      letterSpacing: "-0.3px",
+                    }}
                   >
                     {rotatingHeadline}
                   </p>
@@ -977,15 +989,45 @@ export default function Home() {
             })()}
 
             <V3PeopleSelector
-              people={partners.map<PersonV3>((p) => ({
-                id: p.partnerId,
-                name: p.displayName ? p.displayName.split(" ")[0] : "Someone",
-                avatarUrl: p.avatarUrl ?? null,
-              }))}
+              people={(() => {
+                // Suppress multiple anonymous bubbles — allow at most one,
+                // relabeled "Recent" to feel intentional rather than broken.
+                let anonSeen = false;
+                return partners
+                  .map<PersonV3>((p) => ({
+                    id: p.partnerId,
+                    name: p.displayName ? p.displayName.split(" ")[0] : "Someone",
+                    avatarUrl: p.avatarUrl ?? null,
+                  }))
+                  .filter((person) => {
+                    const isAnon = person.name === "Someone" && !person.avatarUrl;
+                    if (!isAnon) return true;
+                    if (anonSeen) return false;
+                    anonSeen = true;
+                    return true;
+                  })
+                  .map((person) =>
+                    person.name === "Someone" && !person.avatarUrl
+                      ? { ...person, name: "Recent" }
+                      : person
+                  );
+              })()}
               avatarUrl={resolvedAvatarUrl}
               displayName={profile?.display_name}
               onChange={(ids) => setSelectedPeopleIds(ids)}
               onInvite={() => setShowInviteDrawer(true)}
+              onHidePartner={(id) => {
+                const userId = getUserId();
+                const key = `wwe_hidden_home_partners_${userId}`;
+                const existing: string[] = JSON.parse(
+                  localStorage.getItem(key) ?? "[]"
+                );
+                if (!existing.includes(id)) {
+                  localStorage.setItem(key, JSON.stringify([...existing, id]));
+                }
+                setPartners((prev) => prev.filter((p) => p.partnerId !== id));
+                setSelectedPeopleIds((prev) => prev.filter((s) => s !== id));
+              }}
             />
             <V3VibeCard
               isSolo={selectedPeopleIds.length === 0}

@@ -8,7 +8,7 @@ interface V3PrimaryDecisionCTAProps {
   onClick?: () => void;
 }
 
-const THUMB_W = 52;
+const THUMB_W = 54;
 const TRACK_PAD = 5;
 const THRESHOLD = 0.65;
 
@@ -39,7 +39,6 @@ export default function V3PrimaryDecisionCTA({
     setSnap(true);
     thumbXRef.current = 0;
     setThumbX(0);
-    // Remove transition class after animation completes
     setTimeout(() => setSnap(false), 320);
   }
 
@@ -68,7 +67,6 @@ export default function V3PrimaryDecisionCTA({
       triggered.current = true;
       thumbXRef.current = maxX;
       setThumbX(maxX);
-      // Small pause so user sees the completed slide before routing
       setTimeout(() => onClick?.(), 150);
     } else {
       snapBack();
@@ -82,13 +80,18 @@ export default function V3PrimaryDecisionCTA({
   }
 
   const fillWidth = thumbX + THUMB_W + TRACK_PAD;
+  const progress = thumbX / Math.max(1, (containerRef.current?.clientWidth ?? 300) - THUMB_W - TRACK_PAD * 2);
 
   return (
     <div className="mx-[14px] mb-[10px] shrink-0">
       <div
         ref={containerRef}
-        className="relative h-[62px] rounded-full border border-[#E8621A]/[0.22] overflow-hidden select-none touch-none"
-        style={{ background: "rgba(232,98,26,0.08)" }}
+        className="relative h-[64px] rounded-full overflow-hidden select-none touch-none"
+        style={{
+          background: "rgba(232,98,26,0.07)",
+          border: "1.5px solid rgba(232,98,26,0.28)",
+          boxShadow: "0 0 20px rgba(232,98,26,0.10), inset 0 1px 0 rgba(255,255,255,0.04)",
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -99,17 +102,19 @@ export default function V3PrimaryDecisionCTA({
           className="absolute left-0 top-0 bottom-0 rounded-full pointer-events-none"
           style={{
             width: `${fillWidth}px`,
-            background: "linear-gradient(90deg, #E8621A 0%, rgba(232,98,26,0.18) 100%)",
+            background: "linear-gradient(90deg, rgba(232,98,26,0.55) 0%, rgba(232,98,26,0.08) 100%)",
             transition: snap ? "width 0.3s ease" : "none",
           }}
         />
 
         {/* Draggable thumb */}
         <div
-          className="absolute top-[5px] bottom-[5px] w-[52px] bg-[#E8621A] rounded-full flex items-center justify-center text-[22px] z-[3]"
+          className="absolute top-[5px] bottom-[5px] flex items-center justify-center text-[22px] z-[3] rounded-full"
           style={{
+            width: `${THUMB_W}px`,
             left: `${thumbX + TRACK_PAD}px`,
-            boxShadow: "0 4px 14px rgba(232,98,26,0.45)",
+            background: "linear-gradient(145deg, #F07828, #D8551A)",
+            boxShadow: "0 3px 18px rgba(232,98,26,0.60), 0 1px 4px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.18)",
             transition: snap ? "left 0.3s ease" : "none",
             cursor: dragging.current ? "grabbing" : "grab",
           }}
@@ -119,29 +124,40 @@ export default function V3PrimaryDecisionCTA({
 
         {/* Label — fades as thumb slides over it */}
         <div
-          className="absolute left-[68px] right-[38px] top-0 bottom-0 flex flex-col justify-center pointer-events-none z-[2]"
-          style={{ opacity: Math.max(0, 1 - thumbX / 80) }}
+          className="absolute left-[72px] right-[38px] top-0 bottom-0 flex flex-col justify-center pointer-events-none z-[2]"
+          style={{ opacity: Math.max(0, 1 - (progress * 1.2)) }}
         >
           <div
             className="text-[15px] font-black leading-[1.2]"
-            style={{ fontFamily: "var(--font-nunito)", color: "rgba(232,98,26,0.9)" }}
+            style={{ fontFamily: "var(--font-nunito)", color: "rgba(232,98,26,0.95)" }}
           >
             {title}
           </div>
           <div
-            className="text-[11px]"
-            style={{ fontFamily: "var(--font-manrope)", color: "rgba(232,98,26,0.5)" }}
+            className="text-[11px] mt-[1px]"
+            style={{ fontFamily: "var(--font-manrope)", color: "rgba(232,98,26,0.50)" }}
           >
             {sub}
           </div>
         </div>
 
-        {/* Hint arrows */}
+        {/* Chevron hints */}
         <div
-          className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none z-[2] text-[13px] tracking-[-3px]"
-          style={{ color: "rgba(232,98,26,0.3)" }}
+          className="absolute right-[14px] top-1/2 -translate-y-1/2 pointer-events-none z-[2] flex gap-[2px]"
+          style={{ opacity: Math.max(0.15, 0.38 - progress * 0.38) }}
         >
-          &gt;&gt;&gt;
+          {["›", "›", "›"].map((c, i) => (
+            <span
+              key={i}
+              className="text-[16px] font-bold leading-none"
+              style={{
+                color: "#E8621A",
+                opacity: 1 - i * 0.28,
+              }}
+            >
+              {c}
+            </span>
+          ))}
         </div>
       </div>
     </div>
