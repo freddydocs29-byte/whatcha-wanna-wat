@@ -552,10 +552,13 @@ export default function SessionPage() {
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
 
           <div className="flex flex-col gap-6 pt-6">
@@ -716,7 +719,7 @@ export default function SessionPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (!session && !error) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#080808] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#1C1A18] text-white">
         <p className="text-white/40 text-sm">Loading session…</p>
       </main>
     );
@@ -725,7 +728,7 @@ export default function SessionPage() {
   // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#080808] px-6 text-center text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
         <p className="text-lg font-semibold">Something went wrong</p>
         <p className="max-w-[28ch] text-sm text-white/50">{error}</p>
         <Link
@@ -751,7 +754,7 @@ export default function SessionPage() {
   // ── Session full ──────────────────────────────────────────────────────────
   if (role === "full") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#080808] px-6 text-center text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
         <div className="text-4xl">🔒</div>
         <p className="text-lg font-semibold tracking-[-0.03em]">Session is full</p>
         <p className="max-w-[28ch] text-sm leading-6 text-white/50">
@@ -771,10 +774,13 @@ export default function SessionPage() {
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
         <Link
           href="/"
           className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
@@ -835,10 +841,13 @@ export default function SessionPage() {
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
         <Link
           href="/"
           className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
@@ -897,10 +906,13 @@ export default function SessionPage() {
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
         {/* Concentric rings */}
         <div
           className="relative flex items-center justify-center w-72 h-72"
@@ -948,10 +960,13 @@ export default function SessionPage() {
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-32">
           <div className="flex flex-col gap-6 pt-6">
 
@@ -1060,10 +1075,13 @@ export default function SessionPage() {
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 pb-10 text-center">
 
           {/* Back */}
@@ -1256,10 +1274,13 @@ export default function SessionPage() {
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col px-6 pt-12 pb-10">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
 
         {/* Back */}
         {hostNeedsOnboarding && (

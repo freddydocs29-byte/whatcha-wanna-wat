@@ -6,7 +6,7 @@ interface V3AppShellProps {
 export default function V3AppShell({ children, className = "" }: V3AppShellProps) {
   return (
     <div
-      className={`relative flex flex-col overflow-hidden w-full ${className}`}
+      className={`relative flex flex-col overflow-hidden w-full max-w-[430px] mx-auto ${className}`}
       style={{
         minHeight: "100dvh",
         // Warm cinematic atmosphere — subtle top radial glow + bottom vignette

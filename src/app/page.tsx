@@ -919,6 +919,7 @@ export default function Home() {
             headline={lockedHeadline?.headline ?? "Dinner is\nlocked in."}
             sub={lockedHeadline?.subheadline ?? `You chose ${decidedMeal.name}.`}
             avatarCount={decidedMeal.mode === "shared" ? 2 : 1}
+            mealImage={decidedMeal.image || undefined}
           />
           <V3LockedMealCard
             mealName={decidedMeal.name}

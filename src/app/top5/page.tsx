@@ -357,12 +357,12 @@ export default function Top5Page() {
       style={{ backgroundColor: "#FAF6F1", color: "#1C1A18" }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10" style={{ backgroundColor: "#FAF6F1" }}>
+      <div className="sticky top-0 z-10" style={{ backgroundColor: "#FAF6F1", boxShadow: "0 1px 0 rgba(28,16,8,0.07)" }}>
         <div className="max-w-md mx-auto px-5 pt-14 pb-4 flex items-center gap-3">
           <Link
             href="/"
-            className="flex items-center justify-center w-9 h-9 rounded-full"
-            style={{ backgroundColor: "#EDE8E1" }}
+            className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+            style={{ backgroundColor: "#EDE8E1", border: "1px solid rgba(28,16,8,0.08)" }}
             aria-label="Back"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -430,7 +430,10 @@ export default function Top5Page() {
                     backgroundColor: isSelected ? "#FFF4ED" : "#EFEAE3",
                     border: isSelected
                       ? "2px solid #E8621A"
-                      : "2px solid transparent",
+                      : "2px solid rgba(28,16,8,0.06)",
+                    boxShadow: isSelected
+                      ? "0 4px 20px rgba(232,98,26,0.14)"
+                      : "0 2px 10px rgba(28,16,8,0.07)",
                   }}
                 >
                   {/* Left: text content — tapping selects this meal */}
@@ -570,7 +573,7 @@ export default function Top5Page() {
               onClick={handleLockIn}
               disabled={locking}
               className="w-full font-display font-black text-base py-4 rounded-full flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-              style={{ backgroundColor: "#E8621A", color: "#fff" }}
+              style={{ backgroundColor: "#E8621A", color: "#fff", boxShadow: "0 8px 32px rgba(232,98,26,0.35)" }}
             >
               {locking
                 ? "Locking in…"

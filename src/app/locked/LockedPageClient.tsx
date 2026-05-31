@@ -58,8 +58,15 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const decidedWith = pickedForYou ? "just for you" : "your partner";
 
   return (
-    <main className="min-h-screen bg-[#1C1A18] px-5 pt-12 pb-10 text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+    <main className="relative min-h-screen bg-[#1C1A18] px-5 pt-12 pb-10 text-white overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+        }}
+      />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
         {/* Top bar — avatar */}
         <div className="flex items-center justify-end mb-6">
@@ -126,9 +133,9 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           {/* Changed your mind? */}
           <button
             onClick={handleNewDeck}
-            className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left"
+            className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]"
           >
-            <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+            <div className="w-12 h-12 rounded-[12px] bg-[#2E2420] border border-[#E8621A]/[0.15] flex items-center justify-center text-2xl flex-shrink-0">
               🔄
             </div>
             <div className="flex-1 min-w-0">
@@ -141,9 +148,9 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           {/* Save meal */}
           <button
             onClick={toggleSave}
-            className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left"
+            className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]"
           >
-            <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+            <div className="w-12 h-12 rounded-[12px] bg-[#2E2420] border border-[#E8621A]/[0.15] flex items-center justify-center text-2xl flex-shrink-0">
               ⭐
             </div>
             <div className="flex-1 min-w-0">
@@ -164,7 +171,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
             YOUR STREAK
           </p>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
               <span className="font-display font-black text-3xl text-[#E8621A]">
                 {decisionCount}
               </span>
@@ -172,7 +179,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
                 Decisions made
               </span>
             </div>
-            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
               <span className="font-display font-black text-3xl text-[#E8621A]">
                 {streak}
               </span>
@@ -180,7 +187,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
                 Days in a row
               </span>
             </div>
-            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
               <span className="font-display font-black text-3xl text-[#E8621A]">
                 2min
               </span>

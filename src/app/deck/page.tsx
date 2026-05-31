@@ -2286,7 +2286,7 @@ function DeckContent() {
   // ── Shared deck error screen ──────────────────────────────────────────────
   if (sessionId && sharedError) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#080808] px-6 text-center text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
         <p className="text-lg font-semibold tracking-[-0.03em]">Deck not ready</p>
         <p className="max-w-[28ch] text-sm leading-6 text-white/50">
           The shared deck couldn&apos;t be built. Ask the host to go back and
@@ -2305,7 +2305,7 @@ function DeckContent() {
   // ── Shared deck loading screen ────────────────────────────────────────────
   if (sessionId && sharedLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#080808] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#1C1A18] text-white">
         <div className="flex flex-col items-center gap-3">
           <span className="h-2 w-2 animate-ping rounded-full bg-white/40" />
           <p className="text-sm text-white/35">Loading shared deck…</p>
@@ -2791,10 +2791,13 @@ function DeckContent() {
     if (topPicksMode) {
       return (
         <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-6 safe-top text-white">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-            <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-          </div>
+          <div
+            className="pointer-events-none absolute inset-0 overflow-hidden"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+            }}
+          />
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
             <header className="flex items-center justify-between">
               <span className="font-display font-black text-base text-white">

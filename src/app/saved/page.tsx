@@ -65,10 +65,13 @@ export default function SavedPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 safe-top">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+          }}
+        />
 
         <div className="relative z-10 flex min-h-screen flex-col">
           <div className="px-5 pt-6 pb-2">
@@ -103,7 +106,7 @@ export default function SavedPage() {
               </p>
               <Link
                 href="/deck"
-                className="mt-6 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:opacity-95 active:scale-[0.99]"
+                className="mt-6 rounded-full bg-[#E8621A] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(232,98,26,0.30)] transition hover:opacity-95 active:scale-[0.99]"
               >
                 Go to deck
               </Link>
@@ -127,7 +130,7 @@ export default function SavedPage() {
                 </div>
 
                 {favoriteMeals.length === 0 ? (
-                  <div className="rounded-[24px] border border-white/[0.06] bg-white/[0.025] px-5 py-6 text-center">
+                  <div className="rounded-[20px] border border-white/[0.05] bg-[#232120] px-5 py-6 text-center shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
                     <p className="text-sm text-white/35">
                       Star a meal below to mark it as a favorite.
                     </p>
@@ -140,7 +143,7 @@ export default function SavedPage() {
                     {favoriteMeals.map((meal) => (
                       <div
                         key={meal.id}
-                        className="bg-[#2A2420] rounded-[20px] p-5"
+                        className="bg-[#2A2420] rounded-[20px] p-5 border border-white/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">
@@ -204,7 +207,7 @@ export default function SavedPage() {
                     {savedForLater.map((meal) => (
                       <div
                         key={meal.id}
-                        className="bg-[#2A2420] rounded-[20px] p-5"
+                        className="bg-[#2A2420] rounded-[20px] p-5 border border-white/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">

@@ -214,12 +214,14 @@ export default function V3PreviewPage() {
         ))}
       </div>
 
-      {/* Phone frame */}
-      <div className="flex flex-col lg:flex-row gap-10 justify-center items-start px-4 pb-20 max-w-5xl mx-auto">
-        {/* Phone shell */}
-        <div className="shrink-0" style={{ width: 375 }}>
+      {/* Phone frame + annotation — centered column on mobile/tablet, side-by-side on desktop */}
+      <div className="flex flex-col lg:flex-row gap-10 justify-center items-center lg:items-start px-4 pb-20 max-w-5xl mx-auto">
+
+        {/* Phone shell — full width on mobile, capped at 430px on desktop */}
+        <div className="w-full max-w-[430px] shrink-0">
+          {/* Decorative phone bezel — visible on sm+ only */}
           <div
-            className="rounded-[50px] p-3"
+            className="sm:rounded-[50px] sm:p-3"
             style={{
               background: "#0A0908",
               boxShadow:
@@ -227,17 +229,17 @@ export default function V3PreviewPage() {
             }}
           >
             <div
-              className="rounded-[40px] overflow-hidden bg-[#1C1A18] relative"
+              className="sm:rounded-[40px] overflow-hidden bg-[#1C1A18] relative"
               style={{ minHeight: 780 }}
             >
-              {/* Dynamic island */}
+              {/* Dynamic island — only inside bezel */}
               <div
-                className="absolute top-3 left-1/2 -translate-x-1/2 z-20 rounded-[20px]"
+                className="hidden sm:block absolute top-3 left-1/2 -translate-x-1/2 z-20 rounded-[20px]"
                 style={{ width: 120, height: 34, background: "#000" }}
               />
 
-              {/* Status bar */}
-              <div className="flex justify-between items-center px-6 pt-[14px] pb-2 relative z-10">
+              {/* Status bar — only inside bezel */}
+              <div className="hidden sm:flex justify-between items-center px-6 pt-[14px] pb-2 relative z-10">
                 <span
                   className="text-[15px] font-extrabold text-white"
                   style={{ fontFamily: "var(--font-nunito)" }}
@@ -265,8 +267,8 @@ export default function V3PreviewPage() {
           </div>
         </div>
 
-        {/* Annotation panel */}
-        <div className="flex-1 max-w-sm">
+        {/* Annotation panel — full width on mobile, capped on desktop */}
+        <div className="w-full max-w-[430px] lg:max-w-sm lg:flex-1">
           <div
             className="text-xl font-black text-white mb-2"
             style={{ fontFamily: "var(--font-nunito)" }}

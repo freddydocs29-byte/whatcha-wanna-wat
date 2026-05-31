@@ -91,10 +91,13 @@ export default function HistoryPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white pb-28">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-      </div>
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+        }}
+      />
       <div className="relative mx-auto w-full max-w-md">
 
         <div className="px-5 pt-6 pb-2">
@@ -143,7 +146,7 @@ export default function HistoryPage() {
             </p>
             <Link
               href="/deck"
-              className="mt-6 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:opacity-95 active:scale-[0.99]"
+              className="mt-6 rounded-full bg-[#E8621A] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(232,98,26,0.30)] transition hover:opacity-95 active:scale-[0.99]"
             >
               Go to deck
             </Link>
@@ -154,10 +157,10 @@ export default function HistoryPage() {
           {entries.map((entry, i) => (
             <div
               key={i}
-              className="bg-[#2A2420] rounded-[20px] p-5 mx-5 mb-3"
+              className="bg-[#2A2420] rounded-[20px] p-5 mx-5 mb-3 border border-white/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
             >
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-[14px] bg-[#3D3733] flex items-center justify-center text-3xl flex-shrink-0">
+                <div className="w-14 h-14 rounded-[14px] bg-[#2E2420] border border-[#E8621A]/[0.15] flex items-center justify-center text-3xl flex-shrink-0">
                   🍽️
                 </div>
                 <div className="flex-1 min-w-0">

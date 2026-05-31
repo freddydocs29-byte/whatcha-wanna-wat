@@ -3,6 +3,7 @@ interface V3PostMatchHomeProps {
   headline?: string;
   sub?: string;
   avatarCount?: number;
+  mealImage?: string;
 }
 
 const AvatarSilhouette = () => (
@@ -17,36 +18,90 @@ export default function V3PostMatchHome({
   headline = "Great minds\neat alike.",
   sub,
   avatarCount = 3,
+  mealImage,
 }: V3PostMatchHomeProps) {
   const displaySub = sub ?? `Everyone said yes to ${mealName}.`;
+  const hasImage = !!(mealImage && mealImage.trim().length > 0);
 
   return (
     <div className="mx-[14px] mb-3 rounded-[20px] overflow-hidden relative shrink-0" style={{ height: 210 }}>
-      {/* Background photo simulation */}
+
+      {/* Base: dark warm cinematic background — always present */}
       <div
         className="absolute inset-0"
         style={{
           background:
             "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.72) 100%), radial-gradient(ellipse at 65% 40%, #7A2800 0%, #3D1200 45%, #1A0800 100%)",
         }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at 65% 55%, rgba(200,90,25,0.65) 0%, transparent 40%), radial-gradient(ellipse at 35% 35%, rgba(240,150,50,0.35) 0%, transparent 30%)",
-          }}
-        />
-        {/* Food emoji accent */}
-        <div
-          className="absolute right-[-8px] bottom-[-18px] text-[115px] leading-none pointer-events-none select-none"
-          style={{ filter: "drop-shadow(0 -6px 20px rgba(0,0,0,0.55))" }}
-        >
-          🍛
-        </div>
-      </div>
+      />
 
-      {/* Content */}
+      {hasImage ? (
+        <>
+          {/* Subtle warm glow on left to complement the image */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse at 25% 40%, rgba(240,130,40,0.22) 0%, transparent 45%)",
+            }}
+          />
+
+          {/* Meal image — right 58%, partial bleed off edge */}
+          <div className="absolute right-0 top-0 bottom-0 w-[58%] overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={mealImage}
+              alt={mealName}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ opacity: 0.9 }}
+            />
+            {/* Left-edge fade: dissolves image into warm dark background */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "linear-gradient(to right, rgba(20,8,2,1) 0%, rgba(20,8,2,0.35) 30%, transparent 55%)",
+              }}
+            />
+            {/* Bottom fade: keeps avatar row legible */}
+            <div
+              className="absolute bottom-0 left-0 right-0 pointer-events-none"
+              style={{
+                height: "55%",
+                background:
+                  "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)",
+              }}
+            />
+            {/* Orange warmth rim on the far right edge */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 110% 40%, rgba(232,98,26,0.18) 0%, transparent 55%)",
+              }}
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Fallback warm glow + food emoji when no image */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at 65% 55%, rgba(200,90,25,0.65) 0%, transparent 40%), radial-gradient(ellipse at 35% 35%, rgba(240,150,50,0.35) 0%, transparent 30%)",
+            }}
+          />
+          <div
+            className="absolute right-[-8px] bottom-[-18px] text-[115px] leading-none pointer-events-none select-none"
+            style={{ filter: "drop-shadow(0 -6px 20px rgba(0,0,0,0.55))" }}
+          >
+            🍛
+          </div>
+        </>
+      )}
+
+      {/* Content — always rendered above image layers */}
       <div className="absolute inset-0 flex flex-col justify-between p-4 z-[2]">
         <div>
           <div

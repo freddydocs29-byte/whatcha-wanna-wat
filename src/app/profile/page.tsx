@@ -701,10 +701,13 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white pb-24">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-      </div>
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+        }}
+      />
 
       {/* ── Saved toast ──────────────────────────────────────────────────────── */}
       <span
@@ -840,15 +843,15 @@ export default function ProfilePage() {
 
       {/* ── Stats row ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 mx-5 mt-6">
-        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
           <span className="font-display font-black text-3xl text-[#E8621A]">{history.length}</span>
           <span className="font-body text-xs text-[#8A7F78] text-center mt-1">Decisions</span>
         </div>
-        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
           <span className="font-display font-black text-3xl text-[#E8621A]">{mealsTriedCount}</span>
           <span className="font-body text-xs text-[#8A7F78] text-center mt-1">Meals tried</span>
         </div>
-        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center">
+        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
           <span className="font-display font-black text-3xl text-[#E8621A]">0</span>
           <span className="font-body text-xs text-[#8A7F78] text-center mt-1">With others</span>
         </div>
@@ -857,7 +860,9 @@ export default function ProfilePage() {
       {/* ──────────────────────────────────────────────────────────────────────
           SECTION 2 — Your Flame (solo DNA)
       ────────────────────────────────────────────────────────────────────── */}
-      <div className="px-5 mt-10">
+      <div className="mx-5 mt-10 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] overflow-hidden">
+        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #E8621A, rgba(232,98,26,0.2))" }} />
+        <div className="px-5 pt-5 pb-6">
         <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-5">
           YOUR FLAME
         </p>
@@ -1031,13 +1036,16 @@ export default function ProfilePage() {
             </button>
           </div>
         ) : null}
+        </div>
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────
           SECTION 3 — Deciding Together (couples DNA, hidden if no partner)
       ────────────────────────────────────────────────────────────────────── */}
       {!dnaLoading && partners.length > 0 && (
-        <div className="px-5 mt-10">
+        <div className="mx-5 mt-6 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] overflow-hidden">
+          <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #E8621A, rgba(232,98,26,0.2))" }} />
+          <div className="px-5 pt-5 pb-6">
           {/* Multi-partner selector — shown only when 2+ partners */}
           {partners.length > 1 && (
             <div
@@ -1239,6 +1247,7 @@ export default function ProfilePage() {
               <div className="w-5 h-5 border-2 border-white/20 border-t-[#E8621A] rounded-full animate-spin" />
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -1247,7 +1256,7 @@ export default function ProfilePage() {
       ────────────────────────────────────────────────────────────────────── */}
 
       {/* Dietary restrictions */}
-      <div className="px-5 mt-10">
+      <div className="mx-5 mt-6 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] px-5 py-5">
         <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
           DIETARY RESTRICTIONS
         </p>
@@ -1287,7 +1296,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Hard NOs */}
-      <div className="px-5 mt-8">
+      <div className="mx-5 mt-6 mb-4 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] px-5 py-5">
         <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
           HARD NOs — NEVER SHOWING THESE
         </p>
