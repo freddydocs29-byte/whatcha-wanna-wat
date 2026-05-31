@@ -48,6 +48,9 @@ import V3LockedMealCard from "./components/v3/V3LockedMealCard";
 import V3MealActionRows from "./components/v3/V3MealActionRows";
 import V3BottomNav from "./components/v3/V3BottomNav";
 import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
+import V3InviteDrawer from "./components/v3/V3InviteDrawer";
+import { getAllPartners, type PartnerInfo } from "./lib/dna";
+import type { PersonV3 } from "./components/v3/V3PeopleSelector";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -173,6 +176,8 @@ export default function Home() {
   // V3 Home shell state
   const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
   const [decidedSaved, setDecidedSaved] = useState(false);
+  const [partners, setPartners] = useState<PartnerInfo[]>([]);
+  const [showInviteDrawer, setShowInviteDrawer] = useState(false);
   // Mirrors typeRevealData so event handlers added in [] effects don't get stale closures.
   const typeRevealDataRef = useRef<{ typeName: string; tagline: string } | null>(null);
 
@@ -230,6 +235,14 @@ export default function Home() {
         if (url) setResolvedAvatarUrl(url);
       }).catch(() => {});
       setReady(true);
+
+      // Fire-and-forget — never blocks Home from showing
+      const userId = getUserId();
+      getAllPartners(userId).then((list) => {
+        setPartners(list.slice(0, 3));
+      }).catch((err) => {
+        console.warn("[home] partner_relationships fetch failed — showing only You + Invite", err);
+      });
 
       // Track once per browser session so repeated navigations don't re-fire.
       if (!sessionStorage.getItem("wwe_app_opened")) {
@@ -657,6 +670,50 @@ export default function Home() {
     }
   }
 
+  // Creates a shared session for the invite drawer without navigating away.
+  // Separate from handleDecideWithSomeone so that function remains unchanged.
+  async function createSessionForInvite(): Promise<{ sessionId: string; sessionCode: string } | null> {
+    try {
+      const hostId = getUserId();
+      const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const sessionCode = generateSessionCode();
+        const result = await supabase
+          .from("sessions")
+          .insert({
+            host_user_id: hostId,
+            status: "waiting",
+            expires_at: expiresAt,
+            vibe: "mix-it-up",
+            cooking_intent: "either",
+            session_code: sessionCode,
+          })
+          .select()
+          .single();
+        if (!result.error) {
+          if (typeof window !== "undefined") {
+            localStorage.setItem(
+              "wwe_active_session",
+              JSON.stringify({
+                sessionId: result.data.id,
+                sessionCode: result.data.session_code,
+                createdAt: new Date().toISOString(),
+                expiresAt,
+                status: "waiting",
+              }),
+            );
+          }
+          trackEvent("shared_session_created", { sessionId: result.data.id, sessionCode: result.data.session_code });
+          return { sessionId: result.data.id, sessionCode: result.data.session_code };
+        }
+        if (result.error.code !== "23505") break;
+      }
+    } catch (e) {
+      console.error("[session] createSessionForInvite error:", e);
+    }
+    return null;
+  }
+
   function recordPickIfNew() {
     if (!todaysPick) return;
     const today = new Date().toLocaleDateString();
@@ -918,10 +975,15 @@ export default function Home() {
             })()}
 
             <V3PeopleSelector
-              people={[]}
+              people={partners.map<PersonV3>((p) => ({
+                id: p.partnerId,
+                name: p.displayName ? p.displayName.split(" ")[0] : "Someone",
+                avatarUrl: p.avatarUrl ?? null,
+              }))}
               avatarUrl={resolvedAvatarUrl}
               displayName={profile?.display_name}
               onChange={(ids) => setSelectedPeopleIds(ids)}
+              onInvite={() => setShowInviteDrawer(true)}
             />
             <V3VibeCard
               isSolo={selectedPeopleIds.length === 0}
@@ -1207,6 +1269,21 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Invite drawer */}
+      <V3InviteDrawer
+        open={showInviteDrawer}
+        onClose={() => setShowInviteDrawer(false)}
+        activeSessionCode={activeSession?.sessionCode ?? null}
+        onCreateSession={createSessionForInvite}
+        onSessionCreated={(session) => {
+          setActiveSession({
+            sessionId: session.sessionId,
+            sessionCode: session.sessionCode,
+            status: "waiting",
+          });
+        }}
+      />
     </V3AppShell>
   );
 }

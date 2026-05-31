@@ -5,12 +5,16 @@ import { useState } from "react";
 
 export interface PersonV3 {
   id: string;
+  /** Display label — first name preferred, "Someone" as fallback */
   name: string;
+  /** Avatar image URL; null/undefined triggers initials or "?" fallback */
+  avatarUrl?: string | null;
 }
 
 interface V3PeopleSelectorProps {
   people?: PersonV3[];
   onChange?: (selectedIds: string[]) => void;
+  onInvite?: () => void;
   avatarUrl?: string | null;
   displayName?: string | null;
 }
@@ -28,9 +32,44 @@ const AvatarSilhouette = () => (
   </svg>
 );
 
+function PartnerAvatar({ person }: { person: PersonV3 }) {
+  if (person.avatarUrl) {
+    return (
+      <Image
+        src={person.avatarUrl}
+        alt={person.name}
+        fill
+        className="object-cover"
+        unoptimized
+      />
+    );
+  }
+  // Use initials if the name is a real name (not the "Someone" fallback)
+  if (person.name && person.name !== "Someone") {
+    return (
+      <span
+        className="text-[18px] font-black text-white"
+        style={{ fontFamily: "var(--font-nunito)" }}
+      >
+        {getInitials(person.name)}
+      </span>
+    );
+  }
+  // Anonymous / unknown partner
+  return (
+    <span
+      className="text-[22px] font-black text-[#8A7F78]"
+      style={{ fontFamily: "var(--font-nunito)" }}
+    >
+      ?
+    </span>
+  );
+}
+
 export default function V3PeopleSelector({
   people = [],
   onChange,
+  onInvite,
   avatarUrl,
   displayName,
 }: V3PeopleSelectorProps) {
@@ -89,7 +128,7 @@ export default function V3PeopleSelector({
         </span>
       </div>
 
-      {/* Other people */}
+      {/* Recent partners from partner_relationships */}
       {people.map((person) => {
         const isSelected = selected.includes(person.id);
         return (
@@ -103,7 +142,7 @@ export default function V3PeopleSelector({
                 isSelected ? "border-[#E8621A]" : "border-transparent"
               }`}
             >
-              <AvatarSilhouette />
+              <PartnerAvatar person={person} />
               {isSelected && (
                 <div className="absolute bottom-[1px] right-[1px] w-[17px] h-[17px] rounded-full bg-[#E8621A] border-2 border-[#1C1A18] flex items-center justify-center text-[9px] text-white font-bold">
                   ✓
@@ -111,7 +150,7 @@ export default function V3PeopleSelector({
               )}
             </div>
             <span
-              className="text-[11px] text-[#8A7F78] font-medium"
+              className="text-[11px] text-[#8A7F78] font-medium max-w-[58px] truncate text-center"
               style={{ fontFamily: "var(--font-manrope)" }}
             >
               {person.name}
@@ -121,7 +160,10 @@ export default function V3PeopleSelector({
       })}
 
       {/* Invite */}
-      <div className="flex flex-col items-center gap-[5px] shrink-0 cursor-pointer">
+      <div
+        className="flex flex-col items-center gap-[5px] shrink-0 cursor-pointer"
+        onClick={onInvite}
+      >
         <div className="w-[58px] h-[58px] rounded-full bg-transparent border-2 border-dashed border-[#3D3733] flex items-center justify-center text-[22px] text-[#8A7F78]">
           +
         </div>

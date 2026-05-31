@@ -3,14 +3,11 @@
 import { useState } from "react";
 
 const VIBES = [
-  { key: "comfort", emoji: "☕", label: "Comfort", scriptText: "comfort food" },
-  { key: "spicy", emoji: "🌶️", label: "Spicy", scriptText: "something spicy" },
-  { key: "fresh", emoji: "🥗", label: "Fresh", scriptText: "something fresh" },
-  { key: "quick", emoji: "⚡", label: "Quick", scriptText: "something quick" },
-  { key: "healthy", emoji: "🥦", label: "Healthy", scriptText: "something healthy" },
-  { key: "elevated", emoji: "✨", label: "Elevated", scriptText: "something elevated" },
-  { key: "bold", emoji: "🔥", label: "Bold", scriptText: "bold flavors" },
-  { key: "classic", emoji: "🍝", label: "Classic", scriptText: "a classic dish" },
+  { key: "comfort-me",   emoji: "🔥", label: "Comfort me",        scriptText: "the good stuff"           },
+  { key: "keep-it-easy", emoji: "⚡", label: "Keep it easy",      scriptText: "quick & simple"           },
+  { key: "surprise-us",  emoji: "✨", label: "Surprise us",       scriptText: "something unexpected"     },
+  { key: "healthy-reset",emoji: "🥗", label: "Healthy reset",     scriptText: "light & fresh"            },
+  { key: "celebrate",    emoji: "🎉", label: "Celebrate something",scriptText: "special occasion energy" },
 ] as const;
 
 type VibeKey = (typeof VIBES)[number]["key"];
@@ -23,56 +20,35 @@ const VIBE_THEMES: Record<VibeKey, {
   activePillBg: string;
   activePillBorder: string;
 }> = {
-  comfort: {
+  "comfort-me": {
     cardBg: "#2A2420",
     accentBar: "#E8621A",
     scriptColor: "#E8621A",
     activePillBg: "#E8621A",
     activePillBorder: "#E8621A",
   },
-  spicy: {
-    cardBg: "#2D1A14",
-    accentBar: "#C8400E",
-    scriptColor: "#E84C14",
-    activePillBg: "#C8400E",
-    activePillBorder: "#C8400E",
-  },
-  fresh: {
-    cardBg: "#1A2820",
-    accentBar: "#3D7A54",
-    scriptColor: "#5EAB78",
-    activePillBg: "#3D7A54",
-    activePillBorder: "#4A7C59",
-  },
-  quick: {
+  "keep-it-easy": {
     cardBg: "#1A1F2D",
     accentBar: "#3A6BC8",
     scriptColor: "#5A8AE8",
     activePillBg: "#3A6BC8",
     activePillBorder: "#4A7BD8",
   },
-  healthy: {
-    cardBg: "#1B2A1A",
-    accentBar: "#4A8C3A",
-    scriptColor: "#6AB85A",
-    activePillBg: "#4A8C3A",
-    activePillBorder: "#5A9C4A",
-  },
-  elevated: {
+  "surprise-us": {
     cardBg: "#221E2A",
     accentBar: "#8A6AC8",
     scriptColor: "#A888E8",
     activePillBg: "#8A6AC8",
     activePillBorder: "#9A7AD8",
   },
-  bold: {
-    cardBg: "#2A1A18",
-    accentBar: "#C83A14",
-    scriptColor: "#E84C28",
-    activePillBg: "#C83A14",
-    activePillBorder: "#D84A24",
+  "healthy-reset": {
+    cardBg: "#1A2820",
+    accentBar: "#3D7A54",
+    scriptColor: "#5EAB78",
+    activePillBg: "#3D7A54",
+    activePillBorder: "#4A7C59",
   },
-  classic: {
+  "celebrate": {
     cardBg: "#2A2218",
     accentBar: "#C89A3A",
     scriptColor: "#E8B85A",
@@ -87,7 +63,7 @@ interface V3VibeCardProps {
 }
 
 export default function V3VibeCard({ isSolo = false, onSeeTop5 }: V3VibeCardProps) {
-  const [activeVibe, setActiveVibe] = useState<VibeKey>("comfort");
+  const [activeVibe, setActiveVibe] = useState<VibeKey>("comfort-me");
   const currentVibe = VIBES.find((v) => v.key === activeVibe)!;
   const theme = VIBE_THEMES[activeVibe];
 
