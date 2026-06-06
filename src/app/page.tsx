@@ -185,6 +185,16 @@ export default function Home() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("comfort-food");
   const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [codeInput, setCodeInput] = useState("");
+  // Pending in-app invite from a selected partner
+  const [pendingInvite, setPendingInvite] = useState<{
+    id: string;
+    session_id: string;
+    session_code: string;
+    from_user_id: string;
+    vibe: string | null;
+    inviterName: string | null;
+    inviterAvatar: string | null;
+  } | null>(null);
   // Mirrors typeRevealData so event handlers added in [] effects don't get stale closures.
   const typeRevealDataRef = useRef<{ typeName: string; tagline: string } | null>(null);
 
@@ -493,6 +503,92 @@ export default function Home() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Poll for pending in-app invites addressed to this user.
+  // Checks once on mount then every 12 seconds while Home is visible.
+  useEffect(() => {
+    const myId = getUserId();
+    let mounted = true;
+
+    async function fetchPendingInvite() {
+      try {
+        const now = new Date().toISOString();
+        const { data, error } = await supabase
+          .from("session_invites")
+          .select("id, session_id, session_code, from_user_id, vibe, created_at")
+          .eq("to_user_id", myId)
+          .eq("status", "pending")
+          .or(`expires_at.is.null,expires_at.gt.${now}`)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.warn("[invites] Failed to poll pending invites:", error.message);
+          return;
+        }
+
+        if (!mounted) return;
+
+        if (!data || data.length === 0) {
+          setPendingInvite(null);
+          return;
+        }
+
+        const invite = data[0];
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("display_name, avatar_url")
+          .eq("user_id", invite.from_user_id)
+          .single();
+
+        if (!mounted) return;
+
+        setPendingInvite({
+          id: invite.id,
+          session_id: invite.session_id,
+          session_code: invite.session_code,
+          from_user_id: invite.from_user_id,
+          vibe: invite.vibe ?? null,
+          inviterName: profileData?.display_name ?? null,
+          inviterAvatar: profileData?.avatar_url ?? null,
+        });
+      } catch (e) {
+        console.warn("[invites] Unexpected error polling invites:", e);
+      }
+    }
+
+    void fetchPendingInvite();
+    const intervalId = setInterval(() => { void fetchPendingInvite(); }, 12000);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleJoinInvite() {
+    if (!pendingInvite) return;
+    const { error } = await supabase
+      .from("session_invites")
+      .update({ status: "accepted", accepted_at: new Date().toISOString() })
+      .eq("id", pendingInvite.id);
+    if (error) {
+      console.warn("[invites] Failed to mark invite accepted:", error.message);
+    }
+    router.push(`/join/${pendingInvite.session_code}`);
+  }
+
+  async function handleDismissInvite() {
+    if (!pendingInvite) return;
+    const { error } = await supabase
+      .from("session_invites")
+      .update({ status: "dismissed", dismissed_at: new Date().toISOString() })
+      .eq("id", pendingInvite.id);
+    if (error) {
+      console.warn("[invites] Failed to mark invite dismissed:", error.message);
+    }
+    setPendingInvite(null);
+  }
+
   // Keep the ref in sync so event handlers wired with [] deps always see the
   // latest typeRevealData without needing a stale closure.
   useEffect(() => { typeRevealDataRef.current = typeRevealData; }, [typeRevealData]);
@@ -674,6 +770,13 @@ export default function Home() {
       }
 
       trackEvent("shared_session_created", { sessionId: data.id, sessionCode: data.session_code });
+
+      // Fire-and-forget invite rows for any explicitly selected partners.
+      // Does not block session creation — failure is logged and swallowed.
+      if (selectedPeopleIds.length > 0) {
+        void createInviteRows(data.id, data.session_code, expiresAt, selectedPeopleIds, selectedVibe);
+      }
+
       router.push(`/session/${data.id}`);
     } catch (e) {
       console.error("[session] Unexpected error:", e);
@@ -724,6 +827,31 @@ export default function Home() {
       console.error("[session] createSessionForInvite error:", e);
     }
     return null;
+  }
+
+  // Inserts session_invites rows for each selected partner.
+  // Fire-and-forget — callers should not await this.
+  async function createInviteRows(
+    sessionId: string,
+    sessionCode: string,
+    expiresAt: string,
+    partnerIds: string[],
+    vibe: string,
+  ): Promise<void> {
+    const fromUserId = getUserId();
+    const rows = partnerIds.map((toUserId) => ({
+      session_id: sessionId,
+      session_code: sessionCode,
+      from_user_id: fromUserId,
+      to_user_id: toUserId,
+      status: "pending",
+      vibe,
+      expires_at: expiresAt,
+    }));
+    const { error } = await supabase.from("session_invites").insert(rows);
+    if (error) {
+      console.warn("[invites] Failed to create invite rows:", error.message);
+    }
   }
 
   function recordPickIfNew() {
@@ -932,6 +1060,54 @@ export default function Home() {
               )}
             </div>
             <span className={`text-lg flex-shrink-0 ${bannerVariant === 'partner-done' ? 'text-[#4A7C59]' : 'text-[#E8621A]'}`}>→</span>
+          </div>
+        </section>
+      )}
+
+      {/* ── Pending invite banner ───────────────────────────── */}
+      {pendingInvite && (
+        <section
+          className="mx-[14px] mb-2 rounded-[20px] p-4 border border-[#4A7C59]/50 bg-[#1E2A22] shrink-0"
+          style={{ boxShadow: "0 0 24px rgba(74,124,89,0.15)" }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#4A7C59]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {pendingInvite.inviterAvatar ? (
+                <Image
+                  src={pendingInvite.inviterAvatar}
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-base font-bold text-[#4A7C59]">
+                  {pendingInvite.inviterName ? pendingInvite.inviterName[0].toUpperCase() : "?"}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-black text-sm text-white">
+                {pendingInvite.inviterName ?? "Someone"} wants to decide dinner.
+              </p>
+              <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                Join their Watcha session.
+              </p>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => { void handleJoinInvite(); }}
+                  className="flex-1 rounded-full bg-[#4A7C59] py-2 font-display font-black text-xs text-white transition active:scale-[0.98]"
+                >
+                  Join
+                </button>
+                <button
+                  onClick={() => { void handleDismissInvite(); }}
+                  className="flex-1 rounded-full border border-[#3A3530] py-2 font-display font-black text-xs text-[#8A7F78] transition active:scale-[0.98]"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       )}
