@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Meal } from "../data/meals";
+import { useSwipeToClose } from "../lib/use-swipe-to-close";
 
 type Props = {
   meal: Meal;
@@ -12,6 +13,7 @@ type Props = {
 export default function SoloMatchClient({ meal, recipeQuery }: Props) {
   const router = useRouter();
   const [showEatOptions, setShowEatOptions] = useState(false);
+  const eatOptionsSwipe = useSwipeToClose(() => setShowEatOptions(false));
 
   return (
     <main className="relative min-h-screen bg-[#1C1A18] text-white overflow-hidden">
@@ -90,7 +92,7 @@ export default function SoloMatchClient({ meal, recipeQuery }: Props) {
       {showEatOptions && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowEatOptions(false)} />
-          <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+          <div {...eatOptionsSwipe} className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
             <h2 className="font-display font-black text-2xl text-white text-center">
               How are you eating?

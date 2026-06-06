@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSwipeToClose } from "../../lib/use-swipe-to-close";
 
 interface V3InviteDrawerProps {
   open: boolean;
@@ -20,6 +21,7 @@ export default function V3InviteDrawer({
   onCreateSession,
   onSessionCreated,
 }: V3InviteDrawerProps) {
+  const swipe = useSwipeToClose(handleClose);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export default function V3InviteDrawer({
       />
 
       {/* Sheet */}
-      <div className="relative w-full bg-[#1C1A18] rounded-t-[28px] px-6 pt-5 pb-10 border-t border-white/[0.08]">
+      <div {...swipe} className="relative w-full bg-[#1C1A18] rounded-t-[28px] px-6 pt-5 pb-10 border-t border-white/[0.08]">
         {/* Handle */}
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
 

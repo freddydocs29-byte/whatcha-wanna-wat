@@ -53,6 +53,7 @@ import V3BottomNav from "./components/v3/V3BottomNav";
 import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
 import V3InviteDrawer from "./components/v3/V3InviteDrawer";
 import { getAllPartners, type PartnerInfo } from "./lib/dna";
+import { useSwipeToClose } from "./lib/use-swipe-to-close";
 import type { PersonV3 } from "./components/v3/V3PeopleSelector";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
@@ -179,12 +180,16 @@ export default function Home() {
   // V3 Home shell state
   const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
   const [decidedSaved, setDecidedSaved] = useState(false);
+  const [savedJustNow, setSavedJustNow] = useState(false);
+  const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
   const [showInviteDrawer, setShowInviteDrawer] = useState(false);
   const [selectedRecentMeal, setSelectedRecentMeal] = useState<Meal | null>(null);
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("comfort-food");
   const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [codeInput, setCodeInput] = useState("");
+  const codeEntrySwipe = useSwipeToClose(() => setShowCodeEntry(false));
+  const eatModalSwipe = useSwipeToClose(() => setShowEatModal(false));
   // Pending in-app invite from a selected partner
   const [pendingInvite, setPendingInvite] = useState<{
     id: string;
@@ -913,6 +918,8 @@ export default function Home() {
     } else {
       saveMeal(decidedMeal);
       setDecidedSaved(true);
+      setSavedJustNow(true);
+      setTimeout(() => setSavedJustNow(false), 2000);
     }
   }
 
@@ -1141,8 +1148,11 @@ export default function Home() {
             cookTime={decidedMeal.tags.find((t) => /\d+\s*min/i.test(t)) ?? "—"}
             spice={decidedMeal.tags.some((t) => /spic/i.test(t)) ? "🌶️🌶️" : "Mild"}
             matchScore={decidedMeal.mode === "shared" ? "Matched!" : "Your pick"}
-            onClear={openClearModal}
+            onClear={() => setShowDismissConfirm(true)}
             onSave={toggleSaveDecidedMeal}
+            isSaved={decidedSaved}
+            savedJustNow={savedJustNow}
+            onDetails={() => setDrawerMeal(decidedMeal)}
             onCook={handleCookDirect}
             onOrder={handleOrderDirect}
           />
@@ -1329,7 +1339,7 @@ export default function Home() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowCodeEntry(false)}
           />
-          <div className="relative bg-[#2A2420] rounded-t-3xl p-6">
+          <div {...codeEntrySwipe} className="relative bg-[#2A2420] rounded-t-3xl p-6">
             <div className="w-9 h-1 bg-[#3D3733] rounded-full mx-auto mb-6" />
             <p className="font-display font-black text-2xl text-white mb-1">Enter a code</p>
             <p className="font-body text-sm text-[#8A7F78] mb-6">Your friend&apos;s session code — like RICE-64</p>
@@ -1366,25 +1376,25 @@ export default function Home() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closeClearModal}
           />
-          <div className="relative w-full max-w-md rounded-[28px] border border-white/10 bg-[#111] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+          <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.06] bg-[#2A2420] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
 
             {/* Step 1 — always visible */}
-            <p className="text-lg font-semibold tracking-[-0.03em]">
+            <p className="font-display font-black text-xl text-white tracking-tight">
               Clear today&apos;s decision?
             </p>
-            <p className="mt-2 text-sm leading-6 text-white/50">
+            <p className="font-body text-sm text-[#8A7F78] mt-2 leading-relaxed">
               You can always pick something new — this just resets today.
             </p>
             <div className="mt-5 flex gap-3">
               <button
                 onClick={closeClearModal}
-                className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-3 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-3 font-display font-black text-sm text-[#8A7F78] transition active:scale-[0.98]"
               >
                 Keep it
               </button>
               <button
                 onClick={() => setClearStep("completed")}
-                className="flex-1 rounded-full border border-white/15 bg-white/10 py-3 text-sm font-medium text-white transition hover:bg-white/15 active:scale-[0.98]"
+                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.25)] transition active:scale-[0.98] hover:bg-[#F27B35]"
               >
                 Clear
               </button>
@@ -1399,20 +1409,20 @@ export default function Home() {
               }`}
             >
               <div className="overflow-hidden">
-                <div className="mt-5 border-t border-white/10 pt-5">
-                  <p className="text-base font-semibold tracking-[-0.02em]">
+                <div className="mt-5 border-t border-[#3D3733] pt-5">
+                  <p className="font-display font-black text-base text-white tracking-tight">
                     Did you cook or order this?
                   </p>
                   <div className="mt-4 flex gap-3">
                     <button
                       onClick={() => setClearStep("save")}
-                      className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-3 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                      className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-3 font-display font-black text-sm text-[#8A7F78] transition active:scale-[0.98]"
                     >
                       Yes
                     </button>
                     <button
                       onClick={handleClearDecision}
-                      className="flex-1 rounded-full border border-white/15 bg-white/10 py-3 text-sm font-medium text-white transition hover:bg-white/15 active:scale-[0.98]"
+                      className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.25)] transition active:scale-[0.98] hover:bg-[#F27B35]"
                     >
                       No
                     </button>
@@ -1430,8 +1440,8 @@ export default function Home() {
               }`}
             >
               <div className="overflow-hidden">
-                <div className="mt-5 border-t border-white/10 pt-5">
-                  <p className="text-base font-semibold tracking-[-0.02em]">
+                <div className="mt-5 border-t border-[#3D3733] pt-5">
+                  <p className="font-display font-black text-base text-white tracking-tight">
                     Save it for later?
                   </p>
                   <div className="mt-4 flex gap-3">
@@ -1440,7 +1450,7 @@ export default function Home() {
                         if (todaysPick) addFavorite(todaysPick.meal);
                         handleClearDecision();
                       }}
-                      className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-2.5 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                      className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-2.5 font-display font-black text-xs text-[#8A7F78] transition active:scale-[0.98]"
                     >
                       ⭐ Favorite
                     </button>
@@ -1449,13 +1459,13 @@ export default function Home() {
                         if (todaysPick) saveMeal(todaysPick.meal);
                         handleClearDecision();
                       }}
-                      className="flex-1 rounded-full border border-white/10 bg-white/[0.05] py-2.5 text-sm font-medium text-white/70 transition active:scale-[0.98]"
+                      className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-2.5 font-display font-black text-xs text-[#8A7F78] transition active:scale-[0.98]"
                     >
                       🔖 Save
                     </button>
                     <button
                       onClick={handleClearDecision}
-                      className="flex-1 rounded-full border border-white/15 bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15 active:scale-[0.98]"
+                      className="flex-1 rounded-full bg-[#E8621A] py-2.5 font-display font-black text-xs text-white shadow-[0_0_20px_rgba(232,98,26,0.25)] transition active:scale-[0.98] hover:bg-[#F27B35]"
                     >
                       Skip
                     </button>
@@ -1475,7 +1485,7 @@ export default function Home() {
             className="absolute inset-0 bg-black/60"
             onClick={() => setShowEatModal(false)}
           />
-          <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+          <div {...eatModalSwipe} className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
             <p className="font-display font-black text-2xl text-white text-center">
               How are you eating?
@@ -1585,6 +1595,14 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Locked meal detail drawer — opened from the info icon on the post-match card */}
+      <MealDetailDrawer
+        meal={drawerMeal}
+        isOpen={drawerMeal !== null}
+        onClose={() => setDrawerMeal(null)}
+        context="solo"
+      />
 
       {/* Recent Wins meal detail drawer */}
       <MealDetailDrawer

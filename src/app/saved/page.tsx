@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Meal } from "../data/meals";
-import { getSavedMealsEnriched, removeSavedMeal, toggleSavedFavorite, addToHistory, updateTasteProfile } from "../lib/storage";
+import { getSavedMealsEnriched, removeSavedMeal, toggleSavedFavorite, addToHistory, updateTasteProfile, saveDecidedMeal } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
 import { fetchOrCreateProfile } from "../lib/supabase-profile";
 import { getUserId } from "../lib/identity";
@@ -57,7 +57,8 @@ export default function SavedPage() {
   function handleChoose(meal: Meal) {
     updateTasteProfile(meal, "choose");
     addToHistory(meal);
-    router.push(`/locked?mealId=${meal.id}`);
+    saveDecidedMeal({ ...meal, decidedAt: new Date().toISOString(), mode: "solo" });
+    router.push("/");
   }
 
   const isEmpty = loaded && favoriteMeals.length === 0 && savedForLater.length === 0;

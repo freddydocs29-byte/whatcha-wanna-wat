@@ -12,6 +12,8 @@ interface V3LockedMealCardProps {
   onDetails?: () => void;
   onCook?: () => void;
   onOrder?: () => void;
+  isSaved?: boolean;
+  savedJustNow?: boolean;
 }
 
 // Bookmark icon — small, clean
@@ -19,6 +21,15 @@ function BookmarkIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M17 3H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2z" />
+    </svg>
+  );
+}
+
+// Check icon — shown briefly after saving
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }
@@ -47,6 +58,8 @@ export default function V3LockedMealCard({
   onDetails,
   onCook,
   onOrder,
+  isSaved = false,
+  savedJustNow = false,
 }: V3LockedMealCardProps) {
   const [dragX, setDragX] = useState(0);
   const isDragging = useRef(false);
@@ -118,13 +131,27 @@ export default function V3LockedMealCard({
 
         {/* Small utility icon buttons: bookmark · info · clear */}
         <div className="flex gap-[6px] items-center mt-[2px] shrink-0">
+          {/* "Saved!" label — appears briefly after saving */}
+          {savedJustNow && (
+            <span
+              className="text-[10px] font-bold text-[#6BAF7A]"
+              style={{ fontFamily: "var(--font-manrope)" }}
+            >
+              Saved!
+            </span>
+          )}
+
           {/* Save / Bookmark */}
           <button
             onClick={onSave}
-            title="Save meal"
-            className="w-[30px] h-[30px] rounded-full bg-[#3D3733] border border-white/10 flex items-center justify-center text-[#8A7F78] cursor-pointer transition-all hover:bg-[#4A7C59]/30 hover:text-[#6BAF7A] hover:border-[#4A7C59]/40"
+            title={isSaved ? "Saved" : "Save meal"}
+            className={`w-[30px] h-[30px] rounded-full border flex items-center justify-center cursor-pointer transition-all ${
+              isSaved
+                ? "bg-[#4A7C59]/30 border-[#4A7C59]/60 text-[#6BAF7A]"
+                : "bg-[#3D3733] border-white/10 text-[#8A7F78] hover:bg-[#4A7C59]/30 hover:text-[#6BAF7A] hover:border-[#4A7C59]/40"
+            }`}
           >
-            <BookmarkIcon />
+            {savedJustNow ? <CheckIcon /> : <BookmarkIcon />}
           </button>
 
           {/* Details / Info */}

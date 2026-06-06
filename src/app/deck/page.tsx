@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, Suspense } from "react";
+import { useSwipeToClose } from "../lib/use-swipe-to-close";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
@@ -327,6 +328,8 @@ function DeckContent() {
   const [partnerPicksLoading, setPartnerPicksLoading] = useState(false);
   // Confirm-lock dialog for partner picks
   const [confirmMeal, setConfirmMeal] = useState<Meal | null>(null);
+  const confirmMealSwipe = useSwipeToClose(() => setConfirmMeal(null));
+  const cookOrderSwipe = useSwipeToClose(() => setShowCookOrderModal(false));
   // Shared reset progression — synced from sessionStorage on mount
   const [sharedResetCount, setSharedResetCount] = useState(0);
   // Session code shown in "Start a fresh session" info message
@@ -2366,7 +2369,7 @@ function DeckContent() {
                           className="absolute inset-0 bg-black/60"
                           onClick={() => setConfirmMeal(null)}
                         />
-                        <div className="relative w-full max-w-md bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+                        <div {...confirmMealSwipe} className="relative w-full max-w-md bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
                           <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
                           <p className="font-display font-black text-xl text-white text-center">
                             Lock in {confirmMeal.name} as tonight&apos;s pick?
@@ -2752,7 +2755,7 @@ function DeckContent() {
                 className="absolute inset-0 bg-black/60"
                 onClick={() => setShowCookOrderModal(false)}
               />
-              <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+              <div {...cookOrderSwipe} className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
                 <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
                 <p className="font-display font-black text-2xl text-white text-center">
                   How are you eating?

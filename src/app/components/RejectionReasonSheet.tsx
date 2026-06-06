@@ -38,6 +38,12 @@ export function RejectionReasonSheet({ visible, onSelect, onDismiss }: Props) {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={{ top: 0, bottom: 0.2 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 80 || info.velocity.y > 500) onDismiss();
+            }}
             className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#111111] px-5 pb-10 pt-4"
           >
             {/* Drag handle */}
