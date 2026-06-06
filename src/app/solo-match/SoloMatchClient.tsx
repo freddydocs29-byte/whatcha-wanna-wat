@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Meal } from "../data/meals";
-import { useSwipeToClose } from "../lib/use-swipe-to-close";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Props = {
   meal: Meal;
@@ -13,7 +13,6 @@ type Props = {
 export default function SoloMatchClient({ meal, recipeQuery }: Props) {
   const router = useRouter();
   const [showEatOptions, setShowEatOptions] = useState(false);
-  const eatOptionsSwipe = useSwipeToClose(() => setShowEatOptions(false));
 
   return (
     <main className="relative min-h-screen bg-[#1C1A18] text-white overflow-hidden">
@@ -89,39 +88,63 @@ export default function SoloMatchClient({ meal, recipeQuery }: Props) {
 
       </div>
 
-      {showEatOptions && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowEatOptions(false)} />
-          <div {...eatOptionsSwipe} className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-            <h2 className="font-display font-black text-2xl text-white text-center">
-              How are you eating?
-            </h2>
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <a
-                href={`https://www.google.com/search?q=order+${encodeURIComponent(meal.name)}+delivery`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
-              >
-                <span className="text-4xl">🚗</span>
-                <span className="font-display font-black text-lg text-white">Order in</span>
-                <span className="font-body text-xs text-[#8A7F78] text-center">Find delivery options</span>
-              </a>
-              <a
-                href={`https://www.google.com/search?q=how+to+cook+${encodeURIComponent(meal.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
-              >
-                <span className="text-4xl">🍳</span>
-                <span className="font-display font-black text-lg text-white">Cook it</span>
-                <span className="font-body text-xs text-[#8A7F78] text-center">See what you need</span>
-              </a>
-            </div>
+      <AnimatePresence>
+        {showEatOptions && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <motion.div
+              key="solo-eat-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setShowEatOptions(false)}
+            />
+            <motion.div
+              key="solo-eat-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              drag="y"
+              dragDirectionLock
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.25 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 80 || info.velocity.y > 500) setShowEatOptions(false);
+              }}
+              className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+            >
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+              <h2 className="font-display font-black text-2xl text-white text-center">
+                How are you eating?
+              </h2>
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <a
+                  href={`https://www.google.com/search?q=order+${encodeURIComponent(meal.name)}+delivery`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+                >
+                  <span className="text-4xl">🚗</span>
+                  <span className="font-display font-black text-lg text-white">Order in</span>
+                  <span className="font-body text-xs text-[#8A7F78] text-center">Find delivery options</span>
+                </a>
+                <a
+                  href={`https://www.google.com/search?q=how+to+cook+${encodeURIComponent(meal.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+                >
+                  <span className="text-4xl">🍳</span>
+                  <span className="font-display font-black text-lg text-white">Cook it</span>
+                  <span className="font-body text-xs text-[#8A7F78] text-center">See what you need</span>
+                </a>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </main>
   );
 }

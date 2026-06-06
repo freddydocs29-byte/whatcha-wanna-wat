@@ -53,7 +53,7 @@ import V3BottomNav from "./components/v3/V3BottomNav";
 import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
 import V3InviteDrawer from "./components/v3/V3InviteDrawer";
 import { getAllPartners, type PartnerInfo } from "./lib/dna";
-import { useSwipeToClose } from "./lib/use-swipe-to-close";
+import { motion, AnimatePresence } from "framer-motion";
 import type { PersonV3 } from "./components/v3/V3PeopleSelector";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
@@ -188,8 +188,6 @@ export default function Home() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("comfort-food");
   const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [codeInput, setCodeInput] = useState("");
-  const codeEntrySwipe = useSwipeToClose(() => setShowCodeEntry(false));
-  const eatModalSwipe = useSwipeToClose(() => setShowEatModal(false));
   // Pending in-app invite from a selected partner
   const [pendingInvite, setPendingInvite] = useState<{
     id: string;
@@ -1333,40 +1331,61 @@ export default function Home() {
       <V3BottomNav active="home" />
 
       {/* ── Code entry bottom sheet ────────────────────────── */}
-      {showCodeEntry && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowCodeEntry(false)}
-          />
-          <div {...codeEntrySwipe} className="relative bg-[#2A2420] rounded-t-3xl p-6">
-            <div className="w-9 h-1 bg-[#3D3733] rounded-full mx-auto mb-6" />
-            <p className="font-display font-black text-2xl text-white mb-1">Enter a code</p>
-            <p className="font-body text-sm text-[#8A7F78] mb-6">Your friend&apos;s session code — like RICE-64</p>
-            <input
-              type="text"
-              placeholder="e.g. RICE-64"
-              maxLength={10}
-              autoFocus
-              className="w-full bg-[#1C1A18] border border-[#3D3733] rounded-2xl px-4 py-4 font-display font-black text-2xl text-white text-center uppercase tracking-widest placeholder:text-[#3D3733] focus:outline-none focus:border-[#E8621A] mb-4"
-              onChange={(e) => setCodeInput(e.target.value.toUpperCase().trim())}
-            />
-            <button
-              onClick={() => router.push(`/join/${codeInput}`)}
-              disabled={codeInput.length < 3}
-              className="w-full bg-[#E8621A] disabled:opacity-40 text-white font-display font-black text-lg py-4 rounded-2xl mb-3"
-            >
-              Join session →
-            </button>
-            <button
+      <AnimatePresence>
+        {showCodeEntry && (
+          <div className="fixed inset-0 z-50 flex flex-col justify-end">
+            <motion.div
+              key="code-entry-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setShowCodeEntry(false)}
-              className="w-full text-[#8A7F78] font-body text-sm py-2"
+            />
+            <motion.div
+              key="code-entry-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              drag="y"
+              dragDirectionLock
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.25 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 80 || info.velocity.y > 500) setShowCodeEntry(false);
+              }}
+              className="relative bg-[#2A2420] rounded-t-3xl p-6"
             >
-              Cancel
-            </button>
+              <div className="w-9 h-1 bg-[#3D3733] rounded-full mx-auto mb-6" />
+              <p className="font-display font-black text-2xl text-white mb-1">Enter a code</p>
+              <p className="font-body text-sm text-[#8A7F78] mb-6">Your friend&apos;s session code — like RICE-64</p>
+              <input
+                type="text"
+                placeholder="e.g. RICE-64"
+                maxLength={10}
+                autoFocus
+                className="w-full bg-[#1C1A18] border border-[#3D3733] rounded-2xl px-4 py-4 font-display font-black text-2xl text-white text-center uppercase tracking-widest placeholder:text-[#3D3733] focus:outline-none focus:border-[#E8621A] mb-4"
+                onChange={(e) => setCodeInput(e.target.value.toUpperCase().trim())}
+              />
+              <button
+                onClick={() => router.push(`/join/${codeInput}`)}
+                disabled={codeInput.length < 3}
+                className="w-full bg-[#E8621A] disabled:opacity-40 text-white font-display font-black text-lg py-4 rounded-2xl mb-3"
+              >
+                Join session →
+              </button>
+              <button
+                onClick={() => setShowCodeEntry(false)}
+                className="w-full text-[#8A7F78] font-body text-sm py-2"
+              >
+                Cancel
+              </button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* ── Preserved modals (fixed/z-50, untouched) ──────── */}
 
@@ -1479,44 +1498,65 @@ export default function Home() {
       )}
 
       {/* Let's eat modal */}
-      {showEatModal && todaysPick && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setShowEatModal(false)}
-          />
-          <div {...eatModalSwipe} className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-            <p className="font-display font-black text-2xl text-white text-center">
-              How are you eating?
-            </p>
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <a
-                href={`https://www.google.com/search?q=how+to+cook+${encodeURIComponent(todaysPick.meal.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
-              >
-                <span className="text-4xl">🍳</span>
-                <p className="font-display font-black text-lg text-white">Cook it</p>
-                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
-              </a>
-              <a
-                href={`https://www.google.com/search?q=order+${encodeURIComponent(todaysPick.meal.name)}+delivery`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
-              >
-                <span className="text-4xl">🚗</span>
-                <p className="font-display font-black text-lg text-white">Order in</p>
-                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
-              </a>
-            </div>
+      <AnimatePresence>
+        {showEatModal && todaysPick && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <motion.div
+              key="eat-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setShowEatModal(false)}
+            />
+            <motion.div
+              key="eat-modal-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              drag="y"
+              dragDirectionLock
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.25 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 80 || info.velocity.y > 500) setShowEatModal(false);
+              }}
+              className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+            >
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+              <p className="font-display font-black text-2xl text-white text-center">
+                How are you eating?
+              </p>
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <a
+                  href={`https://www.google.com/search?q=how+to+cook+${encodeURIComponent(todaysPick.meal.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
+                  className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+                >
+                  <span className="text-4xl">🍳</span>
+                  <p className="font-display font-black text-lg text-white">Cook it</p>
+                  <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
+                </a>
+                <a
+                  href={`https://www.google.com/search?q=order+${encodeURIComponent(todaysPick.meal.name)}+delivery`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
+                  className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+                >
+                  <span className="text-4xl">🚗</span>
+                  <p className="font-display font-black text-lg text-white">Order in</p>
+                  <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
+                </a>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Dismiss tonight's pick confirmation */}
       {showDismissConfirm && (

@@ -54,46 +54,54 @@ export function ProgressiveQuestion({ nudge, onAnswer }: Props) {
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ type: "spring", damping: 28, stiffness: 260 }}
             drag="y"
-            dragConstraints={{ top: 0 }}
-            dragElastic={{ top: 0, bottom: 0.2 }}
+            dragDirectionLock
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.25 }}
             onDragEnd={(_, info) => {
               if (info.offset.y > 80 || info.velocity.y > 500) onAnswer(false);
             }}
-            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#111111] px-5 pb-10 pt-4"
+            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#1C1A18] px-5 pb-10 pt-4"
+            style={{ boxShadow: "0 -8px 40px rgba(0,0,0,0.5)" }}
           >
             {/* Drag handle */}
-            <div className="mx-auto mb-5 h-1 w-8 rounded-full bg-white/15" />
+            <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
 
-            {/* Icon */}
-            <div className="mb-3 text-xl leading-none">
-              {nudge.type === "avoid" ? "🤔" : "✨"}
+            {/* Icon + eyebrow */}
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-xl leading-none">
+                {nudge.type === "avoid" ? "🤔" : "✨"}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#E8621A]">
+                Quick question
+              </span>
             </div>
 
             {/* Question */}
-            <p className="text-[15px] font-medium leading-snug tracking-[-0.02em] text-white/85">
+            <p className="text-[17px] font-black leading-snug tracking-[-0.02em] text-white" style={{ fontFamily: "var(--font-nunito)" }}>
               {nudge.question}
             </p>
 
             {/* Sub-copy */}
-            <p className="mt-1.5 text-xs leading-5 text-white/35">
+            <p className="mt-2 text-sm leading-5 text-[#8A7F78]">
               {nudge.type === "avoid"
                 ? "We'll dial it back — not cut it out completely."
                 : "We'll prioritize it in your next deck."}
             </p>
 
             {/* Actions */}
-            <div className="mt-5 flex flex-col items-center gap-3">
+            <div className="mt-6 flex flex-col items-center gap-3">
               <button
                 onClick={() => onAnswer(true)}
-                className="w-full rounded-full bg-white py-3.5 text-sm font-semibold text-black transition hover:opacity-95 active:scale-[0.97]"
+                className="w-full rounded-full bg-[#E8621A] py-3.5 text-sm font-black text-white transition active:scale-[0.97]"
+                style={{ fontFamily: "var(--font-nunito)", boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
               >
                 Yeah, dial it back
               </button>
               <button
                 onClick={() => onAnswer(false)}
-                className="text-sm text-white/40 transition hover:text-white/60 active:scale-[0.97] py-1"
+                className="text-sm text-[#8A7F78] transition hover:text-white/60 active:scale-[0.97] py-1"
               >
                 Just not tonight
               </button>

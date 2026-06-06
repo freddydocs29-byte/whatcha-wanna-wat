@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useEffect, Suspense } from "react";
-import { useSwipeToClose } from "../lib/use-swipe-to-close";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
@@ -328,8 +327,6 @@ function DeckContent() {
   const [partnerPicksLoading, setPartnerPicksLoading] = useState(false);
   // Confirm-lock dialog for partner picks
   const [confirmMeal, setConfirmMeal] = useState<Meal | null>(null);
-  const confirmMealSwipe = useSwipeToClose(() => setConfirmMeal(null));
-  const cookOrderSwipe = useSwipeToClose(() => setShowCookOrderModal(false));
   // Shared reset progression — synced from sessionStorage on mount
   const [sharedResetCount, setSharedResetCount] = useState(0);
   // Session code shown in "Start a fresh session" info message
@@ -2363,13 +2360,33 @@ function DeckContent() {
                       Pick one as tonight&apos;s compromise.
                     </p>
                     {/* Confirm-lock dialog */}
+                    <AnimatePresence>
                     {confirmMeal && (
                       <div className="fixed inset-0 z-50 flex items-end justify-center">
-                        <div
+                        <motion.div
+                          key="confirm-lock-backdrop"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
                           className="absolute inset-0 bg-black/60"
                           onClick={() => setConfirmMeal(null)}
                         />
-                        <div {...confirmMealSwipe} className="relative w-full max-w-md bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+                        <motion.div
+                          key="confirm-lock-sheet"
+                          initial={{ y: "100%" }}
+                          animate={{ y: 0 }}
+                          exit={{ y: "100%" }}
+                          transition={{ type: "spring", damping: 28, stiffness: 260 }}
+                          drag="y"
+                          dragDirectionLock
+                          dragConstraints={{ top: 0, bottom: 0 }}
+                          dragElastic={{ top: 0, bottom: 0.25 }}
+                          onDragEnd={(_, info) => {
+                            if (info.offset.y > 80 || info.velocity.y > 500) setConfirmMeal(null);
+                          }}
+                          className="relative w-full max-w-md bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+                        >
                           <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
                           <p className="font-display font-black text-xl text-white text-center">
                             Lock in {confirmMeal.name} as tonight&apos;s pick?
@@ -2423,9 +2440,10 @@ function DeckContent() {
                               Keep looking
                             </button>
                           </div>
-                        </div>
+                        </motion.div>
                       </div>
                     )}
+                    </AnimatePresence>
                     {(() => {
                       const uniquePartnerPicks = partnerPicks.filter(
                         (meal, idx, self) => idx === self.findIndex((m) => m.id === meal.id)
@@ -2749,13 +2767,33 @@ function DeckContent() {
           </AnimatePresence>
 
           {/* Cook vs Order modal — shared match */}
+          <AnimatePresence>
           {showCookOrderModal && (
             <div className="fixed inset-0 z-[60] flex items-end justify-center">
-              <div
+              <motion.div
+                key="cook-order-backdrop-1"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 className="absolute inset-0 bg-black/60"
                 onClick={() => setShowCookOrderModal(false)}
               />
-              <div {...cookOrderSwipe} className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+              <motion.div
+                key="cook-order-sheet-1"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 28, stiffness: 260 }}
+                drag="y"
+                dragDirectionLock
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.25 }}
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 80 || info.velocity.y > 500) setShowCookOrderModal(false);
+                }}
+                className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+              >
                 <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
                 <p className="font-display font-black text-2xl text-white text-center">
                   How are you eating?
@@ -2783,9 +2821,10 @@ function DeckContent() {
                 {matchConfirmError && (
                   <p className="text-center text-sm text-red-400 mt-4">{matchConfirmError}</p>
                 )}
-              </div>
+              </motion.div>
             </div>
           )}
+          </AnimatePresence>
         </main>
       );
     }
@@ -3840,14 +3879,34 @@ function DeckContent() {
         )}
       </AnimatePresence>
 
-      {/* Cook vs Order modal — shared match */}
+      {/* Cook vs Order modal — solo match */}
+      <AnimatePresence>
       {showCookOrderModal && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center">
-          <div
+          <motion.div
+            key="cook-order-backdrop-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="absolute inset-0 bg-black/60"
             onClick={() => setShowCookOrderModal(false)}
           />
-          <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
+          <motion.div
+            key="cook-order-sheet-2"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 260 }}
+            drag="y"
+            dragDirectionLock
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.25 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 80 || info.velocity.y > 500) setShowCookOrderModal(false);
+            }}
+            className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+          >
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
             <p className="font-display font-black text-2xl text-white text-center">
               How are you eating?
@@ -3875,9 +3934,10 @@ function DeckContent() {
             {matchConfirmError && (
               <p className="text-center text-sm text-red-400 mt-4">{matchConfirmError}</p>
             )}
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </main>
   );
 }

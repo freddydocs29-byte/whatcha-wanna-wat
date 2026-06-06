@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSwipeToClose } from "../../lib/use-swipe-to-close";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface V3InviteDrawerProps {
   open: boolean;
@@ -21,7 +21,6 @@ export default function V3InviteDrawer({
   onCreateSession,
   onSessionCreated,
 }: V3InviteDrawerProps) {
-  const swipe = useSwipeToClose(handleClose);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
@@ -81,18 +80,37 @@ export default function V3InviteDrawer({
     onClose();
   }
 
-  if (!open) return null;
-
   return (
+    <AnimatePresence>
+      {open && (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Backdrop */}
-      <div
+      <motion.div
+        key="invite-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       {/* Sheet */}
-      <div {...swipe} className="relative w-full bg-[#1C1A18] rounded-t-[28px] px-6 pt-5 pb-10 border-t border-white/[0.08]">
+      <motion.div
+        key="invite-sheet"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 260 }}
+        drag="y"
+        dragDirectionLock
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.25 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 80 || info.velocity.y > 500) handleClose();
+        }}
+        className="relative w-full bg-[#1C1A18] rounded-t-[28px] px-6 pt-5 pb-10 border-t border-white/[0.08]"
+      >
         {/* Handle */}
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
 
@@ -178,7 +196,9 @@ export default function V3InviteDrawer({
             </div>
           </>
         )}
-      </div>
+      </motion.div>
     </div>
+      )}
+    </AnimatePresence>
   );
 }
