@@ -8,6 +8,92 @@ import { linkAuthToProfile } from "../lib/supabase-profile";
 
 type Mode = "signin" | "signup";
 
+const GRAIN_SVG =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
+/** Shared ambient + grain + vignette layers used on every auth screen */
+function AmbientLayers() {
+  return (
+    <>
+      {/* Ember ambient glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 30% at 60% 0%, rgba(232,98,26,0.12) 0%, transparent 55%), radial-gradient(ellipse 40% 25% at 0% 80%, rgba(232,98,26,0.04) 0%, transparent 50%)",
+        }}
+      />
+      {/* Grain */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ backgroundImage: GRAIN_SVG, opacity: 0.05, mixBlendMode: "overlay" }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ boxShadow: "inset 0 0 100px 20px rgba(0,0,0,0.5)" }}
+      />
+    </>
+  );
+}
+
+const inputClass =
+  "w-full rounded-[14px] px-4 py-3.5 font-body text-base text-white placeholder:text-[#897E73]/60 focus:outline-none transition-colors";
+const inputStyle = {
+  background: "rgba(255,231,202,0.045)",
+  border: "1px solid rgba(245,237,224,0.085)",
+};
+const inputFocusStyle = {
+  background: "rgba(255,231,202,0.07)",
+  border: "1px solid rgba(232,98,26,0.26)",
+};
+
+function AuthInput({
+  type,
+  value,
+  onChange,
+  placeholder,
+  required,
+  minLength,
+  autoComplete,
+}: {
+  type: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  required?: boolean;
+  minLength?: number;
+  autoComplete?: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      required={required}
+      minLength={minLength}
+      autoComplete={autoComplete}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      className={inputClass}
+      style={focused ? inputFocusStyle : inputStyle}
+    />
+  );
+}
+
+const primaryBtnStyle = {
+  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+  boxShadow:
+    "0 1px 0 rgba(255,224,188,0.6) inset, 0 -2px 0 rgba(120,52,0,0.4) inset, 0 14px 30px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.3)",
+  color: "#1c0c03",
+  fontFamily: "var(--font-quicksand)",
+  fontWeight: 700,
+  fontSize: 16,
+  letterSpacing: "-0.01em",
+};
+
 export default function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -100,123 +186,199 @@ export default function AuthPage() {
   // ── Post-signup confirmation screen ───────────────────────────────────────────
   if (done) {
     return (
-      <main className="min-h-screen bg-[#1C1A18] flex flex-col items-center justify-center px-6">
-        <div className="w-16 h-16 bg-[#E8621A] rounded-[22%] flex items-center justify-center mb-6"
-             style={{ boxShadow: "0 0 40px rgba(232,98,26,0.35)" }}>
-          <span className="text-3xl text-white">✓</span>
+      <main
+        className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden"
+        style={{ background: "#0B0805" }}
+      >
+        <AmbientLayers />
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Glass icon box */}
+          <div
+            className="w-16 h-16 rounded-[22%] flex items-center justify-center mb-6"
+            style={{
+              background: "rgba(232,98,26,0.10)",
+              border: "1px solid rgba(232,98,26,0.26)",
+              boxShadow: "0 0 40px rgba(232,98,26,0.22)",
+            }}
+          >
+            <span className="text-3xl" style={{ color: "#E8621A" }}>✓</span>
+          </div>
+          <h1
+            className="text-center leading-tight"
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 26,
+              color: "#F6EEE2",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Check your email
+          </h1>
+          <p
+            className="text-center mt-3 leading-relaxed max-w-xs"
+            style={{ fontFamily: "var(--font-sans, system-ui)", fontWeight: 300, fontSize: 14, color: "#897E73" }}
+          >
+            We sent a confirmation link to{" "}
+            <span style={{ color: "#F6EEE2" }}>{email}</span>.
+            Click it to activate your account, then come back and sign in.
+          </p>
+          <button
+            onClick={() => { setDone(false); switchMode("signin"); }}
+            className="mt-10 w-full max-w-xs rounded-full py-4 transition-opacity active:opacity-90"
+            style={primaryBtnStyle}
+          >
+            Sign in
+          </button>
+          <button
+            onClick={() => router.replace("/")}
+            className="mt-4"
+            style={{ fontFamily: "var(--font-sans, system-ui)", fontSize: 13, color: "#897E73" }}
+          >
+            Back to app
+          </button>
         </div>
-        <h1 className="font-display font-black text-2xl text-white text-center leading-tight">
-          Check your email
-        </h1>
-        <p className="font-body text-sm text-[#8A7F78] text-center mt-3 leading-relaxed max-w-xs">
-          We sent a confirmation link to <span className="text-white">{email}</span>.
-          Click it to activate your account, then come back and sign in.
-        </p>
-        <button
-          onClick={() => { setDone(false); switchMode("signin"); }}
-          className="mt-10 w-full max-w-xs bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full"
-          style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
-        >
-          Sign in
-        </button>
-        <button
-          onClick={() => router.replace("/")}
-          className="mt-4 font-body text-sm text-[#8A7F78]"
-        >
-          Back to app
-        </button>
       </main>
     );
   }
 
   // ── Sign up / Sign in form ────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#1C1A18] flex flex-col relative overflow-hidden">
-      {/* Background glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at 60% 0%, rgba(232,98,26,0.12) 0%, transparent 55%)" }}
-      />
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-      </div>
+    <main
+      className="min-h-screen flex flex-col relative overflow-hidden"
+      style={{ background: "#0B0805" }}
+    >
+      <AmbientLayers />
 
       <div className="relative z-10 flex flex-col flex-1 px-6 pt-14 pb-10 max-w-md mx-auto w-full">
 
         {/* Back */}
         <button
           onClick={() => router.back()}
-          className="font-body text-sm text-[#8A7F78] self-start mb-10"
+          className="self-start mb-10 transition-opacity active:opacity-70"
+          style={{ fontFamily: "var(--font-sans, system-ui)", fontSize: 13, color: "#897E73" }}
         >
           ← Back
         </button>
 
         {/* Heading */}
-        <h1 className="font-display font-black text-3xl text-white leading-tight">
+        <h1
+          className="leading-tight"
+          style={{
+            fontFamily: "var(--font-quicksand)",
+            fontWeight: 700,
+            fontSize: 32,
+            color: "#F6EEE2",
+            letterSpacing: "-0.01em",
+          }}
+        >
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
-        <p className="font-body text-sm text-[#8A7F78] mt-2">
+        <p
+          className="mt-2"
+          style={{ fontFamily: "var(--font-sans, system-ui)", fontWeight: 300, fontSize: 13, color: "#897E73" }}
+        >
           {mode === "signup"
             ? "Your existing preferences stay — we're just adding a login."
             : "Sign in to sync your profile across devices."}
         </p>
 
         {/* Mode toggle */}
-        <div className="flex gap-1 mt-8 bg-[#2A2420] rounded-full p-1">
+        <div
+          className="flex gap-1 mt-8 rounded-full p-1"
+          style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
+        >
           {(["signup", "signin"] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
-              className={`flex-1 font-display font-black text-sm py-2.5 rounded-full transition-all ${
+              className="flex-1 rounded-full py-2.5 transition-all"
+              style={
                 mode === m
-                  ? "bg-[#E8621A] text-white"
-                  : "text-[#8A7F78]"
-              }`}
+                  ? {
+                      background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                      boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -1px 0 rgba(120,52,0,0.3) inset, 0 4px 12px rgba(232,98,26,0.3)",
+                      color: "#1c0c03",
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 700,
+                      fontSize: 14,
+                    }
+                  : {
+                      color: "#897E73",
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 600,
+                      fontSize: 14,
+                    }
+              }
             >
               {m === "signup" ? "Sign up" : "Sign in"}
             </button>
           ))}
         </div>
 
-        {/* Form */}
+        {/* Form — all handlers, state, and validation untouched */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-8">
           {mode === "signup" && (
             <div>
-              <label className="font-body text-xs text-[#8A7F78] uppercase tracking-widest block mb-2">
+              <label
+                className="block mb-2"
+                style={{
+                  fontFamily: "var(--font-mono, monospace)",
+                  fontSize: 10,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: "#897E73",
+                }}
+              >
                 Name
               </label>
-              <input
+              <AuthInput
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
                 autoComplete="name"
-                className="w-full bg-[#2A2420] border border-white/10 rounded-[14px] px-4 py-3.5 font-body text-base text-white placeholder:text-[#8A7F78]/50 focus:outline-none focus:border-[#E8621A]/60"
               />
             </div>
           )}
 
           <div>
-            <label className="font-body text-xs text-[#8A7F78] uppercase tracking-widest block mb-2">
+            <label
+              className="block mb-2"
+              style={{
+                fontFamily: "var(--font-mono, monospace)",
+                fontSize: 10,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "#897E73",
+              }}
+            >
               Email
             </label>
-            <input
+            <AuthInput
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
               autoComplete="email"
-              className="w-full bg-[#2A2420] border border-white/10 rounded-[14px] px-4 py-3.5 font-body text-base text-white placeholder:text-[#8A7F78]/50 focus:outline-none focus:border-[#E8621A]/60"
             />
           </div>
 
           <div>
-            <label className="font-body text-xs text-[#8A7F78] uppercase tracking-widest block mb-2">
+            <label
+              className="block mb-2"
+              style={{
+                fontFamily: "var(--font-mono, monospace)",
+                fontSize: 10,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "#897E73",
+              }}
+            >
               Password
             </label>
-            <input
+            <AuthInput
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -224,7 +386,6 @@ export default function AuthPage() {
               required
               minLength={mode === "signup" ? 8 : undefined}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              className="w-full bg-[#2A2420] border border-white/10 rounded-[14px] px-4 py-3.5 font-body text-base text-white placeholder:text-[#8A7F78]/50 focus:outline-none focus:border-[#E8621A]/60"
             />
           </div>
 
@@ -235,8 +396,8 @@ export default function AuthPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 w-full bg-[#E8621A] text-white font-display font-black text-lg py-4 rounded-full disabled:opacity-50"
-            style={{ boxShadow: "0 0 40px rgba(232,98,26,0.3)" }}
+            className="mt-2 w-full rounded-full py-4 disabled:opacity-50 transition-opacity active:opacity-90"
+            style={primaryBtnStyle}
           >
             {loading
               ? mode === "signup" ? "Creating…" : "Signing in…"
@@ -244,14 +405,26 @@ export default function AuthPage() {
           </button>
         </form>
 
-        <p className="font-body text-xs text-[#8A7F78]/50 text-center mt-8 leading-relaxed">
+        <p
+          className="text-center mt-8 leading-relaxed"
+          style={{ fontFamily: "var(--font-sans, system-ui)", fontWeight: 300, fontSize: 12, color: "rgba(137,126,115,0.5)" }}
+        >
           Your existing swipe history and preferences are always saved locally
           and will not be lost.
         </p>
       </div>
 
       {/* Detroit footer */}
-      <p className="absolute bottom-8 w-full text-center font-body text-[11px] text-[#8A7F78]/30 tracking-widest uppercase pointer-events-none">
+      <p
+        className="absolute bottom-8 w-full text-center pointer-events-none"
+        style={{
+          fontFamily: "var(--font-mono, monospace)",
+          fontSize: 11,
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          color: "rgba(137,126,115,0.3)",
+        }}
+      >
         Detroit, MI
       </p>
     </main>
