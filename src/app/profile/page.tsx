@@ -43,6 +43,11 @@ import {
 } from "../lib/flavor-type";
 import { getCompatibilityPairing } from "../lib/compatibility";
 
+// ── Candlelight film grain ─────────────────────────────────────────────────────
+
+const GRAIN_SVG =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
 // ── Option constants ──────────────────────────────────────────────────────────
 
 const CUISINES = [
@@ -688,10 +693,9 @@ export default function ProfilePage() {
 
   // ── Guard: single render frame before useEffect fires ─────────────────────
 
-
   if (!prefs) {
     return (
-      <div className="min-h-screen bg-[#1C1A18] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0B0805" }}>
         <div className="w-5 h-5 border-2 border-white/20 border-t-[#E8621A] rounded-full animate-spin" />
       </div>
     );
@@ -700,643 +704,898 @@ export default function ProfilePage() {
   const avatarInitials = initials(displayName || null);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white pb-24">
+    <main
+      className="relative min-h-screen overflow-hidden text-white pb-24"
+      style={{ background: "#0B0805" }}
+    >
+      {/* Ambient glow */}
       <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+            "radial-gradient(ellipse 90% 36% at 50% -4%, rgba(232,98,26,0.16) 0%, transparent 60%)," +
+            "radial-gradient(ellipse 70% 40% at 50% 104%, rgba(184,74,18,0.16) 0%, transparent 66%)," +
+            "radial-gradient(ellipse 40% 22% at 84% 30%, rgba(230,178,106,0.06) 0%, transparent 70%)",
         }}
       />
+      {/* Film grain */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: GRAIN_SVG }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }}
+      />
 
-      {/* ── Saved toast ──────────────────────────────────────────────────────── */}
-      <span
-        className={`fixed top-4 right-4 z-50 rounded-full border border-white/15 bg-white/[0.07] px-3 py-1 text-xs text-white/55 transition-all duration-300 ${
-          savedVisible ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      >
-        Saved
-      </span>
+      {/* ── Content ──────────────────────────────────────────────────────────── */}
+      <div className="relative z-[2]">
 
-      {/* ──────────────────────────────────────────────────────────────────────
-          SECTION 1 — Identity (keep as-is)
-      ────────────────────────────────────────────────────────────────────── */}
-      <div className="px-5 pt-6 pb-2">
-        {/* Avatar top right */}
-        <div className="flex items-center justify-end mb-6">
-          <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-            <div className="relative">
-              <button
-                onClick={() => authUserId && avatarInputRef.current?.click()}
-                className={`w-11 h-11 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-lg text-white ${
-                  avatarUrl ? "" : "bg-[#E8621A]"
-                } ${authUserId ? "cursor-pointer" : "cursor-default"}`}
-                title={authUserId ? "Change photo" : undefined}
-              >
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  avatarInitials
+        {/* ── Saved toast ──────────────────────────────────────────────────────── */}
+        <span
+          className={`fixed top-4 right-4 z-50 rounded-full px-3 py-1 font-body text-xs transition-all duration-300 ${
+            savedVisible ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+          style={{
+            background: "rgba(255,231,202,0.07)",
+            border: "1px solid rgba(245,237,224,0.12)",
+            color: "rgba(245,237,224,0.55)",
+          }}
+        >
+          Saved
+        </span>
+
+        {/* ──────────────────────────────────────────────────────────────────────
+            SECTION 1 — Identity
+        ────────────────────────────────────────────────────────────────────── */}
+        <div className="px-5 pt-6 pb-2">
+          {/* Avatar top right */}
+          <div className="flex items-center justify-end mb-6">
+            <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              <div className="relative">
+                <button
+                  onClick={() => authUserId && avatarInputRef.current?.click()}
+                  className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-lg text-white ${
+                    avatarUrl ? "" : ""
+                  } ${authUserId ? "cursor-pointer" : "cursor-default"}`}
+                  style={{ background: avatarUrl ? undefined : "#E8621A" }}
+                  title={authUserId ? "Change photo" : undefined}
+                >
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    avatarInitials
+                  )}
+                </button>
+                {avatarUploading && (
+                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  </div>
                 )}
-              </button>
-              {avatarUploading && (
-                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                </div>
+                {authUserId && (
+                  <div
+                    className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center pointer-events-none"
+                    style={{ background: "#E8621A" }}
+                  >
+                    <span className="text-[10px] text-white">✎</span>
+                  </div>
+                )}
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+              {avatarError && (
+                <p className="text-red-400 text-[10px] font-body text-center leading-tight max-w-[72px]">
+                  {avatarError}
+                </p>
               )}
-              {authUserId && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#E8621A] rounded-full flex items-center justify-center pointer-events-none">
-                  <span className="text-[10px] text-white">✎</span>
-                </div>
-              )}
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
             </div>
-            {avatarError && (
-              <p className="text-red-400 text-[10px] font-body text-center leading-tight max-w-[72px]">
-                {avatarError}
-              </p>
-            )}
+          </div>
+
+          {/* Page headline + name */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display font-black text-3xl text-white tracking-tight">Profile</h1>
+              {editingName ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") void saveName(); if (e.key === "Escape") setEditingName(false); }}
+                    autoFocus
+                    className="font-body text-sm text-white bg-transparent border-b border-[#E8621A] outline-none flex-1 min-w-0 py-0.5"
+                  />
+                  <button onClick={() => void saveName()} className="text-[#E8621A] font-semibold text-sm flex-shrink-0">Save</button>
+                  <button onClick={() => setEditingName(false)} className="text-[#8A7F78] text-sm flex-shrink-0">✕</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="font-body text-sm" style={{ color: "#897E73" }}>
+                    {displayName || "You"}{memberSince ? ` · Member since ${memberSince}` : ""} · {history.length} decisions
+                  </p>
+                  {authUserId && (
+                    <button
+                      onClick={() => { setNameInput(displayName); setEditingName(true); }}
+                      className="text-[#8A7F78] text-xs flex-shrink-0"
+                      title="Edit name"
+                    >
+                      ✎
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <Link
+              href="/profile/edit"
+              className="font-body font-semibold text-sm px-4 py-2 rounded-full flex-shrink-0 ml-4 transition hover:opacity-80"
+              style={{
+                background: "rgba(255,231,202,0.07)",
+                border: "1px solid rgba(245,237,224,0.1)",
+                color: "rgba(245,237,224,0.7)",
+              }}
+            >
+              Edit
+            </Link>
           </div>
         </div>
 
-        {/* Page headline + name */}
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display font-black text-3xl text-white">Profile</h1>
-            {editingName ? (
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void saveName(); if (e.key === "Escape") setEditingName(false); }}
-                  autoFocus
-                  className="font-body text-sm text-white bg-transparent border-b border-[#E8621A] outline-none flex-1 min-w-0 py-0.5"
-                />
-                <button onClick={() => void saveName()} className="text-[#E8621A] font-semibold text-sm flex-shrink-0">Save</button>
-                <button onClick={() => setEditingName(false)} className="text-[#8A7F78] text-sm flex-shrink-0">✕</button>
+        {/* ── 1b. Auth CTA ──────────────────────────────────────────────────────── */}
+        {!asyncLoading && (
+          <div className="mx-5 mt-4">
+            {authUserId ? (
+              <div
+                className="flex items-center justify-between rounded-[14px] px-4 py-3"
+                style={{
+                  background: "rgba(255,231,202,0.05)",
+                  border: "1px solid rgba(245,237,224,0.08)",
+                  boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[#E8621A] text-sm">✓</span>
+                  <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.7)" }}>Account connected</p>
+                </div>
+                <button
+                  onClick={() => void handleSignOut()}
+                  disabled={signingOut}
+                  className="font-body text-xs disabled:opacity-50"
+                  style={{ color: "#897E73" }}
+                >
+                  {signingOut ? "Signing out…" : "Sign out"}
+                </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 mt-1">
-                <p className="font-body text-sm text-[#8A7F78]">
-                  {displayName || "You"}{memberSince ? ` · Member since ${memberSince}` : ""} · {history.length} decisions
-                </p>
-                {authUserId && (
-                  <button
-                    onClick={() => { setNameInput(displayName); setEditingName(true); }}
-                    className="text-[#8A7F78] text-xs flex-shrink-0"
-                    title="Edit name"
-                  >
-                    ✎
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          <Link
-            href="/profile/edit"
-            className="bg-[#2A2420] text-white font-body font-semibold text-sm px-4 py-2 rounded-full flex-shrink-0 ml-4"
-          >
-            Edit
-          </Link>
-        </div>
-      </div>
-
-      {/* ── 1b. Auth CTA ──────────────────────────────────────────────────────── */}
-      {!asyncLoading && (
-        <div className="mx-5 mt-4">
-          {authUserId ? (
-            <div className="flex items-center justify-between bg-[#2A2420] rounded-[14px] px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[#E8621A] text-sm">✓</span>
-                <p className="font-body text-sm text-white/70">Account connected</p>
-              </div>
               <button
-                onClick={() => void handleSignOut()}
-                disabled={signingOut}
-                className="font-body text-xs text-[#8A7F78] disabled:opacity-50"
+                onClick={() => router.push("/auth")}
+                className="w-full flex items-center justify-between rounded-[14px] px-4 py-3.5 transition hover:opacity-90"
+                style={{
+                  background: "rgba(255,231,202,0.055)",
+                  border: "1px solid rgba(245,237,224,0.09)",
+                  boxShadow: "inset 0 1px 0 rgba(245,237,224,0.05)",
+                }}
               >
-                {signingOut ? "Signing out…" : "Sign out"}
+                <div>
+                  <p className="font-display font-black text-sm text-white text-left">Create an account</p>
+                  <p className="font-body text-xs mt-0.5 text-left" style={{ color: "#897E73" }}>Sync your profile across devices</p>
+                </div>
+                <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => router.push("/auth")}
-              className="w-full flex items-center justify-between bg-[#2A2420] rounded-[14px] px-4 py-3.5 border border-white/[0.06]"
-            >
-              <div>
-                <p className="font-display font-black text-sm text-white text-left">Create an account</p>
-                <p className="font-body text-xs text-[#8A7F78] mt-0.5 text-left">Sync your profile across devices</p>
-              </div>
-              <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ── Stats row ────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3 mx-5 mt-6">
-        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
-          <span className="font-display font-black text-3xl text-[#E8621A]">{history.length}</span>
-          <span className="font-body text-xs text-[#8A7F78] text-center mt-1">Decisions</span>
-        </div>
-        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
-          <span className="font-display font-black text-3xl text-[#E8621A]">{mealsTriedCount}</span>
-          <span className="font-body text-xs text-[#8A7F78] text-center mt-1">Meals tried</span>
-        </div>
-        <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
-          <span className="font-display font-black text-3xl text-[#E8621A]">0</span>
-          <span className="font-body text-xs text-[#8A7F78] text-center mt-1">With others</span>
-        </div>
-      </div>
-
-      {/* ──────────────────────────────────────────────────────────────────────
-          SECTION 2 — Your Flame (solo DNA)
-      ────────────────────────────────────────────────────────────────────── */}
-      <div className="mx-5 mt-10 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] overflow-hidden">
-        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #E8621A, rgba(232,98,26,0.2))" }} />
-        <div className="px-5 pt-5 pb-6">
-        <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-5">
-          YOUR FLAME
-        </p>
-
-        {dnaLoading ? (
-          /* Skeleton */
-          <div>
-            <div className="h-7 w-52 rounded-full bg-white/[0.06] animate-pulse mb-2" />
-            <div className="h-4 w-36 rounded-full bg-white/[0.04] animate-pulse mb-6" />
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-3 mb-3">
-                <div className="h-3 w-16 rounded-full bg-white/[0.04] animate-pulse flex-shrink-0" />
-                <div className="flex-1 h-1.5 rounded-full bg-[#3D3733] animate-pulse" />
-                <div className="h-3 w-8 rounded-full bg-white/[0.04] animate-pulse flex-shrink-0" />
-              </div>
-            ))}
+            )}
           </div>
-        ) : soloDNA && soloDNA.totalDecisions < 3 ? (
-          /* Not enough data */
-          <div className="flex flex-col items-center text-center py-6">
-            <p className="font-display font-black text-2xl text-white leading-snug mb-2">
-              Your Flame is still warming up.
-            </p>
-            <p className="font-body text-sm text-[#8A7F78] leading-relaxed mb-6">
-              Make a few more dinner decisions and we'll have something real to say.
-            </p>
-            <button
-              onClick={() => router.push("/")}
-              className="font-display font-black text-sm px-6 py-3.5 rounded-full bg-[#E8621A] text-white"
-            >
-              Go decide →
-            </button>
-          </div>
-        ) : soloDNA ? (
-          /* Full flame content */
-          <div>
-            {/* Flavor type block — shown above cuisine bars.
-                flavorType is checked first: if cache already exists (e.g. after a
-                reveal that hasn't synced back to totalDecisions yet), show it
-                immediately instead of falling through to "Still learning". */}
-            {flavorType ? (
-              <div className="mb-5">
-                <p className="font-display font-black text-2xl text-white leading-tight">
-                  {flavorType.personalizedName}
-                </p>
-                <p className="font-body text-xs text-[#E8621A] mt-0.5">
-                  {getBaseTypeLabel(flavorType.baseType)}
-                </p>
-                <p className="font-body text-sm text-white/70 mt-1">
-                  {flavorType.tagline}
-                </p>
-              </div>
-            ) : soloDNA.totalDecisions < 7 ? (
-              <div className="mb-5">
-                <p className="font-body text-sm text-[#8A7F78]">Still learning you…</p>
-                <p className="font-body text-xs text-[#8A7F78]/60 mt-0.5">
-                  {7 - soloDNA.totalDecisions}{" "}
-                  {7 - soloDNA.totalDecisions === 1 ? "more decision" : "more decisions"} until your type is revealed
-                </p>
-              </div>
-            ) : null}
+        )}
 
-            {/* Hero */}
-            <p className="font-display font-black text-2xl text-white leading-tight">
-              {soloDNA.topCuisines[0]?.cuisine ?? "Your taste"} runs the table
-            </p>
-            {soloDNA.topCuisines[0]?.pct != null && (
-              <p className="font-body text-sm text-[#8A7F78] mt-1">
-                {soloDNA.topCuisines[0].pct}% of your decisions
-              </p>
-            )}
-
-            {/* Cuisine bars — top 3 */}
-            {soloTopThree.length > 0 && (
-              <div className="mt-5 flex flex-col gap-2.5">
-                {soloTopThree.map(({ cuisine, pct }) => {
-                  const barW = Math.round((pct / soloMaxPct) * 100);
-                  return (
-                    <div key={cuisine}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
-                        <span className="font-display font-bold text-sm text-[#E8621A]">{pct}%</span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#3D3733" }}>
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${barW}%`, background: "linear-gradient(90deg, #E8621A, #c4440e)" }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Flavor tags */}
-            {(activeTags.length > 0 || hardNosList.length > 0) && (
-              <div className="mt-5">
-                {activeTags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {activeTags.slice(0, 5).map((tag) => (
-                      <span
-                        key={tag}
-                        className="font-body text-xs font-semibold px-3 py-1.5 rounded-full"
-                        style={{ background: "#E8621A20", color: "#E8621A", border: "1px solid #E8621A40" }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {hardNosList.length > 0 && (
-                  <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                    <span className="font-body text-xs text-[#8A7F78]">Never showing:</span>
-                    {hardNosList.map((item) => (
-                      <span
-                        key={item}
-                        className="font-body text-xs px-2.5 py-1 rounded-full line-through"
-                        style={{ background: "#3D3733", color: "#8A7F78" }}
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* All-time #1 */}
-            {soloDNA.allTimeNumber1 && (
-              <div
-                className="mt-5 rounded-[14px] px-4 py-4 border"
-                style={{ background: "#2A2420", borderColor: "#E8621A30" }}
-              >
-                <p className="text-[10px] font-semibold tracking-widest uppercase text-[#E8621A] mb-1">
-                  ALL-TIME #1
-                </p>
-                <p className="font-display font-black text-lg text-white leading-tight">
-                  {soloDNA.allTimeNumber1.mealName}
-                </p>
-                {soloDNA.allTimeNumber1.count > 1 && (
-                  <p className="font-body text-xs text-[#8A7F78] mt-0.5">
-                    Chosen {soloDNA.allTimeNumber1.count}×
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* AI Insights */}
-            {soloInsights.length > 0 && (
-              <div className="mt-5">
-                <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
-                  WHAT THE DATA SAYS
-                </p>
-                <div className="flex flex-col gap-3">
-                  {soloInsights.slice(0, 2).map((text, i) => (
-                    <div key={i} className="border-l-2 border-[#E8621A]/40 pl-3">
-                      <p className="font-body text-sm text-white/80 leading-snug">{text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Share button — opens FlavorTypeCard reveal */}
-            <button
-              onClick={() => { setRevealOpen(true); setShareError(null); }}
-              className="mt-6 w-full font-display font-black text-sm py-4 rounded-full bg-[#E8621A] text-white"
-            >
-              Share my Flavor Card →
-            </button>
-          </div>
-        ) : null}
-        </div>
-      </div>
-
-      {/* ──────────────────────────────────────────────────────────────────────
-          SECTION 3 — Deciding Together (couples DNA, hidden if no partner)
-      ────────────────────────────────────────────────────────────────────── */}
-      {!dnaLoading && partners.length > 0 && (
-        <div className="mx-5 mt-6 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] overflow-hidden">
-          <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #E8621A, rgba(232,98,26,0.2))" }} />
-          <div className="px-5 pt-5 pb-6">
-          {/* Multi-partner selector — shown only when 2+ partners */}
-          {partners.length > 1 && (
+        {/* ── Stats row ────────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-3 mx-5 mt-6">
+          {[
+            { value: history.length, label: "Decisions" },
+            { value: mealsTriedCount, label: "Meals tried" },
+            { value: 0, label: "With others" },
+          ].map(({ value, label }) => (
             <div
-              className="flex overflow-x-auto gap-4 pb-2 mb-5 -mx-5 px-5"
-              style={{ scrollbarWidth: "none" }}
+              key={label}
+              className="rounded-[16px] p-4 flex flex-col items-center justify-center"
+              style={{
+                background: "rgba(255,231,202,0.055)",
+                border: "1px solid rgba(245,237,224,0.09)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(245,237,224,0.05)",
+                backdropFilter: "blur(12px)",
+              }}
             >
-              {partners.map((p) => {
-                const selected = selectedPartnerId === p.partnerId;
-                const firstName = p.displayName
-                  ? p.displayName.trim().split(/\s+/)[0]
-                  : "Someone";
-                return (
-                  <button
-                    key={p.partnerId}
-                    onClick={() => void handlePartnerSelect(p.partnerId)}
-                    className="flex flex-col items-center gap-1.5 flex-shrink-0"
-                  >
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${
-                        selected
-                          ? "ring-2 ring-[#E8621A] ring-offset-2 ring-offset-[#1C1A18]"
-                          : ""
-                      }`}
-                      style={{
-                        background: "#2A2420",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      {p.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.avatarUrl}
-                          alt={firstName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="font-display font-black text-sm text-[#E8621A]">
-                          {initials(p.displayName)}
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className={`font-body text-[10px] text-center max-w-[48px] truncate ${
-                        selected ? "text-white" : "text-[#8A7F78]"
-                      }`}
-                    >
-                      {firstName}
-                    </span>
-                  </button>
-                );
-              })}
+              <span className="font-display font-black text-3xl text-[#E8621A]">{value}</span>
+              <span className="font-body text-xs text-center mt-1" style={{ color: "#897E73" }}>{label}</span>
             </div>
-          )}
+          ))}
+        </div>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-white/[0.08]" />
-            <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase flex-shrink-0">
-              DECIDING TOGETHER
+        {/* ──────────────────────────────────────────────────────────────────────
+            SECTION 2 — Your Flame (solo DNA)
+        ────────────────────────────────────────────────────────────────────── */}
+        <div
+          className="mx-5 mt-10 rounded-[20px] overflow-hidden"
+          style={{
+            background: "rgba(255,231,202,0.04)",
+            border: "1px solid rgba(245,237,224,0.09)",
+            boxShadow: "0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,237,224,0.06)",
+            backdropFilter: "blur(16px)",
+          }}
+        >
+          {/* Ember top hairline */}
+          <div
+            className="h-[3px] w-full"
+            style={{
+              background: "linear-gradient(90deg, #FF8A3D 0%, #E8621A 55%, rgba(232,98,26,0.1) 100%)",
+              boxShadow: "0 0 12px rgba(232,98,26,0.5)",
+            }}
+          />
+          <div className="px-5 pt-5 pb-6">
+            <p
+              className="text-[11px] font-semibold tracking-widest uppercase mb-5"
+              style={{ color: "#E8621A" }}
+            >
+              YOUR FLAME
             </p>
-            <div className="flex-1 h-px bg-white/[0.08]" />
-          </div>
 
-          {/* Partner header */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {partnerAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={partnerAvatarUrl}
-                  alt={partnerName ?? ""}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="font-display font-black text-base text-[#E8621A]">
-                  {initials(partnerName)}
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="font-display font-black text-base text-white">
-                {partnerName ?? "Someone you matched with"}
-              </p>
-              <p className="font-body text-xs text-[#8A7F78]">Your dinner partner</p>
-            </div>
-          </div>
-
-          {/* Data — loading spinner while switching partners */}
-          {couplesDNA ? (
-            <>
-              {/* Shared stats row */}
-              <div className="grid grid-cols-3 gap-2 mb-5">
-                <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
-                  <span className="font-display font-black text-xl text-[#E8621A]">
-                    {couplesDNA.totalMatchesTogether > 0 ? couplesDNA.totalMatchesTogether : "—"}
-                  </span>
-                  <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Matches</span>
-                </div>
-                <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
-                  <span className="font-display font-black text-xl text-[#E8621A]">
-                    {couplesDNA.totalSessionsTogether > 0 ? couplesDNA.totalSessionsTogether : "—"}
-                  </span>
-                  <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Sessions</span>
-                </div>
-                <div className="bg-[#2A2420] rounded-[14px] p-3 flex flex-col items-center justify-center text-center">
-                  <span className="font-display font-black text-xl text-[#E8621A]">
-                    {couplesDNA.fastestMatchTogether != null
-                      ? formatSeconds(couplesDNA.fastestMatchTogether)
-                      : "—"}
-                  </span>
-                  <span className="font-body text-[10px] text-[#8A7F78] mt-0.5 leading-tight">Fastest</span>
-                </div>
+            {dnaLoading ? (
+              /* Skeleton */
+              <div>
+                <div className="h-7 w-52 rounded-full animate-pulse mb-2" style={{ background: "rgba(255,231,202,0.06)" }} />
+                <div className="h-4 w-36 rounded-full animate-pulse mb-6" style={{ background: "rgba(255,231,202,0.04)" }} />
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 mb-3">
+                    <div className="h-3 w-16 rounded-full animate-pulse flex-shrink-0" style={{ background: "rgba(255,231,202,0.04)" }} />
+                    <div className="flex-1 h-1.5 rounded-full animate-pulse" style={{ background: "rgba(255,231,202,0.04)" }} />
+                    <div className="h-3 w-8 rounded-full animate-pulse flex-shrink-0" style={{ background: "rgba(255,231,202,0.04)" }} />
+                  </div>
+                ))}
               </div>
+            ) : soloDNA && soloDNA.totalDecisions < 3 ? (
+              /* Not enough data */
+              <div className="flex flex-col items-center text-center py-6">
+                <p className="font-display font-black text-2xl text-white leading-snug mb-2">
+                  Your Flame is still warming up.
+                </p>
+                <p className="font-body text-sm leading-relaxed mb-6" style={{ color: "#897E73" }}>
+                  Make a few more dinner decisions and we&apos;ll have something real to say.
+                </p>
+                <button
+                  onClick={() => router.push("/")}
+                  className="font-display font-black text-sm px-6 py-3.5 rounded-full text-white transition hover:opacity-95 active:scale-[0.99]"
+                  style={{
+                    background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                    boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+                  }}
+                >
+                  Go decide →
+                </button>
+              </div>
+            ) : soloDNA ? (
+              /* Full flame content */
+              <div>
+                {/* Flavor type block */}
+                {flavorType ? (
+                  <div className="mb-5">
+                    <p className="font-display font-black text-2xl text-white leading-tight">
+                      {flavorType.personalizedName}
+                    </p>
+                    <p className="font-body text-xs mt-0.5" style={{ color: "#E8621A" }}>
+                      {getBaseTypeLabel(flavorType.baseType)}
+                    </p>
+                    <p className="font-body text-sm mt-1" style={{ color: "rgba(245,237,224,0.7)" }}>
+                      {flavorType.tagline}
+                    </p>
+                  </div>
+                ) : soloDNA.totalDecisions < 7 ? (
+                  <div className="mb-5">
+                    <p className="font-body text-sm" style={{ color: "#897E73" }}>Still learning you…</p>
+                    <p className="font-body text-xs mt-0.5" style={{ color: "rgba(138,127,120,0.6)" }}>
+                      {7 - soloDNA.totalDecisions}{" "}
+                      {7 - soloDNA.totalDecisions === 1 ? "more decision" : "more decisions"} until your type is revealed
+                    </p>
+                  </div>
+                ) : null}
 
-              {/* Couples flavor type — only shown when 7+ matches produced a result */}
-              {couplesFlavorType && (
-                <div className="mb-5">
-                  <p className="font-display font-black text-xl text-white leading-tight">
-                    {couplesFlavorType.personalizedName}
+                {/* Hero cuisine headline */}
+                <p className="font-display font-black text-2xl text-white leading-tight">
+                  {soloDNA.topCuisines[0]?.cuisine ?? "Your taste"} runs the table
+                </p>
+                {soloDNA.topCuisines[0]?.pct != null && (
+                  <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
+                    {soloDNA.topCuisines[0].pct}% of your decisions
                   </p>
-                  <p className="font-body text-xs text-[#E8621A] mt-0.5">
-                    {getBaseTypeLabel(couplesFlavorType.baseType)}
-                  </p>
-                  <p className="font-body text-sm text-white/70 mt-1">
-                    {couplesFlavorType.tagline}
-                  </p>
-                </div>
-              )}
+                )}
 
-              {/* Compatibility pairing — only when both users have assigned solo types */}
-              {compatibilityPairing && (
-                <div className="bg-[#2A2420] rounded-[16px] p-4 mt-4 border-l-4 border-[#E8621A]">
-                  <p className="text-[#E8621A] text-[10px] font-semibold tracking-widest uppercase mb-1">
-                    YOUR DYNAMIC
-                  </p>
-                  <p className="font-display font-black text-lg text-white">
-                    {compatibilityPairing.name}
-                  </p>
-                  <p className="font-body text-sm text-[#8A7F78] mt-1">
-                    {compatibilityPairing.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Mutual top 2 cuisines */}
-              {couplesTopTwo.length > 0 && (
-                <div className="mb-5">
-                  <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
-                    MUTUAL FAVOURITES
-                  </p>
-                  <div className="flex flex-col gap-2.5">
-                    {couplesTopTwo.map(({ cuisine, pct }) => {
-                      const barW = Math.round((pct / couplesMaxPct) * 100);
+                {/* Cuisine bars — top 3 */}
+                {soloTopThree.length > 0 && (
+                  <div className="mt-5 flex flex-col gap-2.5">
+                    {soloTopThree.map(({ cuisine, pct }) => {
+                      const barW = Math.round((pct / soloMaxPct) * 100);
                       return (
                         <div key={cuisine}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
-                            <span className="font-display font-bold text-sm text-[#E8621A]">{pct}%</span>
+                            <span className="font-display font-bold text-sm" style={{ color: "#E8621A" }}>{pct}%</span>
                           </div>
-                          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#3D3733" }}>
+                          <div
+                            className="h-1.5 w-full rounded-full overflow-hidden"
+                            style={{ background: "rgba(255,231,202,0.08)" }}
+                          >
                             <div
                               className="h-full rounded-full"
-                              style={{ width: `${barW}%`, background: "linear-gradient(90deg, #E8621A, #c4440e)" }}
+                              style={{
+                                width: `${barW}%`,
+                                background: "linear-gradient(90deg, #FF8A3D, #E8621A)",
+                                boxShadow: "0 0 8px rgba(232,98,26,0.5)",
+                              }}
                             />
                           </div>
                         </div>
                       );
                     })}
                   </div>
+                )}
+
+                {/* Flavor tags + hard NOs */}
+                {(activeTags.length > 0 || hardNosList.length > 0) && (
+                  <div className="mt-5">
+                    {activeTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {activeTags.slice(0, 5).map((tag) => (
+                          <span
+                            key={tag}
+                            className="font-body text-xs font-semibold px-3 py-1.5 rounded-full"
+                            style={{
+                              background: "rgba(232,98,26,0.12)",
+                              border: "1px solid rgba(232,98,26,0.32)",
+                              color: "#E8621A",
+                            }}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {hardNosList.length > 0 && (
+                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        <span className="font-body text-xs" style={{ color: "#897E73" }}>Never showing:</span>
+                        {hardNosList.map((item) => (
+                          <span
+                            key={item}
+                            className="font-body text-xs px-2.5 py-1 rounded-full line-through"
+                            style={{
+                              background: "rgba(255,231,202,0.04)",
+                              border: "1px solid rgba(245,237,224,0.08)",
+                              color: "rgba(245,237,224,0.3)",
+                            }}
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* All-time #1 */}
+                {soloDNA.allTimeNumber1 && (
+                  <div
+                    className="mt-5 rounded-[14px] px-4 py-4"
+                    style={{
+                      background: "rgba(255,231,202,0.05)",
+                      border: "1px solid rgba(232,98,26,0.2)",
+                      boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                    }}
+                  >
+                    <p
+                      className="text-[10px] font-semibold tracking-widest uppercase mb-1"
+                      style={{ color: "#E8621A" }}
+                    >
+                      ALL-TIME #1
+                    </p>
+                    <p className="font-display font-black text-lg text-white leading-tight">
+                      {soloDNA.allTimeNumber1.mealName}
+                    </p>
+                    {soloDNA.allTimeNumber1.count > 1 && (
+                      <p className="font-body text-xs mt-0.5" style={{ color: "#897E73" }}>
+                        Chosen {soloDNA.allTimeNumber1.count}×
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* AI Insights */}
+                {soloInsights.length > 0 && (
+                  <div className="mt-5">
+                    <p
+                      className="text-[10px] font-semibold tracking-widest uppercase mb-3"
+                      style={{ color: "rgba(245,237,224,0.35)" }}
+                    >
+                      WHAT THE DATA SAYS
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      {soloInsights.slice(0, 2).map((text, i) => (
+                        <div
+                          key={i}
+                          className="pl-3"
+                          style={{ borderLeft: "2px solid rgba(232,98,26,0.4)" }}
+                        >
+                          <p className="font-body text-sm leading-snug" style={{ color: "rgba(245,237,224,0.8)" }}>{text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Share CTA — gradient */}
+                <button
+                  onClick={() => { setRevealOpen(true); setShareError(null); }}
+                  className="mt-6 w-full font-display font-black text-sm py-4 rounded-full text-white transition hover:opacity-95 active:scale-[0.99]"
+                  style={{
+                    background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                    boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+                  }}
+                >
+                  Share my Flavor Card →
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/* ──────────────────────────────────────────────────────────────────────
+            SECTION 3 — Deciding Together
+        ────────────────────────────────────────────────────────────────────── */}
+
+        {/* Empty state — no partners */}
+        {!dnaLoading && partners.length === 0 && (
+          <div
+            className="mx-5 mt-6 rounded-[20px] overflow-hidden"
+            style={{
+              background: "rgba(255,231,202,0.035)",
+              border: "1px solid rgba(245,237,224,0.07)",
+              boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+            }}
+          >
+            <div
+              className="h-[3px] w-full"
+              style={{ background: "linear-gradient(90deg, rgba(232,98,26,0.5), transparent)" }}
+            />
+            <div className="px-5 py-8 flex flex-col items-center text-center">
+              <p
+                className="text-[11px] font-semibold tracking-widest uppercase mb-4"
+                style={{ color: "#E8621A" }}
+              >
+                DECIDING TOGETHER
+              </p>
+              <p className="font-display font-black text-xl text-white leading-tight mb-2">
+                Dinner&apos;s better shared.
+              </p>
+              <p className="font-body text-sm leading-relaxed mb-6" style={{ color: "#897E73" }}>
+                Invite someone to swipe with you and we&apos;ll start building your shared flavor DNA.
+              </p>
+              <Link
+                href="/"
+                className="rounded-full px-6 py-3.5 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
+                style={{
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                  boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+                }}
+              >
+                Start a shared session →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Active partner section */}
+        {!dnaLoading && partners.length > 0 && (
+          <div
+            className="mx-5 mt-6 rounded-[20px] overflow-hidden"
+            style={{
+              background: "rgba(255,231,202,0.04)",
+              border: "1px solid rgba(245,237,224,0.09)",
+              boxShadow: "0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,237,224,0.06)",
+              backdropFilter: "blur(16px)",
+            }}
+          >
+            {/* Ember top hairline */}
+            <div
+              className="h-[3px] w-full"
+              style={{
+                background: "linear-gradient(90deg, #FF8A3D 0%, #E8621A 55%, rgba(232,98,26,0.1) 100%)",
+                boxShadow: "0 0 12px rgba(232,98,26,0.5)",
+              }}
+            />
+            <div className="px-5 pt-5 pb-6">
+              {/* Multi-partner selector — shown only when 2+ partners */}
+              {partners.length > 1 && (
+                <div
+                  className="flex overflow-x-auto gap-4 pb-2 mb-5 -mx-5 px-5"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {partners.map((p) => {
+                    const selected = selectedPartnerId === p.partnerId;
+                    const firstName = p.displayName
+                      ? p.displayName.trim().split(/\s+/)[0]
+                      : "Someone";
+                    return (
+                      <button
+                        key={p.partnerId}
+                        onClick={() => void handlePartnerSelect(p.partnerId)}
+                        className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                      >
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${
+                            selected
+                              ? "ring-2 ring-[#E8621A] ring-offset-2 ring-offset-[#0B0805]"
+                              : ""
+                          }`}
+                          style={{
+                            background: "rgba(255,231,202,0.07)",
+                            border: "1px solid rgba(245,237,224,0.1)",
+                          }}
+                        >
+                          {p.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={p.avatarUrl}
+                              alt={firstName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="font-display font-black text-sm text-[#E8621A]">
+                              {initials(p.displayName)}
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          className={`font-body text-[10px] text-center max-w-[48px] truncate ${
+                            selected ? "text-white" : "text-[#8A7F78]"
+                          }`}
+                        >
+                          {firstName}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
-              {/* Couples AI insights */}
-              {couplesInsights.length > 0 && (
-                <div className="mb-5">
-                  <p className="text-[10px] font-semibold tracking-widest uppercase text-[#8A7F78] mb-3">
-                    WHAT THE DATA SAYS
+              {/* Divider */}
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px" style={{ background: "rgba(245,237,224,0.08)" }} />
+                <p
+                  className="text-[11px] font-semibold tracking-widest uppercase flex-shrink-0"
+                  style={{ color: "#897E73" }}
+                >
+                  DECIDING TOGETHER
+                </p>
+                <div className="flex-1 h-px" style={{ background: "rgba(245,237,224,0.08)" }} />
+              </div>
+
+              {/* Partner header */}
+              <div className="flex items-center gap-3 mb-5">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                  style={{
+                    background: "rgba(255,231,202,0.07)",
+                    border: "1px solid rgba(245,237,224,0.1)",
+                  }}
+                >
+                  {partnerAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={partnerAvatarUrl}
+                      alt={partnerName ?? ""}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="font-display font-black text-base text-[#E8621A]">
+                      {initials(partnerName)}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-display font-black text-base text-white">
+                    {partnerName ?? "Someone you matched with"}
                   </p>
-                  <div className="flex flex-col gap-3">
-                    {couplesInsights.slice(0, 2).map((text, i) => (
-                      <div key={i} className="border-l-2 border-[#E8621A]/40 pl-3">
-                        <p className="font-body text-sm text-white/80 leading-snug">{text}</p>
+                  <p className="font-body text-xs" style={{ color: "#897E73" }}>Your dinner partner</p>
+                </div>
+              </div>
+
+              {/* Data — loading spinner while switching partners */}
+              {couplesDNA ? (
+                <>
+                  {/* Shared stats row */}
+                  <div className="grid grid-cols-3 gap-2 mb-5">
+                    {[
+                      { value: couplesDNA.totalMatchesTogether > 0 ? couplesDNA.totalMatchesTogether : "—", label: "Matches" },
+                      { value: couplesDNA.totalSessionsTogether > 0 ? couplesDNA.totalSessionsTogether : "—", label: "Sessions" },
+                      { value: couplesDNA.fastestMatchTogether != null ? formatSeconds(couplesDNA.fastestMatchTogether) : "—", label: "Fastest" },
+                    ].map(({ value, label }) => (
+                      <div
+                        key={label}
+                        className="rounded-[14px] p-3 flex flex-col items-center justify-center text-center"
+                        style={{
+                          background: "rgba(255,231,202,0.055)",
+                          border: "1px solid rgba(245,237,224,0.09)",
+                          boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                        }}
+                      >
+                        <span className="font-display font-black text-xl text-[#E8621A]">{value}</span>
+                        <span className="font-body text-[10px] mt-0.5 leading-tight" style={{ color: "#897E73" }}>{label}</span>
                       </div>
                     ))}
                   </div>
+
+                  {/* Couples flavor type */}
+                  {couplesFlavorType && (
+                    <div className="mb-5">
+                      <p className="font-display font-black text-xl text-white leading-tight">
+                        {couplesFlavorType.personalizedName}
+                      </p>
+                      <p className="font-body text-xs mt-0.5" style={{ color: "#E8621A" }}>
+                        {getBaseTypeLabel(couplesFlavorType.baseType)}
+                      </p>
+                      <p className="font-body text-sm mt-1" style={{ color: "rgba(245,237,224,0.7)" }}>
+                        {couplesFlavorType.tagline}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Compatibility pairing */}
+                  {compatibilityPairing && (
+                    <div
+                      className="rounded-[16px] p-4 mt-4"
+                      style={{
+                        background: "rgba(255,231,202,0.05)",
+                        border: "1px solid rgba(245,237,224,0.08)",
+                        borderLeft: "4px solid #E8621A",
+                        boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                      }}
+                    >
+                      <p
+                        className="text-[10px] font-semibold tracking-widest uppercase mb-1"
+                        style={{ color: "#E8621A" }}
+                      >
+                        YOUR DYNAMIC
+                      </p>
+                      <p className="font-display font-black text-lg text-white">
+                        {compatibilityPairing.name}
+                      </p>
+                      <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
+                        {compatibilityPairing.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mutual top cuisines */}
+                  {couplesTopTwo.length > 0 && (
+                    <div className="mb-5 mt-5">
+                      <p
+                        className="text-[10px] font-semibold tracking-widest uppercase mb-3"
+                        style={{ color: "rgba(245,237,224,0.35)" }}
+                      >
+                        MUTUAL FAVOURITES
+                      </p>
+                      <div className="flex flex-col gap-2.5">
+                        {couplesTopTwo.map(({ cuisine, pct }) => {
+                          const barW = Math.round((pct / couplesMaxPct) * 100);
+                          return (
+                            <div key={cuisine}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
+                                <span className="font-display font-bold text-sm" style={{ color: "#E8621A" }}>{pct}%</span>
+                              </div>
+                              <div
+                                className="h-1.5 w-full rounded-full overflow-hidden"
+                                style={{ background: "rgba(255,231,202,0.08)" }}
+                              >
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{
+                                    width: `${barW}%`,
+                                    background: "linear-gradient(90deg, #FF8A3D, #E8621A)",
+                                    boxShadow: "0 0 8px rgba(232,98,26,0.5)",
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Couples AI insights */}
+                  {couplesInsights.length > 0 && (
+                    <div className="mb-5">
+                      <p
+                        className="text-[10px] font-semibold tracking-widest uppercase mb-3"
+                        style={{ color: "rgba(245,237,224,0.35)" }}
+                      >
+                        WHAT THE DATA SAYS
+                      </p>
+                      <div className="flex flex-col gap-3">
+                        {couplesInsights.slice(0, 2).map((text, i) => (
+                          <div
+                            key={i}
+                            className="pl-3"
+                            style={{ borderLeft: "2px solid rgba(232,98,26,0.4)" }}
+                          >
+                            <p className="font-body text-sm leading-snug" style={{ color: "rgba(245,237,224,0.8)" }}>{text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* See full couples card */}
+                  <button
+                    onClick={() => setFlameOverlay("couples")}
+                    className="w-full font-display font-black text-sm py-3.5 rounded-full transition hover:opacity-80"
+                    style={{
+                      background: "rgba(255,231,202,0.05)",
+                      border: "1px solid rgba(245,237,224,0.12)",
+                      color: "rgba(245,237,224,0.6)",
+                    }}
+                  >
+                    See full couples card →
+                  </button>
+                </>
+              ) : (
+                <div className="flex justify-center py-6">
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-[#E8621A] rounded-full animate-spin" />
                 </div>
               )}
+            </div>
+          </div>
+        )}
 
-              {/* See full couples card */}
+        {/* ──────────────────────────────────────────────────────────────────────
+            SECTION 4 — Library
+        ────────────────────────────────────────────────────────────────────── */}
+
+        {/* Dietary restrictions */}
+        <div
+          className="mx-5 mt-6 rounded-[20px] px-5 py-5"
+          style={{
+            background: "rgba(255,231,202,0.04)",
+            border: "1px solid rgba(245,237,224,0.08)",
+            boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+          }}
+        >
+          <p
+            className="text-[11px] font-semibold tracking-widest uppercase mb-3"
+            style={{ color: "rgba(245,237,224,0.35)" }}
+          >
+            DIETARY RESTRICTIONS
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(prefs.dietaryRestrictions ?? []).map((item) => (
               <button
-                onClick={() => setFlameOverlay("couples")}
-                className="w-full font-display font-black text-sm py-3.5 rounded-full border border-white/20 text-[#8A7F78]"
+                key={item}
+                onClick={() => toggleDietary(item)}
+                className="flex items-center gap-1.5 font-body font-semibold text-sm px-4 py-2 rounded-full transition hover:opacity-80"
+                style={{
+                  background: "rgba(255,231,202,0.07)",
+                  border: "1px solid rgba(245,237,224,0.12)",
+                  color: "rgba(245,237,224,0.8)",
+                }}
               >
-                See full couples card →
+                <span className="font-black">×</span>
+                {item}
               </button>
-            </>
-          ) : (
-            <div className="flex justify-center py-6">
-              <div className="w-5 h-5 border-2 border-white/20 border-t-[#E8621A] rounded-full animate-spin" />
+            ))}
+            <button
+              onClick={() => setShowAddDietary((v) => !v)}
+              className="flex items-center gap-1 font-body font-semibold text-sm px-4 py-2 rounded-full transition hover:opacity-80"
+              style={{
+                background: "rgba(255,231,202,0.04)",
+                border: "1px solid rgba(245,237,224,0.07)",
+                color: "#897E73",
+              }}
+            >
+              + Add
+            </button>
+          </div>
+          {showAddDietary && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {DIETARY_OPTIONS.filter(
+                (d) => !(prefs.dietaryRestrictions ?? []).includes(d.label)
+              ).map((d) => (
+                <button
+                  key={d.label}
+                  onClick={() => { toggleDietary(d.label); setShowAddDietary(false); }}
+                  className="flex items-center gap-1.5 font-body font-semibold text-sm px-4 py-2 rounded-full transition hover:opacity-80"
+                  style={{
+                    background: "rgba(255,231,202,0.07)",
+                    border: "1px solid rgba(245,237,224,0.1)",
+                    color: "rgba(245,237,224,0.7)",
+                  }}
+                >
+                  {d.emoji} {d.label}
+                </button>
+              ))}
             </div>
           )}
-          </div>
         </div>
-      )}
 
-      {/* ──────────────────────────────────────────────────────────────────────
-          SECTION 4 — Library (keep as-is)
-      ────────────────────────────────────────────────────────────────────── */}
-
-      {/* Dietary restrictions */}
-      <div className="mx-5 mt-6 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] px-5 py-5">
-        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
-          DIETARY RESTRICTIONS
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {(prefs.dietaryRestrictions ?? []).map((item) => (
-            <button
-              key={item}
-              onClick={() => toggleDietary(item)}
-              className="flex items-center gap-1.5 bg-[#2A2420] text-white/80 font-body font-semibold text-sm px-4 py-2 rounded-full border border-white/10"
-            >
-              <span className="font-black">×</span>
-              {item}
-            </button>
-          ))}
-          <button
-            onClick={() => setShowAddDietary((v) => !v)}
-            className="flex items-center gap-1 bg-[#2A2420] text-[#8A7F78] font-body font-semibold text-sm px-4 py-2 rounded-full"
+        {/* Hard NOs */}
+        <div
+          className="mx-5 mt-6 mb-4 rounded-[20px] px-5 py-5"
+          style={{
+            background: "rgba(255,231,202,0.04)",
+            border: "1px solid rgba(245,237,224,0.08)",
+            boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+          }}
+        >
+          <p
+            className="text-[11px] font-semibold tracking-widest uppercase mb-3"
+            style={{ color: "rgba(245,237,224,0.35)" }}
           >
-            + Add
-          </button>
-        </div>
-        {showAddDietary && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {DIETARY_OPTIONS.filter(
-              (d) => !(prefs.dietaryRestrictions ?? []).includes(d.label)
-            ).map((d) => (
+            HARD NOs — NEVER SHOWING THESE
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {prefs.hardNoFoods.map((food) => (
               <button
-                key={d.label}
-                onClick={() => { toggleDietary(d.label); setShowAddDietary(false); }}
-                className="flex items-center gap-1.5 bg-[#2A2420] text-white/70 font-body font-semibold text-sm px-4 py-2 rounded-full border border-white/10"
+                key={food}
+                onClick={() => toggleDisliked(food)}
+                className="flex items-center gap-1.5 font-body font-semibold text-sm px-4 py-2 rounded-full transition hover:opacity-80"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                  color: "rgba(252,165,165,0.9)",
+                }}
               >
-                {d.emoji} {d.label}
+                <span className="font-black">×</span>
+                {food}
               </button>
             ))}
-          </div>
-        )}
-      </div>
-
-      {/* Hard NOs */}
-      <div className="mx-5 mt-6 mb-4 rounded-[20px] bg-[#221E1B] border border-white/[0.05] shadow-[0_4px_28px_rgba(0,0,0,0.35)] px-5 py-5">
-        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-3">
-          HARD NOs — NEVER SHOWING THESE
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {prefs.hardNoFoods.map((food) => (
             <button
-              key={food}
-              onClick={() => toggleDisliked(food)}
-              className="flex items-center gap-1.5 bg-red-950/50 text-red-400 font-body font-semibold text-sm px-4 py-2 rounded-full border border-red-900/40"
+              onClick={() => setShowAddHardNo((v) => !v)}
+              className="flex items-center gap-1 font-body font-semibold text-sm px-4 py-2 rounded-full transition hover:opacity-80"
+              style={{
+                background: "rgba(255,231,202,0.04)",
+                border: "1px solid rgba(245,237,224,0.07)",
+                color: "#897E73",
+              }}
             >
-              <span className="font-black">×</span>
-              {food}
+              + Add
             </button>
-          ))}
-          <button
-            onClick={() => setShowAddHardNo((v) => !v)}
-            className="flex items-center gap-1 bg-[#2A2420] text-[#8A7F78] font-body font-semibold text-sm px-4 py-2 rounded-full"
-          >
-            + Add
-          </button>
-        </div>
-        {showAddHardNo && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {DISLIKED_FOODS.filter(
-              (f) => f.label !== "None of these" && !prefs.hardNoFoods.includes(f.label)
-            ).map((f) => (
-              <button
-                key={f.label}
-                onClick={() => { toggleDisliked(f.label); setShowAddHardNo(false); }}
-                className="flex items-center gap-1.5 bg-[#2A2420] text-white/70 font-body font-semibold text-sm px-4 py-2 rounded-full border border-white/10"
-              >
-                {f.emoji} {f.label}
-              </button>
-            ))}
           </div>
-        )}
-      </div>
+          {showAddHardNo && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {DISLIKED_FOODS.filter(
+                (f) => f.label !== "None of these" && !prefs.hardNoFoods.includes(f.label)
+              ).map((f) => (
+                <button
+                  key={f.label}
+                  onClick={() => { toggleDisliked(f.label); setShowAddHardNo(false); }}
+                  className="flex items-center gap-1.5 font-body font-semibold text-sm px-4 py-2 rounded-full transition hover:opacity-80"
+                  style={{
+                    background: "rgba(255,231,202,0.07)",
+                    border: "1px solid rgba(245,237,224,0.1)",
+                    color: "rgba(245,237,224,0.7)",
+                  }}
+                >
+                  {f.emoji} {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-      {/* ── Bottom nav ───────────────────────────────────────────────────────── */}
-      <BottomNav />
+        {/* ── Bottom nav ───────────────────────────────────────────────────────── */}
+        <BottomNav />
+
+      </div>{/* end z-[2] content */}
 
       {/* ──────────────────────────────────────────────────────────────────────
           FlameCard overlay — couples only (slides up from bottom)
@@ -1355,7 +1614,8 @@ export default function ProfilePage() {
 
             {/* Sheet */}
             <motion.div
-              className="relative mt-auto bg-[#1C1A18] rounded-t-[24px] max-h-[90dvh] flex flex-col"
+              className="relative mt-auto rounded-t-[24px] max-h-[90dvh] flex flex-col"
+              style={{ background: "#0B0805" }}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -1388,19 +1648,28 @@ export default function ProfilePage() {
                 <div className="px-5 pb-8 flex flex-col gap-3">
                   <button
                     onClick={() => { setFlameOverlay(null); setShareError(null); }}
-                    className="w-full font-display font-black text-sm py-3 rounded-full border border-white/20 text-[#8A7F78]"
+                    className="w-full font-display font-black text-sm py-3 rounded-full transition hover:opacity-80"
+                    style={{
+                      background: "rgba(255,231,202,0.05)",
+                      border: "1px solid rgba(245,237,224,0.12)",
+                      color: "rgba(245,237,224,0.6)",
+                    }}
                   >
                     Close
                   </button>
                   <button
                     onClick={() => void handleShare()}
                     disabled={sharing}
-                    className="w-full font-display font-black text-sm py-4 rounded-full bg-[#E8621A] text-white disabled:opacity-60"
+                    className="w-full font-display font-black text-sm py-4 rounded-full text-white disabled:opacity-60 transition hover:opacity-95"
+                    style={{
+                      background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                      boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+                    }}
                   >
                     {sharing ? "Making your card…" : "Share →"}
                   </button>
                   {shareError && (
-                    <p className="font-body text-xs text-center text-[#8A7F78]">{shareError}</p>
+                    <p className="font-body text-xs text-center" style={{ color: "#897E73" }}>{shareError}</p>
                   )}
                 </div>
               </div>

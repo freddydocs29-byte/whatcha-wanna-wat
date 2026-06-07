@@ -11,15 +11,146 @@ import { getUserId } from "../lib/identity";
 import type { Profile } from "../lib/supabase";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
 
+const GRAIN_SVG =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
 function StarIcon({ filled }: { filled: boolean }) {
   return filled ? (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
     </svg>
   ) : (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+function MealCard({
+  meal,
+  isFavorite,
+  onChoose,
+  onInfo,
+  onToggleFavorite,
+  onRemove,
+}: {
+  meal: Meal;
+  isFavorite: boolean;
+  onChoose: () => void;
+  onInfo: () => void;
+  onToggleFavorite: () => void;
+  onRemove?: () => void;
+}) {
+  return (
+    <div
+      className="rounded-[20px] p-5 overflow-hidden"
+      style={{
+        background: "rgba(255,231,202,0.055)",
+        border: "1px solid rgba(245,237,224,0.09)",
+        backdropFilter: "blur(12px)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(245,237,224,0.05)",
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        {/* Left: content */}
+        <button onClick={onChoose} className="flex-1 min-w-0 text-left">
+          <div
+            className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide mb-2"
+            style={{
+              background: "rgba(232,98,26,0.14)",
+              border: "1px solid rgba(232,98,26,0.28)",
+              color: "#E8621A",
+            }}
+          >
+            {meal.category}
+          </div>
+          <p className="font-display font-black text-base text-white leading-tight">
+            {meal.name}
+          </p>
+          {meal.whyItFits && (
+            <p className="font-body text-xs mt-1 leading-snug" style={{ color: "#897E73" }}>
+              {meal.whyItFits}
+            </p>
+          )}
+          {meal.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {meal.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  style={{
+                    background: "rgba(255,231,202,0.05)",
+                    border: "1px solid rgba(245,237,224,0.12)",
+                    color: "rgba(245,237,224,0.5)",
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </button>
+
+        {/* Right: action column */}
+        <div className="mt-0.5 flex flex-col items-end gap-2 flex-shrink-0">
+          <button
+            onClick={onInfo}
+            className="flex h-9 w-9 items-center justify-center rounded-full transition hover:opacity-80 active:scale-[0.95]"
+            style={{
+              background: "rgba(255,231,202,0.06)",
+              border: "1px solid rgba(245,237,224,0.1)",
+              color: "rgba(245,237,224,0.4)",
+            }}
+            aria-label="More details"
+          >
+            <InfoIcon />
+          </button>
+          <button
+            onClick={onToggleFavorite}
+            className="flex h-9 w-9 items-center justify-center rounded-full transition hover:opacity-80 active:scale-[0.95]"
+            style={
+              isFavorite
+                ? {
+                    background: "rgba(251,191,36,0.15)",
+                    border: "1px solid rgba(251,191,36,0.3)",
+                    color: "#FBB124",
+                  }
+                : {
+                    background: "rgba(255,231,202,0.05)",
+                    border: "1px solid rgba(245,237,224,0.09)",
+                    color: "rgba(245,237,224,0.35)",
+                  }
+            }
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <StarIcon filled={isFavorite} />
+          </button>
+          {onRemove && (
+            <button
+              onClick={onRemove}
+              className="rounded-full px-3 py-1.5 font-body text-xs transition hover:opacity-75 active:scale-[0.97]"
+              style={{
+                background: "rgba(255,231,202,0.04)",
+                border: "1px solid rgba(245,237,224,0.08)",
+                color: "rgba(245,237,224,0.3)",
+              }}
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -64,219 +195,195 @@ export default function SavedPage() {
   const isEmpty = loaded && favoriteMeals.length === 0 && savedForLater.length === 0;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 safe-top">
-        <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
-          }}
-        />
+    <main
+      className="relative min-h-screen overflow-hidden text-white"
+      style={{ background: "#0B0805" }}
+    >
+      {/* Ambient glow */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 36% at 50% -4%, rgba(232,98,26,0.16) 0%, transparent 60%)," +
+            "radial-gradient(ellipse 70% 40% at 50% 104%, rgba(184,74,18,0.16) 0%, transparent 66%)," +
+            "radial-gradient(ellipse 40% 22% at 84% 30%, rgba(230,178,106,0.06) 0%, transparent 70%)",
+        }}
+      />
+      {/* Film grain */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: GRAIN_SVG }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }}
+      />
 
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <div className="px-5 pt-6 pb-2">
-            {/* Avatar top right only */}
-            <div className="flex items-center justify-end mb-6">
-              <button
-                onClick={() => router.push('/profile')}
-                className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0"
-              >
-                {profile?.avatar_url
-                  ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
-                  : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
-                }
-              </button>
-            </div>
-
-            {/* Page headline */}
-            <h1 className="font-display font-black text-3xl text-white">Saved Meals</h1>
-            <p className="font-body text-sm text-[#8A7F78] mt-1">
-              Everything you&apos;ve loved, matched, and decided on.
-            </p>
+      <div className="relative z-[2] mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28 safe-top">
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className="pt-6 pb-2">
+          <div className="flex items-center justify-end mb-6">
+            <button
+              onClick={() => router.push("/profile")}
+              className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0"
+              style={{ background: "#E8621A" }}
+            >
+              {profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
+              ) : (
+                <span>{profile?.display_name?.[0]?.toUpperCase() ?? "?"}</span>
+              )}
+            </button>
           </div>
+          <h1 className="font-display font-black text-3xl text-white tracking-tight">Saved Meals</h1>
+          <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
+            Everything you&apos;ve loved, matched, and decided on.
+          </p>
+        </div>
 
-          {isEmpty && (
-            <div className="flex flex-1 flex-col items-center justify-center text-center">
-              <div className="mb-5 text-4xl">🍽️</div>
-              <p className="text-base font-semibold tracking-[-0.03em]">
-                Nothing saved yet
-              </p>
-              <p className="mt-2 max-w-[26ch] text-sm leading-6 text-white/50">
-                Hit Save on the deck when a meal catches your eye.
-              </p>
+        {/* ── Empty state ───────────────────────────────────────────────── */}
+        {isEmpty && (
+          <div className="flex flex-1 flex-col items-center justify-center text-center py-16">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 text-3xl"
+              style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(245,237,224,0.1)" }}
+            >
+              🍽️
+            </div>
+            <p className="font-display font-black text-lg text-white tracking-tight">Nothing saved yet</p>
+            <p className="mt-2 max-w-[26ch] font-body text-sm leading-relaxed" style={{ color: "#897E73" }}>
+              Hit Save on the deck when a meal catches your eye.
+            </p>
+            <Link
+              href="/deck"
+              className="mt-6 rounded-full px-6 py-3.5 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
+              style={{
+                background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+              }}
+            >
+              Go to deck
+            </Link>
+          </div>
+        )}
+
+        {/* ── Content ───────────────────────────────────────────────────── */}
+        {loaded && !isEmpty && (
+          <div className="mt-8 flex flex-1 flex-col gap-10">
+
+            {/* ── Favorites ─────────────────────────────────────────────── */}
+            <section id="favorites">
+              <div className="flex items-center gap-2 mb-4">
+                <span
+                  className="text-[11px] font-semibold tracking-widest uppercase"
+                  style={{ color: "#E8621A" }}
+                >
+                  FAVORITES
+                </span>
+                {favoriteMeals.length > 0 && (
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    style={{
+                      background: "rgba(255,231,202,0.08)",
+                      border: "1px solid rgba(245,237,224,0.12)",
+                      color: "rgba(245,237,224,0.5)",
+                    }}
+                  >
+                    {favoriteMeals.length}
+                  </span>
+                )}
+              </div>
+
+              {favoriteMeals.length === 0 ? (
+                <div
+                  className="rounded-[20px] px-5 py-6 text-center"
+                  style={{
+                    background: "rgba(255,231,202,0.03)",
+                    border: "1px solid rgba(245,237,224,0.07)",
+                    boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                  }}
+                >
+                  <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.35)" }}>
+                    Star a meal below to mark it as a favorite.
+                  </p>
+                  <p className="mt-1 font-body text-xs" style={{ color: "rgba(245,237,224,0.2)" }}>
+                    Favorites get surfaced first in your deck.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {favoriteMeals.map((meal) => (
+                    <MealCard
+                      key={meal.id}
+                      meal={meal}
+                      isFavorite
+                      onChoose={() => handleChoose(meal)}
+                      onInfo={() => { setDrawerMeal(meal); setDrawerOpen(true); }}
+                      onToggleFavorite={() => handleToggleFavorite(meal)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ── Saved for Later ─────────────────────────────────────────── */}
+            {savedForLater.length > 0 && (
+              <section id="saved">
+                <div className="flex items-center gap-2 mb-4">
+                  <span
+                    className="text-[11px] font-semibold tracking-widest uppercase"
+                    style={{ color: "#E8621A" }}
+                  >
+                    SAVED FOR LATER
+                  </span>
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    style={{
+                      background: "rgba(255,231,202,0.06)",
+                      border: "1px solid rgba(245,237,224,0.1)",
+                      color: "rgba(245,237,224,0.4)",
+                    }}
+                  >
+                    {savedForLater.length}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {savedForLater.map((meal) => (
+                    <MealCard
+                      key={meal.id}
+                      meal={meal}
+                      isFavorite={false}
+                      onChoose={() => handleChoose(meal)}
+                      onInfo={() => { setDrawerMeal(meal); setDrawerOpen(true); }}
+                      onToggleFavorite={() => handleToggleFavorite(meal)}
+                      onRemove={() => handleRemove(meal.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+
+        <div className="mt-auto pt-8">
+          {loaded && !isEmpty && (
+            <div className="mb-5 flex justify-center">
               <Link
                 href="/deck"
-                className="mt-6 rounded-full bg-[#E8621A] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(232,98,26,0.30)] transition hover:opacity-95 active:scale-[0.99]"
+                className="font-body text-sm transition hover:opacity-70 active:scale-[0.98]"
+                style={{
+                  color: "rgba(245,237,224,0.35)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "4px",
+                }}
               >
-                Go to deck
+                Find something else
               </Link>
             </div>
           )}
-
-          {loaded && !isEmpty && (
-            <div className="mt-8 flex flex-1 flex-col gap-8">
-
-              {/* ── Favorites ──────────────────────────────────────────── */}
-              <section id="favorites">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-3">
-                    Favorites
-                  </span>
-                  {favoriteMeals.length > 0 && (
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/50">
-                      {favoriteMeals.length}
-                    </span>
-                  )}
-                </div>
-
-                {favoriteMeals.length === 0 ? (
-                  <div className="rounded-[20px] border border-white/[0.05] bg-[#232120] px-5 py-6 text-center shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
-                    <p className="text-sm text-white/35">
-                      Star a meal below to mark it as a favorite.
-                    </p>
-                    <p className="mt-1 text-xs text-white/25">
-                      Favorites get surfaced first in your deck.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {favoriteMeals.map((meal) => (
-                      <div
-                        key={meal.id}
-                        className="bg-[#2A2420] rounded-[20px] p-5 border border-white/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">
-                            <div className="inline-flex rounded-full border border-white/10 bg-white/10 px-2.5 py-0.5 text-xs text-white/55">
-                              {meal.category}
-                            </div>
-                            <p className="font-display font-bold text-base text-white mt-2">
-                              {meal.name}
-                            </p>
-                            <p className="text-[#8A7F78] text-xs font-body mt-0.5">
-                              {meal.whyItFits}
-                            </p>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {meal.tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="rounded-full bg-white/[0.09] px-3 py-1 text-xs text-white/55"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </button>
-
-                          <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
-                            <button
-                              onClick={() => { setDrawerMeal(meal); setDrawerOpen(true); }}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/30 transition hover:text-white/55 active:scale-[0.95]"
-                              aria-label="More details"
-                            >
-                              <span className="font-body text-sm font-semibold">i</span>
-                            </button>
-                            <button
-                              onClick={() => handleToggleFavorite(meal)}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-amber-400 transition hover:bg-white/15 active:scale-[0.95]"
-                              aria-label="Remove from favorites"
-                            >
-                              <StarIcon filled />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* ── Saved for Later ─────────────────────────────────────── */}
-              {savedForLater.length > 0 && (
-                <section id="saved">
-                  <div className="mb-4 flex items-center gap-2">
-                    <span className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-3">
-                      Saved for Later
-                    </span>
-                    <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-white/30">
-                      {savedForLater.length}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {savedForLater.map((meal) => (
-                      <div
-                        key={meal.id}
-                        className="bg-[#2A2420] rounded-[20px] p-5 border border-white/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <button onClick={() => handleChoose(meal)} className="flex-1 min-w-0 text-left">
-                            <div className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.07] px-2.5 py-0.5 text-xs text-white/40">
-                              {meal.category}
-                            </div>
-                            <p className="font-display font-bold text-base text-white mt-2">
-                              {meal.name}
-                            </p>
-                            <p className="text-[#8A7F78] text-xs font-body mt-0.5">
-                              {meal.whyItFits}
-                            </p>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {meal.tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-white/35"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </button>
-
-                          <div className="mt-1 shrink-0 flex flex-col items-end gap-2">
-                            <button
-                              onClick={() => { setDrawerMeal(meal); setDrawerOpen(true); }}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95]"
-                              aria-label="More details"
-                            >
-                              <span className="font-body text-sm font-semibold">i</span>
-                            </button>
-                            <button
-                              onClick={() => handleToggleFavorite(meal)}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95]"
-                              aria-label="Add to favorites"
-                            >
-                              <StarIcon filled={false} />
-                            </button>
-                            <button
-                              onClick={() => handleRemove(meal.id)}
-                              className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-white/30 transition hover:text-white/55 active:scale-[0.97]"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          )}
-
-          <div className="mt-auto pt-8">
-            {loaded && !isEmpty && (
-              <div className="mb-5 flex justify-center">
-                <Link
-                  href="/deck"
-                  className="text-sm text-white/35 underline underline-offset-4 transition hover:text-white/60"
-                >
-                  Find something else
-                </Link>
-              </div>
-            )}
-            <BottomNav />
-          </div>
+          <BottomNav />
         </div>
       </div>
 

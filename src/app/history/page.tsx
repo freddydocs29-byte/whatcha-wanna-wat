@@ -18,6 +18,8 @@ import { getUserId } from "../lib/identity";
 import type { Profile } from "../lib/supabase";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
 
+const GRAIN_SVG =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -36,6 +38,16 @@ function formatTime(iso: string): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function InfoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
 }
 
 export default function HistoryPage() {
@@ -90,103 +102,169 @@ export default function HistoryPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#1C1A18] text-white pb-28">
+    <main
+      className="relative min-h-screen overflow-hidden text-white pb-28"
+      style={{ background: "#0B0805" }}
+    >
+      {/* Ambient glow */}
       <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
+        className="absolute inset-0 z-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+            "radial-gradient(ellipse 90% 36% at 50% -4%, rgba(232,98,26,0.16) 0%, transparent 60%)," +
+            "radial-gradient(ellipse 70% 40% at 50% 104%, rgba(184,74,18,0.16) 0%, transparent 66%)," +
+            "radial-gradient(ellipse 40% 22% at 84% 30%, rgba(230,178,106,0.06) 0%, transparent 70%)",
         }}
       />
-      <div className="relative mx-auto w-full max-w-md">
+      {/* Film grain */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: GRAIN_SVG }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }}
+      />
 
+      <div className="relative z-[2] mx-auto w-full max-w-md">
+        {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="px-5 pt-6 pb-2">
-          {/* Avatar top right only */}
           <div className="flex items-center justify-end mb-6">
             <button
-              onClick={() => router.push('/profile')}
-              className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0"
+              onClick={() => router.push("/profile")}
+              className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0"
+              style={{ background: "#E8621A" }}
             >
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
-                : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
-              }
+              {profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
+              ) : (
+                <span>{profile?.display_name?.[0]?.toUpperCase() ?? "?"}</span>
+              )}
             </button>
           </div>
-
-          {/* Title row */}
-          <h1 className="font-display font-black text-3xl text-white">
-            History
-          </h1>
-          <p className="font-body text-sm text-[#8A7F78] mt-1">
+          <h1 className="font-display font-black text-3xl text-white tracking-tight">History</h1>
+          <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
             Every meal you&apos;ve decided on.
           </p>
         </div>
 
+        {/* ── Count row ──────────────────────────────────────────────────── */}
         {loaded && entries.length > 0 && (
-          <div className="flex items-center justify-between px-5 mt-4 mb-1">
-            <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
-              {entries.length} meal{entries.length !== 1 ? "s" : ""}
+          <div className="flex items-center justify-between px-5 mt-5 mb-1">
+            <p
+              className="font-display font-black text-sm tracking-widest"
+              style={{ color: "rgba(245,237,224,0.4)" }}
+            >
+              {entries.length} MEAL{entries.length !== 1 ? "S" : ""}
             </p>
             <button
               onClick={() => setConfirming(true)}
-              className="text-xs text-[#8A7F78] transition hover:text-white/60 active:scale-[0.97]"
+              className="font-body text-xs transition hover:opacity-75 active:scale-[0.97]"
+              style={{ color: "#897E73" }}
             >
               Clear history
             </button>
           </div>
         )}
 
+        {/* ── Empty state ─────────────────────────────────────────────────── */}
         {loaded && entries.length === 0 && (
           <div className="flex flex-col items-center justify-center text-center pt-24 px-5">
-            <div className="mb-5 text-4xl">📋</div>
-            <p className="font-display font-black text-base text-white">No history yet</p>
-            <p className="font-body text-sm text-[#8A7F78] mt-2 max-w-[26ch]">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 text-3xl"
+              style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(245,237,224,0.1)" }}
+            >
+              📋
+            </div>
+            <p className="font-display font-black text-lg text-white">No history yet</p>
+            <p className="font-body text-sm mt-2 max-w-[26ch]" style={{ color: "#897E73" }}>
               Choose a meal on the deck and it&apos;ll show up here.
             </p>
             <Link
               href="/deck"
-              className="mt-6 rounded-full bg-[#E8621A] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_24px_rgba(232,98,26,0.30)] transition hover:opacity-95 active:scale-[0.99]"
+              className="mt-6 rounded-full px-6 py-3.5 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
+              style={{
+                background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+              }}
             >
               Go to deck
             </Link>
           </div>
         )}
 
-        <div className="mt-4">
+        {/* ── Entries ───────────────────────────────────────────────────── */}
+        <div className="mt-4 px-5 flex flex-col gap-3">
           {entries.map((entry, i) => (
             <div
               key={i}
-              className="bg-[#2A2420] rounded-[20px] p-5 mx-5 mb-3 border border-white/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
+              className="rounded-[20px] overflow-hidden"
+              style={{
+                background: "rgba(255,231,202,0.055)",
+                border: "1px solid rgba(245,237,224,0.09)",
+                backdropFilter: "blur(12px)",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(245,237,224,0.05)",
+              }}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-[14px] bg-[#2E2420] border border-[#E8621A]/[0.15] flex items-center justify-center text-3xl flex-shrink-0">
+              {/* Meal row */}
+              <div className="flex items-center gap-4 p-5 pb-4">
+                {/* Thumbnail */}
+                <div
+                  className="w-14 h-14 rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                  style={{
+                    background: "rgba(255,231,202,0.06)",
+                    border: "1px solid rgba(232,98,26,0.18)",
+                  }}
+                >
                   🍽️
                 </div>
+                {/* Name + time */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-display font-bold text-base text-white">{entry.meal.name}</p>
-                  <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                  <p className="font-display font-black text-base text-white leading-tight">
+                    {entry.meal.name}
+                  </p>
+                  <p className="font-body text-xs mt-0.5" style={{ color: "#897E73" }}>
                     {formatDate(entry.chosenAt)} · {formatTime(entry.chosenAt)}
                   </p>
                 </div>
+                {/* Info */}
                 <button
                   onClick={() => { setDrawerMeal(entry.meal); setDrawerOpen(true); }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/25 transition hover:text-white/50 active:scale-[0.95] flex-shrink-0"
+                  className="flex h-9 w-9 items-center justify-center rounded-full transition hover:opacity-80 active:scale-[0.95] flex-shrink-0"
+                  style={{
+                    background: "rgba(255,231,202,0.06)",
+                    border: "1px solid rgba(245,237,224,0.1)",
+                    color: "rgba(245,237,224,0.4)",
+                  }}
                   aria-label="More details"
                 >
-                  <span className="font-body text-sm font-semibold">i</span>
+                  <InfoIcon />
                 </button>
               </div>
 
-              {/* Action row */}
-              <div className="mt-4 flex items-center gap-2 border-t border-white/[0.07] pt-4">
+              {/* Action pills */}
+              <div
+                className="flex items-center gap-2 px-5 pb-5 pt-4"
+                style={{ borderTop: "1px solid rgba(245,237,224,0.06)" }}
+              >
                 <button
                   onClick={() => handleFavoriteToggle(entry.meal)}
-                  className={`flex-1 rounded-full border px-3 py-2 text-xs font-medium transition active:scale-[0.97] ${
+                  className="flex-1 rounded-full py-2 font-body text-xs font-medium transition active:scale-[0.97]"
+                  style={
                     favoriteIds.has(entry.meal.id)
-                      ? "border-white/15 bg-white/10 text-amber-400"
-                      : "border-white/[0.08] bg-transparent text-white/35 hover:text-white/60"
-                  }`}
+                      ? {
+                          background: "rgba(251,191,36,0.14)",
+                          border: "1px solid rgba(251,191,36,0.28)",
+                          color: "#FBB124",
+                        }
+                      : {
+                          background: "rgba(255,231,202,0.04)",
+                          border: "1px solid rgba(245,237,224,0.08)",
+                          color: "rgba(245,237,224,0.4)",
+                        }
+                  }
                 >
                   {favoriteIds.has(entry.meal.id) ? "Unfavorite" : "Favorite"}
                 </button>
@@ -194,13 +272,23 @@ export default function HistoryPage() {
                   href={`https://www.google.com/search?q=${encodeURIComponent(entry.meal.name + " recipe")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-center text-xs font-medium text-white/35 transition hover:text-white/60 active:scale-[0.97]"
+                  className="flex-1 rounded-full py-2 font-body text-center text-xs font-medium transition hover:opacity-75 active:scale-[0.97]"
+                  style={{
+                    background: "rgba(255,231,202,0.04)",
+                    border: "1px solid rgba(245,237,224,0.08)",
+                    color: "rgba(245,237,224,0.4)",
+                  }}
                 >
                   Cook it
                 </a>
                 <button
                   onClick={() => handleShare(entry.meal.name)}
-                  className="flex-1 rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-xs font-medium text-white/35 transition hover:text-white/60 active:scale-[0.97]"
+                  className="flex-1 rounded-full py-2 font-body text-xs font-medium transition hover:opacity-75 active:scale-[0.97]"
+                  style={{
+                    background: "rgba(255,231,202,0.04)",
+                    border: "1px solid rgba(245,237,224,0.08)",
+                    color: "rgba(245,237,224,0.4)",
+                  }}
                 >
                   Share
                 </button>
@@ -208,47 +296,53 @@ export default function HistoryPage() {
             </div>
           ))}
         </div>
-
       </div>
 
       <BottomNav />
+
+      {/* ── Clear history confirmation ───────────────────────────────────── */}
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-5 pb-10">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 backdrop-blur-sm"
+            style={{ background: "rgba(0,0,0,0.65)" }}
             onClick={() => setConfirming(false)}
           />
           <div
             className="relative w-full max-w-md rounded-[28px] p-6"
             style={{
               background:
-                "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232,98,26,0.07) 0%, transparent 60%), #211E1B",
-              border: "1px solid rgba(255,255,255,0.06)",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(245,237,224,0.05)",
+                "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232,98,26,0.07) 0%, transparent 60%), rgba(14,9,5,0.98)",
+              border: "1px solid rgba(245,237,224,0.08)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(245,237,224,0.05)",
             }}
           >
             <p className="font-display font-black text-xl text-white tracking-tight">
               Clear history?
             </p>
-            <p className="font-body text-sm text-[#8A7F78] mt-2 leading-relaxed">
+            <p className="font-body text-sm mt-2 leading-relaxed" style={{ color: "#897E73" }}>
               This will permanently remove all {entries.length} meal
               {entries.length !== 1 ? "s" : ""} from your history.
             </p>
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => setConfirming(false)}
-                className="flex-1 rounded-full py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                className="flex-1 rounded-full py-3 font-body text-sm font-semibold transition active:scale-[0.98]"
                 style={{
                   background: "rgba(255,231,202,0.04)",
                   border: "1px solid rgba(245,237,224,0.08)",
+                  color: "#897E73",
                 }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleClear}
-                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
-                style={{ boxShadow: "0 0 20px rgba(232,98,26,0.35)" }}
+                className="flex-1 rounded-full py-3 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.98]"
+                style={{
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                  boxShadow: "0 0 20px rgba(232,98,26,0.35)",
+                }}
               >
                 Yes, clear it
               </button>
