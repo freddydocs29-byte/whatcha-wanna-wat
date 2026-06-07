@@ -3,16 +3,24 @@
 interface V3WatchaHeaderProps {
   hasNotification?: boolean;
   showShare?: boolean;
+  onMenuClick?: () => void;
+  onNotificationsClick?: () => void;
 }
 
 export default function V3WatchaHeader({
-  hasNotification = true,
+  hasNotification = false,
   showShare = false,
+  onMenuClick,
+  onNotificationsClick,
 }: V3WatchaHeaderProps) {
   return (
     <div className="flex justify-between items-center px-[18px] pt-[14px] pb-[10px] shrink-0">
       {/* Hamburger */}
-      <button className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer">
+      <button
+        onClick={onMenuClick}
+        className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer"
+        aria-label="Open menu"
+      >
         <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
           <rect width="16" height="2" rx="1" fill="white" />
           <rect y="5" width="10" height="2" rx="1" fill="white" />
@@ -39,7 +47,11 @@ export default function V3WatchaHeader({
       {/* Right side: bell + optional share */}
       <div className="flex gap-[7px]">
         <div className="relative">
-          <button className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer">
+          <button
+            onClick={onNotificationsClick}
+            className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer"
+            aria-label="Open notifications"
+          >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
               <path
                 d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"

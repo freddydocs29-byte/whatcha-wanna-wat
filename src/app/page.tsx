@@ -50,9 +50,10 @@ import V3PostMatchHome from "./components/v3/V3PostMatchHome";
 import V3LockedMealCard from "./components/v3/V3LockedMealCard";
 import V3MealActionRows from "./components/v3/V3MealActionRows";
 import V3MealActionDrawer from "./components/v3/V3MealActionDrawer";
-import V3BottomNav from "./components/v3/V3BottomNav";
 import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
 import V3InviteDrawer from "./components/v3/V3InviteDrawer";
+import V3MenuDrawer from "./components/v3/V3MenuDrawer";
+import V3NotificationsDrawer from "./components/v3/V3NotificationsDrawer";
 import { getAllPartners, type PartnerInfo } from "./lib/dna";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PersonV3 } from "./components/v3/V3PeopleSelector";
@@ -190,6 +191,8 @@ export default function Home() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("comfort-food");
   const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [codeInput, setCodeInput] = useState("");
+  const [showMenuDrawer, setShowMenuDrawer] = useState(false);
+  const [showNotificationsDrawer, setShowNotificationsDrawer] = useState(false);
   // Pending in-app invite from a selected partner
   const [pendingInvite, setPendingInvite] = useState<{
     id: string;
@@ -1017,7 +1020,11 @@ export default function Home() {
   return (
     <V3AppShell>
       {/* ── V3 Header ───────────────────────────────────────── */}
-      <V3WatchaHeader hasNotification={false} />
+      <V3WatchaHeader
+        hasNotification={!!(pendingInvite || activeSession)}
+        onMenuClick={() => setShowMenuDrawer(true)}
+        onNotificationsClick={() => setShowNotificationsDrawer(true)}
+      />
 
       {/* ── Active session banner (preserved, inline) ──────── */}
       {activeSession && (
@@ -1309,29 +1316,31 @@ export default function Home() {
             })()}
           </div>
 
-          {/* CTA — pinned at the bottom */}
-          <V3PrimaryDecisionCTA
-            isSolo={selectedPeopleIds.length === 0}
-            hasGuests={selectedPeopleIds.length > 0}
-            onClick={() => {
-              if (selectedPeopleIds.length === 0) {
-                router.push("/deck");
-              } else {
-                trackEvent("decide_with_someone_clicked");
-                void handleDecideWithSomeone();
-              }
-            }}
-          />
-          {sessionError && (
-            <p className="text-center text-sm text-red-400 px-4 pb-2 shrink-0">
-              {sessionError}
-            </p>
-          )}
+          {/* CTA — pinned at the bottom, with safe-area spacing */}
+          <div
+            className="shrink-0"
+            style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
+          >
+            <V3PrimaryDecisionCTA
+              isSolo={selectedPeopleIds.length === 0}
+              hasGuests={selectedPeopleIds.length > 0}
+              onClick={() => {
+                if (selectedPeopleIds.length === 0) {
+                  router.push("/deck");
+                } else {
+                  trackEvent("decide_with_someone_clicked");
+                  void handleDecideWithSomeone();
+                }
+              }}
+            />
+            {sessionError && (
+              <p className="text-center text-sm text-red-400 px-4 pb-2">
+                {sessionError}
+              </p>
+            )}
+          </div>
         </div>
       )}
-
-      {/* ── Bottom nav ─────────────────────────────────────── */}
-      <V3BottomNav active="home" />
 
       {/* ── Code entry bottom sheet ────────────────────────── */}
       <AnimatePresence>
@@ -1681,6 +1690,24 @@ export default function Home() {
             status: "waiting",
           });
         }}
+      />
+
+      {/* ── Menu drawer (hamburger) ─────────────────────────── */}
+      <V3MenuDrawer
+        open={showMenuDrawer}
+        onClose={() => setShowMenuDrawer(false)}
+      />
+
+      {/* ── Notifications drawer (bell) ─────────────────────── */}
+      {/* Reads from pendingInvite + activeSession already loaded on Home — no second Supabase query */}
+      <V3NotificationsDrawer
+        open={showNotificationsDrawer}
+        onClose={() => setShowNotificationsDrawer(false)}
+        pendingInvite={pendingInvite}
+        activeSession={activeSession}
+        onJoinInvite={() => { void handleJoinInvite(); }}
+        onDismissInvite={() => { void handleDismissInvite(); }}
+        onResume={handleResumeBanner}
       />
     </V3AppShell>
   );
