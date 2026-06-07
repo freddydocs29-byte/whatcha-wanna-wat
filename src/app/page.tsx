@@ -49,6 +49,7 @@ import V3PrimaryDecisionCTA from "./components/v3/V3PrimaryDecisionCTA";
 import V3PostMatchHome from "./components/v3/V3PostMatchHome";
 import V3LockedMealCard from "./components/v3/V3LockedMealCard";
 import V3MealActionRows from "./components/v3/V3MealActionRows";
+import V3MealActionDrawer from "./components/v3/V3MealActionDrawer";
 import V3BottomNav from "./components/v3/V3BottomNav";
 import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
 import V3InviteDrawer from "./components/v3/V3InviteDrawer";
@@ -182,6 +183,7 @@ export default function Home() {
   const [decidedSaved, setDecidedSaved] = useState(false);
   const [savedJustNow, setSavedJustNow] = useState(false);
   const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
+  const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
   const [showInviteDrawer, setShowInviteDrawer] = useState(false);
   const [selectedRecentMeal, setSelectedRecentMeal] = useState<Meal | null>(null);
@@ -891,21 +893,13 @@ export default function Home() {
   function handleCookDirect() {
     if (!decidedMeal) return;
     recordPickIfNew();
-    window.open(
-      `https://www.google.com/search?q=how+to+cook+${encodeURIComponent(decidedMeal.name)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    setMealActionMode("cook");
   }
 
   function handleOrderDirect() {
     if (!decidedMeal) return;
     recordPickIfNew();
-    window.open(
-      `https://www.google.com/search?q=order+${encodeURIComponent(decidedMeal.name)}+delivery`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    setMealActionMode("order");
   }
 
   function toggleSaveDecidedMeal() {
@@ -1165,6 +1159,15 @@ export default function Home() {
               },
             ]}
           />
+
+          {/* Cook / Order action drawer */}
+          {mealActionMode && (
+            <V3MealActionDrawer
+              meal={decidedMeal}
+              mode={mealActionMode}
+              onClose={() => setMealActionMode(null)}
+            />
+          )}
         </div>
       ) : (
         /* ── PRE-DECISION STATE ──────────────────────────────── */
