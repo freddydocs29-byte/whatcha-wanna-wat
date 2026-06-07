@@ -62,9 +62,19 @@ export default function JoinPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#1C1A18] text-white">
-      <div className="flex flex-col items-center gap-3">
-        <span className="h-2 w-2 animate-ping rounded-full bg-[#E8621A]/60" />
+    <main className="relative flex min-h-screen items-center justify-center bg-[#1C1A18] text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+        <div
+          className="absolute top-1/3 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+          style={{ background: "rgba(232,98,26,0.08)" }}
+        />
+      </div>
+      <div className="flex flex-col items-center gap-4">
+        <span className="relative flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/60 opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-[#E8621A]/80" />
+        </span>
         <p className="font-body text-sm text-[#8A7F78]">Joining session…</p>
       </div>
     </main>

@@ -624,7 +624,7 @@ export default function SessionPage() {
                       className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
                         selected
                           ? "border-[#E8621A] bg-[#E8621A]/10"
-                          : "border-transparent bg-[#2A2420]"
+                          : "border-white/[0.06] bg-[#2A2420]"
                       }`}
                     >
                       <span className="text-2xl">{c.emoji}</span>
@@ -651,7 +651,7 @@ export default function SessionPage() {
                       className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
                         selected
                           ? "border-[#E8621A] bg-[#E8621A]/10"
-                          : "border-transparent bg-[#2A2420]"
+                          : "border-white/[0.06] bg-[#2A2420]"
                       }`}
                     >
                       <span className="text-2xl">{f.emoji}</span>
@@ -678,7 +678,7 @@ export default function SessionPage() {
                       className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
                         selected
                           ? "border-[#E8621A] bg-[#E8621A]/10"
-                          : "border-transparent bg-[#2A2420]"
+                          : "border-white/[0.06] bg-[#2A2420]"
                       }`}
                     >
                       <span className="text-2xl">{f.emoji}</span>
@@ -720,7 +720,13 @@ export default function SessionPage() {
   if (!session && !error) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#1C1A18] text-white">
-        <p className="text-white/40 text-sm">Loading session…</p>
+        <div className="flex flex-col items-center gap-4">
+          <span className="relative flex h-3 w-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/60 opacity-75" />
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-[#E8621A]/80" />
+          </span>
+          <p className="font-body text-sm text-[#8A7F78]">Loading session…</p>
+        </div>
       </main>
     );
   }
@@ -728,12 +734,27 @@ export default function SessionPage() {
   // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
-        <p className="text-lg font-semibold">Something went wrong</p>
-        <p className="max-w-[28ch] text-sm text-white/50">{error}</p>
+      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div
+            className="absolute top-1/3 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+            style={{ background: "rgba(232,98,26,0.08)" }}
+          />
+        </div>
+        <div
+          className="w-20 h-20 rounded-[20px] bg-[#E8621A]/10 flex items-center justify-center"
+          style={{ boxShadow: "0 0 40px rgba(232,98,26,0.18)" }}
+        >
+          <span className="font-display font-black text-4xl text-[#E8621A]">!</span>
+        </div>
+        <div>
+          <p className="font-display font-black text-2xl text-white">Something went wrong</p>
+          <p className="mt-2 font-body text-sm text-[#8A7F78] max-w-[28ch] mx-auto">{error}</p>
+        </div>
         <Link
           href="/"
-          className="rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-medium text-white"
+          className="w-full max-w-xs rounded-full border border-white/10 bg-white/[0.06] px-6 py-4 font-display font-black text-sm text-white transition hover:opacity-80 active:scale-[0.99]"
         >
           Back to home
         </Link>
@@ -754,15 +775,29 @@ export default function SessionPage() {
   // ── Session full ──────────────────────────────────────────────────────────
   if (role === "full") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
-        <div className="text-4xl">🔒</div>
-        <p className="text-lg font-semibold tracking-[-0.03em]">Session is full</p>
-        <p className="max-w-[28ch] text-sm leading-6 text-white/50">
-          This session already has two people. Ask the host to start a new one.
-        </p>
+      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div
+            className="absolute top-1/3 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+            style={{ background: "rgba(232,98,26,0.08)" }}
+          />
+        </div>
+        <div
+          className="w-20 h-20 rounded-[20px] bg-[#E8621A]/10 flex items-center justify-center"
+          style={{ boxShadow: "0 0 40px rgba(232,98,26,0.18)" }}
+        >
+          <span className="text-3xl">🔒</span>
+        </div>
+        <div>
+          <p className="font-display font-black text-2xl text-white">Session is full</p>
+          <p className="mt-2 font-body text-sm text-[#8A7F78] max-w-[28ch] mx-auto leading-relaxed">
+            This session already has two people. Ask the host to start a new one.
+          </p>
+        </div>
         <Link
           href="/"
-          className="rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-medium text-white"
+          className="w-full max-w-xs rounded-full border border-white/10 bg-white/[0.06] px-6 py-4 font-display font-black text-sm text-white transition hover:opacity-80 active:scale-[0.99]"
         >
           Back to home
         </Link>
@@ -792,9 +827,14 @@ export default function SessionPage() {
           Shared session
         </p>
 
-        <div className="w-24 h-24 rounded-full bg-[#E8621A]/10 flex items-center justify-center animate-pulse">
-          <div className="w-14 h-14 rounded-full bg-[#E8621A]/20 flex items-center justify-center">
-            <span className="text-3xl">👥</span>
+        <div className="relative flex items-center justify-center w-32 h-32">
+          <div className="absolute w-32 h-32 rounded-full border border-[#E8621A]/20" style={{ animation: "ping 2.5s cubic-bezier(0,0,0.2,1) infinite" }} />
+          <div className="absolute w-24 h-24 rounded-full border border-[#E8621A]/30 animate-pulse" />
+          <div
+            className="w-16 h-16 rounded-full bg-[#E8621A]/15 flex items-center justify-center"
+            style={{ boxShadow: "0 0 24px rgba(232,98,26,0.2)" }}
+          >
+            <span className="text-2xl">👥</span>
           </div>
         </div>
 
@@ -859,9 +899,14 @@ export default function SessionPage() {
           Shared session
         </p>
 
-        <div className="w-24 h-24 rounded-full bg-[#E8621A]/10 flex items-center justify-center">
-          <div className="w-14 h-14 rounded-full bg-[#E8621A]/20 flex items-center justify-center">
-            <span className="text-3xl">👥</span>
+        <div className="relative flex items-center justify-center w-32 h-32">
+          <div className="absolute w-32 h-32 rounded-full border border-[#4A7C59]/30" />
+          <div className="absolute w-24 h-24 rounded-full border border-[#4A7C59]/50" />
+          <div
+            className="w-16 h-16 rounded-full bg-[#4A7C59]/20 flex items-center justify-center"
+            style={{ boxShadow: "0 0 30px rgba(74,124,89,0.25)" }}
+          >
+            <span className="text-2xl">👥</span>
           </div>
         </div>
 
@@ -949,6 +994,17 @@ export default function SessionPage() {
         <p className="font-body text-sm text-[#8A7F78] text-center mt-3">
           Filtering out the maybes. Your deck is almost ready.
         </p>
+
+        {/* Progress dots */}
+        <div className="flex gap-2 mt-8">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full transition-colors duration-[400ms]"
+              style={{ background: i === buildPhrase % 3 ? "#E8621A" : "#2A2420" }}
+            />
+          ))}
+        </div>
       </main>
     );
   }
@@ -1008,7 +1064,7 @@ export default function SessionPage() {
             <p className="font-body text-xs text-[#8A7F78] mt-2">
               or share the link below
             </p>
-            <div className="mt-3 bg-[#1C1A18] rounded-[12px] px-3 py-2">
+            <div className="mt-3 bg-[#1C1A18] rounded-[12px] px-3 py-2 border border-white/[0.04]">
               <p className="font-body text-xs text-[#8A7F78] truncate">{sessionUrl}</p>
             </div>
           </div>
@@ -1017,16 +1073,16 @@ export default function SessionPage() {
           <div className="grid grid-cols-2 gap-3 mt-4 w-full">
             <button
               onClick={handleShare}
-              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-[14px]"
-              style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
+              style={{ boxShadow: "0 0 30px rgba(232,98,26,0.28)" }}
             >
               Share link
             </button>
             <button
               onClick={handleCopy}
-              className="w-full bg-[#2A2420] text-white font-display font-black text-base py-4 rounded-[14px] border border-white/10"
+              className="w-full bg-[#2A2420] text-white font-display font-black text-base py-4 rounded-full border border-white/10 transition hover:opacity-80 active:scale-[0.99]"
             >
-              {copied ? "Copied!" : "Copy link"}
+              {copied ? "Copied ✓" : "Copy link"}
             </button>
           </div>
 
@@ -1229,7 +1285,7 @@ export default function SessionPage() {
           </h1>
 
           {/* Session code */}
-          <div className="mt-8 bg-[#2A2420] rounded-[20px] px-6 py-4 w-full max-w-xs">
+          <div className="mt-8 bg-[#2A2420] rounded-[20px] px-6 py-4 w-full max-w-xs border border-white/[0.08]">
             <p className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase mb-1">
               Code
             </p>

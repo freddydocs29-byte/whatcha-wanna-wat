@@ -66,12 +66,15 @@ export function SessionTerminalScreen({ variant }: { variant: SessionTerminalVar
           className="absolute top-1/3 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
           style={{ background: "rgba(232,98,26,0.12)" }}
         />
+        <div className="absolute bottom-0 left-1/2 h-56 w-56 -translate-x-1/2 translate-y-1/2 rounded-full blur-3xl"
+          style={{ background: "rgba(28,16,8,0.6)" }}
+        />
       </div>
 
       {/* Icon */}
       <div
-        className="w-20 h-20 rounded-[20px] bg-[#E8621A]/10 flex items-center justify-center"
-        style={{ boxShadow: "0 0 40px rgba(232,98,26,0.18)" }}
+        className="w-20 h-20 rounded-2xl bg-[#E8621A]/10 flex items-center justify-center"
+        style={{ boxShadow: "0 0 40px rgba(232,98,26,0.22)" }}
       >
         <span className="font-display font-black text-4xl text-[#E8621A]">?</span>
       </div>
@@ -100,7 +103,7 @@ export function SessionTerminalScreen({ variant }: { variant: SessionTerminalVar
         <div className="w-full max-w-xs flex flex-col gap-3">
           <button
             onClick={handleTryDifferent}
-            className="w-full rounded-full border border-white/10 bg-white/[0.06] px-8 py-4 font-display font-black text-base text-white transition hover:opacity-80 active:scale-[0.99]"
+            className="w-full rounded-full border border-white/[0.12] bg-white/[0.06] px-8 py-4 font-display font-black text-base text-white transition hover:opacity-80 active:scale-[0.99]"
           >
             Try a different code →
           </button>
