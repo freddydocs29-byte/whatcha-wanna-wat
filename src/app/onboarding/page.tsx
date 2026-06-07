@@ -186,7 +186,7 @@ export default function OnboardingPage() {
   const noveltyEmojis = ["🔁", "⚖️", "🌟"];
 
   return (
-    <main className="min-h-screen bg-[#1C1A18] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
       <div className="mx-auto w-full max-w-md pb-32">
 
         {/* 1. PROGRESS BAR */}
@@ -194,7 +194,7 @@ export default function OnboardingPage() {
           {step > 1 && (
             <button
               onClick={goBack}
-              className="text-[#8A7F78] text-lg leading-none flex-shrink-0 pr-1"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 flex-shrink-0 transition active:scale-[0.98]"
             >
               ←
             </button>
@@ -210,6 +210,17 @@ export default function OnboardingPage() {
             ))}
           </div>
         </div>
+
+        {/* Ember background ambience — steps 1–4 */}
+        {step >= 1 && step < 5 && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 70%)",
+            }}
+          />
+        )}
 
         {/* ── Step 0: "Here's the deal" intro ─────────────────────────────── */}
         {step === 0 && (
@@ -254,12 +265,17 @@ export default function OnboardingPage() {
               transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col"
             >
-              {/* 2. QUESTION HEADLINE */}
-              <h1 className="font-display font-black text-3xl text-white leading-tight mt-8 px-5 whitespace-pre-line">
+              {/* 2. STEP COUNTER */}
+              <p className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78] mt-8 px-5">
+                {step} of 4
+              </p>
+
+              {/* 3. QUESTION HEADLINE */}
+              <h1 className="font-display font-black text-3xl text-white leading-tight mt-3 px-5 whitespace-pre-line">
                 {currentStep.title}
               </h1>
 
-              {/* 3. SUBTEXT */}
+              {/* 4. SUBTEXT */}
               <p className="font-body text-base text-[#8A7F78] mt-3 px-5">
                 {currentStep.subtitle}
               </p>
@@ -473,13 +489,14 @@ export default function OnboardingPage() {
            Step 4 (auto-advance): shown only if the user navigated back and already
            has a noveltyBias set so they can proceed without re-selecting. */}
       {step >= 1 && step < 5 && (step <= 3 || (step === 4 && noveltyBias !== null)) && (
-        <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
-          <div className="mx-auto w-full max-w-md">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#1C1A18]">
+          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
             <button
               onClick={advance}
               disabled={!canContinue()}
               className={`w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99] ${
-                !canContinue() ? "opacity-40 pointer-events-none" : ""
+                !canContinue() ? "opacity-40 pointer-events-none" : "shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
               }`}
             >
               Continue
@@ -490,11 +507,12 @@ export default function OnboardingPage() {
 
       {/* Step 0 CTA */}
       {step === 0 && (
-        <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
-          <div className="mx-auto w-full max-w-md">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#1C1A18]">
+          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
             <button
               onClick={advance}
-              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99]"
+              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99] shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
             >
               Got it →
             </button>
@@ -504,11 +522,12 @@ export default function OnboardingPage() {
 
       {/* Step 5 CTA */}
       {step === 5 && (
-        <div className="fixed bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-[#1C1A18]">
-          <div className="mx-auto w-full max-w-md">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#1C1A18]">
+          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
             <button
               onClick={advance}
-              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99]"
+              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99] shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
             >
               Let&apos;s eat →
             </button>

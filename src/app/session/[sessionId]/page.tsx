@@ -506,7 +506,14 @@ export default function SessionPage() {
     // ── Intro screen ────────────────────────────────────────────────────────
     if (setupStep === "intro") {
       return (
-        <main className="min-h-screen bg-[#1C1A18] text-white">
+        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 70%)",
+            }}
+          />
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
             <div className="pt-10">
               <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-6">
@@ -614,7 +621,7 @@ export default function SessionPage() {
 
             {/* Options */}
             {setupStep === "cuisines" && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {GUEST_CUISINES.map((c) => {
                   const selected = guestCuisines.includes(c.label);
                   return (
@@ -627,12 +634,14 @@ export default function SessionPage() {
                           : "border-white/[0.06] bg-[#2A2420]"
                       }`}
                     >
-                      <span className="text-2xl">{c.emoji}</span>
-                      <span className="flex-1 font-display font-black text-base text-white text-left">{c.label}</span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
-                        selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/20"
+                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                        {c.emoji}
+                      </div>
+                      <span className="flex-1 font-display font-black text-lg text-white text-left">{c.label}</span>
+                      <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                        selected ? "bg-[#E8621A] flex items-center justify-center" : "border-2 border-[#3D3733]"
                       }`}>
-                        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+                        {selected && <span className="text-sm font-black text-white">✓</span>}
                       </div>
                     </button>
                   );
@@ -641,7 +650,7 @@ export default function SessionPage() {
             )}
 
             {setupStep === "dietary" && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {GUEST_DIETARY_RESTRICTIONS.map((f) => {
                   const selected = guestDietaryRestrictions.includes(f.label);
                   return (
@@ -654,12 +663,14 @@ export default function SessionPage() {
                           : "border-white/[0.06] bg-[#2A2420]"
                       }`}
                     >
-                      <span className="text-2xl">{f.emoji}</span>
-                      <span className="flex-1 font-display font-black text-base text-white text-left">{f.label}</span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
-                        selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/20"
+                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                        {f.emoji}
+                      </div>
+                      <span className="flex-1 font-display font-black text-lg text-white text-left">{f.label}</span>
+                      <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                        selected ? "bg-[#E8621A] flex items-center justify-center" : "border-2 border-[#3D3733]"
                       }`}>
-                        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+                        {selected && <span className="text-sm font-black text-white">✓</span>}
                       </div>
                     </button>
                   );
@@ -668,7 +679,7 @@ export default function SessionPage() {
             )}
 
             {setupStep === "hardNos" && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {GUEST_HARD_NOS.map((f) => {
                   const selected = guestHardNos.includes(f.label);
                   return (
@@ -681,12 +692,14 @@ export default function SessionPage() {
                           : "border-white/[0.06] bg-[#2A2420]"
                       }`}
                     >
-                      <span className="text-2xl">{f.emoji}</span>
-                      <span className="flex-1 font-display font-black text-base text-white text-left">{f.label}</span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
-                        selected ? "border-[#E8621A] bg-[#E8621A]" : "border-white/20"
+                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                        {f.emoji}
+                      </div>
+                      <span className="flex-1 font-display font-black text-lg text-white text-left">{f.label}</span>
+                      <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
+                        selected ? "bg-[#E8621A] flex items-center justify-center" : "border-2 border-[#3D3733]"
                       }`}>
-                        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+                        {selected && <span className="text-sm font-black text-white">✓</span>}
                       </div>
                     </button>
                   );
