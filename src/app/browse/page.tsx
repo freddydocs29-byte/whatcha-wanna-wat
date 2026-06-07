@@ -36,9 +36,9 @@ export default function BrowsePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080808] safe-top text-white">
+    <main className="min-h-screen bg-[#1C1A18] safe-top text-white">
       {/* ── Sticky header ─────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#080808]/90 backdrop-blur-md">
+      <div className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#1C1A18]/90 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-md items-center justify-between px-5 py-4">
           <button
             onClick={() => router.back()}
@@ -180,10 +180,9 @@ export default function BrowsePage() {
                   {/* Primary: commit to this meal */}
                   <button
                     onClick={() => handleChoose(selected)}
-                    className="w-full rounded-full bg-white py-4 text-base font-semibold text-black"
+                    className="w-full rounded-full bg-[#E8621A] py-4 text-base font-display font-black text-white"
                     style={{
-                      boxShadow:
-                        "0 0 24px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)",
+                      boxShadow: "0 8px 40px rgba(232,98,26,0.28)",
                     }}
                   >
                     Choose this

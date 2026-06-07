@@ -237,7 +237,7 @@ export default function RecommendPage() {
   // ── Loading state ─────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#080808] px-5 pb-8 safe-top text-white">
+      <main className="min-h-screen bg-[#1C1A18] px-5 pb-8 safe-top text-white">
         <div className="mx-auto w-full max-w-md">
           <div className="flex items-center justify-between py-4">
             <div className="h-10 w-10 animate-pulse rounded-full bg-white/[0.06]" />
@@ -260,7 +260,7 @@ export default function RecommendPage() {
   // ── Deck exhausted ────────────────────────────────────────────────────────
   if (!meal) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-[#080808] px-5 text-center text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-[#1C1A18] px-5 text-center text-white">
         <p className="text-sm text-white/50">Nothing left to suggest.</p>
         <button
           onClick={() => router.push("/deck")}
@@ -274,7 +274,7 @@ export default function RecommendPage() {
 
   // ── Main view ─────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#080808] text-white">
+    <main className="min-h-screen bg-[#1C1A18] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-8 safe-top">
         {/* Header */}
         <header className="flex items-center justify-between py-4">
@@ -338,7 +338,7 @@ export default function RecommendPage() {
           <button
             onClick={handleChoose}
             disabled={isAnimating}
-            className="w-full rounded-full bg-white px-5 py-4 text-base font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-60"
+            className="w-full rounded-full bg-[#E8621A] px-5 py-4 text-base font-display font-black text-white shadow-[0_8px_40px_rgba(232,98,26,0.28)] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-60"
           >
             Yes, let&apos;s eat
           </button>
