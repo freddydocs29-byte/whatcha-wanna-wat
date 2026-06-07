@@ -2290,17 +2290,37 @@ function DeckContent() {
         <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.12) 0%, transparent 65%)" }} />
         <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
         <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
-        <p className="relative z-10 text-lg font-semibold tracking-[-0.03em]">Deck not ready</p>
-        <p className="relative z-10 max-w-[28ch] text-sm leading-6 text-white/50">
-          The shared deck couldn&apos;t be built. Ask the host to go back and
-          try again.
-        </p>
-        <button
-          onClick={() => router.push("/")}
-          className="relative z-10 rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-medium text-white"
+        <div
+          className="relative z-10 rounded-[24px] px-8 py-8 flex flex-col items-center gap-4 w-full max-w-sm"
+          style={{
+            background: "linear-gradient(180deg, rgba(255,231,202,0.06) 0%, rgba(255,231,202,0.02) 100%)",
+            border: "1px solid rgba(245,237,224,0.16)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 24px 50px rgba(0,0,0,0.45)",
+          }}
         >
-          Back to home
-        </button>
+          <div className="flex items-center gap-2 mb-1">
+            <span style={{ color: "#E8621A", filter: "drop-shadow(0 0 6px rgba(232,98,26,0.5))", fontSize: 11 }}>✦</span>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#E8621A" }}>Session error</span>
+          </div>
+          <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "#F6EEE2", letterSpacing: "-0.01em" }}>Deck not ready</p>
+          <p className="text-center leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73", maxWidth: "28ch" }}>
+            The shared deck couldn&apos;t be built. Ask the host to go back and try again.
+          </p>
+          <button
+            onClick={() => router.push("/")}
+            className="mt-2 w-full rounded-full py-3.5 transition active:scale-[0.98]"
+            style={{
+              fontFamily: "'Quicksand', sans-serif",
+              fontWeight: 700,
+              fontSize: 15,
+              color: "#1c0c03",
+              background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+              boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 12px 26px rgba(232,98,26,0.40), 0 0 0 1px rgba(232,98,26,0.28)",
+            }}
+          >
+            Back to home
+          </button>
+        </div>
       </main>
     );
   }
@@ -2312,9 +2332,27 @@ function DeckContent() {
         <div className="pointer-events-none absolute inset-0 candlelight-animate" style={{ background: "radial-gradient(ellipse 90% 36% at 50% -4%, rgba(232,98,26,0.12) 0%, transparent 60%)", animation: "candlelight-amb 9s ease-in-out infinite" }} />
         <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
         <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
-        <div className="relative z-10 flex flex-col items-center gap-3">
-          <span className="h-2 w-2 animate-ping rounded-full bg-[#E8621A]/60" />
-          <p className="text-sm text-white/35">Loading shared deck…</p>
+        <div className="relative z-10 flex flex-col items-center gap-4 px-8 text-center">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse"
+            style={{
+              background: "rgba(232,98,26,0.10)",
+              border: "1px solid rgba(232,98,26,0.22)",
+              boxShadow: "0 0 30px rgba(232,98,26,0.18)",
+              fontSize: 28,
+            }}
+          >
+            🍽️
+          </div>
+          <span className="h-1.5 w-1.5 animate-ping rounded-full" style={{ background: "rgba(232,98,26,0.7)" }} />
+          <div>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#E8621A" }}>
+              Building the deck
+            </p>
+            <p className="mt-1" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 18, color: "#C7BDAC" }}>
+              Syncing with your partner…
+            </p>
+          </div>
         </div>
       </main>
     );
@@ -2395,10 +2433,20 @@ function DeckContent() {
                           onDragEnd={(_, info) => {
                             if (info.offset.y > 80 || info.velocity.y > 500) setConfirmMeal(null);
                           }}
-                          className="relative w-full max-w-md bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+                          className="relative w-full max-w-md rounded-t-[28px] px-6 pt-4 pb-10"
+                          style={{
+                            background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, #120D09 6%)",
+                            borderTop: "1px solid rgba(245,237,224,0.085)",
+                            boxShadow: "0 -8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)",
+                            backdropFilter: "blur(24px)",
+                          }}
                         >
-                          <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
-                          <p className="font-display font-black text-xl text-white text-center">
+                          <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "rgba(245,237,224,0.15)" }} />
+                          <div className="flex items-center gap-2 mb-4">
+                            <span style={{ color: "#5E9E6E", fontSize: 11 }}>✦</span>
+                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#86A972" }}>Lock it in</span>
+                          </div>
+                          <p className="text-xl text-center" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#F6EEE2", letterSpacing: "-0.01em" }}>
                             Lock in {confirmMeal.name} as tonight&apos;s pick?
                           </p>
                           <div className="flex flex-col gap-3 mt-6">
@@ -2438,14 +2486,19 @@ function DeckContent() {
                                 }
                                 router.push("/");
                               }}
-                              className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
-                              style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                              className="w-full rounded-full py-4 text-base transition active:scale-[0.98]"
+                              style={{
+                                fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#06140a",
+                                background: "linear-gradient(180deg,#86C796,#5E9E6E 50%,#3F744F)",
+                                boxShadow: "0 1px 0 rgba(220,255,228,0.5) inset, 0 -2px 0 rgba(20,60,30,0.4) inset, 0 14px 30px rgba(94,158,110,0.32)",
+                              }}
                             >
                               Yes, let&apos;s eat →
                             </button>
                             <button
                               onClick={() => setConfirmMeal(null)}
-                              className="w-full rounded-full border border-white/10 bg-transparent py-3 font-body text-sm text-[#8A7F78] transition hover:text-white active:scale-[0.98]"
+                              className="w-full rounded-full py-3 text-sm transition active:scale-[0.98]"
+                              style={{ fontFamily: "'Inter', sans-serif", color: "#897E73", border: "1px solid rgba(245,237,224,0.085)", background: "rgba(255,231,202,0.03)" }}
                             >
                               Keep looking
                             </button>
@@ -2468,18 +2521,21 @@ function DeckContent() {
                           <button
                             key={meal.id}
                             onClick={() => setConfirmMeal(meal)}
-                            className="w-full text-left rounded-[20px] overflow-hidden bg-[#2A2420] border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+                            className="w-full text-left rounded-[20px] overflow-hidden transition-all duration-200"
+                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
                           >
-                            <div className="w-full bg-[#3D3733]" style={{ aspectRatio: "16/9" }}>
+                            <div className="w-full relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
                               <img src={meal.image || FALLBACK_IMAGE} alt={meal.name} className="w-full h-full object-cover" />
+                              {/* Top spotlight */}
+                              <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.55) 0%, rgba(255,228,190,0.10) 30%, transparent 58%)", mixBlendMode: "screen" }} />
                             </div>
                             <div className="p-4">
-                              <p className="font-display font-black text-xl text-white">{meal.name}</p>
-                              <p className="font-body text-sm text-white/70 mt-1">{meal.description}</p>
+                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 19, color: "#F6EEE2", letterSpacing: "-0.01em" }}>{meal.name}</p>
+                              <p className="mt-1" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12.5, color: "#C7BDAC" }}>{meal.description}</p>
                               {meal.tags && meal.tags.length > 0 && (
                                 <div className="flex gap-1.5 flex-wrap mt-2">
                                   {meal.tags.slice(0, 3).map((tag) => (
-                                    <span key={tag} className="bg-white/10 text-white/70 font-body text-xs px-2.5 py-1 rounded-full">
+                                    <span key={tag} style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)", borderRadius: 100, padding: "4px 10px", fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11, color: "#C7BDAC" }}>
                                       {tag}
                                     </span>
                                   ))}
@@ -2495,41 +2551,47 @@ function DeckContent() {
                 ) : (
                   /* ── Shared no-match main screen ─────────────────────── */
                   <div className="w-full">
-                    <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-6">
-                      DECK COMPLETE
-                    </p>
+                    <div className="flex items-center gap-2 mb-4">
+                      <span style={{ color: "#E8621A", filter: "drop-shadow(0 0 5px rgba(232,98,26,0.5))", fontSize: 11 }}>✦</span>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#E8621A" }}>
+                        Deck complete
+                      </span>
+                    </div>
                     {sharedResetCount >= 2 ? (
                       /* ── Shared terminal: exhausted all resets ──────── */
                       <>
-                        <h2 className="font-display font-black text-2xl text-white text-center leading-tight">
+                        <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: "#F6EEE2", lineHeight: 1.1, textAlign: "center" }}>
                           You&apos;ve both seen everything.
                         </h2>
-                        <p className="font-body text-sm text-[#8A7F78] text-center mt-2 mb-8">
+                        <p className="text-center mt-2 mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
                           Sometimes the answer isn&apos;t on the menu. Take a break and come back with fresh eyes.
                         </p>
-                        <div className="flex flex-col gap-3 w-full text-left">
-                          {/* See what they liked — always available */}
+                        <div className="flex flex-col gap-2.5 w-full text-left">
                           <button
                             onClick={() => void handleLoadPartnerPicks()}
                             disabled={partnerPicksLoading}
-                            className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200 disabled:opacity-60"
+                            className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
+                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
                           >
                             <span className="text-2xl flex-shrink-0">👀</span>
                             <div className="flex-1 min-w-0">
-                              <p className="font-display font-black text-base text-white">
+                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
                                 {partnerPicksLoading ? "Loading…" : "See what they liked"}
                               </p>
-                              <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                              <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
                                 Browse their yes pile and pick a compromise
                               </p>
                             </div>
-                            <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                            <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
                           </button>
-                          {/* Go home */}
                           <button
                             onClick={() => router.push("/")}
-                            className="mt-2 w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
-                            style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                            className="mt-2 w-full rounded-full py-4 text-base transition active:scale-[0.98]"
+                            style={{
+                              fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#1c0c03",
+                              background: "linear-gradient(180deg,#FF8A3D,#E8621A 50%,#B84A12)",
+                              boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 12px 26px rgba(232,98,26,0.35)",
+                            }}
                           >
                             Go home
                           </button>
@@ -2538,37 +2600,36 @@ function DeckContent() {
                     ) : (
                       /* ── Standard shared no-match options ───────────── */
                       <>
-                        <h2 className="font-display font-black text-3xl text-white leading-tight">
+                        <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 28, color: "#F6EEE2", lineHeight: 1.05, letterSpacing: "-0.01em" }}>
                           You&apos;ve both swiped everything.
                         </h2>
-                        <p className="font-body text-sm text-[#8A7F78] mt-3 mb-10">
+                        <p className="mt-2 mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
                           Still no match. Here&apos;s what you can do.
                         </p>
-                        <div className="flex flex-col gap-3 w-full text-left">
-                          {/* See what they liked */}
+                        <div className="flex flex-col gap-2.5 w-full text-left">
                           <button
                             onClick={() => void handleLoadPartnerPicks()}
                             disabled={partnerPicksLoading}
-                            className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200 disabled:opacity-60"
+                            className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
+                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
                           >
                             <span className="text-2xl flex-shrink-0">👀</span>
                             <div className="flex-1 min-w-0">
-                              <p className="font-display font-black text-base text-white">
+                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
                                 {partnerPicksLoading ? "Loading…" : "See what they liked"}
                               </p>
-                              <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+                              <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
                                 Browse their yes pile and pick a compromise
                               </p>
                             </div>
-                            <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                            <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
                           </button>
-                          {/* Fresh session — shows info message after tapping */}
                           {sharedFreshTapped ? (
-                            <div className="bg-[#2A2420] rounded-[18px] p-4 text-center">
-                              <p className="font-body text-sm text-[#8A7F78]">
+                            <div className="rounded-[18px] p-4 text-center" style={{ background: "rgba(232,98,26,0.05)", border: "1px solid rgba(232,98,26,0.16)" }}>
+                              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#C7BDAC" }}>
                                 Both of you need to choose this to start fresh.{sharedSessionCode ? " Share the session code again: " : ""}
                                 {sharedSessionCode && (
-                                  <span className="font-display font-black text-white">{sharedSessionCode}</span>
+                                  <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#F6EEE2" }}>{sharedSessionCode}</span>
                                 )}
                               </p>
                             </div>
@@ -2576,29 +2637,30 @@ function DeckContent() {
                             <button
                               onClick={() => setSharedFreshTapped(true)}
                               disabled={sharedRefreshing}
-                              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200 disabled:opacity-60"
+                              className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
+                              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
                             >
                               <span className="text-2xl flex-shrink-0">🔄</span>
                               <div className="flex-1 min-w-0">
-                                <p className="font-display font-black text-base text-white">
+                                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
                                   Start a fresh session
                                 </p>
-                                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Build a new deck together</p>
+                                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>Build a new deck together</p>
                               </div>
-                              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                              <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
                             </button>
                           )}
-                          {/* Go home */}
                           <button
                             onClick={() => router.push("/")}
-                            className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+                            className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
+                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
                           >
                             <span className="text-2xl flex-shrink-0">🏠</span>
                             <div className="flex-1 min-w-0">
-                              <p className="font-display font-black text-base text-white">Go home</p>
-                              <p className="font-body text-xs text-[#8A7F78] mt-0.5">Navigate home without action</p>
+                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>Go home</p>
+                              <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>Navigate home without action</p>
                             </div>
-                            <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+                            <span style={{ color: "#897E73", fontSize: 18, flexShrink: 0 }}>›</span>
                           </button>
                         </div>
                       </>
@@ -2608,65 +2670,63 @@ function DeckContent() {
               ) : (
                 /* ── Branded waiting screen ──────────────────────────────── */
                 <div className="flex flex-col items-center w-full">
-                  {/* Status eyebrow */}
-                  <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-10">
-                    YOUR PICKS ARE IN
-                  </p>
-                  {/* Avatar pair */}
-                  <div className="flex items-center gap-5 mb-10">
-                    {/* Your avatar — filled orange */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div
-                        className="w-14 h-14 rounded-full bg-[#E8621A] flex items-center justify-center"
-                        style={{ boxShadow: "0 0 24px rgba(232,98,26,0.35)" }}
-                      >
-                        <span className="font-display font-black text-2xl text-white">✓</span>
-                      </div>
-                      <span className="font-body text-xs text-[#8A7F78]">You</span>
+                  {/* Glass card container */}
+                  <div className="w-full rounded-[24px] p-7 text-center" style={{ background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, rgba(255,231,202,0.02) 100%)", border: "1px solid rgba(245,237,224,0.16)", backdropFilter: "blur(24px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 24px 50px rgba(0,0,0,0.45)" }}>
+                    {/* Live session eyebrow */}
+                    <div className="flex items-center justify-center gap-2 mb-8">
+                      <span className="w-2 h-2 rounded-full animate-ping" style={{ background: "#E8621A", boxShadow: "0 0 8px rgba(232,98,26,0.6)" }} />
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "#E8621A" }}>
+                        Your picks are in
+                      </span>
                     </div>
-                    {/* Connector dots */}
-                    <div className="flex gap-1 pb-4">
-                      <span className="w-1 h-1 rounded-full bg-[#3D3733]" />
-                      <span className="w-1 h-1 rounded-full bg-[#3D3733]" />
-                      <span className="w-1 h-1 rounded-full bg-[#3D3733]" />
-                    </div>
-                    {/* Partner avatar — hollow with pulsing orange ring */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="relative w-14 h-14">
-                        {/* Pulsing ring */}
+                    {/* Avatar pair */}
+                    <div className="flex items-center justify-center gap-5 mb-8">
+                      {/* Your avatar — ember orb */}
+                      <div className="flex flex-col items-center gap-2">
                         <div
-                          className="absolute inset-0 rounded-full border-2 border-[#E8621A] animate-ping opacity-40"
-                        />
-                        <div
-                          className="w-14 h-14 rounded-full border-2 border-[#E8621A]/60 bg-[#2A2420] flex items-center justify-center"
+                          className="w-14 h-14 rounded-full flex items-center justify-center"
+                          style={{ background: "linear-gradient(180deg,#FF8A3D,#E8621A 60%,#B84A12)", boxShadow: "0 0 24px rgba(232,98,26,0.35)" }}
                         >
-                          <span className="font-display font-black text-2xl text-[#E8621A]/50">?</span>
+                          <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "#fff" }}>✓</span>
                         </div>
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12, color: "#897E73" }}>You</span>
                       </div>
-                      <span className="font-body text-xs text-[#8A7F78]">Them</span>
+                      {/* Connector dots */}
+                      <div className="flex gap-1 pb-4">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.12)" }} />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.08)" }} />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.04)" }} />
+                      </div>
+                      {/* Partner avatar — hollow with pulsing ember ring */}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="relative w-14 h-14">
+                          <div className="absolute inset-0 rounded-full border-2 border-[#E8621A] animate-ping opacity-30" />
+                          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(232,98,26,0.40)", background: "rgba(255,231,202,0.04)" }}>
+                            <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "rgba(232,98,26,0.45)" }}>?</span>
+                          </div>
+                        </div>
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12, color: "#897E73" }}>Them</span>
+                      </div>
                     </div>
+                    {/* Rotating headline */}
+                    <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: "#F6EEE2", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+                      {WAITING_HEADLINES[waitingHeadlineIdx]}
+                    </h2>
+                    <p className="mt-3" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
+                      We&apos;ll match the moment they swipe right on something you liked.
+                    </p>
                   </div>
-                  {/* Headline */}
-                  <h2 className="font-display font-black text-2xl text-white leading-tight max-w-[22ch]">
-                    You&apos;re done swiping.
-                  </h2>
-                  {/* Subtext */}
-                  <p className="font-body text-sm text-[#8A7F78] text-center mt-3 max-w-[28ch]">
-                    We&apos;ll let you know when there&apos;s a match. They still have time.
-                  </p>
                   {/* Leave session button */}
                   <button
                     onClick={() => {
                       localStorage.removeItem('wwe_active_session');
                       router.push('/');
                     }}
-                    className="font-body text-sm text-[#8A7F78] hover:text-white/60 transition-colors duration-200 mt-6"
+                    className="transition-colors duration-200 mt-5"
+                    style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: "#574E45" }}
                   >
                     Leave session for now →
                   </button>
-                  <p className="font-body text-xs text-[#8A7F78]/50 text-center mt-2">
-                    You&apos;ll still match if they swipe yes on something you liked.
-                  </p>
                 </div>
               )}
             </div>
@@ -2698,73 +2758,104 @@ function DeckContent() {
                   />
 
                   <div className="relative z-10 flex flex-col items-center w-full">
-                    {/* 1. Green pulsing circle */}
+                    {/* 1. Green orb with rings */}
                     <div className="flex items-center justify-center">
+                      {/* Outer ring */}
+                      <div className="absolute rounded-full" style={{ width: 200, height: 200, background: "rgba(94,158,110,0.04)" }} />
+                      {/* Mid ring */}
+                      <div className="absolute rounded-full" style={{ width: 164, height: 164, background: "rgba(94,158,110,0.08)" }} />
+                      {/* Green orb */}
                       <div
-                        className="w-28 h-28 rounded-full bg-[#4A7C59] flex items-center justify-center animate-pulse-soft"
-                        style={{ boxShadow: "0 0 60px rgba(74,124,89,0.45)" }}
+                        className="relative flex items-center justify-center"
+                        style={{
+                          width: 112, height: 112, borderRadius: "50%",
+                          background: "radial-gradient(circle at 42% 36%, #86C796, #5E9E6E 55%, #3F744F)",
+                          boxShadow: "0 0 60px rgba(94,158,110,0.50), 0 0 0 14px rgba(94,158,110,0.08), 0 0 0 30px rgba(94,158,110,0.04)",
+                        }}
                       >
-                        <span className="font-display font-black text-5xl text-white">✓</span>
+                        <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: "#fff" }}>✓</span>
                       </div>
                     </div>
 
                     {/* 2. Eyebrow label */}
-                    <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase mt-6">
+                    <p className="mt-16" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "3px", textTransform: "uppercase", color: "#86A972" }}>
                       IT&apos;S A MATCH.
                     </p>
 
                     {/* 3. Main headline */}
-                    <h1 className="font-display font-black text-4xl text-white text-center mt-2 leading-tight">
+                    <h1 className="mt-2 text-center leading-tight" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 36, color: "#F6EEE2", letterSpacing: "-0.02em" }}>
                       Dinner is decided.
                     </h1>
 
-                    {/* 4. Meal name in green */}
-                    <p className="font-display font-bold text-2xl text-[#4A7C59] text-center mt-1">
+                    {/* 4. Meal name italic green */}
+                    <p className="mt-2 text-center" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 24, color: "#5E9E6E" }}>
                       {matchedMeal.name}
                     </p>
 
-                    {/* 5. Meal image card */}
+                    {/* 5. Meal image card with studio treatment */}
                     <div
-                      className="w-full rounded-[20px] overflow-hidden mt-6 bg-[#2A2420]"
-                      style={{ aspectRatio: "16/9" }}
+                      className="relative w-full rounded-[20px] overflow-hidden mt-7"
+                      style={{
+                        aspectRatio: "16/9",
+                        border: "1px solid rgba(245,237,224,0.16)",
+                        boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
+                      }}
                     >
-                      <img
-                        src={matchedMeal.image}
-                        alt={matchedMeal.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={matchedMeal.image} alt={matchedMeal.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.60) 0%, rgba(255,235,200,0.28) 28%, transparent 65%)", mixBlendMode: "screen" }} />
+                      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(8,5,3,0.70) 0%, rgba(8,5,3,0.30) 28%, transparent 55%)" }} />
                     </div>
 
-                    {/* 6. Meal name + description */}
-                    <div className="w-full mt-4 text-center">
-                      <p className="font-display font-black text-xl text-white">{matchedMeal.name}</p>
-                      <p className="font-body text-sm text-white/70 mt-1 leading-relaxed">{matchedMeal.description}</p>
-                    </div>
+                    {/* 6. Description */}
+                    <p className="mt-4 text-center leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: "#897E73" }}>{matchedMeal.description}</p>
 
                     {/* 7. Why this works card */}
                     {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason && (
-                      <div className="w-full bg-[#2A2420] rounded-[18px] p-4 mt-4 flex items-start gap-3">
-                        <span className="text-xl flex-shrink-0 mt-0.5">💡</span>
-                        <p className="font-body text-sm text-white/75 leading-relaxed">
-                          <span className="font-display font-black text-sm text-[#E8621A]">Why this works: </span>
+                      <div
+                        className="w-full rounded-[18px] p-4 mt-4 flex items-start gap-3"
+                        style={{
+                          background: "rgba(255,231,202,0.04)",
+                          border: "1px solid rgba(245,237,224,0.085)",
+                          borderLeft: "3px solid rgba(232,98,26,0.50)",
+                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+                        }}
+                      >
+                        <p className="leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: "#897E73" }}>
+                          <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, color: "#FF8A3D" }}>Why this works: </span>
                           {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason}
                         </p>
                       </div>
                     )}
 
                     {/* 8. CTA buttons */}
-                    <div className="flex gap-3 w-full mt-6">
+                    <div className="flex gap-3 w-full mt-7">
                       <button
                         onClick={() => setShowCookOrderModal(true)}
-                        className="flex-1 py-4 rounded-[16px] bg-[#E8621A] text-white font-display font-black text-base"
-                        style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
+                        className="flex-1 py-4 rounded-[16px] transition active:scale-[0.98]"
+                        style={{
+                          fontFamily: "'Quicksand', sans-serif",
+                          fontWeight: 700,
+                          fontSize: 16,
+                          color: "#fff",
+                          background: "linear-gradient(180deg, #86C796 0%, #5E9E6E 50%, #3F744F 100%)",
+                          boxShadow: "0 1px 0 rgba(190,230,200,0.35) inset, 0 -2px 0 rgba(30,70,40,0.35) inset, 0 14px 30px rgba(94,158,110,0.32)",
+                        }}
                       >
                         Let&apos;s eat 🙌
                       </button>
                       <button
                         onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
                         disabled={matchConfirming}
-                        className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center disabled:opacity-60"
+                        className="flex-1 py-4 rounded-[16px] transition active:scale-[0.98] disabled:opacity-60"
+                        style={{
+                          fontFamily: "'Quicksand', sans-serif",
+                          fontWeight: 700,
+                          fontSize: 15,
+                          color: "#C7BDAC",
+                          background: "rgba(255,231,202,0.045)",
+                          border: "1px solid rgba(245,237,224,0.16)",
+                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                        }}
                       >
                         {matchConfirming ? "Locking in…" : (isGuest ? "Done for now →" : "Back to home")}
                       </button>
@@ -2804,30 +2895,38 @@ function DeckContent() {
                 onDragEnd={(_, info) => {
                   if (info.offset.y > 80 || info.velocity.y > 500) setShowCookOrderModal(false);
                 }}
-                className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+                className="relative w-full max-w-md rounded-t-[28px] px-6 pt-4 pb-10"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, #120D09 6%)",
+                  borderTop: "1px solid rgba(245,237,224,0.085)",
+                  boxShadow: "0 -8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)",
+                  backdropFilter: "blur(24px)",
+                }}
               >
-                <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-                <p className="font-display font-black text-2xl text-white text-center">
+                <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "rgba(245,237,224,0.15)" }} />
+                <p className="text-2xl text-center" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#F6EEE2", letterSpacing: "-0.01em" }}>
                   How are you eating?
                 </p>
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
                     onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
                     disabled={matchConfirming}
-                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
+                    className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer transition-all duration-150 disabled:opacity-60"
+                    style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
                   >
                     <span className="text-4xl">🍳</span>
-                    <p className="font-display font-black text-lg text-white">Cook it</p>
-                    <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
+                    <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: "#F6EEE2" }}>Cook it</p>
+                    <p className="text-xs text-center mt-1" style={{ color: "#897E73" }}>See what you need</p>
                   </button>
                   <button
                     onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
                     disabled={matchConfirming}
-                    className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
+                    className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer transition-all duration-150 disabled:opacity-60"
+                    style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
                   >
                     <span className="text-4xl">🚗</span>
-                    <p className="font-display font-black text-lg text-white">Order in</p>
-                    <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
+                    <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: "#F6EEE2" }}>Order in</p>
+                    <p className="text-xs text-center mt-1" style={{ color: "#897E73" }}>Find delivery options</p>
                   </button>
                 </div>
                 {matchConfirmError && (
@@ -2868,27 +2967,53 @@ function DeckContent() {
               </button>
             </header>
             <div className="flex flex-1 flex-col items-center justify-center text-center">
-              <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-[#2A2420] px-3.5 py-1.5 font-body text-xs text-[#8A7F78]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#E8621A]" />
+              <div
+                className="mb-5 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs"
+                style={{
+                  background: "rgba(255,231,202,0.04)",
+                  border: "1px solid rgba(245,237,224,0.085)",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  letterSpacing: "1.5px",
+                  textTransform: "uppercase",
+                  color: "#897E73",
+                }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#E8621A", boxShadow: "0 0 6px rgba(232,98,26,0.6)" }} />
                 Round 2 complete
               </div>
-              <h2 className="mt-4 font-display font-black text-3xl text-white leading-tight">
+              <h2 className="mt-4 leading-tight" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 30, color: "#F6EEE2", letterSpacing: "-0.02em" }}>
                 That&apos;s your best set
               </h2>
-              <p className="font-body mt-3 max-w-[28ch] text-sm leading-relaxed text-[#8A7F78]">
+              <p className="mt-3 max-w-[28ch] leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 14, color: "#897E73" }}>
                 You&apos;ve gone through your strongest matches. Want to try a new direction?
               </p>
-              <p className="font-body mt-3 text-xs text-[#8A7F78]/60">You&apos;re close 👀</p>
+              <p className="mt-3" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 12, color: "rgba(137,126,115,0.55)" }}>You&apos;re close 👀</p>
               <div className="mt-8 w-full flex flex-col gap-3">
                 <button
                   onClick={() => { setTopPicksMode(false); setCurrentIndex(0); }}
-                  className="w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
+                  className="w-full rounded-full py-4 transition active:scale-[0.98]"
+                  style={{
+                    fontFamily: "'Quicksand', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 16,
+                    color: "#1c0c03",
+                    background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+                    boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 14px 30px rgba(232,98,26,0.45), 0 0 0 1px rgba(232,98,26,0.28)",
+                  }}
                 >
                   Start over
                 </button>
                 <button
                   onClick={() => router.push("/browse")}
-                  className="w-full rounded-full border border-white/10 bg-[#2A2420] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                  className="w-full rounded-full py-3 transition active:scale-[0.98]"
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: 500,
+                    fontSize: 14,
+                    color: "#897E73",
+                    background: "rgba(255,231,202,0.04)",
+                    border: "1px solid rgba(245,237,224,0.085)",
+                  }}
                 >
                   Browse all meals
                 </button>
@@ -2947,29 +3072,42 @@ function DeckContent() {
           <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
           <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center text-center px-4">
-            {/* Pulsing app icon */}
-            <div
-              className="w-24 h-24 bg-[#E8621A] rounded-[22%] flex items-center justify-center mb-10 animate-pulse"
-              style={{ boxShadow: "0 0 60px rgba(232,98,26,0.45)" }}
-            >
-              <span className="font-display font-black text-6xl text-white">?</span>
+            {/* Pulsing ember orb icon */}
+            <div className="relative flex items-center justify-center mb-10">
+              <div className="absolute w-32 h-32 rounded-full animate-pulse" style={{ background: "radial-gradient(circle, rgba(232,98,26,0.22) 0%, transparent 70%)" }} />
+              <div
+                className="relative w-24 h-24 rounded-[22%] flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+                  boxShadow: "0 0 60px rgba(232,98,26,0.50), inset 0 1px 0 rgba(255,224,188,0.35)",
+                }}
+              >
+                <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 52, color: "#fff" }}>?</span>
+              </div>
             </div>
-            <h2 className="font-display font-black text-4xl text-white text-center leading-tight">
+            <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 36, color: "#F6EEE2", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
               Okay. We tried.
             </h2>
-            <p className="font-body text-base text-[#8A7F78] text-center mt-3 max-w-xs">
+            <p className="mt-3 max-w-xs" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 15, color: "#897E73", lineHeight: 1.6 }}>
               You&apos;ve seen everything we&apos;ve got. Multiple times. The app has done its job — now it&apos;s your turn.
             </p>
             {forcedMeal && (
               <>
                 <button
                   onClick={() => lockInMeal(forcedMeal)}
-                  className="mt-10 w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
-                  style={{ boxShadow: "0 0 24px rgba(232,98,26,0.4)" }}
+                  className="mt-10 w-full rounded-full py-4 transition active:scale-[0.98]"
+                  style={{
+                    fontFamily: "'Quicksand', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 16,
+                    color: "#1c0c03",
+                    background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+                    boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 14px 30px rgba(232,98,26,0.45), 0 0 0 1px rgba(232,98,26,0.28)",
+                  }}
                 >
                   Just pick something →
                 </button>
-                <p className="font-body text-xs text-[#8A7F78]/60 text-center mt-3">
+                <p className="mt-3 text-center" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 14, color: "rgba(137,126,115,0.60)" }}>
                   (It&apos;s {forcedMeal.name}. You&apos;ll be fine.)
                 </p>
               </>
@@ -3016,17 +3154,36 @@ function DeckContent() {
             </p>
             <div className="flex flex-col gap-6 pb-8">
               {top3.map((meal) => (
-                <div key={meal.id} className="flex flex-col rounded-[20px] overflow-hidden bg-[#2A2420]">
-                  <div className="w-full bg-[#3D3733]" style={{ aspectRatio: "16/9" }}>
+                <div
+                  key={meal.id}
+                  className="flex flex-col rounded-[20px] overflow-hidden"
+                  style={{
+                    background: "linear-gradient(180deg, rgba(255,231,202,0.06) 0%, rgba(255,231,202,0.02) 100%)",
+                    border: "1px solid rgba(245,237,224,0.16)",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 40px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
                     <img src={meal.image || FALLBACK_IMAGE} alt={meal.name} className="w-full h-full object-cover" />
+                    {/* Top spotlight */}
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.60) 0%, rgba(255,235,200,0.30) 28%, transparent 65%)", mixBlendMode: "screen" }} />
+                    {/* Bottom scrim */}
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(8,5,3,0.80) 0%, rgba(8,5,3,0.40) 28%, transparent 55%)" }} />
                   </div>
-                  <div className="p-4">
-                    <p className="font-display font-black text-xl text-white">{meal.name}</p>
-                    <p className="font-body text-sm text-white/70 mt-1 leading-relaxed">{meal.description}</p>
+                  <div className="p-5">
+                    <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: "#F6EEE2", letterSpacing: "-0.01em" }}>{meal.name}</p>
+                    <p className="mt-1 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: "#897E73" }}>{meal.description}</p>
                     <button
                       onClick={() => lockInMeal(meal)}
-                      className="mt-4 w-full rounded-full bg-[#E8621A] py-3 font-display font-black text-base text-white transition active:scale-[0.98]"
-                      style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                      className="mt-5 w-full rounded-full py-3.5 transition active:scale-[0.98]"
+                      style={{
+                        fontFamily: "'Quicksand', sans-serif",
+                        fontWeight: 700,
+                        fontSize: 15,
+                        color: "#1c0c03",
+                        background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+                        boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 12px 26px rgba(232,98,26,0.40), 0 0 0 1px rgba(232,98,26,0.28)",
+                      }}
                     >
                       Lock this in →
                     </button>
@@ -3076,8 +3233,9 @@ function DeckContent() {
                     onClick={() => setDiagSelectedVibe(opt.value)}
                     className="flex items-center gap-4 rounded-[20px] p-5 border transition-all duration-150 active:scale-[0.98] text-left"
                     style={{
-                      borderColor: selected ? "#E8621A" : "transparent",
-                      backgroundColor: selected ? "rgba(232,98,26,0.10)" : "#2A2420",
+                      borderColor: selected ? "#E8621A" : "rgba(245,237,224,0.085)",
+                      background: selected ? "rgba(232,98,26,0.10)" : "rgba(255,231,202,0.04)",
+                      boxShadow: selected ? "inset 0 0 0 1px rgba(232,98,26,0.28), 0 0 20px rgba(232,98,26,0.12)" : "none",
                     }}
                   >
                     <span className="text-3xl">{opt.emoji}</span>
@@ -3102,8 +3260,15 @@ function DeckContent() {
             </div>
             <button
               onClick={() => handleRefreshDeckWithVibe(diagSelectedVibe)}
-              className="mt-8 w-full rounded-full bg-[#E8621A] py-4 font-display font-black text-base text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
-              style={{ boxShadow: "0 0 20px rgba(232,98,26,0.35)" }}
+              className="mt-8 w-full rounded-full py-4 transition active:scale-[0.98]"
+              style={{
+                fontFamily: "'Quicksand', sans-serif",
+                fontWeight: 700,
+                fontSize: 16,
+                color: "#1c0c03",
+                background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+                boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 14px 30px rgba(232,98,26,0.45), 0 0 0 1px rgba(232,98,26,0.28)",
+              }}
             >
               Build my deck →
             </button>
@@ -3165,57 +3330,61 @@ function DeckContent() {
           </div>
 
           {/* ── Step 2: Diagnostic options ── */}
-          <div className="flex flex-col gap-3 pb-8">
-            {/* Option 1: Fresh deck (copy changes at reset 2) */}
+          <div className="flex flex-col gap-2.5 pb-8">
+            {/* Option 1: Fresh deck */}
             <button
               onClick={() => handleRefreshDeckWithVibe("quick-easy")}
-              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+              className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
+              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
             >
               <span className="text-2xl flex-shrink-0">😴</span>
               <div className="flex-1 min-w-0 text-left">
-                <p className="font-display font-black text-base text-white">{freshDeckLabel}</p>
-                <p className="font-body text-xs text-[#8A7F78] mt-0.5">{freshDeckSubtext}</p>
+                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>{freshDeckLabel}</p>
+                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>{freshDeckSubtext}</p>
               </div>
-              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+              <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
             </button>
 
             {/* Option 2: Something exciting */}
             <button
               onClick={() => handleRefreshDeckWithVibe("something-new")}
-              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+              className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
+              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
             >
               <span className="text-2xl flex-shrink-0">🔥</span>
               <div className="flex-1 min-w-0 text-left">
-                <p className="font-display font-black text-base text-white">Nothing felt exciting enough</p>
-                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Surprise me with something different</p>
+                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>Nothing felt exciting enough</p>
+                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>Surprise me with something different</p>
               </div>
-              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+              <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
             </button>
 
-            {/* Option 3: I couldn't decide → top 3 (no reset increment) */}
+            {/* Option 3: Top 3 */}
             <button
               onClick={() => setSoloExhaustedView("top3")}
-              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+              className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
+              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
             >
               <span className="text-2xl flex-shrink-0">🤔</span>
               <div className="flex-1 min-w-0 text-left">
-                <p className="font-display font-black text-base text-white">I couldn&apos;t decide</p>
-                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Show me my top 3 and I&apos;ll pick one</p>
+                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>I couldn&apos;t decide</p>
+                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>Show me my top 3 and I&apos;ll pick one</p>
               </div>
-              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+              <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
             </button>
 
-            {/* Option 4: Set a new mood */}
+            {/* Option 4: Set vibe */}
             <button
               onClick={() => setSoloExhaustedView("vibe-select")}
-              className="bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer border border-transparent hover:border-[#E8621A]/40 transition-all duration-200"
+              className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
+              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
             >
               <span className="text-2xl flex-shrink-0">🎯</span>
               <div className="flex-1 min-w-0 text-left">
-                <p className="font-display font-black text-base text-white">Let me set a new mood</p>
-                <p className="font-body text-xs text-[#8A7F78] mt-0.5">Choose a vibe and try again</p>
+                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>Let me set a new mood</p>
+                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>Choose a vibe and try again</p>
               </div>
-              <span className="text-[#8A7F78] text-lg flex-shrink-0">›</span>
+              <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
             </button>
           </div>
         </div>
@@ -3284,16 +3453,25 @@ function DeckContent() {
         {/* 1. HEADER ROW */}
         <header className="flex items-center justify-between px-5 pt-4 pb-2">
           <div>
-            <p className="font-body text-sm text-[#8A7F78]">
-              {sessionId ? "Deciding with your group" : "Decision Deck"}
+            <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: "#F6EEE2", letterSpacing: "-0.01em" }}>
+              {sessionId ? "Deciding Together" : "Decision Deck"}
             </p>
-            <p className="font-body text-xs text-[#8A7F78]/60 mt-0.5">
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#897E73", letterSpacing: "1px", marginTop: 2 }}>
               {Math.max(0, totalCount - currentIndex)} cards left
             </p>
           </div>
           <button
             onClick={() => router.push("/")}
-            className="text-[#8A7F78] font-body font-semibold text-sm px-4 py-1.5 rounded-full border border-white/10"
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 500,
+              fontSize: 13,
+              color: "#C7BDAC",
+              padding: "8px 16px",
+              borderRadius: 100,
+              border: "1px solid rgba(245,237,224,0.16)",
+              background: "rgba(255,231,202,0.045)",
+            }}
           >
             {isChangeMeal && existingMeal ? `Keep ${existingMeal.meal.name}` : "End"}
           </button>
@@ -3309,28 +3487,33 @@ function DeckContent() {
               }}
               animate={
                 pantryMode
-                  ? { boxShadow: "0 0 18px rgba(251,191,36,0.12)" }
+                  ? { boxShadow: "0 0 18px rgba(232,98,26,0.12)" }
                   : { boxShadow: "none" }
               }
               transition={{ duration: 0.3 }}
-              className={`flex flex-1 items-center justify-between rounded-2xl border px-4 py-2.5 text-left transition-colors duration-200 ${
-                pantryMode
-                  ? "border-amber-400/25 bg-amber-400/[0.06] hover:bg-amber-400/[0.1]"
-                  : "border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06]"
-              } active:scale-[0.99]`}
+              className="flex flex-1 items-center justify-between rounded-[13px] px-4 py-2.5 text-left active:scale-[0.99] transition-all duration-200"
+              style={pantryMode ? {
+                border: "1px solid rgba(232,98,26,0.26)",
+                background: "rgba(232,98,26,0.08)",
+              } : {
+                border: "1px solid rgba(245,237,224,0.085)",
+                background: "rgba(255,231,202,0.045)",
+              }}
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300" : "text-white/25"}`}
-                  style={pantryMode ? { filter: "drop-shadow(0 0 4px rgba(251,191,36,0.55))" } : undefined}
+                  className="shrink-0 transition-colors duration-200"
+                  style={pantryMode
+                    ? { color: "#FF8A3D", filter: "drop-shadow(0 0 4px rgba(232,98,26,0.5))" }
+                    : { color: "rgba(255,255,255,0.25)" }}
                 >
                   {pantryMode ? <FridgeOpen /> : <FridgeClosed />}
                 </span>
-                <span className={`text-xs font-medium tracking-[-0.01em] transition-colors duration-200 ${pantryMode ? "text-amber-200/70" : "text-white/30"}`}>
+                <span className="text-xs font-medium tracking-[-0.01em] transition-colors duration-200" style={pantryMode ? { color: "#FF8A3D" } : { color: "rgba(255,255,255,0.30)" }}>
                   Pantry
                 </span>
-                <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/30" : "text-white/20"}`}>—</span>
-                <span className={`text-xs transition-colors duration-200 ${pantryMode ? "text-white/50" : "text-white/25"}`}>
+                <span className="text-xs transition-colors duration-200" style={{ color: pantryMode ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.20)" }}>—</span>
+                <span className="text-xs transition-colors duration-200" style={{ color: pantryMode ? "#C7BDAC" : "rgba(255,255,255,0.25)" }}>
                   {selectedIngredients.length === 0
                     ? "Use what you have"
                     : selectedIngredients.length <= 2
@@ -3338,7 +3521,7 @@ function DeckContent() {
                     : `${selectedIngredients.slice(0, 2).join(", ")} +${selectedIngredients.length - 2}`}
                 </span>
               </div>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`shrink-0 transition-colors duration-200 ${pantryMode ? "text-amber-300/40" : "text-white/15"}`}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 transition-colors duration-200" style={{ color: pantryMode ? "rgba(232,98,26,0.5)" : "rgba(255,255,255,0.15)" }}>
                 <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
@@ -3349,7 +3532,12 @@ function DeckContent() {
               disabled={aiMealsLoading}
               animate={aiMealsLoading ? { opacity: 0.5 } : { opacity: 1 }}
               transition={{ duration: 0.2 }}
-              className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 text-xs text-white/35 transition-colors duration-200 hover:border-white/15 hover:text-white/55 active:scale-[0.97] disabled:pointer-events-none"
+              className="flex shrink-0 items-center gap-1.5 rounded-[13px] px-3 py-2.5 text-xs transition-all duration-200 active:scale-[0.97] disabled:pointer-events-none"
+              style={{
+                border: "1px solid rgba(245,237,224,0.085)",
+                background: "rgba(255,231,202,0.045)",
+                color: "rgba(255,255,255,0.35)",
+              }}
               title="Generate fresh meal ideas"
             >
               {aiMealsLoading ? (
@@ -3366,18 +3554,19 @@ function DeckContent() {
 
         {/* Swipe tip banner — first-time only */}
         {showSwipeTip && (
-          <div className="mx-5 mb-3 bg-[#2A2420] rounded-[16px] px-5 py-4 flex items-center gap-4">
+          <div className="mx-5 mb-3 rounded-[16px] px-5 py-4 flex items-center gap-4" style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}>
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="w-7 h-7 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center text-xs text-white/50">✕</div>
-              <div className="w-7 h-7 rounded-full bg-[#E8621A] flex items-center justify-center text-xs text-white">✓</div>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs" style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.16)", color: "#897E73" }}>✕</div>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs" style={{ background: "linear-gradient(180deg,#FF8A3D,#E8621A 60%,#B84A12)", color: "#fff", boxShadow: "0 0 12px rgba(232,98,26,0.4)" }}>✓</div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-display font-black text-base text-white">Swipe right to say yes.</p>
-              <p className="font-body text-sm text-[#8A7F78] mt-0.5">Left to pass. Or use the buttons below.</p>
+              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>Swipe right to say yes.</p>
+              <p className="text-sm mt-0.5" style={{ color: "#897E73" }}>Left to pass. Or use the buttons below.</p>
             </div>
             <button
               onClick={dismissSwipeTip}
-              className="text-[#E8621A] font-body font-semibold text-sm flex-shrink-0"
+              className="font-semibold text-sm flex-shrink-0"
+              style={{ color: "#E8621A" }}
             >
               Got it
             </button>
@@ -3396,7 +3585,11 @@ function DeckContent() {
                   : { scale: 0.94, opacity: 0.5, y: -12 }
               }
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute inset-0 rounded-[28px] bg-[#2A2420] pointer-events-none"
+              className="absolute inset-0 rounded-[28px] pointer-events-none"
+              style={{
+                background: "linear-gradient(180deg, rgba(255,231,202,0.05) 0%, rgba(26,20,14,0.95) 100%)",
+                border: "1px solid rgba(245,237,224,0.085)",
+              }}
             />
           )}
 
@@ -3432,47 +3625,72 @@ function DeckContent() {
               style={imgErrors.has(meal.id) ? { filter: "brightness(0.88) saturate(0.6)" } : undefined}
             />
 
-            {/* Layer 2 — Bottom scrim for text legibility */}
+            {/* Layer 2 — Top spotlight (studio food photography treatment) */}
             <div
               className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)' }}
+              style={{
+                background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.70) 0%, rgba(255,228,190,0.16) 30%, transparent 58%)",
+                mixBlendMode: "screen",
+              }}
             />
 
-            {/* Layer 3 — YES stamp (top right, shows when dragging right) */}
+            {/* Layer 3 — Bottom scrim + vignette */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: "radial-gradient(ellipse 90% 70% at 50% 122%, rgba(0,0,0,0.62), transparent 60%), linear-gradient(180deg, transparent 38%, rgba(6,4,3,0.82))",
+              }}
+            />
+
+            {/* Layer 4 — Warm edge vignette */}
+            <div className="absolute inset-0 pointer-events-none rounded-[28px]" style={{ boxShadow: "inset 0 0 60px 10px rgba(0,0,0,0.28)" }} />
+
+            {/* YES stamp (shows when dragging right) */}
             <motion.div
               style={{ opacity: chooseOpacity }}
-              className="absolute top-8 right-5 z-10 font-display font-black text-2xl text-[#4A7C59] border-4 border-[#4A7C59] rounded-xl px-3 py-1 rotate-12 pointer-events-none"
+              className="absolute top-8 right-5 z-10 pointer-events-none rotate-12"
             >
-              YES ✓
+              <span style={{
+                fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22,
+                color: "#86C796", border: "3px solid #86C796",
+                borderRadius: 12, padding: "3px 12px", display: "inline-block",
+                textShadow: "0 0 12px rgba(134,199,150,0.5)",
+              }}>
+                YES ✓
+              </span>
             </motion.div>
 
-            {/* Layer 4 — NOPE stamp (top left, shows when dragging left) */}
+            {/* NOPE stamp (shows when dragging left) */}
             <motion.div
               style={{ opacity: passOpacity }}
-              className="absolute top-8 left-5 z-10 font-display font-black text-2xl text-red-400 border-4 border-red-400 rounded-xl px-3 py-1 -rotate-12 pointer-events-none"
+              className="absolute top-8 left-5 z-10 pointer-events-none -rotate-12"
             >
-              NOPE
+              <span style={{
+                fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22,
+                color: "#E88A7A", border: "3px solid #E88A7A",
+                borderRadius: 12, padding: "3px 12px", display: "inline-block",
+                textShadow: "0 0 12px rgba(232,138,122,0.5)",
+              }}>
+                NOPE
+              </span>
             </motion.div>
 
             {/* Category + AI badge row (top of card) */}
             <div className="absolute top-0 left-0 right-0 p-4 z-10 flex items-start justify-between gap-2">
-              <div className="inline-flex rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/75 backdrop-blur-sm">
+              <div className="inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm" style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#C7BDAC", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
                 {meal.category}
               </div>
               <div className="flex flex-col items-end gap-1.5">
                 {aiMealIds.has(meal.id) && (
                   <div
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm ${
-                      meal.aiLabel === "Made from your pantry"
-                        ? "border-amber-400/30 bg-black/35 text-amber-300/80"
-                        : "border-white/20 bg-black/35 text-white/60"
-                    }`}
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm"
+                    style={meal.aiLabel === "Made from your pantry"
+                      ? { border: "1px solid rgba(232,98,26,0.26)", background: "rgba(8,5,3,0.40)", color: "#FF8A3D" }
+                      : { border: "1px solid rgba(245,237,224,0.16)", background: "rgba(8,5,3,0.40)", color: "#C7BDAC" }}
                   >
-                    {meal.aiLabel === "Made from your pantry" ? (
-                      <span style={{ filter: "drop-shadow(0 0 3px rgba(251,191,36,0.5))" }}>✦</span>
-                    ) : (
-                      <span className="text-white/40">✦</span>
-                    )}
+                    <span style={meal.aiLabel === "Made from your pantry"
+                      ? { filter: "drop-shadow(0 0 4px rgba(232,98,26,0.5))", color: "#E8621A" }
+                      : { color: "rgba(255,255,255,0.4)" }}>✦</span>
                     {meal.aiLabel ?? "Fresh pick"}
                   </div>
                 )}
@@ -3484,40 +3702,51 @@ function DeckContent() {
                     setDrawerOpen(true);
                     dismissDrawerHint();
                   }}
-                  className={`inline-flex rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/75 backdrop-blur-sm ${
+                  className={`inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm ${
                     !drawerHintSeen && currentIndex === 0 ? "animate-pulse" : ""
                   }`}
+                  style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#C7BDAC", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
                 >
                   more details
                 </button>
               </div>
             </div>
 
-            {/* Layer 5 — Card content (bottom of card) */}
+            {/* Card content (bottom of card) */}
             <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
-              <h2 className="font-display font-black text-3xl text-white leading-tight">
+              <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 30, color: "#F6EEE2", lineHeight: 1.05, letterSpacing: "-0.01em", textShadow: "0 2px 14px rgba(0,0,0,0.6)" }}>
                 {meal.name}
               </h2>
-              <p className="font-body text-sm text-white/80 mt-2 leading-relaxed line-clamp-2">
+              <p className="mt-2 leading-relaxed line-clamp-2" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#C7BDAC" }}>
                 {meal.description}
               </p>
-              <div className="flex gap-2 mt-4 flex-wrap">
+              <div className="flex gap-2 mt-3 flex-wrap">
                 {meal.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="bg-white/10 text-white/80 font-body text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm"
+                    className="backdrop-blur-sm"
+                    style={{
+                      fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11.5,
+                      color: "#F6EEE2",
+                      background: "rgba(255,231,202,0.045)",
+                      border: "1px solid rgba(245,237,224,0.085)",
+                      borderRadius: 100, padding: "5px 12px",
+                    }}
                   >
                     {tag}
                   </span>
                 ))}
               </div>
               {pantryMode && pantryMatchCount >= 2 && (
-                <p className="text-xs text-white/60 mt-2">
-                  {pantryMatchCount >= 3 ? "You've got this" : "You've got most of this"}
+                <p className="text-xs mt-2" style={{ color: "#FF8A3D" }}>
+                  ✦ {pantryMatchCount >= 3 ? "You've got this" : "You've got most of this"}
                 </p>
               )}
               {reason && (
-                <p className="text-xs text-white/60 mt-1">✦ {reason}</p>
+                <p className="mt-1.5 flex items-center gap-1.5" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 11.5, color: "#FF8A3D" }}>
+                  <span style={{ filter: "drop-shadow(0 0 4px rgba(232,98,26,0.5))" }}>✦</span>
+                  {reason}
+                </p>
               )}
             </div>
 
@@ -3529,14 +3758,18 @@ function DeckContent() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, transition: { duration: 0.5 } }}
                   transition={{ duration: 0.6, delay: 0.9 }}
-                  className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
-                  style={{ bottom: "38%" }}
+                  className="pointer-events-none absolute inset-x-4 z-20 flex justify-between items-center"
+                  style={{
+                    bottom: "44%",
+                    padding: "11px 16px",
+                    borderRadius: 100,
+                    background: "rgba(8,5,3,0.55)",
+                    border: "1px solid rgba(245,237,224,0.16)",
+                    backdropFilter: "blur(10px)",
+                  }}
                 >
-                  <div className="flex items-center gap-2.5 bg-[#2A2420] rounded-full px-5 py-2.5">
-                    <span className="text-xs text-rose-400/75">← Swipe to pass</span>
-                    <span className="text-[10px] text-white/25">·</span>
-                    <span className="text-xs text-emerald-400/75">Swipe to choose →</span>
-                  </div>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 12.5, color: "#E88A7A" }}>← Swipe to pass</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 12.5, color: "#86C796" }}>Swipe to choose →</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -3581,34 +3814,50 @@ function DeckContent() {
         </div>
 
         {/* 4. ACTION BUTTONS */}
-        <div className="flex items-center justify-center gap-6 mt-5 pb-6">
-          {/* NO button */}
+        <div className="flex items-center justify-center gap-6 mt-auto pb-6 pt-4">
+          {/* PASS button */}
           <button
             onClick={handlePass}
             disabled={isExiting || isChoosing}
-            className="w-14 h-14 rounded-full bg-[#2A2420] border border-white/10 flex items-center justify-center text-2xl text-white/50 active:scale-90 transition-transform duration-150 disabled:opacity-40"
+            className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
+            style={{
+              width: 54, height: 54, borderRadius: "50%",
+              background: "rgba(255,231,202,0.045)",
+              border: "1px solid rgba(245,237,224,0.16)",
+              color: "#C7BDAC", fontSize: 20,
+            }}
           >
             ✕
           </button>
 
-          {/* YES button */}
+          {/* YES button — dimensional ember */}
           <button
             onClick={handleChoose}
             disabled={isExiting || isChoosing}
-            className="w-20 h-20 rounded-full bg-[#E8621A] flex items-center justify-center text-3xl text-white active:scale-90 transition-transform duration-150 disabled:opacity-40"
-            style={{ boxShadow: '0 0 40px rgba(232,98,26,0.35)' }}
+            className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
+            style={{
+              width: 68, height: 68, borderRadius: "50%",
+              background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 60%, #B84A12 100%)",
+              color: "#fff", fontSize: 26,
+              boxShadow: "0 1px 0 rgba(255,224,188,0.55) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 14px 30px rgba(232,98,26,0.5), 0 0 0 1px rgba(232,98,26,0.4)",
+            }}
           >
             ✓
           </button>
 
-          {/* SAVE button */}
+          {/* SAVE button — green resolution accent */}
           <button
             onClick={handleSave}
             disabled={isExiting || isChoosing}
-            className="w-14 h-14 rounded-full bg-[#4A7C59] flex items-center justify-center text-xl text-white active:scale-90 transition-transform duration-150 disabled:opacity-40"
-            style={{ boxShadow: '0 0 24px rgba(74,124,89,0.3)' }}
+            className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
+            style={{
+              width: 54, height: 54, borderRadius: "50%",
+              background: "linear-gradient(180deg, #86C796 0%, #5E9E6E 60%, #3F744F 100%)",
+              color: "#FFD86A", fontSize: 20,
+              boxShadow: "0 12px 26px rgba(94,158,110,0.4)",
+            }}
           >
-            ⭐
+            ★
           </button>
         </div>
 
@@ -3634,7 +3883,8 @@ function DeckContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 bg-[#0B0805] overflow-y-auto"
+            className="fixed inset-0 z-50 overflow-y-auto"
+            style={{ background: "#0B0805" }}
           >
             <div className="pointer-events-none absolute inset-0" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
             <div className="pointer-events-none absolute inset-0" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
@@ -3645,62 +3895,70 @@ function DeckContent() {
               transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
               className="relative flex flex-col items-center justify-start min-h-screen px-6 pt-16 pb-10"
             >
-              {/* Radial green glow */}
-              <div
-                className="absolute inset-0 pointer-events-none z-0"
-                style={{ background: "radial-gradient(ellipse at 50% 25%, rgba(74,124,89,0.18) 0%, transparent 60%)" }}
-              />
+              {/* Multi-layer green ambient glow */}
+              <div className="absolute inset-0 pointer-events-none z-0" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 38%, rgba(94,158,110,0.18) 0%, transparent 60%), radial-gradient(ellipse 80% 50% at 50% 104%, rgba(184,74,18,0.10) 0%, transparent 66%)" }} />
 
               <div className="relative z-10 flex flex-col items-center w-full">
-                {/* 1. Green pulsing circle */}
-                <div className="flex items-center justify-center">
+                {/* 1. Green orb with multi-ring glow */}
+                <div className="flex items-center justify-center relative">
+                  {/* Outer faint ring */}
+                  <div className="absolute w-56 h-56 rounded-full" style={{ background: "rgba(94,158,110,0.04)" }} />
+                  {/* Mid ring */}
+                  <div className="absolute w-44 h-44 rounded-full animate-pulse-soft" style={{ background: "rgba(94,158,110,0.08)" }} />
+                  {/* Orb */}
                   <div
-                    className="w-28 h-28 rounded-full bg-[#4A7C59] flex items-center justify-center animate-pulse-soft"
-                    style={{ boxShadow: "0 0 60px rgba(74,124,89,0.45)" }}
+                    className="w-32 h-32 rounded-full flex items-center justify-center relative z-10"
+                    style={{
+                      background: "radial-gradient(circle at 42% 36%, #86C796, #5E9E6E 55%, #3F744F)",
+                      boxShadow: "0 0 70px rgba(94,158,110,0.5), 0 0 0 18px rgba(94,158,110,0.08), 0 0 0 38px rgba(94,158,110,0.04)",
+                    }}
                   >
-                    <span className="font-display font-black text-5xl text-white">✓</span>
+                    <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 52, color: "#fff" }}>✓</span>
                   </div>
                 </div>
 
                 {/* 2. Eyebrow label */}
-                <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase mt-6">
+                <p className="mt-8" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "3px", textTransform: "uppercase", color: "#86A972" }}>
                   IT&apos;S A MATCH.
                 </p>
 
                 {/* 3. Main headline */}
-                <h1 className="font-display font-black text-4xl text-white text-center mt-2 leading-tight">
+                <h1 className="text-center mt-2 leading-tight" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 38, color: "#F6EEE2", letterSpacing: "-0.02em" }}>
                   Dinner is decided.
                 </h1>
 
-                {/* 4. Meal name in green */}
-                <p className="font-display font-bold text-2xl text-[#4A7C59] text-center mt-1">
+                {/* 4. Meal name in green serif italic */}
+                <p className="text-center mt-1" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 26, color: "#5E9E6E" }}>
                   {matchedMeal.name}
                 </p>
 
-                {/* 5. Meal image card */}
+                {/* 5. Meal image card with studio treatment */}
                 <div
-                  className="w-full rounded-[20px] overflow-hidden mt-6 bg-[#2A2420]"
-                  style={{ aspectRatio: "16/9" }}
+                  className="w-full rounded-[20px] overflow-hidden mt-6 relative"
+                  style={{ aspectRatio: "16/9", border: "1px solid rgba(245,237,224,0.085)", boxShadow: "0 18px 40px rgba(0,0,0,0.45)" }}
                 >
                   <img
                     src={matchedMeal.image}
                     alt={matchedMeal.name}
                     className="w-full h-full object-cover"
                   />
+                  {/* Top spotlight */}
+                  <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.60) 0%, rgba(255,228,190,0.12) 30%, transparent 58%)", mixBlendMode: "screen" }} />
+                  {/* Bottom scrim */}
+                  <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent 50%, rgba(6,4,3,0.45))" }} />
                 </div>
 
-                {/* 6. Meal name + description */}
+                {/* 6. Meal description */}
                 <div className="w-full mt-4 text-center">
-                  <p className="font-display font-black text-xl text-white">{matchedMeal.name}</p>
-                  <p className="font-body text-sm text-white/70 mt-1 leading-relaxed">{matchedMeal.description}</p>
+                  <p className="mt-1 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#C7BDAC" }}>{matchedMeal.description}</p>
                 </div>
 
-                {/* 7. Why this works card */}
+                {/* 7. Why this works card — ember left border */}
                 {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason && (
-                  <div className="w-full bg-[#2A2420] rounded-[18px] p-4 mt-4 flex items-start gap-3">
-                    <span className="text-xl flex-shrink-0 mt-0.5">💡</span>
-                    <p className="font-body text-sm text-white/75 leading-relaxed">
-                      <span className="font-display font-black text-sm text-[#E8621A]">Why this works: </span>
+                  <div className="w-full rounded-[18px] p-4 mt-4 flex items-start gap-3" style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)", borderLeft: "3px solid #E8621A" }}>
+                    <span style={{ filter: "drop-shadow(0 0 6px rgba(232,98,26,0.5))", color: "#E8621A", fontSize: 16, flexShrink: 0, marginTop: 1 }}>✦</span>
+                    <p className="text-sm leading-relaxed" style={{ color: "#C7BDAC" }}>
+                      <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, color: "#E8621A" }}>Why this works: </span>
                       {rankedMeals.find((r) => r.meal.id === matchedMeal.id)?.reason}
                     </p>
                   </div>
@@ -3710,15 +3968,24 @@ function DeckContent() {
                 <div className="flex gap-3 w-full mt-6">
                   <button
                     onClick={() => setShowCookOrderModal(true)}
-                    className="flex-1 py-4 rounded-[16px] bg-[#E8621A] text-white font-display font-black text-base"
-                    style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
+                    className="flex-1 py-4 rounded-[16px] text-base"
+                    style={{
+                      fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#06140a",
+                      background: "linear-gradient(180deg, #86C796 0%, #5E9E6E 50%, #3F744F 100%)",
+                      boxShadow: "0 1px 0 rgba(220,255,228,0.5) inset, 0 -2px 0 rgba(20,60,30,0.4) inset, 0 14px 30px rgba(94,158,110,0.32)",
+                    }}
                   >
                     Let&apos;s eat 🙌
                   </button>
                   <button
                     onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
                     disabled={matchConfirming}
-                    className="flex-1 py-4 rounded-[16px] bg-[#2A2420] text-white font-display font-black text-base text-center disabled:opacity-60"
+                    className="flex-1 py-4 rounded-[16px] text-base text-center disabled:opacity-60"
+                    style={{
+                      fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#F6EEE2",
+                      background: "rgba(255,231,202,0.045)",
+                      border: "1px solid rgba(245,237,224,0.16)",
+                    }}
                   >
                     {matchConfirming ? "Locking in…" : (isGuest ? "Done for now →" : "Back to home")}
                   </button>
@@ -3730,10 +3997,10 @@ function DeckContent() {
                 {/* 9. Footer — other matches count (solo only) */}
                 {!sessionId && rejectedMatchIdsRef.current.size > 0 && (
                   <p className="text-center mt-4">
-                    <span className="font-body text-sm text-[#8A7F78]">
+                    <span className="text-sm" style={{ color: "#897E73" }}>
                       {rejectedMatchIdsRef.current.size} other {rejectedMatchIdsRef.current.size === 1 ? "match" : "matches"} waiting.{" "}
                     </span>
-                    <button onClick={handleMatchReject} className="text-[#E8621A] font-semibold text-sm">
+                    <button onClick={handleMatchReject} className="font-semibold text-sm" style={{ color: "#E8621A" }}>
                       See them →
                     </button>
                   </p>
@@ -3795,18 +4062,27 @@ function DeckContent() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#111111] px-5 pb-10 pt-4"
+            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] px-5 pb-10 pt-4"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, #0F0C09 6%)",
+              borderTop: "1px solid rgba(245,237,224,0.085)",
+              boxShadow: "0 -8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)",
+              backdropFilter: "blur(24px)",
+            }}
           >
             {/* Drag handle */}
-            <div className="mx-auto mb-5 h-1 w-8 rounded-full bg-white/15" />
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full" style={{ background: "rgba(245,237,224,0.15)" }} />
 
             {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-[-0.02em] text-white/70">
-                What&apos;s in your kitchen?
-              </h3>
+            <div className="mb-4 mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span style={{ color: "#E8621A", filter: "drop-shadow(0 0 5px rgba(232,98,26,0.5))", fontSize: 11 }}>✦</span>
+                <h3 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#E8621A" }}>
+                  What&apos;s in your kitchen?
+                </h3>
+              </div>
               {selectedIngredients.length > 0 && (
-                <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: "rgba(232,98,26,0.10)", border: "1px solid rgba(232,98,26,0.26)", color: "#FF8A3D" }}>
                   {selectedIngredients.length}/5
                 </span>
               )}

@@ -62,29 +62,32 @@ export function ProgressiveQuestion({ nudge, onAnswer }: Props) {
             onDragEnd={(_, info) => {
               if (info.offset.y > 80 || info.velocity.y > 500) onAnswer(false);
             }}
-            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#1C1A18] px-5 pb-10 pt-4"
-            style={{ boxShadow: "0 -8px 40px rgba(0,0,0,0.5)" }}
+            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] px-5 pb-10 pt-4"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, rgba(18,13,9,0.98) 6%, #120D09 100%)",
+              borderTop: "1px solid rgba(245,237,224,0.085)",
+              boxShadow: "0 -8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)",
+              backdropFilter: "blur(24px)",
+            }}
           >
             {/* Drag handle */}
-            <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full" style={{ background: "rgba(245,237,224,0.15)" }} />
 
-            {/* Icon + eyebrow */}
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-xl leading-none">
-                {nudge.type === "avoid" ? "🤔" : "✨"}
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#E8621A]">
+            {/* Eyebrow */}
+            <div className="flex items-center gap-2 mb-4 mt-3">
+              <span style={{ color: "#E8621A", filter: "drop-shadow(0 0 6px rgba(232,98,26,0.5))", fontSize: 11 }}>✦</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#E8621A" }}>
                 Quick question
               </span>
             </div>
 
             {/* Question */}
-            <p className="text-[17px] font-black leading-snug tracking-[-0.02em] text-white" style={{ fontFamily: "var(--font-nunito)" }}>
+            <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, lineHeight: 1.2, letterSpacing: "-0.01em", color: "#F6EEE2" }}>
               {nudge.question}
             </p>
 
             {/* Sub-copy */}
-            <p className="mt-2 text-sm leading-5 text-[#8A7F78]">
+            <p className="mt-2 text-sm leading-5" style={{ color: "#897E73" }}>
               {nudge.type === "avoid"
                 ? "We'll dial it back — not cut it out completely."
                 : "We'll prioritize it in your next deck."}
@@ -94,21 +97,28 @@ export function ProgressiveQuestion({ nudge, onAnswer }: Props) {
             <div className="mt-6 flex flex-col items-center gap-3">
               <button
                 onClick={() => onAnswer(true)}
-                className="w-full rounded-full bg-[#E8621A] py-3.5 text-sm font-black text-white transition active:scale-[0.97]"
-                style={{ fontFamily: "var(--font-nunito)", boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                className="w-full rounded-full py-3.5 text-sm font-black text-white transition active:scale-[0.97]"
+                style={{
+                  fontFamily: "'Quicksand', sans-serif",
+                  fontWeight: 700,
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+                  boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 12px 26px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.28)",
+                  color: "#1c0c03",
+                }}
               >
                 Yeah, dial it back
               </button>
               <button
                 onClick={() => onAnswer(false)}
-                className="text-sm text-[#8A7F78] transition hover:text-white/60 active:scale-[0.97] py-1"
+                className="text-sm transition active:scale-[0.97] py-1"
+                style={{ color: "#897E73" }}
               >
                 Just not tonight
               </button>
             </div>
 
             {/* Reversibility hint */}
-            <p className="mt-4 text-center text-[11px] text-white/20">
+            <p className="mt-4 text-center text-[11px]" style={{ color: "rgba(245,237,224,0.18)" }}>
               You can always adjust this in settings
             </p>
           </motion.div>
