@@ -1418,9 +1418,18 @@ export default function Home() {
               onDragEnd={(_, info) => {
                 if (info.offset.y > 80 || info.velocity.y > 500) setShowCodeEntry(false);
               }}
-              className="relative bg-[#2A2420] rounded-t-3xl p-6"
+              className="relative rounded-t-[28px] p-6"
+              style={{
+                background:
+                  "radial-gradient(ellipse 80% 35% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 60%), " +
+                  "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%), " +
+                  "#211E1B",
+                border: "1px solid rgba(245,237,224,0.07)",
+                borderBottom: "none",
+                boxShadow: "0 -8px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(245,237,224,0.07)",
+              }}
             >
-              <div className="w-9 h-1 bg-[#3D3733] rounded-full mx-auto mb-6" />
+              <div className="w-9 h-1 rounded-full mx-auto mb-6" style={{ background: "rgba(245,237,224,0.15)" }} />
               <p className="font-display font-black text-2xl text-white mb-1">Enter a code</p>
               <p className="font-body text-sm text-[#8A7F78] mb-6">Your friend&apos;s session code — like RICE-64</p>
               <input
@@ -1428,19 +1437,35 @@ export default function Home() {
                 placeholder="e.g. RICE-64"
                 maxLength={10}
                 autoFocus
-                className="w-full bg-[#1C1A18] border border-[#3D3733] rounded-2xl px-4 py-4 font-display font-black text-2xl text-white text-center uppercase tracking-widest placeholder:text-[#3D3733] focus:outline-none focus:border-[#E8621A] mb-4"
+                className="w-full rounded-[16px] px-4 py-4 font-display font-black text-2xl text-white text-center uppercase tracking-widest placeholder:text-[#3D3733] focus:outline-none mb-4 transition-all"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(245,237,224,0.10)",
+                  fontFamily: "'JetBrains Mono', 'Courier New', monospace",
+                }}
+                onFocus={(e) => { e.currentTarget.style.border = "1px solid rgba(232,98,26,0.55)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,98,26,0.10)"; }}
+                onBlur={(e) => { e.currentTarget.style.border = "1px solid rgba(245,237,224,0.10)"; e.currentTarget.style.boxShadow = "none"; }}
                 onChange={(e) => setCodeInput(e.target.value.toUpperCase().trim())}
               />
               <button
                 onClick={() => router.push(`/join/${codeInput}`)}
                 disabled={codeInput.length < 3}
-                className="w-full bg-[#E8621A] disabled:opacity-40 text-white font-display font-black text-lg py-4 rounded-2xl mb-3"
+                className="w-full disabled:opacity-40 text-white font-display font-black text-lg py-4 rounded-full mb-3 transition active:scale-[0.98]"
+                style={{
+                  background: "linear-gradient(135deg, #F07840 0%, #E8621A 60%, #C94E10 100%)",
+                  boxShadow: "0 0 24px rgba(232,98,26,0.28)",
+                }}
               >
                 Join session →
               </button>
               <button
                 onClick={() => setShowCodeEntry(false)}
-                className="w-full text-[#8A7F78] font-body text-sm py-2"
+                className="w-full font-body text-sm py-2.5 rounded-full transition active:scale-[0.97]"
+                style={{
+                  color: "#8A7F78",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(245,237,224,0.08)",
+                }}
               >
                 Cancel
               </button>

@@ -25,10 +25,66 @@ function mapsUrl(query: string): string {
     : `https://www.google.com/maps/search/?api=1&query=${encoded}`;
 }
 
-function ChevronRight() {
+function ChevronRight({ color }: { color: string }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  );
+}
+
+function ShoppingBagIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+function DeliveryIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="1" y="3" width="15" height="13" rx="2" />
+      <path d="M16 8h4l3 3v5h-7V8z" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  );
+}
+
+function MapPinIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
     </svg>
   );
 }
@@ -37,32 +93,35 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
   const isCook = mode === "cook";
   const accentColor = isCook ? "#4A7C59" : "#E8621A";
   const accentLight = isCook ? "#6BAF7A" : "#F07840";
-  const accentBg = isCook ? "rgba(74,124,89,0.12)" : "rgba(232,98,26,0.12)";
-  const accentBorder = isCook ? "rgba(74,124,89,0.25)" : "rgba(232,98,26,0.25)";
+  const accentBg = isCook ? "rgba(74,124,89,0.08)" : "rgba(232,98,26,0.08)";
+  const accentBorder = isCook ? "rgba(74,124,89,0.22)" : "rgba(232,98,26,0.22)";
   const accentGlow = isCook
-    ? "0 0 20px rgba(74,124,89,0.25)"
-    : "0 0 20px rgba(232,98,26,0.25)";
+    ? "0 0 20px rgba(74,124,89,0.18)"
+    : "0 0 20px rgba(232,98,26,0.18)";
+  const gradientTop = isCook
+    ? "linear-gradient(135deg, #6BAF7A 0%, #4A7C59 60%, #3A6347 100%)"
+    : "linear-gradient(135deg, #F07840 0%, #E8621A 60%, #C94E10 100%)";
 
   const cookActions = [
     {
       label: "Find a recipe",
       sub: "Search Google for instructions",
-      icon: "📖",
+      Icon: SearchIcon,
       onPress: () => openLink(`https://www.google.com/search?q=how+to+cook+${encodeURIComponent(meal.name)}`),
     },
     {
       label: "Watch a quick recipe",
       sub: "See it on YouTube",
-      icon: "▶️",
+      Icon: PlayIcon,
       onPress: () => openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(meal.name + " recipe")}`),
     },
     ...(meal.ingredients && meal.ingredients.length > 0
-      ? [] // ingredients shown inline — no external link
+      ? []
       : [
           {
             label: "Check ingredients",
             sub: "See what you'll need",
-            icon: "🛒",
+            Icon: ShoppingBagIcon,
             onPress: () => openLink(`https://www.google.com/search?q=${encodeURIComponent(meal.name + " ingredients")}`),
           },
         ]),
@@ -72,19 +131,19 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
     {
       label: "Search delivery",
       sub: "Find it on DoorDash, Uber Eats & more",
-      icon: "🚀",
+      Icon: DeliveryIcon,
       onPress: () => openLink(`https://www.google.com/search?q=order+${encodeURIComponent(meal.name)}+delivery`),
     },
     {
       label: "Find nearby",
       sub: "See restaurants close to you",
-      icon: "📍",
+      Icon: MapPinIcon,
       onPress: () => openLink(mapsUrl(`${meal.name} near me`)),
     },
     {
       label: "Try another option",
       sub: "Go back and keep the meal",
-      icon: "↩️",
+      Icon: ArrowLeftIcon,
       onPress: onClose,
     },
   ];
@@ -119,25 +178,45 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
           onDragEnd={(_, info) => {
             if (info.offset.y > 80 || info.velocity.y > 500) onClose();
           }}
-          className="relative w-full bg-[#1C1A18] rounded-t-[28px] px-5 pt-5 pb-10 border-t border-white/[0.08]"
-          style={{ maxWidth: 540 }}
+          className="relative w-full rounded-t-[28px] px-5 pt-5 pb-10"
+          style={{
+            maxWidth: 540,
+            background:
+              `radial-gradient(ellipse 80% 35% at 50% 0%, ${isCook ? "rgba(74,124,89,0.10)" : "rgba(232,98,26,0.09)"} 0%, transparent 60%), ` +
+              "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%), " +
+              "#211E1B",
+            border: "1px solid rgba(245,237,224,0.07)",
+            borderBottom: "none",
+            boxShadow: `0 -8px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(245,237,224,0.07), ${accentGlow}`,
+          }}
         >
           {/* Grab handle */}
-          <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+          <div
+            className="w-10 h-1 rounded-full mx-auto mb-5"
+            style={{ background: "rgba(245,237,224,0.15)" }}
+          />
 
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center text-[#8A7F78] hover:text-white/60 transition"
+            className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center text-[#8A7F78] hover:text-white transition"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(245,237,224,0.08)",
+              borderRadius: "50%",
+            }}
             aria-label="Close"
           >
-            ✕
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
 
-          {/* Accent line at top */}
+          {/* Accent top line */}
           <div
             className="absolute top-0 left-0 right-0 h-[2px] rounded-t-[28px]"
-            style={{ background: accentColor }}
+            style={{ background: gradientTop }}
           />
 
           {/* Meal thumbnail + header */}
@@ -156,10 +235,19 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
               </div>
             ) : (
               <div
-                className="w-[52px] h-[52px] rounded-[12px] shrink-0 flex items-center justify-center text-2xl"
-                style={{ background: accentBg, border: `1px solid ${accentBorder}` }}
+                className="w-[52px] h-[52px] rounded-[12px] shrink-0 flex items-center justify-center"
+                style={{ background: accentBg, border: `1px solid ${accentBorder}`, color: accentColor }}
               >
-                {isCook ? "🍳" : "📱"}
+                {isCook ? (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 11l19-9-9 19-2-8-8-2z" />
+                  </svg>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="5" y="2" width="14" height="20" rx="2" />
+                    <line x1="12" y1="18" x2="12.01" y2="18" />
+                  </svg>
+                )}
               </div>
             )}
 
@@ -187,8 +275,8 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-col gap-[10px]">
+          {/* Action rows */}
+          <div className="flex flex-col gap-[8px]">
             {actions.map((action) => (
               <button
                 key={action.label}
@@ -197,9 +285,15 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
                 style={{
                   background: accentBg,
                   border: `1px solid ${accentBorder}`,
+                  boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
                 }}
               >
-                <span className="text-[22px] shrink-0 leading-none">{action.icon}</span>
+                <span
+                  className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                  style={{ color: accentLight, background: `${accentColor}18`, border: `1px solid ${accentBorder}` }}
+                >
+                  <action.Icon />
+                </span>
                 <div className="flex-1 text-left min-w-0">
                   <p
                     className="text-[14px] font-black text-white leading-tight"
@@ -214,9 +308,7 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
                     {action.sub}
                   </p>
                 </div>
-                <span style={{ color: accentLight }} className="shrink-0">
-                  <ChevronRight />
-                </span>
+                <ChevronRight color={accentLight} />
               </button>
             ))}
           </div>
@@ -225,13 +317,16 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
           {isCook && meal.ingredients && meal.ingredients.length > 0 && (
             <div
               className="mt-4 rounded-[14px] px-4 py-4"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(245,237,224,0.07)",
+              }}
             >
               <p
                 className="text-[10px] font-bold tracking-[2px] uppercase mb-3"
                 style={{ color: accentLight, fontFamily: "var(--font-manrope)" }}
               >
-                🛒 Ingredients
+                Ingredients
               </p>
               <div className="flex flex-wrap gap-[6px]">
                 {meal.ingredients.map((ing) => (
