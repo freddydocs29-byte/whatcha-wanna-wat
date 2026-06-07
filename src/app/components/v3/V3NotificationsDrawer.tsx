@@ -130,11 +130,16 @@ export default function V3NotificationsDrawer({
                 {/* Pending invite */}
                 {pendingInvite && (
                   <div
-                    className="rounded-[20px] p-4 border border-[#4A7C59]/50 bg-[#1E2A22]"
-                    style={{ boxShadow: "0 0 20px rgba(74,124,89,0.12)" }}
+                    className="rounded-[20px] p-4 border border-[#4A7C59]/35"
+                    style={{
+                      background: "rgba(74,124,89,0.07)",
+                      boxShadow: "0 0 24px rgba(74,124,89,0.10), inset 0 1px 0 rgba(245,237,224,0.04)",
+                    }}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#4A7C59]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border border-[#4A7C59]/30"
+                        style={{ background: "rgba(74,124,89,0.15)" }}
+                      >
                         {pendingInvite.inviterAvatar ? (
                           <Image
                             src={pendingInvite.inviterAvatar}

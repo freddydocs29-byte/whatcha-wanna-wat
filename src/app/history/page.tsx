@@ -218,7 +218,15 @@ export default function HistoryPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setConfirming(false)}
           />
-          <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.06] bg-[#2A2420] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+          <div
+            className="relative w-full max-w-md rounded-[28px] p-6"
+            style={{
+              background:
+                "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232,98,26,0.07) 0%, transparent 60%), #211E1B",
+              border: "1px solid rgba(255,255,255,0.06)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(245,237,224,0.05)",
+            }}
+          >
             <p className="font-display font-black text-xl text-white tracking-tight">
               Clear history?
             </p>
@@ -229,13 +237,18 @@ export default function HistoryPage() {
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => setConfirming(false)}
-                className="flex-1 rounded-full border border-white/10 bg-[#1C1A18] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                className="flex-1 rounded-full py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                style={{
+                  background: "rgba(255,231,202,0.04)",
+                  border: "1px solid rgba(245,237,224,0.08)",
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleClear}
-                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition hover:bg-[#F27B35] active:scale-[0.98]"
+                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white transition hover:bg-[#F27B35] active:scale-[0.98]"
+                style={{ boxShadow: "0 0 20px rgba(232,98,26,0.35)" }}
               >
                 Yes, clear it
               </button>

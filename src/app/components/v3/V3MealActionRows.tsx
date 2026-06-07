@@ -42,7 +42,9 @@ export default function V3MealActionRows({
           onClick={action.onClick}
           className="flex items-center gap-3 px-[14px] py-3 bg-[#2A2420] rounded-[14px] cursor-pointer border border-white/[0.04] text-left w-full transition-colors hover:bg-white/[0.04]"
         >
-          <div className="w-9 h-9 rounded-[10px] bg-[#3D3733] flex items-center justify-center text-[17px] shrink-0">
+          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] shrink-0"
+            style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(245,237,224,0.07)" }}
+          >
             {action.icon}
           </div>
           <div className="flex-1">

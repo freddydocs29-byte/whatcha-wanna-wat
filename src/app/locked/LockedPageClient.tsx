@@ -206,18 +206,33 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
       {showEatModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowEatModal(false)}
           />
-          <div className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10">
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+          <div
+            className="relative w-full rounded-t-[28px] px-6 pt-6 pb-10"
+            style={{
+              background:
+                "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.08) 0%, transparent 60%), #211E1B",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: "none",
+              boxShadow: "0 -8px 40px rgba(0,0,0,0.55)",
+            }}
+          >
+            <div className="w-10 h-1 bg-[rgba(245,237,224,0.15)] rounded-full mx-auto mb-6" />
             <p className="font-display font-black text-2xl text-white text-center">
               How are you eating?
             </p>
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button
                 onClick={() => { setShowEatModal(false); window.open(`https://www.google.com/search?q=${recipeQuery}`, "_blank", "noopener,noreferrer"); }}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border transition-colors active:scale-[0.98]"
+                style={{
+                  background: "rgba(255,231,202,0.04)",
+                  borderColor: "rgba(245,237,224,0.07)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
               >
                 <span className="text-4xl">🍳</span>
                 <p className="font-display font-black text-lg text-white">Cook it</p>
@@ -225,7 +240,13 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
               </button>
               <button
                 onClick={() => { setShowEatModal(false); window.open(`https://www.google.com/search?q=${recipeQuery}`, "_blank", "noopener,noreferrer"); }}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40"
+                className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border transition-colors active:scale-[0.98]"
+                style={{
+                  background: "rgba(255,231,202,0.04)",
+                  borderColor: "rgba(245,237,224,0.07)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
               >
                 <span className="text-4xl">🚗</span>
                 <p className="font-display font-black text-lg text-white">Order in</p>

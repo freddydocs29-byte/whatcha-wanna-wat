@@ -290,7 +290,12 @@ export function MealDetailDrawer({
                     {dietaryTags.map((tag) => (
                       <span
                         key={tag}
-                        className="bg-[#2A3A2E] text-[#4A7C59] text-xs font-semibold px-3 py-1 rounded-full"
+                        className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                          isTop5
+                            ? "bg-[#F5F0E8] text-[#6B6360] border-[#6B6360]/20"
+                            : "text-[#C7BDAC] border-[rgba(245,237,224,0.10)]"
+                        }`}
+                        style={isTop5 ? {} : { background: "rgba(255,231,202,0.06)" }}
                       >
                         {tag}
                       </span>

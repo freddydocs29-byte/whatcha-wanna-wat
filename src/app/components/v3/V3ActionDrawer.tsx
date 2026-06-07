@@ -39,14 +39,19 @@ export default function V3ActionDrawer({
 
       {/* Drawer panel */}
       <div
-        className="absolute bottom-0 left-0 right-0 bg-[#2A2420] rounded-t-[24px] pb-5 z-[51] transition-transform duration-[320ms]"
+        className="absolute bottom-0 left-0 right-0 rounded-t-[28px] pb-5 z-[51] transition-transform duration-[320ms]"
         style={{
           transform: isOpen ? "translateY(0)" : "translateY(100%)",
           transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
+          background:
+            "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.07) 0%, transparent 60%), #211E1B",
+          border: "1px solid rgba(255,255,255,0.05)",
+          borderBottom: "none",
+          boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
         }}
       >
         {/* Handle */}
-        <div className="w-9 h-1 rounded-full bg-[#3D3733] mx-auto mt-3" />
+        <div className="w-9 h-1 rounded-full bg-[rgba(245,237,224,0.15)] mx-auto mt-3" />
 
         {/* Header */}
         <div className="flex justify-between items-start px-[18px] pt-[14px] pb-1">
@@ -60,7 +65,8 @@ export default function V3ActionDrawer({
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-[#3D3733] flex items-center justify-center text-[13px] text-[#8A7F78] border-0 cursor-pointer shrink-0"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[13px] text-[#8A7F78] border border-[rgba(245,237,224,0.08)] cursor-pointer shrink-0"
+            style={{ background: "rgba(255,231,202,0.04)" }}
           >
             ✕
           </button>
@@ -86,8 +92,12 @@ export default function V3ActionDrawer({
             >
               <div
                 className={`w-[42px] h-[42px] rounded-[12px] flex items-center justify-center text-xl shrink-0 ${
-                  opt.primary ? "bg-[#E8621A]" : "bg-[#3D3733]"
+                  opt.primary ? "bg-[#E8621A]" : ""
                 }`}
+                style={opt.primary ? { boxShadow: "0 0 14px rgba(232,98,26,0.35)" } : {
+                  background: "rgba(255,231,202,0.06)",
+                  border: "1px solid rgba(245,237,224,0.07)",
+                }}
               >
                 {opt.icon}
               </div>
