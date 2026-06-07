@@ -189,6 +189,28 @@ body {
   100% { transform: translateX(-120%) rotate(-12deg); opacity: 0; }
 }
 
+/* ── Candlelight design system animations ─────────────────────────────────── */
+@keyframes candlelight-amb {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.82; }
+}
+@keyframes candlelight-edge {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 1; }
+}
+@keyframes candlelight-sheen {
+  0%, 72%   { left: -40%; }
+  86%, 100% { left: 130%; }
+}
+@keyframes candlelight-livedot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,98,26,0.5); }
+  50%       { box-shadow: 0 0 0 5px transparent; }
+}
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .candlelight-animate { animation: none !important; }
+}
+
 /* ── [BRAND ADD] BASE ────────────────────────────────────────────────────────
    App-shell defaults.
    ─────────────────────────────────────────────────────────────────────────── */

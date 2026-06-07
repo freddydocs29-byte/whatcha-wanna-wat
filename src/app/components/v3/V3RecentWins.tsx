@@ -3,6 +3,7 @@ export interface WinItem {
   emoji: string;
   name: string;
   day: string;
+  /** isFavorite is not currently wired for Recent Wins — heart is displayed non-interactive */
   isFavorite?: boolean;
 }
 
@@ -16,41 +17,83 @@ export default function V3RecentWins({ wins, onSeeAll, onMealClick }: V3RecentWi
   if (!wins || wins.length === 0) return null;
 
   return (
-    <div className="px-[18px] mb-[14px] shrink-0">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-[10px]">
-        <span
-          className="text-[14px] font-black text-white tracking-[-0.2px]"
-          style={{ fontFamily: "var(--font-nunito)" }}
-        >
-          Recent wins
-        </span>
+    <div className="shrink-0" style={{ marginBottom: 14 }}>
+      {/* Section header — Instrument Serif italic title + mono count + orange See all */}
+      <div
+        className="flex items-baseline justify-between"
+        style={{ padding: "30px 30px 14px" }}
+      >
+        <div className="flex items-baseline" style={{ gap: 11 }}>
+          <span
+            style={{
+              fontFamily: "var(--font-instrument-serif)",
+              fontStyle: "italic",
+              fontWeight: 400,
+              fontSize: 24,
+              color: "#F6EEE2",
+              lineHeight: 1,
+            }}
+          >
+            Recent wins
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-jetbrains-mono)",
+              fontSize: 9.5,
+              letterSpacing: "1.5px",
+              color: "#897E73",
+              textTransform: "uppercase",
+              fontWeight: 400,
+            }}
+          >
+            last 7 days
+          </span>
+        </div>
         <button
           onClick={onSeeAll}
-          className="text-[11px] font-semibold bg-transparent border-0 cursor-pointer"
-          style={{ fontFamily: "var(--font-manrope)", color: "#E8621A" }}
+          className="inline-flex items-center"
+          style={{
+            gap: 5,
+            fontFamily: "var(--font-sans, Inter, system-ui)",
+            fontWeight: 500,
+            fontSize: 12,
+            color: "#E8621A",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
         >
-          See all ›
+          See all <span>›</span>
         </button>
       </div>
 
-      {/* Scroll row */}
+      {/* Horizontal scroll rail — snap to start */}
       <div
-        className="flex gap-[10px] overflow-x-auto pb-1"
-        style={{ scrollbarWidth: "none" } as React.CSSProperties}
+        className="flex overflow-x-auto"
+        style={{
+          gap: 13,
+          padding: "0 30px 6px",
+          scrollbarWidth: "none",
+          scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
+        } as React.CSSProperties}
       >
         {wins.map((win, i) => (
           <button
             key={i}
-            className="shrink-0 w-[80px] text-left bg-transparent border-0 p-0 cursor-pointer"
             onClick={() => onMealClick?.(i)}
+            className="flex-shrink-0 text-left p-0 bg-transparent border-0 cursor-pointer group"
+            style={{ scrollSnapAlign: "start", width: 142 }}
           >
-            {/* Card image */}
+            {/* Card frame — 142×142, studio-lit */}
             <div
-              className="w-[80px] h-[76px] rounded-[13px] overflow-hidden mb-[5px] relative"
+              className="relative overflow-hidden transition-all duration-[250ms] group-hover:-translate-y-1"
               style={{
-                background: "#201A16",
-                boxShadow: "0 2px 10px rgba(0,0,0,0.40)",
+                width: 142,
+                height: 142,
+                borderRadius: 20,
+                border: "1px solid rgba(245,237,224,0.085)",
+                boxShadow: "0 14px 30px rgba(0,0,0,0.4)",
               }}
             >
               {win.image ? (
@@ -59,36 +102,123 @@ export default function V3RecentWins({ wins, onSeeAll, onMealClick }: V3RecentWi
                   <img
                     src={win.image}
                     alt={win.name}
-                    className="w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
-                  {/* Bottom gradient for readability */}
+                  {/* Studio top-spotlight — mix-blend-mode screen */}
                   <div
-                    className="absolute bottom-0 left-0 right-0 h-[30px] pointer-events-none"
+                    className="absolute inset-0 pointer-events-none"
                     style={{
-                      background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)",
+                      background:
+                        "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.78) 0%, rgba(255,228,190,0.18) 30%, transparent 58%)",
+                      mixBlendMode: "screen",
+                    }}
+                  />
+                  {/* Bottom scrim + vignette */}
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse 90% 70% at 50% 120%, rgba(0,0,0,0.62) 0%, transparent 60%), " +
+                        "linear-gradient(180deg, transparent 40%, rgba(6,4,3,0.55) 100%)",
                     }}
                   />
                 </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-[28px]">
-                  {win.emoji}
-                </div>
+                <>
+                  {/* Emoji fallback with dark bg */}
+                  <div
+                    className="absolute inset-0 flex items-center justify-center text-[36px]"
+                    style={{ background: "#1A1410" }}
+                  >
+                    {win.emoji}
+                  </div>
+                  {/* Bottom scrim on emoji too */}
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, transparent 40%, rgba(6,4,3,0.55) 100%)",
+                    }}
+                  />
+                </>
               )}
-              {win.isFavorite && (
-                <span className="absolute top-[4px] right-[4px] text-[11px] leading-none">
-                  🧡
-                </span>
-              )}
+
+              {/* Day badge — top-left */}
+              <span
+                className="absolute z-[3]"
+                style={{
+                  top: 10,
+                  left: 11,
+                  fontFamily: "var(--font-jetbrains-mono)",
+                  fontSize: 8.5,
+                  letterSpacing: "1.4px",
+                  color: "#F6EEE2",
+                  textTransform: "uppercase",
+                  padding: "3px 8px",
+                  borderRadius: 100,
+                  background: "rgba(8,5,3,0.5)",
+                  border: "1px solid rgba(245,237,224,0.085)",
+                  backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
+                  fontWeight: 400,
+                }}
+              >
+                {win.day}
+              </span>
+
+              {/* Heart — non-interactive display only.
+                  TODO: wire to real save/unsave logic when Recent Wins save
+                  behavior is supported in the data layer. */}
+              <span
+                className="absolute z-[3] flex items-center justify-center"
+                style={{
+                  top: 9,
+                  right: 9,
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  background: "rgba(8,5,3,0.5)",
+                  border: "1px solid rgba(245,237,224,0.16)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  fontSize: 11,
+                  color: "#C7BDAC",
+                  cursor: "default",
+                  userSelect: "none",
+                }}
+                aria-hidden="true"
+              >
+                ♡
+              </span>
             </div>
+
+            {/* Dish name — Instrument Serif italic */}
             <div
-              className="text-[10px] font-extrabold text-white leading-[1.25] truncate"
-              style={{ fontFamily: "var(--font-nunito)" }}
+              style={{
+                marginTop: 11,
+                fontFamily: "var(--font-instrument-serif)",
+                fontStyle: "italic",
+                fontWeight: 400,
+                fontSize: 16,
+                color: "#F6EEE2",
+                lineHeight: 1.05,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
             >
               {win.name}
             </div>
+
+            {/* Sub info */}
             <div
-              className="text-[9px] mt-[1px]"
-              style={{ fontFamily: "var(--font-manrope)", color: "#504844" }}
+              style={{
+                marginTop: 3,
+                fontFamily: "var(--font-sans, Inter, system-ui)",
+                fontWeight: 300,
+                fontSize: 10.5,
+                color: "#897E73",
+              }}
             >
               {win.day}
             </div>

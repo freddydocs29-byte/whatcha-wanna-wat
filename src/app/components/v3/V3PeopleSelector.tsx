@@ -55,7 +55,6 @@ function PartnerAvatar({ person }: { person: PersonV3 }) {
       </span>
     );
   }
-  // Anonymous / unknown partner — tasteful silhouette
   return <AvatarSilhouette />;
 }
 
@@ -72,8 +71,7 @@ export default function V3PeopleSelector({
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
 
-  // When the people list changes (e.g. a partner is hidden), drop any stale
-  // selections that no longer exist in the list.
+  // Drop stale selections when people list changes
   useEffect(() => {
     const validIds = new Set(people.map((p) => p.id));
     const next = selected.filter((id) => validIds.has(id));
@@ -131,14 +129,30 @@ export default function V3PeopleSelector({
   return (
     <>
       <div
-        className="flex gap-[12px] px-[18px] mb-[16px] overflow-x-auto items-start shrink-0"
-        style={{ scrollbarWidth: "none" } as React.CSSProperties}
+        className="flex items-start overflow-x-auto shrink-0"
+        style={{
+          gap: 16,
+          padding: "30px 30px 4px",
+          scrollbarWidth: "none",
+        } as React.CSSProperties}
       >
-        {/* You — always selected, not togglable, not hideable */}
-        <div className="flex flex-col items-center gap-[6px] shrink-0">
+        {/* You — always selected, not toggleable */}
+        <div className="flex flex-col items-center flex-shrink-0" style={{ gap: 9 }}>
+          {/* Photo: 62×62 circle with presence ring + lighting overlay */}
           <div
-            className="w-[60px] h-[60px] rounded-full bg-[#251E1A] flex items-center justify-center relative overflow-hidden border-[2.5px] border-[#E8621A]"
-            style={{ boxShadow: "0 0 12px rgba(232,98,26,0.30)" }}
+            className="relative overflow-hidden"
+            style={{
+              width: 62,
+              height: 62,
+              borderRadius: "50%",
+              background: "#251E1A",
+              // Selected orange ring: inset separator + outer ring
+              boxShadow:
+                "0 8px 22px rgba(0,0,0,0.45), " +
+                "0 0 22px rgba(232,98,26,0.28), " +
+                "inset 0 0 0 2px rgba(11,8,5,0.9), " +
+                "0 0 0 2px #E8621A",
+            }}
           >
             {avatarUrl ? (
               <Image
@@ -150,65 +164,158 @@ export default function V3PeopleSelector({
               />
             ) : initials ? (
               <span
-                className="text-[17px] font-black text-white"
+                className="absolute inset-0 flex items-center justify-center text-[17px] font-black text-white"
                 style={{ fontFamily: "var(--font-nunito)" }}
               >
                 {initials}
               </span>
             ) : (
-              <AvatarSilhouette />
+              <span className="absolute inset-0 flex items-center justify-center">
+                <AvatarSilhouette />
+              </span>
             )}
-            {/* "P" primary badge bottom-left */}
+
+            {/* Portrait lighting overlay */}
             <div
-              className="absolute bottom-[1px] left-[1px] w-[15px] h-[15px] rounded-full bg-[#E8621A] border-2 border-[#1C1A18] flex items-center justify-center text-[7px] text-white font-extrabold"
-              style={{ fontFamily: "var(--font-manrope)" }}
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(circle at 30% 22%, rgba(255,232,205,0.3) 0%, transparent 34%), " +
+                  "radial-gradient(circle at 72% 92%, rgba(0,0,0,0.42) 0%, transparent 48%)",
+              }}
+            />
+
+            {/* Host badge (✓) — bottom-right */}
+            <div
+              className="absolute flex items-center justify-center"
+              style={{
+                bottom: -1,
+                right: -1,
+                width: 19,
+                height: 19,
+                borderRadius: "50%",
+                background: "#E8621A",
+                border: "2px solid #0B0805",
+                zIndex: 3,
+                fontSize: 10,
+                color: "#1a0d04",
+                fontWeight: 700,
+              }}
             >
-              P
-            </div>
-            {/* Check badge bottom-right */}
-            <div className="absolute bottom-[1px] right-[1px] w-[17px] h-[17px] rounded-full bg-[#E8621A] border-2 border-[#1C1A18] flex items-center justify-center text-[9px] text-white font-bold">
               ✓
             </div>
           </div>
           <span
-            className="text-[11px] text-[#6A6260] font-semibold"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{
+              fontFamily: "var(--font-sans, Inter, system-ui)",
+              fontWeight: 500,
+              fontSize: 12,
+              color: "#F6EEE2",
+            }}
           >
             You
           </span>
         </div>
 
-        {/* Recent partners from partner_relationships */}
+        {/* Partner avatars */}
         {people.map((person) => {
           const isSelected = selected.includes(person.id);
           return (
             <div
               key={person.id}
-              className="flex flex-col items-center gap-[6px] shrink-0 cursor-pointer select-none"
+              className="flex flex-col items-center flex-shrink-0 cursor-pointer select-none"
+              style={{ gap: 9 }}
               onPointerDown={() => handlePointerDown(person.id)}
               onPointerUp={() => handlePointerUp(person.id)}
               onPointerLeave={handlePointerLeave}
             >
               <div
-                className={`w-[60px] h-[60px] rounded-full bg-[#251E1A] flex items-center justify-center relative overflow-hidden border-[2.5px] transition-all ${
-                  isSelected ? "border-[#E8621A]" : "border-[#302A26]"
-                }`}
-                style={
-                  isSelected
-                    ? { boxShadow: "0 0 10px rgba(232,98,26,0.25)" }
-                    : {}
-                }
+                className="relative overflow-hidden transition-all"
+                style={{
+                  width: 62,
+                  height: 62,
+                  borderRadius: "50%",
+                  background: "#251E1A",
+                  boxShadow: isSelected
+                    ? "0 8px 22px rgba(0,0,0,0.45), " +
+                      "0 0 22px rgba(232,98,26,0.28), " +
+                      "inset 0 0 0 2px rgba(11,8,5,0.9), " +
+                      "0 0 0 2px #E8621A"
+                    : "0 8px 20px rgba(0,0,0,0.45)",
+                }}
               >
                 <PartnerAvatar person={person} />
+
+                {/* Portrait lighting overlay */}
+                <div
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 30% 22%, rgba(255,232,205,0.3) 0%, transparent 34%), " +
+                      "radial-gradient(circle at 72% 92%, rgba(0,0,0,0.42) 0%, transparent 48%)",
+                  }}
+                />
+
+                {/* Online badge — green dot, bottom-right */}
+                <div
+                  className="absolute flex items-center justify-center"
+                  style={{
+                    bottom: -1,
+                    right: -1,
+                    width: 19,
+                    height: 19,
+                    borderRadius: "50%",
+                    background: "#0B0805",
+                    border: "2px solid #0B0805",
+                    zIndex: 3,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: "50%",
+                      background: isSelected ? "#86A972" : "#574E45",
+                      boxShadow: isSelected ? "0 0 8px rgba(134,169,114,0.7)" : "none",
+                      display: "block",
+                    }}
+                  />
+                </div>
+
+                {/* Selected check overlay */}
                 {isSelected && (
-                  <div className="absolute bottom-[1px] right-[1px] w-[17px] h-[17px] rounded-full bg-[#E8621A] border-2 border-[#1C1A18] flex items-center justify-center text-[9px] text-white font-bold">
+                  <div
+                    className="absolute flex items-center justify-center"
+                    style={{
+                      bottom: -1,
+                      right: -1,
+                      width: 19,
+                      height: 19,
+                      borderRadius: "50%",
+                      background: "#E8621A",
+                      border: "2px solid #0B0805",
+                      zIndex: 4,
+                      fontSize: 9,
+                      color: "white",
+                      fontWeight: 700,
+                    }}
+                  >
                     ✓
                   </div>
                 )}
               </div>
               <span
-                className="text-[11px] text-[#6A6260] font-semibold max-w-[60px] truncate text-center"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                style={{
+                  fontFamily: "var(--font-sans, Inter, system-ui)",
+                  fontWeight: 500,
+                  fontSize: 12,
+                  color: "#F6EEE2",
+                  maxWidth: 62,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  textAlign: "center",
+                }}
               >
                 {person.name}
               </span>
@@ -216,24 +323,41 @@ export default function V3PeopleSelector({
           );
         })}
 
-        {/* Invite — not hideable */}
+        {/* Invite — dashed circle */}
         <div
-          className="flex flex-col items-center gap-[6px] shrink-0 cursor-pointer"
+          className="flex flex-col items-center flex-shrink-0 cursor-pointer"
+          style={{ gap: 9 }}
           onClick={onInvite}
         >
-          <div className="w-[60px] h-[60px] rounded-full bg-transparent border-[2px] border-dashed border-[#3A3330] flex items-center justify-center text-[20px] text-[#5A5250]">
+          <div
+            className="flex items-center justify-center"
+            style={{
+              width: 62,
+              height: 62,
+              borderRadius: "50%",
+              background: "transparent",
+              border: "1.5px dashed rgba(245,237,224,0.16)",
+              fontSize: 26,
+              color: "#897E73",
+              fontWeight: 300,
+            }}
+          >
             +
           </div>
           <span
-            className="text-[11px] text-[#6A6260] font-semibold"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            style={{
+              fontFamily: "var(--font-sans, Inter, system-ui)",
+              fontWeight: 500,
+              fontSize: 12,
+              color: "#897E73",
+            }}
           >
             Invite
           </span>
         </div>
       </div>
 
-      {/* Long-press hide menu */}
+      {/* Long-press hide menu — preserved, rethemed */}
       {menuOpenForId && (
         <div
           className="fixed inset-0 z-50 flex items-end"
@@ -241,38 +365,52 @@ export default function V3PeopleSelector({
           onPointerDown={() => setMenuOpenForId(null)}
         >
           <div
-            className="w-full rounded-t-[20px] px-[20px] pt-[22px] pb-[44px]"
-            style={{ backgroundColor: "#242220", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+            className="w-full"
+            style={{
+              background: "#1A1714",
+              borderTop: "1px solid rgba(245,237,224,0.085)",
+              borderRadius: "20px 20px 0 0",
+              padding: "22px 20px 44px",
+            }}
             onPointerDown={(e) => e.stopPropagation()}
           >
             {menuPerson && (
               <p
-                className="text-center text-[13px] mb-[20px]"
+                className="text-center"
                 style={{
-                  fontFamily: "var(--font-manrope)",
-                  color: "#6A6260",
+                  fontFamily: "var(--font-sans, Inter, system-ui)",
+                  fontSize: 13,
+                  color: "#897E73",
+                  marginBottom: 20,
                 }}
               >
                 {menuPerson.name}
               </p>
             )}
             <button
-              className="w-full py-[15px] rounded-[12px] text-[15px] font-semibold mb-[10px]"
+              className="w-full rounded-[12px] text-[15px] font-semibold"
               style={{
-                fontFamily: "var(--font-manrope)",
-                backgroundColor: "#2E2B29",
+                background: "#2A2724",
                 color: "#FF6B6B",
+                padding: "15px 0",
+                marginBottom: 10,
+                fontFamily: "var(--font-sans, Inter, system-ui)",
+                border: "none",
+                cursor: "pointer",
               }}
               onClick={() => handleHide(menuOpenForId)}
             >
               Hide from Home
             </button>
             <button
-              className="w-full py-[15px] text-[15px] font-semibold"
+              className="w-full text-[15px] font-semibold"
               style={{
-                fontFamily: "var(--font-manrope)",
-                color: "#6A6260",
                 background: "none",
+                border: "none",
+                color: "#897E73",
+                padding: "15px 0",
+                fontFamily: "var(--font-sans, Inter, system-ui)",
+                cursor: "pointer",
               }}
               onClick={() => setMenuOpenForId(null)}
             >

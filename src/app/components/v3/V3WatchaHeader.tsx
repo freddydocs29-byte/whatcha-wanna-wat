@@ -14,31 +14,58 @@ export default function V3WatchaHeader({
   onNotificationsClick,
 }: V3WatchaHeaderProps) {
   return (
-    <div className="flex justify-between items-center px-[18px] pt-[14px] pb-[10px] shrink-0">
-      {/* Hamburger */}
+    <div
+      className="flex justify-between items-center shrink-0"
+      style={{ padding: "10px 22px 6px" }}
+    >
+      {/* Hamburger — glass circle button */}
       <button
         onClick={onMenuClick}
-        className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer"
+        className="flex items-center justify-center cursor-pointer transition-transform active:scale-[0.93]"
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: "50%",
+          background: "rgba(255,231,202,0.045)",
+          border: "1px solid rgba(245,237,224,0.085)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          color: "#F6EEE2",
+        }}
         aria-label="Open menu"
       >
-        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
-          <rect width="16" height="2" rx="1" fill="white" />
-          <rect y="5" width="10" height="2" rx="1" fill="white" />
-          <rect y="10" width="16" height="2" rx="1" fill="white" />
-        </svg>
+        {/* Three-line hamburger with shorter middle */}
+        <span className="flex flex-col gap-[3.5px]">
+          <span style={{ display: "block", width: 15, height: 1.6, background: "currentColor", borderRadius: 2 }} />
+          <span style={{ display: "block", width: 11, height: 1.6, background: "currentColor", borderRadius: 2 }} />
+          <span style={{ display: "block", width: 15, height: 1.6, background: "currentColor", borderRadius: 2 }} />
+        </span>
       </button>
 
-      {/* Logo — "Watcha" Nunito bold + "wanna eat?" Dancing Script */}
-      <div className="text-center leading-none">
+      {/* Wordmark — Quicksand + Instrument Serif italic */}
+      <div className="flex flex-col items-center" style={{ lineHeight: 0.82 }}>
         <span
-          className="block text-[21px] font-black text-white leading-none tracking-[-0.3px]"
-          style={{ fontFamily: "var(--font-nunito)" }}
+          style={{
+            fontFamily: "var(--font-quicksand)",
+            fontWeight: 700,
+            fontSize: 23,
+            color: "#F6EEE2",
+            letterSpacing: "-0.01em",
+            lineHeight: 1,
+          }}
         >
           Watcha
         </span>
         <span
-          className="block text-[17px] font-bold text-[#E8621A] leading-[1.15]"
-          style={{ fontFamily: "'Dancing Script', cursive" }}
+          style={{
+            fontFamily: "var(--font-instrument-serif)",
+            fontStyle: "italic",
+            fontWeight: 400,
+            fontSize: 15,
+            color: "#E8621A",
+            marginTop: 1,
+            lineHeight: 1.1,
+          }}
         >
           wanna eat?
         </span>
@@ -49,13 +76,23 @@ export default function V3WatchaHeader({
         <div className="relative">
           <button
             onClick={onNotificationsClick}
-            className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer"
+            className="flex items-center justify-center cursor-pointer transition-transform active:scale-[0.93]"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: "rgba(255,231,202,0.045)",
+              border: "1px solid rgba(245,237,224,0.085)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              color: "#F6EEE2",
+            }}
             aria-label="Open notifications"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
               <path
                 d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
-                stroke="white"
+                stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -63,16 +100,40 @@ export default function V3WatchaHeader({
             </svg>
           </button>
           {hasNotification && (
-            <div className="absolute top-[3px] right-[3px] w-2 h-2 rounded-full bg-[#E8621A] border-2 border-[#1C1A18]" />
+            <div
+              className="absolute"
+              style={{
+                top: 7,
+                right: 7,
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#E8621A",
+                boxShadow: "0 0 7px rgba(232,98,26,0.5)",
+                border: "1.5px solid #0B0805",
+              }}
+            />
           )}
         </div>
 
         {showShare && (
-          <button className="w-9 h-9 rounded-[10px] bg-[#252220] flex items-center justify-center border-0 cursor-pointer">
+          <button
+            className="flex items-center justify-center cursor-pointer transition-transform active:scale-[0.93]"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: "rgba(255,231,202,0.045)",
+              border: "1px solid rgba(245,237,224,0.085)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              color: "#F6EEE2",
+            }}
+          >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
               <path
                 d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                stroke="white"
+                stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"

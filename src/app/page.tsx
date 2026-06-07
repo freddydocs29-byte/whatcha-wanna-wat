@@ -942,28 +942,28 @@ export default function Home() {
   // so the headline feels fresh without jumping on every re-render.
   const headlinesByTime: Record<string, string[]> = {
     morning: [
-      "What are we eating today? ☀️",
-      "Let's plan today's meals. 🍳",
-      "Good food starts with a plan. ☕",
-      "Let's make today delicious. 🌅",
+      "What are we eating today?",
+      "Let's plan today's meals.",
+      "Good food starts with a plan.",
+      "Let's make today delicious.",
     ],
     afternoon: [
-      "What's the plan for dinner? 🍴",
-      "Let's figure out tonight's move. 🍴",
-      "Time to decide what we're eating. 🕐",
-      "Dinner won't plan itself. 🍽️",
+      "What's the plan for dinner?",
+      "Let's figure out tonight's move.",
+      "Time to decide what we're eating.",
+      "Dinner won't plan itself.",
     ],
     evening: [
-      "Let's figure out tonight's move. 🍴",
-      "What's for dinner tonight? 🌙",
-      "Time to make the call. 🍽️",
-      "Tonight's menu — let's decide. ✨",
+      "Let's figure out tonight's move.",
+      "What's for dinner tonight?",
+      "Time to make the call.",
+      "Tonight's menu — let's decide.",
     ],
     latenight: [
-      "Late night snack? Let's figure it out. 🌙",
-      "Still hungry? We've got you. 🍜",
-      "Night owl eats. Let's decide. 🦉",
-      "What are we doing about food? 🌙",
+      "Late night snack? Let's figure it out.",
+      "Still hungry? We've got you.",
+      "Night owl eats. Let's decide.",
+      "What are we doing about food?",
     ],
   };
   const dayOfMonth = new Date().getDate();
@@ -1185,28 +1185,54 @@ export default function Home() {
             {(() => {
               // First name only — "Fred" not "Fred Paul" or a full username
               const firstName = profile?.display_name?.split(" ")[0] ?? null;
+
+              // Split the headline so the last word gets the Candlelight gleam gradient.
+              // The gleam is a CSS text-gradient: cream → warm → orange → cream.
+              const headlineWords = rotatingHeadline.split(" ");
+              const lastWord = headlineWords[headlineWords.length - 1];
+              const precedingWords = headlineWords.slice(0, -1).join(" ");
+
               return (
-                <div className="px-[18px] pt-[14px] pb-[20px] shrink-0">
+                <div className="shrink-0" style={{ padding: "20px 30px 10px" }}>
+                  {/* Greeting — Instrument Serif italic, ember orange */}
                   <p
-                    className="leading-[1.25]"
                     style={{
-                      fontFamily: "'Dancing Script', cursive",
-                      fontSize: "22px",
+                      fontFamily: "var(--font-instrument-serif)",
+                      fontStyle: "italic",
+                      fontWeight: 400,
+                      fontSize: 23,
                       color: "#E8621A",
+                      lineHeight: 1,
                     }}
                   >
                     {`${greetingPhrase}${firstName ? `, ${firstName}` : ""}.`}
                   </p>
+
+                  {/* Headline — Instrument Serif regular, large, with gleam on last word */}
                   <p
-                    className="font-black text-white mt-[5px]"
                     style={{
-                      fontFamily: "var(--font-nunito)",
-                      fontSize: "28px",
-                      lineHeight: "1.18",
-                      letterSpacing: "-0.3px",
+                      fontFamily: "var(--font-instrument-serif)",
+                      fontWeight: 400,
+                      fontSize: 43,
+                      lineHeight: 1.0,
+                      letterSpacing: "-0.015em",
+                      color: "#F6EEE2",
+                      marginTop: 7,
                     }}
                   >
-                    {rotatingHeadline}
+                    {precedingWords && <>{precedingWords} </>}
+                    {/* Gleam gradient on the final word */}
+                    <span
+                      style={{
+                        background:
+                          "linear-gradient(92deg, #F6EEE2 0%, #FFE6C9 40%, #FF8A3D 60%, #F6EEE2 88%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                      }}
+                    >
+                      {lastWord}
+                    </span>
                   </p>
                 </div>
               );
@@ -1253,17 +1279,40 @@ export default function Home() {
                 setSelectedPeopleIds((prev) => prev.filter((s) => s !== id));
               }}
             />
-            {/* ── Have a code? link — hidden when active session banner is showing ── */}
+            {/* ── Have a code? chip — hidden when active session banner is showing ── */}
             {!activeSession && (
-              <div className="flex justify-center mb-2 shrink-0">
+              <div className="flex justify-center shrink-0" style={{ marginTop: 16, marginBottom: 8 }}>
                 <button
                   onClick={() => setShowCodeEntry(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent border border-[#3D3733] cursor-pointer"
+                  className="inline-flex items-center cursor-pointer transition-all hover:bg-[rgba(255,231,202,0.08)]"
+                  style={{
+                    gap: 8,
+                    padding: "9px 16px",
+                    borderRadius: 100,
+                    background: "rgba(255,231,202,0.045)",
+                    border: "1px solid rgba(245,237,224,0.085)",
+                    backdropFilter: "blur(18px)",
+                    WebkitBackdropFilter: "blur(18px)",
+                    color: "#C7BDAC",
+                    fontFamily: "var(--font-sans, Inter, system-ui)",
+                    fontWeight: 400,
+                    fontSize: 12.5,
+                  }}
                 >
-                  <span className="text-[11px] font-semibold text-[#6A6260]" style={{ fontFamily: "var(--font-manrope)" }}>
-                    Have a code?
+                  <span
+                    style={{
+                      fontFamily: "var(--font-jetbrains-mono)",
+                      fontSize: 9,
+                      letterSpacing: "1.4px",
+                      color: "#E8621A",
+                      textTransform: "uppercase",
+                      fontWeight: 500,
+                    }}
+                  >
+                    JOIN
                   </span>
-                  <span className="text-[#E8621A] text-[11px] leading-none">›</span>
+                  Have a code?
+                  <span style={{ color: "#E8621A" }}>›</span>
                 </button>
               </div>
             )}
@@ -1332,6 +1381,7 @@ export default function Home() {
                   void handleDecideWithSomeone();
                 }
               }}
+              onDecideTogether={() => setShowInviteDrawer(true)}
             />
             {sessionError && (
               <p className="text-center text-sm text-red-400 px-4 pb-2">
