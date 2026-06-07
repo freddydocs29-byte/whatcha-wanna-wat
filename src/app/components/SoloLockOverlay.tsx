@@ -20,7 +20,7 @@ export default function SoloLockOverlay({ meal, onComplete }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#1C1A18]"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0B0805]"
       style={{
         opacity: phase === 'exit' ? 0 : 1,
         transition: 'opacity 0.5s ease-out'

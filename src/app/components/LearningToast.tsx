@@ -39,7 +39,7 @@ export function LearningToast({ message, onDone }: Props) {
           transition={{ duration: 0.22, ease: "easeOut" }}
           className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-5"
         >
-          <div className="rounded-full border border-white/[0.10] bg-[#1c1c1e] px-4 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+          <div className="rounded-full border border-white/[0.10] bg-[#1C1A18] px-4 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.55)] backdrop-blur-sm">
             <p className="text-sm font-medium tracking-[-0.01em] text-white/80">
               {message}
             </p>

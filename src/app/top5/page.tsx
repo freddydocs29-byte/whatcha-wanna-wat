@@ -249,10 +249,14 @@ export default function Top5Page() {
   if (lockedTop5Meal) {
     return (
       <div
-        className="min-h-screen flex flex-col items-center justify-center px-6"
+        className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden"
         style={{ backgroundColor: "#FAF6F1", color: "#1C1A18" }}
       >
-        <div className="w-full max-w-sm flex flex-col items-center gap-6">
+        {/* Warm Candlelight bloom — top */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64" style={{ background: "radial-gradient(ellipse 100% 240px at 50% 0%, rgba(232,98,26,0.07) 0%, transparent 100%)" }} />
+        {/* Warm bloom — bottom edge */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40" style={{ background: "linear-gradient(to top, rgba(245,180,100,0.04) 0%, transparent 100%)" }} />
+        <div className="relative z-10 w-full max-w-sm flex flex-col items-center gap-6">
 
           {/* Green checkmark — animates in first */}
           <div
@@ -330,7 +334,7 @@ export default function Top5Page() {
             {/* Footer */}
             <p
               className="font-body text-xs"
-              style={{ color: "#A89F99" }}
+              style={{ color: "#A89F99", fontStyle: "italic" }}
             >
               Taking you home…
             </p>
@@ -353,12 +357,15 @@ export default function Top5Page() {
 
   return (
     <div
-      className="min-h-screen"
+      className="relative min-h-screen overflow-x-hidden"
       style={{ backgroundColor: "#FAF6F1", color: "#1C1A18" }}
     >
+      {/* Warm Candlelight bloom — ambient top glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72" style={{ background: "radial-gradient(ellipse 110% 280px at 50% 0%, rgba(232,98,26,0.065) 0%, transparent 100%)" }} />
+
       {/* Header */}
-      <div className="sticky top-0 z-10" style={{ backgroundColor: "#FAF6F1", boxShadow: "0 1px 0 rgba(28,16,8,0.07)" }}>
-        <div className="max-w-md mx-auto px-5 pt-14 pb-4 flex items-center gap-3">
+      <div className="sticky top-0 z-10" style={{ backgroundColor: "rgba(250,246,241,0.92)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "0 1px 0 rgba(28,16,8,0.07)" }}>
+        <div className="max-w-md mx-auto px-5 pb-4 flex items-center gap-3" style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 48px)" }}>
           <Link
             href="/"
             className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
@@ -384,10 +391,9 @@ export default function Top5Page() {
                 Tonight&apos;s Top 5
               </p>
               <p
-                className="font-body text-xs mt-0.5"
-                style={{ color: "#8A7F78" }}
+                style={{ fontFamily: "var(--font-instrument-serif)", fontStyle: "italic", fontSize: 13, color: "#E8621A", marginTop: 1, lineHeight: 1.2 }}
               >
-                Ranked for you
+                ranked just for you
               </p>
             </div>
             {!hasRefreshed && (
@@ -425,15 +431,17 @@ export default function Top5Page() {
               return (
                 <div
                   key={ranked.meal.id}
-                  className="w-full rounded-[20px] p-5 transition-all duration-150 flex gap-4 items-stretch"
+                  className="w-full rounded-[20px] p-5 transition-all duration-200 flex gap-4 items-stretch"
                   style={{
-                    backgroundColor: isSelected ? "#FFF4ED" : "#EFEAE3",
+                    backgroundColor: isSelected ? "rgba(255,244,237,0.97)" : "rgba(255,255,255,0.72)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
                     border: isSelected
-                      ? "2px solid #E8621A"
-                      : "2px solid rgba(28,16,8,0.06)",
+                      ? "1.5px solid #E8621A"
+                      : "1.5px solid rgba(28,16,8,0.07)",
                     boxShadow: isSelected
-                      ? "0 4px 20px rgba(232,98,26,0.14)"
-                      : "0 2px 10px rgba(28,16,8,0.07)",
+                      ? "0 6px 28px rgba(232,98,26,0.18), 0 1px 4px rgba(232,98,26,0.08)"
+                      : "0 2px 18px rgba(28,16,8,0.07), 0 1px 4px rgba(28,16,8,0.04)",
                   }}
                 >
                   {/* Left: text content — tapping selects this meal */}
@@ -482,9 +490,10 @@ export default function Top5Page() {
                             className="font-body text-[11px] font-medium px-2.5 py-0.5 rounded-full"
                             style={{
                               backgroundColor: isSelected
-                                ? "#FDDEC8"
-                                : "#DDD8D0",
-                              color: "#4A3F38",
+                                ? "rgba(232,98,26,0.12)"
+                                : "rgba(28,16,8,0.06)",
+                              color: isSelected ? "#C45016" : "#6B6360",
+                              border: isSelected ? "1px solid rgba(232,98,26,0.18)" : "1px solid rgba(28,16,8,0.05)",
                             }}
                           >
                             {tag}
@@ -525,9 +534,9 @@ export default function Top5Page() {
                     <button
                       onClick={() => { setDrawerMeal(ranked.meal); setDrawerOpen(true); }}
                       className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: isSelected ? "#FDDEC8" : "#DDD8D0" }}
+                      style={{ backgroundColor: isSelected ? "rgba(232,98,26,0.1)" : "rgba(28,16,8,0.06)", border: isSelected ? "1px solid rgba(232,98,26,0.2)" : "1px solid rgba(28,16,8,0.05)" }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6360" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isSelected ? "#E8621A" : "#8A7F78"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="15 3 21 3 21 9" />
                         <polyline points="9 21 3 21 3 15" />
                         <line x1="21" y1="3" x2="14" y2="10" />
@@ -535,8 +544,8 @@ export default function Top5Page() {
                       </svg>
                     </button>
                     <div
-                      className="w-28 flex-1 rounded-[12px] overflow-hidden flex items-center justify-center"
-                      style={{ backgroundColor: isSelected ? "#FDDEC8" : "#DDD8D0", minHeight: "56px", maxHeight: "90px" }}
+                      className="w-28 flex-1 rounded-[14px] overflow-hidden flex items-center justify-center"
+                      style={{ backgroundColor: isSelected ? "rgba(232,98,26,0.08)" : "rgba(28,16,8,0.05)", border: `1px solid ${isSelected ? "rgba(232,98,26,0.15)" : "rgba(28,16,8,0.06)"}`, minHeight: "56px", maxHeight: "90px" }}
                     >
                       {ranked.meal.image ? (
                         <Image
@@ -565,7 +574,7 @@ export default function Top5Page() {
           className="fixed bottom-0 left-0 right-0 z-20 px-5 pb-8 pt-4"
           style={{
             background:
-              "linear-gradient(to top, #FAF6F1 70%, transparent)",
+              "linear-gradient(to top, #FAF6F1 60%, rgba(250,246,241,0.95) 80%, transparent)",
           }}
         >
           <div className="max-w-md mx-auto">

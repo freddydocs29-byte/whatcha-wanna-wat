@@ -16,7 +16,7 @@ export default function V3WatchaHeader({
   return (
     <div
       className="flex justify-between items-center shrink-0"
-      style={{ padding: "10px 22px 6px" }}
+      style={{ padding: "max(env(safe-area-inset-top, 0px), 10px) 22px 6px" }}
     >
       {/* Hamburger — glass circle button */}
       <button

@@ -44,7 +44,7 @@ export function RejectionReasonSheet({ visible, onSelect, onDismiss }: Props) {
             onDragEnd={(_, info) => {
               if (info.offset.y > 80 || info.velocity.y > 500) onDismiss();
             }}
-            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#111111] px-5 pb-10 pt-4"
+            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-[28px] border-t border-white/[0.08] bg-[#1C1A18] px-5 pb-10 pt-4"
           >
             {/* Drag handle */}
             <div className="mx-auto mb-6 h-1 w-8 rounded-full bg-white/15" />

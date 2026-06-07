@@ -2286,15 +2286,18 @@ function DeckContent() {
   // ── Shared deck error screen ──────────────────────────────────────────────
   if (sessionId && sharedError) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
-        <p className="text-lg font-semibold tracking-[-0.03em]">Deck not ready</p>
-        <p className="max-w-[28ch] text-sm leading-6 text-white/50">
+      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-[#0B0805] px-6 text-center text-white overflow-hidden">
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.12) 0%, transparent 65%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
+        <p className="relative z-10 text-lg font-semibold tracking-[-0.03em]">Deck not ready</p>
+        <p className="relative z-10 max-w-[28ch] text-sm leading-6 text-white/50">
           The shared deck couldn&apos;t be built. Ask the host to go back and
           try again.
         </p>
         <button
           onClick={() => router.push("/")}
-          className="rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-medium text-white"
+          className="relative z-10 rounded-full border border-white/10 bg-white/[0.06] px-6 py-3 text-sm font-medium text-white"
         >
           Back to home
         </button>
@@ -2305,9 +2308,12 @@ function DeckContent() {
   // ── Shared deck loading screen ────────────────────────────────────────────
   if (sessionId && sharedLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#1C1A18] text-white">
-        <div className="flex flex-col items-center gap-3">
-          <span className="h-2 w-2 animate-ping rounded-full bg-white/40" />
+      <main className="relative flex min-h-screen items-center justify-center bg-[#0B0805] text-white overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 candlelight-animate" style={{ background: "radial-gradient(ellipse 90% 36% at 50% -4%, rgba(232,98,26,0.12) 0%, transparent 60%)", animation: "candlelight-amb 9s ease-in-out infinite" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <span className="h-2 w-2 animate-ping rounded-full bg-[#E8621A]/60" />
           <p className="text-sm text-white/35">Loading shared deck…</p>
         </div>
       </main>
@@ -2320,12 +2326,16 @@ function DeckContent() {
     // User has swiped through all cards. Keep polling; show match modal if one arrives.
     if (sessionId) {
       return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-6 safe-top text-white">
-          {/* Subtle orange radial glow — always visible */}
+        <main className="relative min-h-screen overflow-hidden bg-[#0B0805] px-5 pb-6 safe-top text-white">
+          {/* Candlelight ambient glow */}
           <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.10) 0%, transparent 65%)" }}
+            className="pointer-events-none absolute inset-0 candlelight-animate"
+            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.13) 0%, transparent 65%)", animation: "candlelight-amb 9s ease-in-out infinite" }}
           />
+          {/* Film grain */}
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+          {/* Vignette */}
+          <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
           <div className="mx-auto relative flex min-h-screen w-full max-w-md flex-col">
             <header className="flex items-center justify-between py-4">
               <span className="font-display font-black text-base text-white">
@@ -2670,8 +2680,10 @@ function DeckContent() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                className="fixed inset-0 z-50 bg-[#1C1A18] overflow-y-auto"
+                className="fixed inset-0 z-50 bg-[#0B0805] overflow-y-auto"
               >
+                <div className="pointer-events-none absolute inset-0" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+                <div className="pointer-events-none absolute inset-0" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
                 <motion.div
                   initial={{ y: 72, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -2832,14 +2844,17 @@ function DeckContent() {
     // ── Solo exhausted state ───────────────────────────────────────────────
     if (topPicksMode) {
       return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-6 safe-top text-white">
+        <main className="relative min-h-screen overflow-hidden bg-[#0B0805] px-5 pb-6 safe-top text-white">
           <div
-            className="pointer-events-none absolute inset-0 overflow-hidden"
+            className="pointer-events-none absolute inset-0 candlelight-animate"
             style={{
               background:
-                "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+                "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.13) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+              animation: "candlelight-amb 9s ease-in-out infinite",
             }}
           />
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
             <header className="flex items-center justify-between">
               <span className="font-display font-black text-base text-white">
@@ -2924,11 +2939,13 @@ function DeckContent() {
     if (soloResetCount >= 3) {
       const forcedMeal = rankedMeals[0]?.meal;
       return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] px-5 pb-10 safe-top text-white">
+        <main className="relative min-h-screen overflow-hidden bg-[#0B0805] px-5 pb-10 safe-top text-white">
           <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: "radial-gradient(ellipse 80% 50% at 50% 20%, rgba(232,98,26,0.18) 0%, transparent 65%)" }}
+            className="pointer-events-none absolute inset-0 candlelight-animate"
+            style={{ background: "radial-gradient(ellipse 80% 50% at 50% 20%, rgba(232,98,26,0.18) 0%, transparent 65%)", animation: "candlelight-amb 9s ease-in-out infinite" }}
           />
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center text-center px-4">
             {/* Pulsing app icon */}
             <div
@@ -2966,11 +2983,13 @@ function DeckContent() {
     if (soloExhaustedView === "top3") {
       const top3 = rankedMeals.slice(0, 3).map((r) => r.meal);
       return (
-        <main className="relative min-h-screen overflow-y-auto bg-[#1C1A18] px-5 pb-10 safe-top text-white">
+        <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] px-5 pb-10 safe-top text-white">
           <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.12) 0%, transparent 65%)" }}
+            className="pointer-events-none absolute inset-0 candlelight-animate"
+            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.13) 0%, transparent 65%)", animation: "candlelight-amb 9s ease-in-out infinite" }}
           />
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
           <div className="mx-auto w-full max-w-md flex flex-col pt-safe">
             <header className="flex items-center justify-between py-4 mb-2">
               <button
@@ -3023,11 +3042,13 @@ function DeckContent() {
     // Sub-screen: vibe selector
     if (soloExhaustedView === "vibe-select") {
       return (
-        <main className="relative min-h-screen overflow-y-auto bg-[#1C1A18] px-5 pb-10 safe-top text-white">
+        <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] px-5 pb-10 safe-top text-white">
           <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.12) 0%, transparent 65%)" }}
+            className="pointer-events-none absolute inset-0 candlelight-animate"
+            style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.13) 0%, transparent 65%)", animation: "candlelight-amb 9s ease-in-out infinite" }}
           />
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
           <div className="mx-auto w-full max-w-md flex flex-col pt-safe">
             <header className="flex items-center justify-between py-4 mb-2">
               <button
@@ -3097,12 +3118,16 @@ function DeckContent() {
     const freshDeckSubtext = soloResetCount >= 2 ? "Build one last fresh deck" : "Show me quick, low-effort options";
 
     return (
-      <main className="relative min-h-screen overflow-y-auto bg-[#1C1A18] px-5 pb-10 safe-top text-white">
-        {/* Orange radial glow */}
+      <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] px-5 pb-10 safe-top text-white">
+        {/* Candlelight ambient glow */}
         <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: "radial-gradient(ellipse 90% 50% at 50% 0%, rgba(232,98,26,0.14) 0%, transparent 65%)" }}
+          className="pointer-events-none absolute inset-0 candlelight-animate"
+          style={{ background: "radial-gradient(ellipse 90% 50% at 50% 0%, rgba(232,98,26,0.14) 0%, transparent 65%)", animation: "candlelight-amb 9s ease-in-out infinite" }}
         />
+        {/* Film grain */}
+        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+        {/* Vignette */}
+        <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
           <header className="flex items-center justify-between py-4">
             <span className="font-display font-black text-base text-white">
@@ -3200,11 +3225,22 @@ function DeckContent() {
 
   // ── Deck screen ───────────────────────────────────────────────────────────
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
-      </div>
+    <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
+      {/* Candlelight ambient glow */}
+      <div
+        className="pointer-events-none absolute inset-0 candlelight-animate"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 36% at 50% -4%, rgba(232,98,26,0.14) 0%, transparent 60%)," +
+            "radial-gradient(ellipse 60% 30% at 50% 108%, rgba(184,74,18,0.10) 0%, transparent 65%)," +
+            "radial-gradient(ellipse 40% 22% at 84% 30%, rgba(230,178,106,0.05) 0%, transparent 70%)",
+          animation: "candlelight-amb 9s ease-in-out infinite",
+        }}
+      />
+      {/* Film grain */}
+      <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+      {/* Vignette */}
+      <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
       {soloLockMeal && (
         <SoloLockOverlay
           meal={soloLockMeal}
@@ -3598,8 +3634,10 @@ function DeckContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 bg-[#1C1A18] overflow-y-auto"
+            className="fixed inset-0 z-50 bg-[#0B0805] overflow-y-auto"
           >
+            <div className="pointer-events-none absolute inset-0" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+            <div className="pointer-events-none absolute inset-0" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
             <motion.div
               initial={{ y: 72, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
