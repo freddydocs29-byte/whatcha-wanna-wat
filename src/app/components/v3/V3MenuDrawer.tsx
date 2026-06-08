@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface V3MenuDrawerProps {
@@ -64,6 +65,7 @@ const NAV_ITEMS = [
 ];
 
 export default function V3MenuDrawer({ open, onClose }: V3MenuDrawerProps) {
+  const pathname = usePathname();
   return (
     <AnimatePresence>
       {open && (
@@ -96,11 +98,10 @@ export default function V3MenuDrawer({ open, onClose }: V3MenuDrawerProps) {
             className="relative z-10 w-[280px] flex flex-col"
             style={{
               background:
-                "radial-gradient(ellipse 100% 40% at 50% 0%, rgba(232,98,26,0.10) 0%, transparent 55%), " +
-                "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%), " +
-                "#211E1B",
-              borderRight: "1px solid rgba(245,237,224,0.07)",
-              boxShadow: "6px 0 48px rgba(0,0,0,0.55), inset -1px 0 0 rgba(245,237,224,0.04)",
+                "radial-gradient(ellipse 80% 100% at 15% 0%, rgba(232,98,26,0.12) 0%, transparent 60%), " +
+                "linear-gradient(180deg, #1a1410 0%, #0d0805 70%)",
+              borderRight: "1px solid rgba(245,237,224,0.085)",
+              boxShadow: "30px 0 60px rgba(0,0,0,0.6), inset -1px 0 0 rgba(245,237,224,0.04)",
               minHeight: "100dvh",
             }}
           >
@@ -108,14 +109,14 @@ export default function V3MenuDrawer({ open, onClose }: V3MenuDrawerProps) {
             <div className="flex items-center justify-between px-5 pt-[60px] pb-6">
               <div className="leading-none">
                 <span
-                  className="block text-[20px] font-black text-white leading-none tracking-[-0.3px]"
-                  style={{ fontFamily: "var(--font-nunito)" }}
+                  className="block text-[22px] text-white leading-none"
+                  style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, letterSpacing: "-0.01em" }}
                 >
                   Watcha
                 </span>
                 <span
-                  className="block text-[16px] font-bold text-[#E8621A] leading-[1.15]"
-                  style={{ fontFamily: "'Dancing Script', cursive" }}
+                  className="block text-[16px] text-[#E8621A] leading-[1.15]"
+                  style={{ fontFamily: "var(--font-instrument-serif)", fontStyle: "italic", fontWeight: 400 }}
                 >
                   wanna eat?
                 </span>
@@ -141,50 +142,69 @@ export default function V3MenuDrawer({ open, onClose }: V3MenuDrawerProps) {
 
             {/* Nav items */}
             <nav className="flex-1 px-3">
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className="group flex items-center gap-3 px-3 py-3.5 rounded-[14px] mb-1 transition-all active:scale-[0.98]"
-                  style={{
-                    ["--hover-bg" as string]: "rgba(255,255,255,0.04)",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
-                    (e.currentTarget as HTMLElement).style.border = "1px solid rgba(245,237,224,0.06)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "transparent";
-                    (e.currentTarget as HTMLElement).style.border = "1px solid transparent";
-                  }}
-                >
-                  <span
-                    className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0 text-[#8A7F78] group-hover:text-[#E8621A] transition-colors"
+              {NAV_ITEMS.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onClose}
+                    className="group flex items-center gap-4 px-3 py-3 rounded-[14px] mb-1 transition-all active:scale-[0.98]"
                     style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(245,237,224,0.06)",
+                      background: isActive ? "rgba(232,98,26,0.07)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent";
                     }}
                   >
-                    <item.Icon />
-                  </span>
-                  <span
-                    className="text-[15px] font-bold text-[#C7BDAC] group-hover:text-white transition-colors"
-                    style={{ fontFamily: "var(--font-nunito)" }}
-                  >
-                    {item.label}
-                  </span>
-                  <span className="ml-auto text-[#E8621A] opacity-0 group-hover:opacity-50 transition text-sm">›</span>
-                </Link>
-              ))}
+                    <span
+                      className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0 transition-colors"
+                      style={isActive ? {
+                        background: "radial-gradient(circle at 40% 32%, #FF8A3D, #E8621A 70%, #B84A12)",
+                        border: "none",
+                        color: "#fff",
+                        boxShadow: "0 6px 16px rgba(232,98,26,0.35)",
+                      } : {
+                        background: "rgba(255,231,202,0.045)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                        color: "#8A7F78",
+                      }}
+                    >
+                      <item.Icon />
+                    </span>
+                    <span
+                      className="text-[17px] transition-colors"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        letterSpacing: "-0.01em",
+                        color: isActive ? "#F6EEE2" : "#C7BDAC",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                    {!isActive && (
+                      <span className="ml-auto text-[#E8621A] opacity-0 group-hover:opacity-50 transition text-sm">›</span>
+                    )}
+                  </Link>
+                );
+              })}
             </nav>
 
             {/* Bottom brand accent */}
             <div className="px-5 pb-10 pt-6">
               <div className="h-px mb-5" style={{ background: "rgba(245,237,224,0.06)" }} />
               <p
-                className="text-[11px] text-[#4A4540]"
-                style={{ fontFamily: "var(--font-manrope)" }}
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono)",
+                  fontSize: 10,
+                  letterSpacing: "2px",
+                  textTransform: "uppercase",
+                  color: "#574E45",
+                }}
               >
                 Watcha Wanna Eat · v3
               </p>

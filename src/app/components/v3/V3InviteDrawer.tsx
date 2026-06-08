@@ -109,21 +109,20 @@ export default function V3InviteDrawer({
             onDragEnd={(_, info) => {
               if (info.offset.y > 80 || info.velocity.y > 500) handleClose();
             }}
-            className="relative w-full rounded-t-[28px] px-6 pt-5 pb-10"
+            className="relative w-full rounded-t-[30px] px-6 pt-5 pb-10"
             style={{
               background:
                 "radial-gradient(ellipse 80% 35% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 60%), " +
-                "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%), " +
-                "#211E1B",
-              border: "1px solid rgba(245,237,224,0.07)",
+                "linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
+              border: "1px solid rgba(245,237,224,0.16)",
               borderBottom: "none",
-              boxShadow: "0 -8px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(245,237,224,0.07)",
+              boxShadow: "0 -30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
             }}
           >
             {/* Handle */}
             <div
-              className="w-10 h-1 rounded-full mx-auto mb-5"
-              style={{ background: "rgba(245,237,224,0.15)" }}
+              className="mx-auto mb-5 rounded-full"
+              style={{ width: 42, height: 5, background: "rgba(245,237,224,0.16)" }}
             />
 
             {/* Close */}
@@ -147,20 +146,20 @@ export default function V3InviteDrawer({
               /* ── No active session ── */
               <>
                 <p
-                  className="text-[22px] font-black text-white leading-tight"
-                  style={{ fontFamily: "var(--font-nunito)" }}
+                  className="text-[28px] text-white leading-tight"
+                  style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, letterSpacing: "-0.02em" }}
                 >
                   Invite someone
                 </p>
                 <p
-                  className="text-sm text-[#8A7F78] mt-2 leading-relaxed"
-                  style={{ fontFamily: "var(--font-manrope)" }}
+                  className="text-sm text-[#C7BDAC] mt-2 leading-relaxed"
+                  style={{ fontFamily: "var(--font-sans, Inter, system-ui)", fontWeight: 300 }}
                 >
                   Invite someone to decide with you tonight.
                 </p>
                 <p
                   className="text-xs mt-1"
-                  style={{ color: "rgba(138,127,120,0.60)", fontFamily: "var(--font-manrope)" }}
+                  style={{ color: "#897E73", fontFamily: "var(--font-sans, Inter, system-ui)", fontWeight: 300 }}
                 >
                   They&apos;ll show up here after you match.
                 </p>
@@ -168,7 +167,7 @@ export default function V3InviteDrawer({
                 {createError && (
                   <p
                     className="text-xs text-red-400 mt-3"
-                    style={{ fontFamily: "var(--font-manrope)" }}
+                    style={{ fontFamily: "var(--font-sans, Inter, system-ui)" }}
                   >
                     {createError}
                   </p>
@@ -177,11 +176,14 @@ export default function V3InviteDrawer({
                 <button
                   onClick={handleStart}
                   disabled={creating}
-                  className="w-full mt-6 rounded-full py-4 font-black text-base text-white transition active:scale-[0.98] disabled:opacity-60"
+                  className="w-full mt-6 rounded-full py-4 text-base text-white transition active:scale-[0.98] disabled:opacity-60"
                   style={{
-                    background: "linear-gradient(135deg, #F07840 0%, #E8621A 60%, #C94E10 100%)",
-                    boxShadow: "0 0 24px rgba(232,98,26,0.30)",
-                    fontFamily: "var(--font-nunito)",
+                    fontFamily: "var(--font-quicksand)",
+                    fontWeight: 700,
+                    fontSize: 16,
+                    letterSpacing: "-0.01em",
+                    background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                    boxShadow: "inset 0 1px 0 rgba(255,224,188,0.45), inset 0 -2px 0 rgba(120,52,0,0.35), 0 16px 34px rgba(232,98,26,0.42), 0 0 0 1px rgba(232,98,26,0.32)",
                   }}
                 >
                   {creating ? "Starting…" : "Start shared session"}
@@ -191,14 +193,14 @@ export default function V3InviteDrawer({
               /* ── Session active — show join link ── */
               <>
                 <p
-                  className="text-[22px] font-black text-white leading-tight"
-                  style={{ fontFamily: "var(--font-nunito)" }}
+                  className="text-[28px] text-white leading-tight"
+                  style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, letterSpacing: "-0.02em" }}
                 >
                   Share the link
                 </p>
                 <p
-                  className="text-sm text-[#8A7F78] mt-2 leading-relaxed"
-                  style={{ fontFamily: "var(--font-manrope)" }}
+                  className="text-sm text-[#C7BDAC] mt-2 leading-relaxed"
+                  style={{ fontFamily: "var(--font-sans, Inter, system-ui)", fontWeight: 300 }}
                 >
                   Send this to whoever you&apos;re deciding with tonight.
                 </p>
@@ -247,24 +249,28 @@ export default function V3InviteDrawer({
                   {/* Share — primary gradient */}
                   <button
                     onClick={handleShare}
-                    className="flex-1 rounded-full py-3.5 font-black text-sm text-white transition active:scale-[0.98]"
+                    className="flex-1 rounded-full py-[15px] text-[15px] text-white transition active:scale-[0.98]"
                     style={{
-                      background: "linear-gradient(135deg, #F07840 0%, #E8621A 60%, #C94E10 100%)",
-                      boxShadow: "0 0 20px rgba(232,98,26,0.28)",
-                      fontFamily: "var(--font-nunito)",
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 700,
+                      letterSpacing: "-0.01em",
+                      background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                      boxShadow: "inset 0 1px 0 rgba(255,224,188,0.45), inset 0 -2px 0 rgba(120,52,0,0.35), 0 14px 30px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.3)",
                     }}
                   >
                     Share →
                   </button>
 
-                  {/* Copy — glass secondary */}
+                  {/* Copy — glass ghost */}
                   <button
                     onClick={handleCopy}
-                    className="flex-1 rounded-full py-3.5 font-black text-sm text-white transition active:scale-[0.98]"
+                    className="flex-1 rounded-full py-[15px] text-[15px] text-white transition active:scale-[0.98]"
                     style={{
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(245,237,224,0.10)",
-                      fontFamily: "var(--font-nunito)",
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 700,
+                      letterSpacing: "-0.01em",
+                      background: "rgba(255,231,202,0.045)",
+                      border: "1px solid rgba(245,237,224,0.16)",
                     }}
                   >
                     {copied ? "Copied!" : "Copy link"}

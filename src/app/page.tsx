@@ -1410,20 +1410,29 @@ export default function Home() {
               onDragEnd={(_, info) => {
                 if (info.offset.y > 80 || info.velocity.y > 500) setShowCodeEntry(false);
               }}
-              className="relative rounded-t-[28px] p-6"
+              className="relative rounded-t-[30px] p-6"
               style={{
                 background:
                   "radial-gradient(ellipse 80% 35% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 60%), " +
-                  "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%), " +
-                  "#211E1B",
-                border: "1px solid rgba(245,237,224,0.07)",
+                  "linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
+                border: "1px solid rgba(245,237,224,0.16)",
                 borderBottom: "none",
-                boxShadow: "0 -8px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(245,237,224,0.07)",
+                boxShadow: "0 -30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
               }}
             >
-              <div className="w-9 h-1 rounded-full mx-auto mb-6" style={{ background: "rgba(245,237,224,0.15)" }} />
-              <p className="font-display font-black text-2xl text-white mb-1">Enter a code</p>
-              <p className="font-body text-sm text-[#8A7F78] mb-6">Your friend&apos;s session code — like RICE-64</p>
+              <div className="mx-auto mb-6 rounded-full" style={{ width: 42, height: 5, background: "rgba(245,237,224,0.16)" }} />
+              <p
+                className="text-white mb-1"
+                style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: 28, letterSpacing: "-0.02em" }}
+              >
+                Enter a code
+              </p>
+              <p
+                className="mb-6"
+                style={{ fontFamily: "var(--font-sans, Inter, system-ui)", fontWeight: 300, fontSize: 14, color: "#C7BDAC" }}
+              >
+                Your friend&apos;s session code — like RICE-64
+              </p>
               <input
                 type="text"
                 placeholder="e.g. RICE-64"
@@ -1442,21 +1451,28 @@ export default function Home() {
               <button
                 onClick={() => router.push(`/join/${codeInput}`)}
                 disabled={codeInput.length < 3}
-                className="w-full disabled:opacity-40 text-white font-display font-black text-lg py-4 rounded-full mb-3 transition active:scale-[0.98]"
+                className="w-full disabled:opacity-40 text-white py-4 rounded-full mb-3 transition active:scale-[0.98]"
                 style={{
-                  background: "linear-gradient(135deg, #F07840 0%, #E8621A 60%, #C94E10 100%)",
-                  boxShadow: "0 0 24px rgba(232,98,26,0.28)",
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  letterSpacing: "-0.01em",
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                  boxShadow: "inset 0 1px 0 rgba(255,224,188,0.45), inset 0 -2px 0 rgba(120,52,0,0.35), 0 16px 34px rgba(232,98,26,0.42), 0 0 0 1px rgba(232,98,26,0.32)",
                 }}
               >
                 Join session →
               </button>
               <button
                 onClick={() => setShowCodeEntry(false)}
-                className="w-full font-body text-sm py-2.5 rounded-full transition active:scale-[0.97]"
+                className="w-full py-2.5 rounded-full transition active:scale-[0.97]"
                 style={{
+                  fontFamily: "var(--font-sans, Inter, system-ui)",
+                  fontWeight: 500,
+                  fontSize: 14,
                   color: "#8A7F78",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(245,237,224,0.08)",
+                  background: "rgba(255,231,202,0.03)",
+                  border: "1px solid rgba(245,237,224,0.085)",
                 }}
               >
                 Cancel
@@ -1474,25 +1490,53 @@ export default function Home() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closeClearModal}
           />
-          <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.06] bg-[#2A2420] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+          <div
+            className="relative w-full max-w-md rounded-[26px] p-6"
+            style={{
+              background: "linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
+              border: "1px solid rgba(245,237,224,0.16)",
+              boxShadow: "0 30px 70px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)",
+            }}
+          >
 
             {/* Step 1 — always visible */}
-            <p className="font-display font-black text-xl text-white tracking-tight">
+            <p
+              className="text-white"
+              style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: 22, letterSpacing: "-0.02em" }}
+            >
               Clear today&apos;s decision?
             </p>
-            <p className="font-body text-sm text-[#8A7F78] mt-2 leading-relaxed">
+            <p
+              className="mt-2 leading-relaxed"
+              style={{ fontFamily: "var(--font-sans, Inter, system-ui)", fontWeight: 300, fontSize: 14, color: "#C7BDAC" }}
+            >
               You can always pick something new — this just resets today.
             </p>
             <div className="mt-5 flex gap-3">
               <button
                 onClick={closeClearModal}
-                className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-3 font-display font-black text-sm text-[#8A7F78] transition active:scale-[0.98]"
+                className="flex-1 rounded-full py-3 transition active:scale-[0.98]"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: "#8A7F78",
+                  background: "rgba(255,231,202,0.03)",
+                  border: "1px solid rgba(245,237,224,0.085)",
+                }}
               >
                 Keep it
               </button>
               <button
                 onClick={() => setClearStep("completed")}
-                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.25)] transition active:scale-[0.98] hover:bg-[#F27B35]"
+                className="flex-1 rounded-full py-3 text-white transition active:scale-[0.98]"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                  boxShadow: "0 0 20px rgba(232,98,26,0.35), inset 0 1px 0 rgba(255,224,188,0.4)",
+                }}
               >
                 Clear
               </button>
@@ -1507,20 +1551,38 @@ export default function Home() {
               }`}
             >
               <div className="overflow-hidden">
-                <div className="mt-5 border-t border-[#3D3733] pt-5">
-                  <p className="font-display font-black text-base text-white tracking-tight">
+                <div className="mt-5 border-t pt-5" style={{ borderColor: "rgba(245,237,224,0.085)" }}>
+                  <p
+                    className="text-white"
+                    style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em" }}
+                  >
                     Did you cook or order this?
                   </p>
                   <div className="mt-4 flex gap-3">
                     <button
                       onClick={() => setClearStep("save")}
-                      className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-3 font-display font-black text-sm text-[#8A7F78] transition active:scale-[0.98]"
+                      className="flex-1 rounded-full py-3 transition active:scale-[0.98]"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        color: "#8A7F78",
+                        background: "rgba(255,231,202,0.03)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                      }}
                     >
                       Yes
                     </button>
                     <button
                       onClick={handleClearDecision}
-                      className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.25)] transition active:scale-[0.98] hover:bg-[#F27B35]"
+                      className="flex-1 rounded-full py-3 text-white transition active:scale-[0.98]"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                        boxShadow: "0 0 20px rgba(232,98,26,0.35), inset 0 1px 0 rgba(255,224,188,0.4)",
+                      }}
                     >
                       No
                     </button>
@@ -1538,8 +1600,11 @@ export default function Home() {
               }`}
             >
               <div className="overflow-hidden">
-                <div className="mt-5 border-t border-[#3D3733] pt-5">
-                  <p className="font-display font-black text-base text-white tracking-tight">
+                <div className="mt-5 border-t pt-5" style={{ borderColor: "rgba(245,237,224,0.085)" }}>
+                  <p
+                    className="text-white"
+                    style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em" }}
+                  >
                     Save it for later?
                   </p>
                   <div className="mt-4 flex gap-3">
@@ -1548,7 +1613,15 @@ export default function Home() {
                         if (todaysPick) addFavorite(todaysPick.meal);
                         handleClearDecision();
                       }}
-                      className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-2.5 font-display font-black text-xs text-[#8A7F78] transition active:scale-[0.98]"
+                      className="flex-1 rounded-full py-2.5 transition active:scale-[0.98]"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 12,
+                        color: "#8A7F78",
+                        background: "rgba(255,231,202,0.03)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                      }}
                     >
                       ⭐ Favorite
                     </button>
@@ -1557,13 +1630,28 @@ export default function Home() {
                         if (todaysPick) saveMeal(todaysPick.meal);
                         handleClearDecision();
                       }}
-                      className="flex-1 rounded-full border border-[#3D3733] bg-[#1C1A18] py-2.5 font-display font-black text-xs text-[#8A7F78] transition active:scale-[0.98]"
+                      className="flex-1 rounded-full py-2.5 transition active:scale-[0.98]"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 12,
+                        color: "#8A7F78",
+                        background: "rgba(255,231,202,0.03)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                      }}
                     >
                       🔖 Save
                     </button>
                     <button
                       onClick={handleClearDecision}
-                      className="flex-1 rounded-full bg-[#E8621A] py-2.5 font-display font-black text-xs text-white shadow-[0_0_20px_rgba(232,98,26,0.25)] transition active:scale-[0.98] hover:bg-[#F27B35]"
+                      className="flex-1 rounded-full py-2.5 text-white transition active:scale-[0.98]"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 12,
+                        background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                        boxShadow: "0 0 16px rgba(232,98,26,0.3), inset 0 1px 0 rgba(255,224,188,0.4)",
+                      }}
                     >
                       Skip
                     </button>
@@ -1645,16 +1733,50 @@ export default function Home() {
             onClick={() => setShowDismissConfirm(false)}
           />
 
-          <div className="relative w-full max-w-md rounded-[28px] border border-white/[0.06] bg-[#2A2420] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+          <div
+            className="relative w-full max-w-md p-6"
+            style={{
+              borderRadius: 26,
+              background: "linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
+              border: "1px solid rgba(245,237,224,0.16)",
+              boxShadow: "0 30px 70px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)",
+            }}
+          >
 
-            <p className="font-display font-black text-xl text-white tracking-tight">Clear meal?</p>
-            <p className="font-body text-sm text-[#8A7F78] mt-2 leading-relaxed">
+            <p
+              className="text-white"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 22,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Clear meal?
+            </p>
+            <p
+              className="mt-2 leading-relaxed"
+              style={{
+                fontFamily: "var(--font-sans, Inter, system-ui)",
+                fontWeight: 300,
+                fontSize: 14,
+                color: "#C7BDAC",
+              }}
+            >
               This will remove tonight&apos;s pick and take you back to the home screen.
             </p>
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => setShowDismissConfirm(false)}
-                className="flex-1 rounded-full border border-white/10 bg-[#1C1A18] py-3 font-body text-sm font-semibold text-[#8A7F78] transition active:scale-[0.98]"
+                className="flex-1 rounded-full py-3 transition active:scale-[0.98]"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: "#8A7F78",
+                  background: "rgba(255,231,202,0.03)",
+                  border: "1px solid rgba(245,237,224,0.085)",
+                }}
               >
                 No
               </button>
@@ -1683,7 +1805,14 @@ export default function Home() {
                   // 4. NOW dispatch the event to update ProfileProvider in-memory state
                   window.dispatchEvent(new CustomEvent('clearDecidedMeal'))
                 }}
-                className="flex-1 rounded-full bg-[#E8621A] py-3 font-display font-black text-sm text-white shadow-[0_0_20px_rgba(232,98,26,0.35)] transition active:scale-[0.98] hover:bg-[#F27B35]"
+                className="flex-1 rounded-full py-3 text-white transition active:scale-[0.98]"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                  boxShadow: "inset 0 1px 0 rgba(255,224,188,0.45), inset 0 -2px 0 rgba(120,52,0,0.35), 0 10px 24px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.28)",
+                }}
               >
                 Yes, clear it
               </button>

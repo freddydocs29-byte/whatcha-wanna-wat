@@ -107,27 +107,35 @@ export default function V3VibeCard({ onSeeTop5, onVibeChange }: V3VibeCardProps)
       />
 
       <div className="px-[16px] pt-[18px] pb-[14px] relative">
-        {/* Label */}
+        {/* Label — JetBrains Mono eyebrow */}
         <div
-          className="text-[9px] font-bold tracking-[2.5px] uppercase mb-[6px]"
-          style={{ fontFamily: "var(--font-manrope)", color: "#504844" }}
+          className="uppercase mb-[10px]"
+          style={{
+            fontFamily: "var(--font-jetbrains-mono)",
+            fontSize: 10,
+            letterSpacing: "2.6px",
+            fontWeight: 400,
+            color: "#897E73",
+          }}
         >
-          YOUR VIBE TONIGHT
+          Your vibe tonight
         </div>
 
         {/* Vibe text */}
         <div className="mb-[12px]">
           <span
-            className="text-[15px] font-extrabold text-white"
-            style={{ fontFamily: "var(--font-nunito)" }}
+            className="text-[15px] text-white"
+            style={{ fontFamily: "var(--font-sans, Inter, system-ui)", fontWeight: 600 }}
           >
             We&apos;re thinking
           </span>
           <br />
           <span
-            className="text-[28px] font-bold leading-[1.1]"
+            className="text-[32px] leading-[1.05]"
             style={{
-              fontFamily: "'Dancing Script', cursive",
+              fontFamily: "var(--font-instrument-serif)",
+              fontStyle: "italic",
+              fontWeight: 400,
               color: theme.scriptColor,
               transition: "color 0.4s ease",
             }}
