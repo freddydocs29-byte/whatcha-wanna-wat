@@ -72,6 +72,14 @@ const slideVariants = {
   exit:  (dir: number) => ({ opacity: 0, x: dir > 0 ? -32 : 32 }),
 };
 
+// ── Shared style constants ────────────────────────────────────────────────────
+
+const gradientPrimaryStyle = {
+  background: "linear-gradient(180deg, #FF8A3D, #E8621A 50%, #B84A12)",
+  boxShadow:
+    "0 1px 0 rgba(255,210,170,0.45) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 16px 34px rgba(232,98,26,0.42), 0 0 0 1px rgba(232,98,26,0.32)",
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -186,7 +194,7 @@ export default function OnboardingPage() {
   const noveltyEmojis = ["🔁", "⚖️", "🌟"];
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
       <div className="mx-auto w-full max-w-md pb-32">
 
         {/* 1. PROGRESS BAR */}
@@ -199,52 +207,107 @@ export default function OnboardingPage() {
               ←
             </button>
           )}
-          <div className="flex flex-1 gap-1.5">
+          <div className="flex flex-1 gap-2">
             {Array.from({ length: TOTAL_STEPS + 1 }).map((_, i) => (
               <div
                 key={i}
-                className={`h-[3px] flex-1 rounded-full ${
-                  i <= step ? "bg-[#E8621A]" : "bg-[#3D3733]"
-                }`}
-              />
+                className="h-[4px] flex-1 rounded-full overflow-hidden"
+                style={{ background: "rgba(255,231,202,0.08)" }}
+              >
+                {i <= step && (
+                  <div
+                    className="h-full w-full rounded-full"
+                    style={{
+                      background: "linear-gradient(90deg, #B84A12, #E8621A)",
+                      boxShadow: "0 0 8px rgba(232,98,26,0.5)",
+                    }}
+                  />
+                )}
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Ember background ambience — steps 1–4 */}
-        {step >= 1 && step < 5 && (
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 70%)",
-            }}
-          />
-        )}
+        {/* Ember background ambience */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
+          }}
+        />
 
         {/* ── Step 0: "Here's the deal" intro ─────────────────────────────── */}
         {step === 0 && (
           <div className="flex flex-col px-5 pt-10 pb-32">
-            <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-6">
-              IN 90 SECONDS
+            <p
+              className="text-[11px] tracking-[2.4px] uppercase mb-5"
+              style={{
+                fontFamily: "var(--font-jetbrains-mono)",
+                color: "#E8621A",
+              }}
+            >
+              In 90 seconds
             </p>
-            <h1 className="font-display font-black text-4xl text-white leading-tight">
-              Here&apos;s the deal<span className="text-[#E8621A]">.</span>
+            <h1
+              className="leading-tight text-white"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 44,
+              }}
+            >
+              Here&apos;s the deal<span style={{ color: "#E8621A" }}>.</span>
             </h1>
-            <div className="mt-8 flex flex-col">
+            <div className="mt-7 flex flex-col">
               {[
                 { title: "No surveys.", subtitle: "A few swipes teach us more than 20 questions." },
                 { title: "No random picks.", subtitle: "Every card is ranked for you, not pulled from a list." },
                 { title: "No infinite scroll.", subtitle: "Fast answer. Done. Every time." },
                 { title: "Works alone. Works better together.", subtitle: "Solo mode or shared — it adapts to how you decide." },
               ].map((item, index) => (
-                <div key={index} className="flex gap-4 py-4 border-b border-white/[0.06]">
-                  <span className="font-display font-black text-lg text-[#E8621A] w-6 flex-shrink-0">
+                <div
+                  key={index}
+                  className="flex gap-[18px] py-[18px]"
+                  style={{
+                    borderBottom: index < 3 ? "1px solid rgba(245,237,224,0.085)" : "none",
+                  }}
+                >
+                  <span
+                    className="flex-shrink-0 w-[30px] leading-none pt-0.5"
+                    style={{
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 700,
+                      fontSize: 24,
+                      color: "#E8621A",
+                    }}
+                  >
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <div>
-                    <p className="font-display font-bold text-base text-white">{item.title}</p>
-                    <p className="font-body text-sm text-[#8A7F78] mt-0.5">{item.subtitle}</p>
+                    <p
+                      className="text-white"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 19,
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {item.title}
+                    </p>
+                    <p
+                      className="mt-1.5"
+                      style={{
+                        fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                        fontWeight: 300,
+                        fontSize: 13.5,
+                        lineHeight: 1.5,
+                        color: "#C7BDAC",
+                      }}
+                    >
+                      {item.subtitle}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -266,22 +329,47 @@ export default function OnboardingPage() {
               className="flex flex-col"
             >
               {/* 2. STEP COUNTER */}
-              <p className="font-body text-[11px] font-semibold tracking-widest uppercase text-[#8A7F78] mt-8 px-5">
+              <p
+                className="mt-8 px-5 uppercase"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono)",
+                  fontSize: 11,
+                  letterSpacing: "2px",
+                  color: "#897E73",
+                }}
+              >
                 {step} of 4
               </p>
 
               {/* 3. QUESTION HEADLINE */}
-              <h1 className="font-display font-black text-3xl text-white leading-tight mt-3 px-5 whitespace-pre-line">
+              <h1
+                className="text-white leading-tight mt-3 px-5 whitespace-pre-line"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 38,
+                  letterSpacing: "-0.02em",
+                }}
+              >
                 {currentStep.title}
               </h1>
 
               {/* 4. SUBTEXT */}
-              <p className="font-body text-base text-[#8A7F78] mt-3 px-5">
+              <p
+                className="mt-3 px-5"
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 300,
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  color: "#C7BDAC",
+                }}
+              >
                 {currentStep.subtitle}
               </p>
 
               {/* 4. OPTIONS LIST */}
-              <div className="flex flex-col gap-3 mt-8 px-5">
+              <div className="flex flex-col gap-3 mt-6 px-5">
 
                 {/* ── Step 1: dietary restrictions ───────────────────────── */}
                 {step === 1 && (
@@ -292,24 +380,55 @@ export default function OnboardingPage() {
                         <button
                           key={opt.label}
                           onClick={() => toggleDietary(opt.label)}
-                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                          className="w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150"
+                          style={
                             selected
-                              ? "bg-[#E8621A]/10 border-[#E8621A]"
-                              : "bg-[#2A2420] border-transparent"
-                          }`}
+                              ? {
+                                  background: "rgba(232,98,26,0.07)",
+                                  border: "1.5px solid #E8621A",
+                                  boxShadow: "0 0 26px rgba(232,98,26,0.12)",
+                                }
+                              : {
+                                  background: "rgba(255,231,202,0.045)",
+                                  border: "1px solid rgba(245,237,224,0.085)",
+                                }
+                          }
                         >
-                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          <div
+                            className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                            style={{
+                              background: "rgba(255,231,202,0.08)",
+                              border: "1px solid rgba(245,237,224,0.085)",
+                            }}
+                          >
                             {opt.emoji}
                           </div>
-                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          <span
+                            className="flex-1 text-white text-left"
+                            style={{
+                              fontFamily: "var(--font-quicksand)",
+                              fontWeight: 700,
+                              fontSize: 18,
+                            }}
+                          >
                             {opt.label}
                           </span>
-                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                            selected
-                              ? "bg-[#E8621A] flex items-center justify-center"
-                              : "border-2 border-[#3D3733]"
-                          }`}>
-                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          <div
+                            className="w-[26px] h-[26px] rounded-full flex-shrink-0 flex items-center justify-center"
+                            style={
+                              selected
+                                ? {
+                                    background: "#E8621A",
+                                    boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+                                  }
+                                : {
+                                    border: "2px solid rgba(245,237,224,0.16)",
+                                  }
+                            }
+                          >
+                            {selected && (
+                              <span className="text-[13px] font-bold text-white">✓</span>
+                            )}
                           </div>
                         </button>
                       );
@@ -317,15 +436,35 @@ export default function OnboardingPage() {
                     {/* "None of these" — clears dietary and advances immediately */}
                     <button
                       onClick={handleNoDietary}
-                      className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
+                      className="w-full flex items-center gap-4 rounded-[18px] p-4 cursor-pointer transition-all duration-150"
+                      style={{
+                        background: "rgba(255,231,202,0.045)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                      }}
                     >
-                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                      <div
+                        className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                        style={{
+                          background: "rgba(255,231,202,0.08)",
+                          border: "1px solid rgba(245,237,224,0.085)",
+                        }}
+                      >
                         🚫
                       </div>
-                      <span className="flex-1 font-display font-black text-lg text-white text-left">
+                      <span
+                        className="flex-1 text-white text-left"
+                        style={{
+                          fontFamily: "var(--font-quicksand)",
+                          fontWeight: 700,
+                          fontSize: 18,
+                        }}
+                      >
                         None of these
                       </span>
-                      <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
+                      <div
+                        className="w-[26px] h-[26px] rounded-full flex-shrink-0"
+                        style={{ border: "2px solid rgba(245,237,224,0.16)" }}
+                      />
                     </button>
                   </>
                 )}
@@ -339,24 +478,55 @@ export default function OnboardingPage() {
                         <button
                           key={opt.label}
                           onClick={() => toggleHardNo(opt.label)}
-                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                          className="w-full flex items-center gap-4 rounded-[18px] p-4 cursor-pointer transition-all duration-150"
+                          style={
                             selected
-                              ? "bg-[#E8621A]/10 border-[#E8621A]"
-                              : "bg-[#2A2420] border-transparent"
-                          }`}
+                              ? {
+                                  background: "rgba(232,98,26,0.07)",
+                                  border: "1.5px solid #E8621A",
+                                  boxShadow: "0 0 26px rgba(232,98,26,0.12)",
+                                }
+                              : {
+                                  background: "rgba(255,231,202,0.045)",
+                                  border: "1px solid rgba(245,237,224,0.085)",
+                                }
+                          }
                         >
-                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          <div
+                            className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                            style={{
+                              background: "rgba(255,231,202,0.08)",
+                              border: "1px solid rgba(245,237,224,0.085)",
+                            }}
+                          >
                             {opt.emoji}
                           </div>
-                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          <span
+                            className="flex-1 text-white text-left"
+                            style={{
+                              fontFamily: "var(--font-quicksand)",
+                              fontWeight: 700,
+                              fontSize: 18,
+                            }}
+                          >
                             {opt.label}
                           </span>
-                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                            selected
-                              ? "bg-[#E8621A] flex items-center justify-center"
-                              : "border-2 border-[#3D3733]"
-                          }`}>
-                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          <div
+                            className="w-[26px] h-[26px] rounded-full flex-shrink-0 flex items-center justify-center"
+                            style={
+                              selected
+                                ? {
+                                    background: "#E8621A",
+                                    boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+                                  }
+                                : {
+                                    border: "2px solid rgba(245,237,224,0.16)",
+                                  }
+                            }
+                          >
+                            {selected && (
+                              <span className="text-[13px] font-bold text-white">✓</span>
+                            )}
                           </div>
                         </button>
                       );
@@ -364,15 +534,35 @@ export default function OnboardingPage() {
                     {/* "None of these" — clears hard NOs and advances immediately */}
                     <button
                       onClick={handleNoHardNos}
-                      className="w-full flex items-center gap-4 bg-[#2A2420] rounded-[18px] p-4 border border-transparent cursor-pointer transition-all duration-150"
+                      className="w-full flex items-center gap-4 rounded-[18px] p-4 cursor-pointer transition-all duration-150"
+                      style={{
+                        background: "rgba(255,231,202,0.045)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                      }}
                     >
-                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                      <div
+                        className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                        style={{
+                          background: "rgba(255,231,202,0.08)",
+                          border: "1px solid rgba(245,237,224,0.085)",
+                        }}
+                      >
                         🚫
                       </div>
-                      <span className="flex-1 font-display font-black text-lg text-white text-left">
+                      <span
+                        className="flex-1 text-white text-left"
+                        style={{
+                          fontFamily: "var(--font-quicksand)",
+                          fontWeight: 700,
+                          fontSize: 18,
+                        }}
+                      >
                         None of these
                       </span>
-                      <div className="w-7 h-7 rounded-full border-2 border-[#3D3733] flex-shrink-0" />
+                      <div
+                        className="w-[26px] h-[26px] rounded-full flex-shrink-0"
+                        style={{ border: "2px solid rgba(245,237,224,0.16)" }}
+                      />
                     </button>
                   </>
                 )}
@@ -386,24 +576,55 @@ export default function OnboardingPage() {
                         <button
                           key={c.label}
                           onClick={() => toggleCuisine(c.label)}
-                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                          className="w-full flex items-center gap-4 rounded-[18px] p-4 cursor-pointer transition-all duration-150"
+                          style={
                             selected
-                              ? "bg-[#E8621A]/10 border-[#E8621A]"
-                              : "bg-[#2A2420] border-transparent"
-                          }`}
+                              ? {
+                                  background: "rgba(232,98,26,0.07)",
+                                  border: "1.5px solid #E8621A",
+                                  boxShadow: "0 0 26px rgba(232,98,26,0.12)",
+                                }
+                              : {
+                                  background: "rgba(255,231,202,0.045)",
+                                  border: "1px solid rgba(245,237,224,0.085)",
+                                }
+                          }
                         >
-                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          <div
+                            className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                            style={{
+                              background: "rgba(255,231,202,0.08)",
+                              border: "1px solid rgba(245,237,224,0.085)",
+                            }}
+                          >
                             {c.emoji}
                           </div>
-                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          <span
+                            className="flex-1 text-white text-left"
+                            style={{
+                              fontFamily: "var(--font-quicksand)",
+                              fontWeight: 700,
+                              fontSize: 18,
+                            }}
+                          >
                             {c.label}
                           </span>
-                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                            selected
-                              ? "bg-[#E8621A] flex items-center justify-center"
-                              : "border-2 border-[#3D3733]"
-                          }`}>
-                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          <div
+                            className="w-[26px] h-[26px] rounded-full flex-shrink-0 flex items-center justify-center"
+                            style={
+                              selected
+                                ? {
+                                    background: "#E8621A",
+                                    boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+                                  }
+                                : {
+                                    border: "2px solid rgba(245,237,224,0.16)",
+                                  }
+                            }
+                          >
+                            {selected && (
+                              <span className="text-[13px] font-bold text-white">✓</span>
+                            )}
                           </div>
                         </button>
                       );
@@ -423,24 +644,55 @@ export default function OnboardingPage() {
                             setNoveltyBias(opt.value);
                             scheduleNoveltyAdvance();
                           }}
-                          className={`w-full flex items-center gap-4 rounded-[18px] p-4 border cursor-pointer transition-all duration-150 ${
+                          className="w-full flex items-center gap-4 rounded-[18px] p-4 cursor-pointer transition-all duration-150"
+                          style={
                             selected
-                              ? "bg-[#E8621A]/10 border-[#E8621A]"
-                              : "bg-[#2A2420] border-transparent"
-                          }`}
+                              ? {
+                                  background: "rgba(232,98,26,0.07)",
+                                  border: "1.5px solid #E8621A",
+                                  boxShadow: "0 0 26px rgba(232,98,26,0.12)",
+                                }
+                              : {
+                                  background: "rgba(255,231,202,0.045)",
+                                  border: "1px solid rgba(245,237,224,0.085)",
+                                }
+                          }
                         >
-                          <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
+                          <div
+                            className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                            style={{
+                              background: "rgba(255,231,202,0.08)",
+                              border: "1px solid rgba(245,237,224,0.085)",
+                            }}
+                          >
                             {noveltyEmojis[i]}
                           </div>
-                          <span className="flex-1 font-display font-black text-lg text-white text-left">
+                          <span
+                            className="flex-1 text-white text-left"
+                            style={{
+                              fontFamily: "var(--font-quicksand)",
+                              fontWeight: 700,
+                              fontSize: 18,
+                            }}
+                          >
                             {opt.label}
                           </span>
-                          <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                            selected
-                              ? "bg-[#E8621A] flex items-center justify-center"
-                              : "border-2 border-[#3D3733]"
-                          }`}>
-                            {selected && <span className="text-sm font-black text-white">✓</span>}
+                          <div
+                            className="w-[26px] h-[26px] rounded-full flex-shrink-0 flex items-center justify-center"
+                            style={
+                              selected
+                                ? {
+                                    background: "#E8621A",
+                                    boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+                                  }
+                                : {
+                                    border: "2px solid rgba(245,237,224,0.16)",
+                                  }
+                            }
+                          >
+                            {selected && (
+                              <span className="text-[13px] font-bold text-white">✓</span>
+                            )}
                           </div>
                         </button>
                       );
@@ -460,22 +712,52 @@ export default function OnboardingPage() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-[#E8621A] blur-3xl opacity-[0.12] pointer-events-none" />
 
             {/* Wordmark */}
-            <p className="font-display font-black text-xs text-[#8A7F78] tracking-[0.25em] uppercase mb-10 relative z-10">
+            <p
+              className="tracking-[0.25em] uppercase mb-10 relative z-10"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 12,
+                color: "#897E73",
+              }}
+            >
               Watcha?
             </p>
 
             {/* "Stop asking." */}
-            <h1 className="font-display font-black text-5xl text-white leading-none text-center relative z-10">
+            <h1
+              className="text-white leading-none text-center relative z-10"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 48,
+              }}
+            >
               Stop asking.
             </h1>
 
             {/* Giant decorative ? */}
-            <div className="font-display font-black text-[40vh] leading-none text-[#E8621A] my-2 relative z-10 select-none">
+            <div
+              className="leading-none my-2 relative z-10 select-none"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: "40vh",
+                color: "#E8621A",
+              }}
+            >
               ?
             </div>
 
             {/* "Start eating." */}
-            <h1 className="font-display font-black text-5xl text-white leading-none text-center relative z-10">
+            <h1
+              className="text-white leading-none text-center relative z-10"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 48,
+              }}
+            >
               Start eating.
             </h1>
 
@@ -489,15 +771,18 @@ export default function OnboardingPage() {
            Step 4 (auto-advance): shown only if the user navigated back and already
            has a noveltyBias set so they can proceed without re-selecting. */}
       {step >= 1 && step < 5 && (step <= 3 || (step === 4 && noveltyBias !== null)) && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#1C1A18]">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
           <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advance}
               disabled={!canContinue()}
-              className={`w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99] ${
-                !canContinue() ? "opacity-40 pointer-events-none" : "shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
-              }`}
+              className="w-full text-white font-bold text-base py-4 rounded-full transition active:scale-[0.99]"
+              style={
+                canContinue()
+                  ? gradientPrimaryStyle
+                  : { background: "#E8621A", opacity: 0.4, pointerEvents: "none" }
+              }
             >
               Continue
             </button>
@@ -507,12 +792,13 @@ export default function OnboardingPage() {
 
       {/* Step 0 CTA */}
       {step === 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#1C1A18]">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
           <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advance}
-              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99] shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
+              className="w-full text-white font-bold text-base py-4 rounded-full transition active:scale-[0.99]"
+              style={gradientPrimaryStyle}
             >
               Got it →
             </button>
@@ -522,12 +808,13 @@ export default function OnboardingPage() {
 
       {/* Step 5 CTA */}
       {step === 5 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#1C1A18]">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
           <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advance}
-              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition active:scale-[0.99] shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
+              className="w-full text-white font-bold text-base py-4 rounded-full transition active:scale-[0.99]"
+              style={gradientPrimaryStyle}
             >
               Let&apos;s eat →
             </button>

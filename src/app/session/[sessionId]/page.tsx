@@ -95,6 +95,31 @@ const BUILD_PHRASES = [
   "Almost there...",
 ];
 
+// ── Shared style helpers ──────────────────────────────────────────────────────
+
+const gradientPrimary: React.CSSProperties = {
+  background: "linear-gradient(180deg, #FF8A3D, #E8621A 50%, #B84A12)",
+  boxShadow:
+    "0 1px 0 rgba(255,210,170,0.45) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 16px 34px rgba(232,98,26,0.42), 0 0 0 1px rgba(232,98,26,0.32)",
+};
+
+const glassSurface: React.CSSProperties = {
+  background: "linear-gradient(180deg, rgba(255,231,202,0.07), rgba(255,231,202,0.02))",
+  border: "1px solid rgba(245,237,224,0.16)",
+  borderRadius: 22,
+  backdropFilter: "blur(20px)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 38px rgba(0,0,0,0.4)",
+};
+
+const ghostBtn: React.CSSProperties = {
+  background: "rgba(255,231,202,0.045)",
+  border: "1px solid rgba(245,237,224,0.16)",
+};
+
+const darkBtn: React.CSSProperties = {
+  background: "rgba(255,231,202,0.03)",
+  border: "1px solid rgba(245,237,224,0.085)",
+};
 
 export default function SessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -506,36 +531,86 @@ export default function SessionPage() {
     // ── Intro screen ────────────────────────────────────────────────────────
     if (setupStep === "intro") {
       return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+        <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
           <div
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 70%)",
+                "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
             }}
           />
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
             <div className="pt-10">
-              <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-6">
-                REAL QUICK
+              <p
+                className="uppercase mb-5"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono)",
+                  fontSize: 11,
+                  letterSpacing: "2.4px",
+                  color: "#E8621A",
+                }}
+              >
+                Real quick
               </p>
-              <h1 className="font-display font-black text-4xl text-white leading-tight">
-                Here&apos;s the deal<span className="text-[#E8621A]">.</span>
+              <h1
+                className="leading-tight text-white"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 44,
+                }}
+              >
+                Here&apos;s the deal<span style={{ color: "#E8621A" }}>.</span>
               </h1>
-              <div className="mt-8 flex flex-col">
+              <div className="mt-7 flex flex-col">
                 {[
                   { title: "Takes 30 seconds.", subtitle: "Your answers make tonight's picks way better for both of you." },
                   { title: "No account needed.", subtitle: "Just swipe. We handle the rest." },
                   { title: "We build the deck together.", subtitle: "Your preferences + theirs = a deck you'll both actually want." },
                   { title: "Your picks stay private.", subtitle: "We only share the match." },
                 ].map((item, index) => (
-                  <div key={index} className="flex gap-4 py-4 border-b border-white/[0.06]">
-                    <span className="font-display font-black text-lg text-[#E8621A] w-6 flex-shrink-0">
+                  <div
+                    key={index}
+                    className="flex gap-[18px] py-[18px]"
+                    style={{
+                      borderBottom: index < 3 ? "1px solid rgba(245,237,224,0.085)" : "none",
+                    }}
+                  >
+                    <span
+                      className="flex-shrink-0 w-[30px] leading-none pt-0.5"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 24,
+                        color: "#E8621A",
+                      }}
+                    >
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <div>
-                      <p className="font-display font-bold text-base text-white">{item.title}</p>
-                      <p className="font-body text-sm text-[#8A7F78] mt-0.5">{item.subtitle}</p>
+                      <p
+                        className="text-white"
+                        style={{
+                          fontFamily: "var(--font-quicksand)",
+                          fontWeight: 700,
+                          fontSize: 19,
+                          letterSpacing: "-0.01em",
+                        }}
+                      >
+                        {item.title}
+                      </p>
+                      <p
+                        className="mt-1.5"
+                        style={{
+                          fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                          fontWeight: 300,
+                          fontSize: 13.5,
+                          lineHeight: 1.5,
+                          color: "#C7BDAC",
+                        }}
+                      >
+                        {item.subtitle}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -544,10 +619,11 @@ export default function SessionPage() {
           </div>
           <div className="fixed bottom-0 left-0 right-0 z-30">
             <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
               <button
                 onClick={advanceSetup}
-                className="w-full rounded-full bg-[#E8621A] px-5 py-[18px] text-center text-[15px] font-display font-black text-white transition hover:opacity-95 active:scale-[0.99] shadow-[0_8px_40px_rgba(232,98,26,0.28)]"
+                className="w-full rounded-full py-[18px] text-center text-[15px] font-bold text-white transition active:scale-[0.99]"
+                style={gradientPrimary}
               >
                 Let&apos;s do it →
               </button>
@@ -557,13 +633,35 @@ export default function SessionPage() {
       );
     }
 
+    // ── Choice steps (cuisines / dietary / hard NOs) ─────────────────────────
+    const choiceData =
+      setupStep === "cuisines"
+        ? GUEST_CUISINES
+        : setupStep === "dietary"
+        ? GUEST_DIETARY_RESTRICTIONS
+        : GUEST_HARD_NOS;
+
+    const selectedValues =
+      setupStep === "cuisines"
+        ? guestCuisines
+        : setupStep === "dietary"
+        ? guestDietaryRestrictions
+        : guestHardNos;
+
+    const setSelected =
+      setupStep === "cuisines"
+        ? setGuestCuisines
+        : setupStep === "dietary"
+        ? setGuestDietaryRestrictions
+        : setGuestHardNos;
+
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
         <div
           className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
           }}
         />
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
@@ -584,35 +682,77 @@ export default function SessionPage() {
               ) : (
                 <div className="w-10" />
               )}
-              <span className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
+              <span
+                className="uppercase"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono)",
+                  fontSize: 11,
+                  letterSpacing: "2px",
+                  color: "#897E73",
+                }}
+              >
                 Quick setup
               </span>
               <div className="w-10" />
             </div>
 
             {/* Progress bar */}
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.12]">
-                  <div
-                    className="h-full rounded-full bg-[#E8621A] transition-all duration-500 ease-out"
-                    style={{ width: n <= stepNum ? "100%" : "0%" }}
-                  />
+                <div
+                  key={n}
+                  className="h-[4px] flex-1 overflow-hidden rounded-full"
+                  style={{ background: "rgba(255,231,202,0.08)" }}
+                >
+                  {n <= stepNum && (
+                    <div
+                      className="h-full w-full rounded-full"
+                      style={{
+                        background: "linear-gradient(90deg, #B84A12, #E8621A)",
+                        boxShadow: "0 0 8px rgba(232,98,26,0.5)",
+                      }}
+                    />
+                  )}
                 </div>
               ))}
             </div>
 
             {/* Question */}
             <div className="mt-2">
-              <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase">
+              <p
+                className="uppercase"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono)",
+                  fontSize: 11,
+                  letterSpacing: "2px",
+                  color: "#897E73",
+                }}
+              >
                 {stepNum} of 3
               </p>
-              <h1 className="mt-3 font-display font-black text-3xl text-white leading-tight">
+              <h1
+                className="mt-3 text-white leading-tight"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 38,
+                  letterSpacing: "-0.02em",
+                }}
+              >
                 {setupStep === "cuisines" && "What are you down for?"}
                 {setupStep === "dietary" && "Any dietary restrictions?"}
                 {setupStep === "hardNos" && "Anything you absolutely won't eat?"}
               </h1>
-              <p className="mt-2 font-body text-sm text-[#8A7F78]">
+              <p
+                className="mt-2"
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 300,
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  color: "#C7BDAC",
+                }}
+              >
                 {setupStep === "cuisines" && "Pick everything that sounds good to you."}
                 {setupStep === "dietary" && "We'll never show you meals that don't work for you."}
                 {setupStep === "hardNos" && "Hard NOs are never shown. Ever."}
@@ -620,92 +760,67 @@ export default function SessionPage() {
             </div>
 
             {/* Options */}
-            {setupStep === "cuisines" && (
-              <div className="flex flex-col gap-3">
-                {GUEST_CUISINES.map((c) => {
-                  const selected = guestCuisines.includes(c.label);
-                  return (
-                    <button
-                      key={c.label}
-                      onClick={() => toggleMulti(c.label, guestCuisines, setGuestCuisines)}
-                      className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
-                        selected
-                          ? "border-[#E8621A] bg-[#E8621A]/10"
-                          : "border-white/[0.06] bg-[#2A2420]"
-                      }`}
+            <div className="flex flex-col gap-3">
+              {choiceData.map((item) => {
+                const selected = selectedValues.includes(item.label);
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => toggleMulti(item.label, selectedValues, setSelected)}
+                    className="flex items-center gap-4 rounded-[18px] p-4 transition-all duration-150 active:scale-[0.99]"
+                    style={
+                      selected
+                        ? {
+                            border: "1.5px solid #E8621A",
+                            background: "rgba(232,98,26,0.07)",
+                            boxShadow: "0 0 26px rgba(232,98,26,0.12)",
+                          }
+                        : {
+                            border: "1px solid rgba(245,237,224,0.085)",
+                            background: "rgba(255,231,202,0.045)",
+                          }
+                    }
+                  >
+                    <div
+                      className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                      style={{
+                        background: "rgba(255,231,202,0.08)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                      }}
                     >
-                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                        {c.emoji}
-                      </div>
-                      <span className="flex-1 font-display font-black text-lg text-white text-left">{c.label}</span>
-                      <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                        selected ? "bg-[#E8621A] flex items-center justify-center" : "border-2 border-[#3D3733]"
-                      }`}>
-                        {selected && <span className="text-sm font-black text-white">✓</span>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {setupStep === "dietary" && (
-              <div className="flex flex-col gap-3">
-                {GUEST_DIETARY_RESTRICTIONS.map((f) => {
-                  const selected = guestDietaryRestrictions.includes(f.label);
-                  return (
-                    <button
-                      key={f.label}
-                      onClick={() => toggleMulti(f.label, guestDietaryRestrictions, setGuestDietaryRestrictions)}
-                      className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
-                        selected
-                          ? "border-[#E8621A] bg-[#E8621A]/10"
-                          : "border-white/[0.06] bg-[#2A2420]"
-                      }`}
+                      {item.emoji}
+                    </div>
+                    <span
+                      className="flex-1 text-white text-left"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 18,
+                      }}
                     >
-                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                        {f.emoji}
-                      </div>
-                      <span className="flex-1 font-display font-black text-lg text-white text-left">{f.label}</span>
-                      <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                        selected ? "bg-[#E8621A] flex items-center justify-center" : "border-2 border-[#3D3733]"
-                      }`}>
-                        {selected && <span className="text-sm font-black text-white">✓</span>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {setupStep === "hardNos" && (
-              <div className="flex flex-col gap-3">
-                {GUEST_HARD_NOS.map((f) => {
-                  const selected = guestHardNos.includes(f.label);
-                  return (
-                    <button
-                      key={f.label}
-                      onClick={() => toggleMulti(f.label, guestHardNos, setGuestHardNos)}
-                      className={`flex items-center gap-4 rounded-[18px] p-4 border transition-all duration-150 active:scale-[0.99] ${
+                      {item.label}
+                    </span>
+                    <div
+                      className="w-[26px] h-[26px] rounded-full flex-shrink-0 flex items-center justify-center"
+                      style={
                         selected
-                          ? "border-[#E8621A] bg-[#E8621A]/10"
-                          : "border-white/[0.06] bg-[#2A2420]"
-                      }`}
+                          ? {
+                              background: "#E8621A",
+                              boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+                            }
+                          : {
+                              border: "2px solid rgba(245,237,224,0.16)",
+                            }
+                      }
                     >
-                      <div className="w-12 h-12 rounded-[12px] bg-[#3D3733] flex items-center justify-center text-2xl flex-shrink-0">
-                        {f.emoji}
-                      </div>
-                      <span className="flex-1 font-display font-black text-lg text-white text-left">{f.label}</span>
-                      <div className={`w-7 h-7 rounded-full flex-shrink-0 ${
-                        selected ? "bg-[#E8621A] flex items-center justify-center" : "border-2 border-[#3D3733]"
-                      }`}>
-                        {selected && <span className="text-sm font-black text-white">✓</span>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      {selected && (
+                        <span className="text-[13px] font-bold text-white">✓</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
           </div>
         </div>
@@ -713,13 +828,12 @@ export default function SessionPage() {
         {/* Sticky CTA */}
         <div className="fixed bottom-0 left-0 right-0 z-30">
           <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#1C1A18]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advanceSetup}
               disabled={!canAdvance || completingSetup}
-              className={`w-full rounded-full bg-[#E8621A] px-5 py-[18px] text-center text-[15px] font-display font-black text-white transition hover:opacity-95 active:scale-[0.99] disabled:opacity-30 ${
-                canAdvance && !completingSetup ? "shadow-[0_8px_40px_rgba(232,98,26,0.28)]" : "shadow-none"
-              }`}
+              className="w-full rounded-full py-[18px] text-center text-[15px] font-bold text-white transition active:scale-[0.99] disabled:opacity-30"
+              style={canAdvance && !completingSetup ? gradientPrimary : { background: "#E8621A" }}
             >
               {completingSetup ? "Joining…" : setupStep === "hardNos" ? "Join session" : "Continue"}
             </button>
@@ -732,13 +846,21 @@ export default function SessionPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (!session && !error) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#1C1A18] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#0B0805] text-white">
         <div className="flex flex-col items-center gap-4">
           <span className="relative flex h-3 w-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/60 opacity-75" />
             <span className="relative inline-flex h-3 w-3 rounded-full bg-[#E8621A]/80" />
           </span>
-          <p className="font-body text-sm text-[#8A7F78]">Loading session…</p>
+          <p
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontSize: 14,
+              color: "#897E73",
+            }}
+          >
+            Loading session…
+          </p>
         </div>
       </main>
     );
@@ -747,7 +869,7 @@ export default function SessionPage() {
   // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
+      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-[#0B0805] px-6 text-center text-white">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div
@@ -759,15 +881,44 @@ export default function SessionPage() {
           className="w-20 h-20 rounded-[20px] bg-[#E8621A]/10 flex items-center justify-center"
           style={{ boxShadow: "0 0 40px rgba(232,98,26,0.18)" }}
         >
-          <span className="font-display font-black text-4xl text-[#E8621A]">!</span>
+          <span
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 36,
+              color: "#E8621A",
+            }}
+          >
+            !
+          </span>
         </div>
         <div>
-          <p className="font-display font-black text-2xl text-white">Something went wrong</p>
-          <p className="mt-2 font-body text-sm text-[#8A7F78] max-w-[28ch] mx-auto">{error}</p>
+          <p
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 24,
+              color: "#F6EEE2",
+            }}
+          >
+            Something went wrong
+          </p>
+          <p
+            className="mt-2 max-w-[28ch] mx-auto"
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontWeight: 300,
+              fontSize: 14,
+              color: "#897E73",
+            }}
+          >
+            {error}
+          </p>
         </div>
         <Link
           href="/"
-          className="w-full max-w-xs rounded-full border border-white/10 bg-white/[0.06] px-6 py-4 font-display font-black text-sm text-white transition hover:opacity-80 active:scale-[0.99]"
+          className="w-full max-w-xs rounded-full px-6 py-4 text-center text-sm text-white transition hover:opacity-80 active:scale-[0.99]"
+          style={ghostBtn}
         >
           Back to home
         </Link>
@@ -788,7 +939,7 @@ export default function SessionPage() {
   // ── Session full ──────────────────────────────────────────────────────────
   if (role === "full") {
     return (
-      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-[#1C1A18] px-6 text-center text-white">
+      <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-[#0B0805] px-6 text-center text-white">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div
@@ -803,14 +954,32 @@ export default function SessionPage() {
           <span className="text-3xl">🔒</span>
         </div>
         <div>
-          <p className="font-display font-black text-2xl text-white">Session is full</p>
-          <p className="mt-2 font-body text-sm text-[#8A7F78] max-w-[28ch] mx-auto leading-relaxed">
+          <p
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 24,
+              color: "#F6EEE2",
+            }}
+          >
+            Session is full
+          </p>
+          <p
+            className="mt-2 max-w-[28ch] mx-auto leading-relaxed"
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontWeight: 300,
+              fontSize: 14,
+              color: "#897E73",
+            }}
+          >
             This session already has two people. Ask the host to start a new one.
           </p>
         </div>
         <Link
           href="/"
-          className="w-full max-w-xs rounded-full border border-white/10 bg-white/[0.06] px-6 py-4 font-display font-black text-sm text-white transition hover:opacity-80 active:scale-[0.99]"
+          className="w-full max-w-xs rounded-full px-6 py-4 text-center text-sm text-white transition hover:opacity-80 active:scale-[0.99]"
+          style={ghostBtn}
         >
           Back to home
         </Link>
@@ -820,23 +989,34 @@ export default function SessionPage() {
 
   // ── Guest: waiting for deck to build ────────────────────────────────────
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
+    const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
+
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center px-6 text-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] flex flex-col items-center justify-center px-6 text-center">
         <div
           className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
           }}
         />
         <Link
           href="/"
-          className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
+          className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg"
+          style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
         >
           ←
         </Link>
 
-        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-12">
+        <p
+          className="uppercase mb-12"
+          style={{
+            fontFamily: "var(--font-jetbrains-mono)",
+            fontSize: 11,
+            letterSpacing: "2px",
+            color: "#897E73",
+          }}
+        >
           Shared session
         </p>
 
@@ -844,46 +1024,137 @@ export default function SessionPage() {
           <div className="absolute w-32 h-32 rounded-full border border-[#E8621A]/20" style={{ animation: "ping 2.5s cubic-bezier(0,0,0.2,1) infinite" }} />
           <div className="absolute w-24 h-24 rounded-full border border-[#E8621A]/30 animate-pulse" />
           <div
-            className="w-16 h-16 rounded-full bg-[#E8621A]/15 flex items-center justify-center"
-            style={{ boxShadow: "0 0 24px rgba(232,98,26,0.2)" }}
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{
+              background: "rgba(232,98,26,0.15)",
+              boxShadow: "0 0 24px rgba(232,98,26,0.2)",
+            }}
           >
             <span className="text-2xl">👥</span>
           </div>
         </div>
 
         {session?.vibe && vibeEmoji[session.vibe] && (
-          <div className="flex items-center gap-2 mt-4">
+          <div
+            className="flex items-center gap-2 mt-4 rounded-full px-4 py-2"
+            style={{
+              background: "rgba(255,231,202,0.045)",
+              border: "1px solid rgba(245,237,224,0.085)",
+            }}
+          >
             <span className="text-lg">{vibeEmoji[session.vibe]}</span>
-            <span className="font-body text-sm text-[#8A7F78]">
-              Tonight feels like: <span className="text-white font-semibold">{vibeName[session.vibe]}</span>
+            <span
+              style={{
+                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                fontSize: 13,
+                color: "#897E73",
+              }}
+            >
+              Tonight feels like:{" "}
+              <span className="text-white font-semibold">{vibeName[session.vibe]}</span>
             </span>
           </div>
         )}
 
-        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight">
+        <h1
+          className="text-white mt-8 leading-tight"
+          style={{
+            fontFamily: "var(--font-quicksand)",
+            fontWeight: 700,
+            fontSize: 32,
+          }}
+        >
           Your host is deciding with you.
         </h1>
-        <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+        <p
+          className="mt-3 max-w-xs"
+          style={{
+            fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+            fontWeight: 300,
+            fontSize: 14,
+            lineHeight: 1.5,
+            color: "#C7BDAC",
+          }}
+        >
           Hang tight. Building a deck for both of you.
         </p>
 
-        <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
-          <span className="w-2 h-2 rounded-full bg-[#E8621A] animate-pulse" />
-          <span className="font-body text-sm text-[#8A7F78]">BUILDING YOUR DECK...</span>
+        {/* Premium waiting pill */}
+        <div
+          className="flex items-center gap-[9px] rounded-full px-[18px] py-[10px] mt-6"
+          style={{
+            background: "rgba(255,231,202,0.045)",
+            border: "1px solid rgba(245,237,224,0.085)",
+          }}
+        >
+          <span
+            className="w-2 h-2 rounded-full animate-pulse"
+            style={{ background: "#E8621A", boxShadow: "0 0 8px rgba(232,98,26,0.5)" }}
+          />
+          <span
+            className="uppercase"
+            style={{
+              fontFamily: "var(--font-jetbrains-mono)",
+              fontSize: 11,
+              letterSpacing: "2px",
+              color: "#C7BDAC",
+            }}
+          >
+            Building your deck...
+          </span>
         </div>
+
+        {/* Glass session code card */}
+        {codeDisplay && (
+          <div
+            className="mt-6 w-full max-w-[260px] rounded-[20px] px-6 py-4 text-center relative"
+            style={glassSurface}
+          >
+            {/* Ember top glow line */}
+            <div
+              className="absolute inset-x-5 top-0 h-[1.5px] rounded-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, #FF8A3D 30%, #E8621A 50%, #FF8A3D 70%, transparent)",
+                boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+              }}
+            />
+            <p
+              className="uppercase"
+              style={{
+                fontFamily: "var(--font-jetbrains-mono)",
+                fontSize: 10,
+                letterSpacing: "3px",
+                color: "#897E73",
+              }}
+            >
+              Code
+            </p>
+            <p
+              className="mt-2 text-white"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 28,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {codeDisplay}
+            </p>
+          </div>
+        )}
 
         <Link
           href="/"
-          className="font-body text-sm text-[#8A7F78]/50 mt-12 transition hover:text-[#8A7F78]"
+          className="mt-10 transition hover:opacity-70"
+          style={{
+            fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+            fontSize: 13,
+            color: "rgba(137,126,115,0.5)",
+          }}
         >
           Leave session
         </Link>
-
-        <p className="font-body text-xs text-[#8A7F78]/40 mt-4">
-          {session?.session_code
-            ? `Code: ${session.session_code}`
-            : `Session · ${sessionId?.slice(0, 8)}`}
-        </p>
       </main>
     );
   }
@@ -893,46 +1164,121 @@ export default function SessionPage() {
     const guestVibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;
 
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white flex flex-col items-center justify-center px-6 text-center">
         <div
           className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
           }}
         />
         <Link
           href="/"
-          className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
+          className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg"
+          style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
         >
           ←
         </Link>
 
-        <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-12">
+        <p
+          className="uppercase mb-10"
+          style={{
+            fontFamily: "var(--font-jetbrains-mono)",
+            fontSize: 11,
+            letterSpacing: "2px",
+            color: "#897E73",
+          }}
+        >
           Shared session
         </p>
 
-        <div className="relative flex items-center justify-center w-32 h-32">
-          <div className="absolute w-32 h-32 rounded-full border border-[#4A7C59]/30" />
-          <div className="absolute w-24 h-24 rounded-full border border-[#4A7C59]/50" />
+        {/* Green rings orb */}
+        <div className="relative w-[160px] h-[160px] flex items-center justify-center">
           <div
-            className="w-16 h-16 rounded-full bg-[#4A7C59]/20 flex items-center justify-center"
-            style={{ boxShadow: "0 0 30px rgba(74,124,89,0.25)" }}
+            className="absolute rounded-full"
+            style={{
+              inset: -14,
+              border: "1px solid rgba(94,158,110,0.3)",
+              borderRadius: "50%",
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              inset: 8,
+              border: "1px solid rgba(94,158,110,0.6)",
+              borderRadius: "50%",
+            }}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              inset: 30,
+              border: "1px solid rgba(94,158,110,1)",
+              borderRadius: "50%",
+            }}
+          />
+          <div
+            className="w-[96px] h-[96px] rounded-full flex items-center justify-center text-[34px]"
+            style={{
+              background: "radial-gradient(circle at 42% 34%, rgba(110,150,200,0.4), rgba(40,60,90,0.5) 70%)",
+              boxShadow: "0 0 50px rgba(94,158,110,0.18)",
+            }}
           >
-            <span className="text-2xl">👥</span>
+            👥
           </div>
         </div>
 
-        <h1 className="font-display font-black text-3xl text-white mt-8 leading-tight text-center">
+        <h1
+          className="text-white mt-6 leading-tight text-center"
+          style={{
+            fontFamily: "var(--font-quicksand)",
+            fontWeight: 700,
+            fontSize: 38,
+            letterSpacing: "-0.02em",
+          }}
+        >
           You&apos;re in. Let&apos;s decide.
         </h1>
-        <p className="font-body text-base text-[#8A7F78] text-center mt-3 max-w-xs">
+        <p
+          className="text-center mt-3 max-w-xs"
+          style={{
+            fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+            fontWeight: 300,
+            fontSize: 14,
+            lineHeight: 1.5,
+            color: "#C7BDAC",
+          }}
+        >
           We&apos;ll use both of your profiles to build your shared deck.
         </p>
 
-        <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
-          <span className="w-2 h-2 rounded-full bg-[#4A7C59] animate-pulse" />
-          <span className="font-body text-sm text-[#8A7F78]">DECK READY</span>
+        {/* Deck ready pill — green, mono */}
+        <div
+          className="flex items-center gap-[9px] rounded-full px-[18px] py-[10px] mt-5"
+          style={{
+            background: "rgba(255,231,202,0.045)",
+            border: "1px solid rgba(245,237,224,0.085)",
+          }}
+        >
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{
+              background: "#5E9E6E",
+              boxShadow: "0 0 8px rgba(94,158,110,0.45)",
+            }}
+          />
+          <span
+            className="uppercase"
+            style={{
+              fontFamily: "var(--font-jetbrains-mono)",
+              fontSize: 11,
+              letterSpacing: "2px",
+              color: "#C7BDAC",
+            }}
+          >
+            Deck ready
+          </span>
         </div>
 
         <button
@@ -940,13 +1286,20 @@ export default function SessionPage() {
             trackEvent("shared_deck_started", { sessionId, vibe: guestVibe });
             router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`);
           }}
-          className="mt-8 w-full max-w-xs bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
-          style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+          className="mt-7 w-full max-w-xs text-white font-bold text-base py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
+          style={gradientPrimary}
         >
           Start swiping
         </button>
 
-        <p className="font-body text-xs text-[#8A7F78]/40 mt-6">
+        <p
+          className="mt-6"
+          style={{
+            fontFamily: "var(--font-jetbrains-mono)",
+            fontSize: 12,
+            color: "rgba(87,78,69,0.8)",
+          }}
+        >
           Session · {sessionId?.slice(0, 8)}
         </p>
       </main>
@@ -963,12 +1316,12 @@ export default function SessionPage() {
     const partnerInitial = "?";
 
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] flex flex-col items-center justify-center">
+      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] flex flex-col items-center justify-center">
         <div
           className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
           }}
         />
         {/* Concentric rings */}
@@ -980,31 +1333,75 @@ export default function SessionPage() {
           <div className="absolute w-52 h-52 rounded-full border border-[#E8621A]/35" />
           <div className="absolute w-36 h-36 rounded-full border border-[#E8621A]/50" />
           <div className="w-20 h-20 rounded-full bg-[#3D1A00] flex items-center justify-center">
-            <span className="font-display font-black text-3xl text-[#E8621A]">?</span>
+            <span
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 30,
+                color: "#E8621A",
+              }}
+            >
+              ?
+            </span>
           </div>
         </div>
 
         <div className="flex items-center justify-center mt-8">
-          <div className="w-10 h-10 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-sm text-white border-2 border-[#1C1A18] z-10 relative">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm text-white border-2 border-[#0B0805] z-10 relative"
+            style={{
+              background: "#E8621A",
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+            }}
+          >
             {myInitial}
           </div>
-          <div className="w-10 h-10 rounded-full bg-[#3D3733] flex items-center justify-center font-display font-black text-sm text-white border-2 border-[#1C1A18] -ml-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm text-white border-2 border-[#0B0805] -ml-3"
+            style={{
+              background: "rgba(255,231,202,0.08)",
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+            }}
+          >
             {partnerInitial}
           </div>
         </div>
 
-        <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mt-4">
-          COMBINING YOUR TASTES...
+        <p
+          className="uppercase mt-4"
+          style={{
+            fontFamily: "var(--font-jetbrains-mono)",
+            fontSize: 11,
+            letterSpacing: "2px",
+            color: "#E8621A",
+          }}
+        >
+          Combining your tastes...
         </p>
 
         <p
-          className="font-display font-black text-3xl text-white text-center mt-4 leading-tight px-8 transition-opacity duration-500"
-          style={{ opacity: 1 }}
+          className="text-white text-center mt-4 leading-tight px-8 transition-opacity duration-500"
+          style={{
+            fontFamily: "var(--font-quicksand)",
+            fontWeight: 700,
+            fontSize: 30,
+            opacity: 1,
+          }}
         >
           {BUILD_PHRASES[buildPhrase]}
         </p>
 
-        <p className="font-body text-sm text-[#8A7F78] text-center mt-3">
+        <p
+          className="text-center mt-3"
+          style={{
+            fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+            fontWeight: 300,
+            fontSize: 14,
+            color: "#897E73",
+          }}
+        >
           Filtering out the maybes. Your deck is almost ready.
         </p>
 
@@ -1014,7 +1411,7 @@ export default function SessionPage() {
             <div
               key={i}
               className="w-2 h-2 rounded-full transition-colors duration-[400ms]"
-              style={{ background: i === buildPhrase % 3 ? "#E8621A" : "#2A2420" }}
+              style={{ background: i === buildPhrase % 3 ? "#E8621A" : "rgba(255,231,202,0.08)" }}
             />
           ))}
         </div>
@@ -1027,12 +1424,12 @@ export default function SessionPage() {
     const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
 
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white">
+      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
         <div
           className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
           }}
         />
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 pb-10 text-center">
@@ -1040,45 +1437,137 @@ export default function SessionPage() {
           {/* Back */}
           <Link
             href="/"
-            className="absolute top-12 left-5 w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg"
+            className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg"
+            style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
           >
             ←
           </Link>
 
-          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-8">
+          <p
+            className="uppercase mb-8"
+            style={{
+              fontFamily: "var(--font-jetbrains-mono)",
+              fontSize: 11,
+              letterSpacing: "2px",
+              color: "#897E73",
+            }}
+          >
             Share your session
           </p>
 
-          <h1 className="font-display font-black text-4xl text-white leading-tight">
+          <h1
+            className="text-white leading-tight"
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 38,
+              letterSpacing: "-0.02em",
+            }}
+          >
             Who&apos;s deciding<br />with you?
           </h1>
-          <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+          <p
+            className="mt-3 max-w-xs"
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontWeight: 300,
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: "#C7BDAC",
+            }}
+          >
             Send this code or link. They join, you both swipe, and a match picks your dinner.
           </p>
 
           {/* Read-only vibe pill */}
           {session?.vibe && vibeEmoji[session.vibe] && (
-            <div className="flex items-center gap-2 mt-4 bg-[#2A2420] rounded-full px-4 py-2 border border-white/[0.06]">
+            <div
+              className="flex items-center gap-2 mt-4 rounded-full px-4 py-2"
+              style={{
+                background: "rgba(255,231,202,0.045)",
+                border: "1px solid rgba(245,237,224,0.085)",
+              }}
+            >
               <span className="text-base">{vibeEmoji[session.vibe]}</span>
-              <span className="font-body text-sm text-[#8A7F78]">
-                Vibe: <span className="text-white font-semibold">{vibeName[session.vibe]}</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontSize: 13,
+                  color: "#C7BDAC",
+                }}
+              >
+                Vibe:{" "}
+                <span className="text-white font-semibold">{vibeName[session.vibe]}</span>
               </span>
             </div>
           )}
 
-          {/* Session code — prominent display */}
-          <div className="mt-8 w-full bg-[#2A2420] rounded-[24px] p-6 border border-white/[0.06]">
-            <p className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase mb-2">
+          {/* Glass session code card */}
+          <div
+            className="mt-8 w-full rounded-[24px] p-6 text-center relative"
+            style={glassSurface}
+          >
+            {/* Ember top glow line */}
+            <div
+              className="absolute inset-x-5 top-0 h-[1.5px] rounded-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, #FF8A3D 30%, #E8621A 50%, #FF8A3D 70%, transparent)",
+                boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+              }}
+            />
+            <p
+              className="uppercase"
+              style={{
+                fontFamily: "var(--font-jetbrains-mono)",
+                fontSize: 10,
+                letterSpacing: "3px",
+                color: "#897E73",
+              }}
+            >
               Session code
             </p>
-            <p className="font-display font-black text-5xl text-white tracking-wide">
+            <p
+              className="mt-3 text-white"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 52,
+                letterSpacing: "-0.01em",
+                lineHeight: 0.9,
+                textShadow: "0 0 30px rgba(232,98,26,0.25)",
+              }}
+            >
               {codeDisplay}
             </p>
-            <p className="font-body text-xs text-[#8A7F78] mt-2">
+            <p
+              className="mt-3"
+              style={{
+                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                fontWeight: 300,
+                fontSize: 12.5,
+                color: "#897E73",
+              }}
+            >
               or share the link below
             </p>
-            <div className="mt-3 bg-[#1C1A18] rounded-[12px] px-3 py-2 border border-white/[0.04]">
-              <p className="font-body text-xs text-[#8A7F78] truncate">{sessionUrl}</p>
+            <div
+              className="mt-3 rounded-[14px] px-4 py-3 text-left overflow-hidden"
+              style={{
+                background: "rgba(255,231,202,0.03)",
+                border: "1px solid rgba(245,237,224,0.085)",
+              }}
+            >
+              <p
+                className="truncate"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono)",
+                  fontSize: 12,
+                  color: "#C7BDAC",
+                }}
+              >
+                {sessionUrl}
+              </p>
             </div>
           </div>
 
@@ -1086,29 +1575,54 @@ export default function SessionPage() {
           <div className="grid grid-cols-2 gap-3 mt-4 w-full">
             <button
               onClick={handleShare}
-              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
-              style={{ boxShadow: "0 0 30px rgba(232,98,26,0.28)" }}
+              className="w-full text-white font-bold text-[15px] py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
+              style={gradientPrimary}
             >
               Share link
             </button>
             <button
               onClick={handleCopy}
-              className="w-full bg-[#2A2420] text-white font-display font-black text-base py-4 rounded-full border border-white/10 transition hover:opacity-80 active:scale-[0.99]"
+              className="w-full text-white font-bold text-[15px] py-4 rounded-full transition hover:opacity-80 active:scale-[0.99]"
+              style={ghostBtn}
             >
               {copied ? "Copied ✓" : "Copy link"}
             </button>
           </div>
 
-          {/* Waiting status pill */}
-          <div className="flex items-center gap-2 bg-[#2A2420] rounded-full px-4 py-2 mt-6">
-            <span className="w-2 h-2 rounded-full bg-[#E8621A] animate-pulse" />
-            <span className="font-body text-sm text-[#8A7F78]">Waiting for someone to join...</span>
+          {/* Premium waiting pill */}
+          <div
+            className="flex items-center gap-[9px] rounded-full px-[18px] py-[10px] mt-6"
+            style={{
+              background: "rgba(255,231,202,0.045)",
+              border: "1px solid rgba(245,237,224,0.085)",
+            }}
+          >
+            <span
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ background: "#E8621A", boxShadow: "0 0 8px rgba(232,98,26,0.5)" }}
+            />
+            <span
+              style={{
+                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                fontWeight: 400,
+                fontSize: 13,
+                color: "#C7BDAC",
+              }}
+            >
+              Waiting for someone to join…
+            </span>
           </div>
 
           {/* Transition to waiting room */}
           <button
             onClick={() => setHostStep("waiting")}
-            className="mt-8 font-body text-sm text-[#8A7F78] underline underline-offset-2 transition hover:text-white/60"
+            className="mt-8 transition hover:opacity-60 underline underline-offset-2"
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontWeight: 500,
+              fontSize: 13,
+              color: "#C7BDAC",
+            }}
           >
             I shared it, now what? →
           </button>
@@ -1117,7 +1631,7 @@ export default function SessionPage() {
     );
   }
 
-  // ── Host: waiting room (Change 3) ─────────────────────────────────────────
+  // ── Host: waiting room ─────────────────────────────────────────────────────
   if (role === "host" && (hostStep === "waiting" || !hostNeedsOnboarding)) {
     const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
     const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
@@ -1126,24 +1640,48 @@ export default function SessionPage() {
     // Sub-state: guest just joined, show "Start swiping →"
     if (bothConnected && showStartSwiping) {
       return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+        <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white flex flex-col items-center justify-center px-6 text-center">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
             <div className="absolute bottom-24 right-[-60px] h-52 w-52 rounded-full bg-white/[0.04] blur-3xl" />
           </div>
 
-          <p className="text-[#8A7F78] text-[11px] font-semibold tracking-widest uppercase mb-8">
+          <p
+            className="uppercase mb-8"
+            style={{
+              fontFamily: "var(--font-jetbrains-mono)",
+              fontSize: 11,
+              letterSpacing: "2px",
+              color: "#897E73",
+            }}
+          >
             They&apos;re in
           </p>
 
           {/* Two avatar circles, lit up */}
           <div className="flex items-center gap-4 mb-8">
             <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white border-2 border-[#E8621A]/40"
-                style={{ boxShadow: "0 0 24px rgba(232,98,26,0.45)" }}>
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white border-2 border-[#E8621A]/40"
+                style={{
+                  background: "radial-gradient(circle at 40% 32%, #FF8A3D, #E8621A 70%, #B84A12)",
+                  boxShadow: "0 0 24px rgba(232,98,26,0.45)",
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                }}
+              >
                 {myInitial}
               </div>
-              <span className="text-xs text-[#8A7F78]">You</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#897E73",
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 500,
+                }}
+              >
+                You
+              </span>
             </div>
 
             {/* Connector */}
@@ -1154,18 +1692,51 @@ export default function SessionPage() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-2xl text-white border-2 border-[#4A7C59]/40"
-                style={{ boxShadow: "0 0 24px rgba(74,124,89,0.45)" }}>
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white border-2 border-[#4A7C59]/40"
+                style={{
+                  background: "#4A7C59",
+                  boxShadow: "0 0 24px rgba(74,124,89,0.45)",
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                }}
+              >
                 ✓
               </div>
-              <span className="text-xs text-[#8A7F78]">Joined</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#897E73",
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 500,
+                }}
+              >
+                Joined
+              </span>
             </div>
           </div>
 
-          <h1 className="font-display font-black text-4xl text-white leading-tight">
+          <h1
+            className="text-white leading-tight"
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 40,
+              letterSpacing: "-0.02em",
+            }}
+          >
             Your crew<br />is ready.
           </h1>
-          <p className="font-body text-base text-[#8A7F78] mt-3 max-w-xs">
+          <p
+            className="mt-3 max-w-xs"
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontWeight: 300,
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: "#C7BDAC",
+            }}
+          >
             {deckReady
               ? "Your deck is built. Tap to start swiping — you both need to match on something."
               : "Building your shared deck now. Tap to jump in the moment it's ready."}
@@ -1174,8 +1745,8 @@ export default function SessionPage() {
           <button
             onClick={handleStartSwiping}
             disabled={!deckReady}
-            className="mt-10 w-full max-w-xs bg-[#E8621A] text-white font-display font-black text-base py-5 rounded-full transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50"
-            style={deckReady ? { boxShadow: "0 0 40px rgba(232,98,26,0.4)" } : {}}
+            className="mt-10 w-full max-w-xs text-white font-bold text-base py-5 rounded-full transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50"
+            style={deckReady ? gradientPrimary : { background: "#E8621A" }}
           >
             {deckReady ? "Start swiping →" : "Building deck…"}
           </button>
@@ -1183,7 +1754,15 @@ export default function SessionPage() {
           {!deckReady && (
             <div className="flex items-center gap-2 mt-4">
               <span className="w-1.5 h-1.5 rounded-full bg-[#E8621A] animate-pulse" />
-              <span className="font-body text-xs text-[#8A7F78]">Almost there...</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontSize: 12,
+                  color: "#897E73",
+                }}
+              >
+                Almost there...
+              </span>
             </div>
           )}
         </main>
@@ -1193,7 +1772,7 @@ export default function SessionPage() {
     // Sub-state: guest joined but 2s animation delay not done yet
     if (bothConnected && !showStartSwiping) {
       return (
-        <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col items-center justify-center px-6 text-center">
+        <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white flex flex-col items-center justify-center px-6 text-center">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           </div>
@@ -1201,10 +1780,17 @@ export default function SessionPage() {
           {/* Two avatar circles, animating in */}
           <div className="flex items-center gap-4 mb-8">
             <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white"
+                style={{
+                  background: "radial-gradient(circle at 40% 32%, #FF8A3D, #E8621A 70%, #B84A12)",
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                }}
+              >
                 {myInitial}
               </div>
-              <span className="text-xs text-[#8A7F78]">You</span>
+              <span style={{ fontSize: 12, color: "#897E73" }}>You</span>
             </div>
 
             <div className="flex items-center gap-1.5 mb-5">
@@ -1214,17 +1800,41 @@ export default function SessionPage() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-2xl text-white animate-pulse">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white animate-pulse"
+                style={{
+                  background: "#4A7C59",
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                }}
+              >
                 ✓
               </div>
-              <span className="text-xs text-[#8A7F78]">Joined!</span>
+              <span style={{ fontSize: 12, color: "#897E73" }}>Joined!</span>
             </div>
           </div>
 
-          <h1 className="font-display font-black text-3xl text-white">
+          <h1
+            className="text-white"
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 32,
+            }}
+          >
             They joined!
           </h1>
-          <p className="font-body text-sm text-[#8A7F78] mt-2">Get ready...</p>
+          <p
+            className="mt-2"
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontWeight: 300,
+              fontSize: 14,
+              color: "#897E73",
+            }}
+          >
+            Get ready...
+          </p>
         </main>
       );
     }
@@ -1236,12 +1846,12 @@ export default function SessionPage() {
       : null;
 
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#1C1A18] text-white flex flex-col px-6 pt-12 pb-10">
+      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white flex flex-col px-6 pt-12 pb-10">
         <div
           className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.11) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
           }}
         />
 
@@ -1249,7 +1859,8 @@ export default function SessionPage() {
         {hostNeedsOnboarding && (
           <button
             onClick={() => setHostStep("sharing")}
-            className="w-10 h-10 rounded-full bg-[#2A2420] flex items-center justify-center text-white text-lg mb-8 self-start"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg mb-8 self-start"
+            style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
           >
             ←
           </button>
@@ -1258,38 +1869,78 @@ export default function SessionPage() {
         {/* Main content — centered */}
         <div className="flex-1 flex flex-col items-center justify-center text-center">
 
-          {/* Avatar pair */}
-          <div className="flex items-center gap-5 mb-10">
-            <div className="flex flex-col items-center gap-2">
+          {/* Avatar pair — reference size 96px */}
+          <div className="flex items-center justify-center gap-0 mt-2">
+            <div className="flex flex-col items-center gap-[10px]">
               <div
-                className="w-16 h-16 rounded-full bg-[#E8621A] flex items-center justify-center font-display font-black text-2xl text-white"
-                style={{ boxShadow: "0 0 20px rgba(232,98,26,0.3)" }}
+                className="w-24 h-24 rounded-full flex items-center justify-center text-[38px] text-white"
+                style={{
+                  background: "radial-gradient(circle at 40% 32%, #FF8A3D, #E8621A 70%, #B84A12)",
+                  boxShadow: "0 0 50px rgba(232,98,26,0.5), 0 0 0 6px rgba(232,98,26,0.06)",
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                }}
               >
                 {myInitial}
               </div>
-              <span className="text-xs text-[#8A7F78]">You</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 500,
+                  fontSize: 13,
+                  color: "#C7BDAC",
+                }}
+              >
+                You
+              </span>
             </div>
 
             {/* Dashed connector */}
-            <div className="flex items-center gap-1.5 mb-5">
+            <div className="flex items-center gap-2 mx-[18px] mb-5">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                <div
+                  key={i}
+                  className="w-[7px] h-[7px] rounded-full"
+                  style={{ background: "rgba(87,78,69,1)" }}
+                />
               ))}
             </div>
 
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-[#2A2420] border-2 border-dashed border-white/20 flex items-center justify-center font-display font-black text-2xl text-white/30">
+            <div className="flex flex-col items-center gap-[10px]">
+              <div
+                className="w-24 h-24 rounded-full flex items-center justify-center"
+                style={{
+                  border: "2px dashed rgba(245,237,224,0.16)",
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 34,
+                  color: "#897E73",
+                }}
+              >
                 ?
               </div>
-              <span className="text-xs text-[#8A7F78]">Waiting...</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 500,
+                  fontSize: 13,
+                  color: "#897E73",
+                }}
+              >
+                Waiting…
+              </span>
             </div>
           </div>
 
           {/* Rotating headline */}
           <h1
             key={waitingHeadlineIdx}
-            className="font-display font-black text-4xl text-white leading-tight text-center"
+            className="text-white leading-tight text-center mt-9"
             style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 40,
+              letterSpacing: "-0.02em",
               animation: "fadeIn 0.4s ease-out",
               whiteSpace: "pre-line",
             }}
@@ -1297,30 +1948,81 @@ export default function SessionPage() {
             {WAITING_HEADLINES[waitingHeadlineIdx]}
           </h1>
 
-          {/* Session code */}
-          <div className="mt-8 bg-[#2A2420] rounded-[20px] px-6 py-4 w-full max-w-xs border border-white/[0.08]">
-            <p className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase mb-1">
+          {/* Glass session code card */}
+          <div
+            className="mt-7 w-full max-w-[280px] rounded-[20px] px-6 py-5 text-center relative"
+            style={glassSurface}
+          >
+            {/* Ember top glow line */}
+            <div
+              className="absolute inset-x-5 top-0 h-[1.5px] rounded-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, #FF8A3D 30%, #E8621A 50%, #FF8A3D 70%, transparent)",
+                boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+              }}
+            />
+            <p
+              className="uppercase"
+              style={{
+                fontFamily: "var(--font-jetbrains-mono)",
+                fontSize: 10,
+                letterSpacing: "3px",
+                color: "#897E73",
+              }}
+            >
               Code
             </p>
-            <p className="font-display font-black text-3xl text-white tracking-wide">
+            <p
+              className="mt-2 text-white"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 34,
+                letterSpacing: "-0.01em",
+              }}
+            >
               {codeDisplay}
             </p>
           </div>
 
           {/* Expiry */}
           {hoursLeft !== null && (
-            <p className="font-body text-xs text-[#8A7F78]/60 mt-3">
+            <p
+              className="mt-3"
+              style={{
+                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                fontWeight: 300,
+                fontSize: 12,
+                color: "rgba(137,126,115,0.6)",
+              }}
+            >
               Session expires in {hoursLeft}h
             </p>
           )}
 
-          {/* Waiting pulse */}
-          <div className="flex items-center gap-2 mt-6">
+          {/* Premium waiting pill */}
+          <div
+            className="flex items-center gap-[9px] rounded-full px-[18px] py-[10px] mt-5"
+            style={{
+              background: "rgba(255,231,202,0.045)",
+              border: "1px solid rgba(245,237,224,0.085)",
+            }}
+          >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E8621A]/60 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8621A]" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ background: "rgba(232,98,26,0.6)" }} />
+              <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#E8621A" }} />
             </span>
-            <span className="font-body text-sm text-[#8A7F78]">Waiting for someone to join</span>
+            <span
+              style={{
+                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                fontWeight: 400,
+                fontSize: 13,
+                color: "#C7BDAC",
+              }}
+            >
+              Waiting for someone to join
+            </span>
           </div>
         </div>
 
@@ -1328,15 +2030,16 @@ export default function SessionPage() {
         <div className="flex flex-col gap-3 mt-6">
           <button
             onClick={handleShare}
-            className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full"
-            style={{ boxShadow: "0 0 30px rgba(232,98,26,0.25)" }}
+            className="w-full text-white font-bold text-base py-4 rounded-full"
+            style={gradientPrimary}
           >
             Resend invite
           </button>
           <button
             onClick={handleCancelSession}
             disabled={cancellingSession}
-            className="w-full bg-[#2A2420] text-[#8A7F78] font-display font-black text-base py-4 rounded-full border border-white/[0.06] transition hover:text-white/60 disabled:opacity-40"
+            className="w-full font-bold text-base py-4 rounded-full transition hover:opacity-70 disabled:opacity-40"
+            style={{ ...darkBtn, color: "#897E73" }}
           >
             {cancellingSession ? "Cancelling…" : "Cancel session"}
           </button>
