@@ -4219,9 +4219,16 @@ function DeckContent() {
             onDragEnd={(_, info) => {
               if (info.offset.y > 80 || info.velocity.y > 500) setShowCookOrderModal(false);
             }}
-            className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+            className="relative w-full rounded-t-[28px] px-6 pt-6 pb-10"
+            style={{
+              background: "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.08) 0%, transparent 60%), linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
+              borderTop: "1px solid rgba(245,237,224,0.10)",
+              borderLeft: "none",
+              borderRight: "none",
+              borderBottom: "none",
+            }}
           >
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "rgba(245,237,224,0.15)" }} />
             <p className="font-display font-black text-2xl text-white text-center">
               How are you eating?
             </p>
@@ -4229,7 +4236,10 @@ function DeckContent() {
               <button
                 onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
                 disabled={matchConfirming}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
+                className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border transition-colors active:scale-[0.98] disabled:opacity-60"
+                style={{ background: "rgba(255,231,202,0.04)", borderColor: "rgba(245,237,224,0.07)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
               >
                 <span className="text-4xl">🍳</span>
                 <p className="font-display font-black text-lg text-white">Cook it</p>
@@ -4238,7 +4248,10 @@ function DeckContent() {
               <button
                 onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
                 disabled={matchConfirming}
-                className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border border-transparent hover:border-[#E8621A]/40 disabled:opacity-60"
+                className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border transition-colors active:scale-[0.98] disabled:opacity-60"
+                style={{ background: "rgba(255,231,202,0.04)", borderColor: "rgba(245,237,224,0.07)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
               >
                 <span className="text-4xl">🚗</span>
                 <p className="font-display font-black text-lg text-white">Order in</p>

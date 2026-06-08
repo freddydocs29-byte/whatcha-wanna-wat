@@ -77,7 +77,7 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
     <div
       ref={ref}
       className="w-full max-w-sm mx-auto rounded-[24px] overflow-hidden"
-      style={{ background: "#1C1A18", fontFamily: "inherit" }}
+      style={{ background: "#0F0A07", fontFamily: "inherit" }}
     >
       {/* ── Gradient accent bar ────────────────────────────────────────────── */}
       <div
@@ -113,7 +113,7 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
         {/* ── Hero stat ─────────────────────────────────────────────────────── */}
         <div
           className="rounded-[16px] px-5 py-5"
-          style={{ background: "#2A2420" }}
+          style={{ background: "rgba(255,231,202,0.07)", border: "1px solid rgba(245,237,224,0.10)" }}
         >
           {flavorType ? (
             <>
@@ -186,7 +186,7 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
                     </div>
                     <div
                       className="h-1.5 w-full rounded-full overflow-hidden"
-                      style={{ background: "#3D3733" }}
+                      style={{ background: "rgba(245,237,224,0.12)" }}
                     >
                       <div
                         className="h-full rounded-full"
@@ -236,7 +236,8 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
                     key={item}
                     className="font-body text-xs px-2.5 py-1 rounded-full line-through"
                     style={{
-                      background: "#3D3733",
+                      background: "rgba(255,231,202,0.06)",
+                      border: "1px solid rgba(245,237,224,0.10)",
                       color: "#8A7F78",
                     }}
                   >
@@ -252,7 +253,7 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
         {allTimeNumber1 && (
           <div
             className="rounded-[14px] px-4 py-4 border"
-            style={{ background: "#2A2420", borderColor: "#E8621A30" }}
+            style={{ background: "rgba(255,231,202,0.07)", borderColor: "rgba(232,98,26,0.25)" }}
           >
             <p
               className="text-[10px] font-semibold tracking-widest uppercase mb-1"
@@ -354,7 +355,7 @@ const FlameCard = forwardRef<HTMLDivElement, FlameCardProps>(function FlameCard(
         {/* ── Footer ────────────────────────────────────────────────────────── */}
         <div
           className="pt-4 border-t flex items-center justify-between"
-          style={{ borderColor: "#3D3733" }}
+          style={{ borderColor: "rgba(245,237,224,0.10)" }}
         >
           <span
             className="font-display font-black text-sm"
@@ -379,7 +380,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div
       className="rounded-[12px] px-2 py-3 flex flex-col items-center justify-center text-center"
-      style={{ background: "#2A2420" }}
+      style={{ background: "rgba(255,231,202,0.07)" }}
     >
       <span
         className="font-display font-black text-lg leading-none"

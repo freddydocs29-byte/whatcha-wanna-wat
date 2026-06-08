@@ -237,7 +237,7 @@ export default function RecommendPage() {
   // ── Loading state ─────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#1C1A18] px-5 pb-8 safe-top text-white">
+      <main className="min-h-screen px-5 pb-8 safe-top text-white" style={{ background: "#0B0805" }}>
         <div className="mx-auto w-full max-w-md">
           <div className="flex items-center justify-between py-4">
             <div className="h-10 w-10 animate-pulse rounded-full bg-white/[0.06]" />
@@ -260,7 +260,7 @@ export default function RecommendPage() {
   // ── Deck exhausted ────────────────────────────────────────────────────────
   if (!meal) {
     return (
-      <main className="relative flex min-h-screen flex-col items-center justify-center bg-[#1C1A18] px-6 text-center text-white">
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center text-white" style={{ background: "#0B0805" }}>
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           <div
@@ -303,7 +303,7 @@ export default function RecommendPage() {
 
   // ── Main view ─────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#1C1A18] text-white">
+    <main className="min-h-screen text-white" style={{ background: "#0B0805" }}>
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-8 safe-top">
         {/* Header */}
         <header className="flex items-center justify-between py-4">

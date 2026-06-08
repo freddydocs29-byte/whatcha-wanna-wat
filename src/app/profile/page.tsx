@@ -452,7 +452,7 @@ export default function ProfilePage() {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(flameCardRef.current, {
-        backgroundColor: "#1C1A18",
+        backgroundColor: "#0F0A07",
         scale: 2,
         useCORS: true,
         logging: false,

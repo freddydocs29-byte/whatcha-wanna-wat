@@ -1029,8 +1029,11 @@ export default function Home() {
       {/* ── Active session banner (preserved, inline) ──────── */}
       {activeSession && (
         <section
-          className={`mx-[14px] mb-2 rounded-[20px] p-4 border bg-[#2A2420] cursor-pointer transition-all duration-300 shrink-0 ${bannerBorderClass}`}
-          style={{ boxShadow: bannerBoxShadow }}
+          className={`mx-[14px] mb-2 rounded-[20px] p-4 border cursor-pointer transition-all duration-300 shrink-0 ${bannerBorderClass}`}
+          style={{
+            background: "rgba(255,231,202,0.05)",
+            boxShadow: bannerBoxShadow,
+          }}
           onClick={handleResumeBanner}
         >
           <div className="flex items-center justify-between mb-2">
@@ -1690,9 +1693,13 @@ export default function Home() {
               onDragEnd={(_, info) => {
                 if (info.offset.y > 80 || info.velocity.y > 500) setShowEatModal(false);
               }}
-              className="relative w-full bg-[#2A2420] rounded-t-[28px] px-6 pt-6 pb-10"
+              className="relative w-full rounded-t-[28px] px-6 pt-6 pb-10"
+              style={{
+                background: "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.08) 0%, transparent 60%), linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
+                borderTop: "1px solid rgba(245,237,224,0.10)",
+              }}
             >
-              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+              <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "rgba(245,237,224,0.15)" }} />
               <p className="font-display font-black text-2xl text-white text-center">
                 How are you eating?
               </p>
@@ -1702,7 +1709,10 @@ export default function Home() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
-                  className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+                  className="rounded-[20px] p-5 flex flex-col items-center gap-3 border transition-colors active:scale-[0.98]"
+                  style={{ background: "rgba(255,231,202,0.04)", borderColor: "rgba(245,237,224,0.07)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
                 >
                   <span className="text-4xl">🍳</span>
                   <p className="font-display font-black text-lg text-white">Cook it</p>
@@ -1713,7 +1723,10 @@ export default function Home() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => { setShowEatModal(false); recordPickIfNew(); }}
-                  className="bg-[#1C1A18] rounded-[20px] p-5 flex flex-col items-center gap-3 border border-transparent hover:border-[#E8621A]/40"
+                  className="rounded-[20px] p-5 flex flex-col items-center gap-3 border transition-colors active:scale-[0.98]"
+                  style={{ background: "rgba(255,231,202,0.04)", borderColor: "rgba(245,237,224,0.07)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
                 >
                   <span className="text-4xl">🚗</span>
                   <p className="font-display font-black text-lg text-white">Order in</p>

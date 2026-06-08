@@ -58,13 +58,27 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const decidedWith = pickedForYou ? "just for you" : "your partner";
 
   return (
-    <main className="relative min-h-screen bg-[#1C1A18] px-5 pt-12 pb-10 text-white overflow-hidden">
+    <main className="relative min-h-screen px-5 pt-12 pb-10 text-white overflow-hidden" style={{ background: "#0B0805" }}>
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 70%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(28,16,8,0.55) 0%, transparent 65%)",
+            "radial-gradient(ellipse 90% 28% at 50% 0%, rgba(232,98,26,0.13) 0%, transparent 60%), radial-gradient(ellipse 70% 20% at 50% 100%, rgba(11,8,5,0.8) 0%, transparent 65%)",
         }}
+      />
+      {/* Film grain */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          opacity: 0.05,
+          mixBlendMode: "overlay",
+        }}
+      />
+      {/* Vignette */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ boxShadow: "inset 0 0 100px 20px rgba(0,0,0,0.5)" }}
       />
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
@@ -116,7 +130,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
                 className="absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(to top, rgba(28,26,24,0.85) 0%, transparent 60%)",
+                    "linear-gradient(to top, rgba(11,8,5,0.85) 0%, transparent 60%)",
                 }}
               />
             </div>
@@ -155,9 +169,14 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           {/* Changed your mind? */}
           <button
             onClick={handleNewDeck}
-            className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]"
+            className="w-full rounded-[18px] p-4 flex items-center gap-4 text-left shadow-[0_4px_20px_rgba(0,0,0,0.30)]"
+            style={{
+              background: "rgba(255,231,202,0.05)",
+              border: "1px solid rgba(245,237,224,0.10)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.30)",
+            }}
           >
-            <div className="w-12 h-12 rounded-[12px] bg-[#2E2420] border border-[#E8621A]/[0.15] flex items-center justify-center text-2xl flex-shrink-0">
+            <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-2xl flex-shrink-0" style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(232,98,26,0.18)" }}>
               🔄
             </div>
             <div className="flex-1 min-w-0">
@@ -170,9 +189,14 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           {/* Save meal */}
           <button
             onClick={toggleSave}
-            className="w-full bg-[#2A2420] rounded-[18px] p-4 flex items-center gap-4 text-left border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]"
+            className="w-full rounded-[18px] p-4 flex items-center gap-4 text-left"
+            style={{
+              background: "rgba(255,231,202,0.05)",
+              border: "1px solid rgba(245,237,224,0.10)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.30)",
+            }}
           >
-            <div className="w-12 h-12 rounded-[12px] bg-[#2E2420] border border-[#E8621A]/[0.15] flex items-center justify-center text-2xl flex-shrink-0">
+            <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-2xl flex-shrink-0" style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(232,98,26,0.18)" }}>
               ⭐
             </div>
             <div className="flex-1 min-w-0">
@@ -193,7 +217,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
             YOUR STREAK
           </p>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
+            <div className="rounded-[16px] p-4 flex flex-col items-center justify-center" style={{ background: "rgba(255,231,202,0.05)", border: "1px solid rgba(245,237,224,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
               <span className="font-display font-black text-3xl text-[#E8621A]">
                 {decisionCount}
               </span>
@@ -201,7 +225,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
                 Decisions made
               </span>
             </div>
-            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
+            <div className="rounded-[16px] p-4 flex flex-col items-center justify-center" style={{ background: "rgba(255,231,202,0.05)", border: "1px solid rgba(245,237,224,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
               <span className="font-display font-black text-3xl text-[#E8621A]">
                 {streak}
               </span>
@@ -209,7 +233,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
                 Days in a row
               </span>
             </div>
-            <div className="bg-[#2A2420] rounded-[16px] p-4 flex flex-col items-center justify-center border border-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.30)]">
+            <div className="rounded-[16px] p-4 flex flex-col items-center justify-center" style={{ background: "rgba(255,231,202,0.05)", border: "1px solid rgba(245,237,224,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
               <span className="font-display font-black text-3xl text-[#E8621A]">
                 2min
               </span>

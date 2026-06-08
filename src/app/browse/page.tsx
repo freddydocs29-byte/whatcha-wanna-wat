@@ -35,10 +35,32 @@ export default function BrowsePage() {
     router.push(`/locked?mealId=${meal.id}`);
   }
 
+  const GRAIN_SVG =
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
   return (
-    <main className="min-h-screen bg-[#1C1A18] safe-top text-white">
+    <main className="min-h-screen safe-top text-white relative overflow-x-hidden" style={{ background: "#0B0805" }}>
+      {/* Ember ambient glow */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 28% at 50% 0%, rgba(232,98,26,0.13) 0%, transparent 58%)",
+        }}
+      />
+      {/* Film grain */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{ backgroundImage: GRAIN_SVG, opacity: 0.05, mixBlendMode: "overlay" }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{ boxShadow: "inset 0 0 100px 20px rgba(0,0,0,0.5)" }}
+      />
+
       {/* ── Sticky header ─────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#1C1A18]/90 backdrop-blur-md">
+      <div className="sticky top-0 z-10 border-b border-white/[0.06] backdrop-blur-md" style={{ background: "rgba(11,8,5,0.92)" }}>
         <div className="mx-auto flex w-full max-w-md items-center justify-between px-5 py-4">
           <button
             onClick={() => router.back()}
@@ -118,8 +140,8 @@ export default function BrowsePage() {
               className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[34px]"
               style={{
                 background:
-                  "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.07) 0%, transparent 60%), #1C1A18",
-                borderTop: "1px solid rgba(255,255,255,0.06)",
+                  "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.09) 0%, transparent 60%), linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
+                borderTop: "1px solid rgba(245,237,224,0.10)",
                 boxShadow: "0 -8px 40px rgba(0,0,0,0.55)",
               }}
             >
@@ -140,7 +162,7 @@ export default function BrowsePage() {
                   className="absolute inset-0"
                   style={{
                     background:
-                      "linear-gradient(to top, rgba(28,26,24,1) 0%, rgba(28,26,24,0.35) 42%, transparent 100%)",
+                      "linear-gradient(to top, rgba(11,8,5,1) 0%, rgba(11,8,5,0.35) 42%, transparent 100%)",
                   }}
                 />
                 {/* Close button */}
