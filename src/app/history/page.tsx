@@ -144,8 +144,13 @@ export default function HistoryPage() {
               )}
             </button>
           </div>
-          <h1 className="font-display font-black text-3xl text-white tracking-tight">History</h1>
-          <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
+          <h1
+            className="text-white"
+            style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "32px", letterSpacing: "-0.02em" }}
+          >
+            History
+          </h1>
+          <p className="font-body text-sm mt-1" style={{ color: "#897E73", fontWeight: 300 }}>
             Every meal you&apos;ve decided on.
           </p>
         </div>
@@ -154,15 +159,15 @@ export default function HistoryPage() {
         {loaded && entries.length > 0 && (
           <div className="flex items-center justify-between px-5 mt-5 mb-1">
             <p
-              className="font-display font-black text-sm tracking-widest"
-              style={{ color: "rgba(245,237,224,0.4)" }}
+              className="text-[11px] tracking-[2px] uppercase"
+              style={{ color: "#897E73", fontFamily: "var(--font-jetbrains-mono)" }}
             >
-              {entries.length} MEAL{entries.length !== 1 ? "S" : ""}
+              {entries.length} meal{entries.length !== 1 ? "s" : ""}
             </p>
             <button
               onClick={() => setConfirming(true)}
-              className="font-body text-xs transition hover:opacity-75 active:scale-[0.97]"
-              style={{ color: "#897E73" }}
+              className="font-body text-[12.5px] font-medium transition hover:opacity-75 active:scale-[0.97]"
+              style={{ color: "rgba(199,189,172,0.8)" }}
             >
               Clear history
             </button>
@@ -178,14 +183,16 @@ export default function HistoryPage() {
             >
               📋
             </div>
-            <p className="font-display font-black text-lg text-white">No history yet</p>
-            <p className="font-body text-sm mt-2 max-w-[26ch]" style={{ color: "#897E73" }}>
+            <p className="text-white" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "20px" }}>No history yet</p>
+            <p className="font-body text-sm mt-2 max-w-[26ch]" style={{ color: "#897E73", fontWeight: 300 }}>
               Choose a meal on the deck and it&apos;ll show up here.
             </p>
             <Link
               href="/deck"
-              className="mt-6 rounded-full px-6 py-3.5 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
+              className="mt-6 rounded-full px-6 py-3.5 text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
               style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
                 background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
                 boxShadow: "0 0 24px rgba(232,98,26,0.35)",
               }}
@@ -202,10 +209,10 @@ export default function HistoryPage() {
               key={i}
               className="rounded-[20px] overflow-hidden"
               style={{
-                background: "rgba(255,231,202,0.055)",
-                border: "1px solid rgba(245,237,224,0.09)",
-                backdropFilter: "blur(12px)",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(245,237,224,0.05)",
+                background: "linear-gradient(180deg, rgba(255,231,202,0.07), rgba(255,231,202,0.02))",
+                border: "1px solid rgba(245,237,224,0.16)",
+                backdropFilter: "blur(20px)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 38px rgba(0,0,0,0.4)",
               }}
             >
               {/* Meal row */}
@@ -222,10 +229,13 @@ export default function HistoryPage() {
                 </div>
                 {/* Name + time */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-display font-black text-base text-white leading-tight">
+                  <p
+                    className="text-white leading-tight"
+                    style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "17px" }}
+                  >
                     {entry.meal.name}
                   </p>
-                  <p className="font-body text-xs mt-0.5" style={{ color: "#897E73" }}>
+                  <p className="font-body text-xs mt-0.5" style={{ color: "#897E73", fontWeight: 300 }}>
                     {formatDate(entry.chosenAt)} · {formatTime(entry.chosenAt)}
                   </p>
                 </div>
@@ -246,48 +256,60 @@ export default function HistoryPage() {
 
               {/* Action pills */}
               <div
-                className="flex items-center gap-2 px-5 pb-5 pt-4"
-                style={{ borderTop: "1px solid rgba(245,237,224,0.06)" }}
+                className="flex items-center gap-2 px-5 pb-5 pt-3.5"
+                style={{ borderTop: "1px solid rgba(245,237,224,0.08)" }}
               >
                 <button
                   onClick={() => handleFavoriteToggle(entry.meal)}
-                  className="flex-1 rounded-full py-2 font-body text-xs font-medium transition active:scale-[0.97]"
-                  style={
-                    favoriteIds.has(entry.meal.id)
+                  className="flex-1 rounded-full text-center transition active:scale-[0.97]"
+                  style={{
+                    padding: "10px",
+                    fontFamily: "var(--font-manrope)",
+                    fontWeight: 500,
+                    fontSize: "12.5px",
+                    ...(favoriteIds.has(entry.meal.id)
                       ? {
-                          background: "rgba(251,191,36,0.14)",
-                          border: "1px solid rgba(251,191,36,0.28)",
-                          color: "#FBB124",
+                          background: "rgba(255,216,106,0.06)",
+                          border: "1px solid rgba(255,216,106,0.3)",
+                          color: "#FFD86A",
                         }
                       : {
-                          background: "rgba(255,231,202,0.04)",
-                          border: "1px solid rgba(245,237,224,0.08)",
-                          color: "rgba(245,237,224,0.4)",
-                        }
-                  }
+                          background: "transparent",
+                          border: "1px solid rgba(245,237,224,0.085)",
+                          color: "rgba(199,189,172,0.8)",
+                        }),
+                  }}
                 >
-                  {favoriteIds.has(entry.meal.id) ? "Unfavorite" : "Favorite"}
+                  {favoriteIds.has(entry.meal.id) ? "★ Unfavorite" : "Favorite"}
                 </button>
                 <a
                   href={`https://www.google.com/search?q=${encodeURIComponent(entry.meal.name + " recipe")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 rounded-full py-2 font-body text-center text-xs font-medium transition hover:opacity-75 active:scale-[0.97]"
+                  className="flex-1 rounded-full text-center transition hover:opacity-75 active:scale-[0.97]"
                   style={{
-                    background: "rgba(255,231,202,0.04)",
-                    border: "1px solid rgba(245,237,224,0.08)",
-                    color: "rgba(245,237,224,0.4)",
+                    padding: "10px",
+                    fontFamily: "var(--font-manrope)",
+                    fontWeight: 500,
+                    fontSize: "12.5px",
+                    background: "transparent",
+                    border: "1px solid rgba(245,237,224,0.085)",
+                    color: "rgba(199,189,172,0.8)",
                   }}
                 >
                   Cook it
                 </a>
                 <button
                   onClick={() => handleShare(entry.meal.name)}
-                  className="flex-1 rounded-full py-2 font-body text-xs font-medium transition hover:opacity-75 active:scale-[0.97]"
+                  className="flex-1 rounded-full text-center transition hover:opacity-75 active:scale-[0.97]"
                   style={{
-                    background: "rgba(255,231,202,0.04)",
-                    border: "1px solid rgba(245,237,224,0.08)",
-                    color: "rgba(245,237,224,0.4)",
+                    padding: "10px",
+                    fontFamily: "var(--font-manrope)",
+                    fontWeight: 500,
+                    fontSize: "12.5px",
+                    background: "transparent",
+                    border: "1px solid rgba(245,237,224,0.085)",
+                    color: "rgba(199,189,172,0.8)",
                   }}
                 >
                   Share
@@ -317,7 +339,7 @@ export default function HistoryPage() {
               boxShadow: "0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(245,237,224,0.05)",
             }}
           >
-            <p className="font-display font-black text-xl text-white tracking-tight">
+            <p className="text-white" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "22px", letterSpacing: "-0.01em" }}>
               Clear history?
             </p>
             <p className="font-body text-sm mt-2 leading-relaxed" style={{ color: "#897E73" }}>
@@ -338,8 +360,10 @@ export default function HistoryPage() {
               </button>
               <button
                 onClick={handleClear}
-                className="flex-1 rounded-full py-3 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.98]"
+                className="flex-1 rounded-full py-3 text-sm text-white transition hover:opacity-95 active:scale-[0.98]"
                 style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
                   background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
                   boxShadow: "0 0 20px rgba(232,98,26,0.35)",
                 }}

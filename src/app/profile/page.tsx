@@ -801,7 +801,12 @@ export default function ProfilePage() {
           {/* Page headline + name */}
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h1 className="font-display font-black text-3xl text-white tracking-tight">Profile</h1>
+              <h1
+                className="text-white"
+                style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "32px", letterSpacing: "-0.02em" }}
+              >
+                Profile
+              </h1>
               {editingName ? (
                 <div className="flex items-center gap-2 mt-1">
                   <input
@@ -817,7 +822,7 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="font-body text-sm" style={{ color: "#897E73" }}>
+                  <p className="font-body text-[13.5px]" style={{ color: "#897E73", fontWeight: 300 }}>
                     {displayName || "You"}{memberSince ? ` · Member since ${memberSince}` : ""} · {history.length} decisions
                   </p>
                   {authUserId && (
@@ -882,8 +887,8 @@ export default function ProfilePage() {
                 }}
               >
                 <div>
-                  <p className="font-display font-black text-sm text-white text-left">Create an account</p>
-                  <p className="font-body text-xs mt-0.5 text-left" style={{ color: "#897E73" }}>Sync your profile across devices</p>
+                  <p className="text-white text-left" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "14px" }}>Create an account</p>
+                  <p className="font-body text-xs mt-0.5 text-left" style={{ color: "#897E73", fontWeight: 300 }}>Sync your profile across devices</p>
                 </div>
                 <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
               </button>
@@ -892,7 +897,7 @@ export default function ProfilePage() {
         )}
 
         {/* ── Stats row ────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-3 mx-5 mt-6">
+        <div className="grid grid-cols-3 gap-2.5 mx-5 mt-6">
           {[
             { value: history.length, label: "Decisions" },
             { value: mealsTriedCount, label: "Meals tried" },
@@ -900,16 +905,21 @@ export default function ProfilePage() {
           ].map(({ value, label }) => (
             <div
               key={label}
-              className="rounded-[16px] p-4 flex flex-col items-center justify-center"
+              className="rounded-[16px] py-4 px-3 flex flex-col items-center justify-center text-center"
               style={{
-                background: "rgba(255,231,202,0.055)",
-                border: "1px solid rgba(245,237,224,0.09)",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(245,237,224,0.05)",
-                backdropFilter: "blur(12px)",
+                background: "rgba(255,231,202,0.045)",
+                border: "1px solid rgba(245,237,224,0.085)",
+                boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                backdropFilter: "blur(20px)",
               }}
             >
-              <span className="font-display font-black text-3xl text-[#E8621A]">{value}</span>
-              <span className="font-body text-xs text-center mt-1" style={{ color: "#897E73" }}>{label}</span>
+              <span
+                className="text-[#E8621A] leading-none"
+                style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "30px" }}
+              >
+                {value}
+              </span>
+              <span className="font-body text-[11.5px] text-center mt-1.5" style={{ color: "rgba(199,189,172,0.8)", fontWeight: 400 }}>{label}</span>
             </div>
           ))}
         </div>
@@ -936,10 +946,10 @@ export default function ProfilePage() {
           />
           <div className="px-5 pt-5 pb-6">
             <p
-              className="text-[11px] font-semibold tracking-widest uppercase mb-5"
-              style={{ color: "#E8621A" }}
+              className="text-[10px] tracking-[2.4px] uppercase mb-5"
+              style={{ color: "#E8621A", fontFamily: "var(--font-jetbrains-mono)" }}
             >
-              YOUR FLAME
+              Your flame
             </p>
 
             {dnaLoading ? (
@@ -958,16 +968,18 @@ export default function ProfilePage() {
             ) : soloDNA && soloDNA.totalDecisions < 3 ? (
               /* Not enough data */
               <div className="flex flex-col items-center text-center py-6">
-                <p className="font-display font-black text-2xl text-white leading-snug mb-2">
+                <p className="text-white leading-snug mb-2" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "24px" }}>
                   Your Flame is still warming up.
                 </p>
-                <p className="font-body text-sm leading-relaxed mb-6" style={{ color: "#897E73" }}>
+                <p className="font-body text-[13.5px] leading-relaxed mb-6" style={{ color: "#897E73", fontWeight: 300 }}>
                   Make a few more dinner decisions and we&apos;ll have something real to say.
                 </p>
                 <button
                   onClick={() => router.push("/")}
-                  className="font-display font-black text-sm px-6 py-3.5 rounded-full text-white transition hover:opacity-95 active:scale-[0.99]"
+                  className="text-sm px-6 py-3.5 rounded-full text-white transition hover:opacity-95 active:scale-[0.99]"
                   style={{
+                    fontFamily: "var(--font-quicksand)",
+                    fontWeight: 700,
                     background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
                     boxShadow: "0 0 24px rgba(232,98,26,0.35)",
                   }}
@@ -981,13 +993,16 @@ export default function ProfilePage() {
                 {/* Flavor type block */}
                 {flavorType ? (
                   <div className="mb-5">
-                    <p className="font-display font-black text-2xl text-white leading-tight">
+                    <p
+                      className="text-white leading-tight"
+                      style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "26px", letterSpacing: "-0.01em" }}
+                    >
                       {flavorType.personalizedName}
                     </p>
-                    <p className="font-body text-xs mt-0.5" style={{ color: "#E8621A" }}>
+                    <p className="font-body text-[13px] font-medium mt-1" style={{ color: "#E8621A" }}>
                       {getBaseTypeLabel(flavorType.baseType)}
                     </p>
-                    <p className="font-body text-sm mt-1" style={{ color: "rgba(245,237,224,0.7)" }}>
+                    <p className="font-body text-[13px] mt-1 leading-relaxed" style={{ color: "rgba(199,189,172,0.85)", fontWeight: 300 }}>
                       {flavorType.tagline}
                     </p>
                   </div>
@@ -1002,14 +1017,20 @@ export default function ProfilePage() {
                 ) : null}
 
                 {/* Hero cuisine headline */}
-                <p className="font-display font-black text-2xl text-white leading-tight">
-                  {soloDNA.topCuisines[0]?.cuisine ?? "Your taste"} runs the table
-                </p>
-                {soloDNA.topCuisines[0]?.pct != null && (
-                  <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
-                    {soloDNA.topCuisines[0].pct}% of your decisions
+                <div className="mb-0.5">
+                  <p
+                    className="text-[10px] tracking-[2.4px] uppercase"
+                    style={{ color: "#E8621A", fontFamily: "var(--font-jetbrains-mono)" }}
+                  >
+                    {soloDNA.topCuisines[0]?.cuisine ?? "Your taste"} runs the table
                   </p>
-                )}
+                </div>
+                <p
+                  className="text-white leading-tight"
+                  style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "28px", letterSpacing: "-0.01em" }}
+                >
+                  {soloDNA.topCuisines[0]?.pct != null ? `${soloDNA.topCuisines[0].pct}% of your decisions` : "Your taste"}
+                </p>
 
                 {/* Cuisine bars — top 3 */}
                 {soloTopThree.length > 0 && (
@@ -1018,12 +1039,12 @@ export default function ProfilePage() {
                       const barW = Math.round((pct / soloMaxPct) * 100);
                       return (
                         <div key={cuisine}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
-                            <span className="font-display font-bold text-sm" style={{ color: "#E8621A" }}>{pct}%</span>
+                          <div className="flex items-baseline justify-between mb-2">
+                            <span className="font-body text-sm font-medium text-white">{cuisine}</span>
+                            <span className="font-body text-sm font-semibold" style={{ color: "#E8621A" }}>{pct}%</span>
                           </div>
                           <div
-                            className="h-1.5 w-full rounded-full overflow-hidden"
+                            className="h-[5px] w-full rounded-full overflow-hidden"
                             style={{ background: "rgba(255,231,202,0.08)" }}
                           >
                             <div
@@ -1049,11 +1070,11 @@ export default function ProfilePage() {
                         {activeTags.slice(0, 5).map((tag) => (
                           <span
                             key={tag}
-                            className="font-body text-xs font-semibold px-3 py-1.5 rounded-full"
+                            className="font-body text-[12.5px] font-medium px-3 py-1.5 rounded-full"
                             style={{
-                              background: "rgba(232,98,26,0.12)",
-                              border: "1px solid rgba(232,98,26,0.32)",
-                              color: "#E8621A",
+                              background: "rgba(232,98,26,0.04)",
+                              border: "1px solid rgba(232,98,26,0.26)",
+                              color: "rgba(232,98,26,0.9)",
                             }}
                           >
                             {tag}
@@ -1063,15 +1084,14 @@ export default function ProfilePage() {
                     )}
                     {hardNosList.length > 0 && (
                       <div className="mt-3 flex items-center gap-2 flex-wrap">
-                        <span className="font-body text-xs" style={{ color: "#897E73" }}>Never showing:</span>
+                        <span className="font-body text-[13px]" style={{ color: "#897E73" }}>Never showing:</span>
                         {hardNosList.map((item) => (
                           <span
                             key={item}
-                            className="font-body text-xs px-2.5 py-1 rounded-full line-through"
+                            className="font-body text-[12.5px] px-3 py-1.5 rounded-full line-through"
                             style={{
-                              background: "rgba(255,231,202,0.04)",
-                              border: "1px solid rgba(245,237,224,0.08)",
-                              color: "rgba(245,237,224,0.3)",
+                              background: "rgba(255,231,202,0.08)",
+                              color: "#897E73",
                             }}
                           >
                             {item}
@@ -1085,24 +1105,26 @@ export default function ProfilePage() {
                 {/* All-time #1 */}
                 {soloDNA.allTimeNumber1 && (
                   <div
-                    className="mt-5 rounded-[14px] px-4 py-4"
+                    className="mt-5 rounded-[18px] px-4 py-4"
                     style={{
-                      background: "rgba(255,231,202,0.05)",
-                      border: "1px solid rgba(232,98,26,0.2)",
-                      boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                      background: "rgba(232,98,26,0.04)",
+                      border: "1px solid rgba(232,98,26,0.26)",
                     }}
                   >
                     <p
-                      className="text-[10px] font-semibold tracking-widest uppercase mb-1"
-                      style={{ color: "#E8621A" }}
+                      className="text-[10px] tracking-[2px] uppercase mb-2"
+                      style={{ color: "#E8621A", fontFamily: "var(--font-jetbrains-mono)" }}
                     >
-                      ALL-TIME #1
+                      All-time #1
                     </p>
-                    <p className="font-display font-black text-lg text-white leading-tight">
+                    <p
+                      className="text-white leading-tight"
+                      style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "22px" }}
+                    >
                       {soloDNA.allTimeNumber1.mealName}
                     </p>
                     {soloDNA.allTimeNumber1.count > 1 && (
-                      <p className="font-body text-xs mt-0.5" style={{ color: "#897E73" }}>
+                      <p className="font-body text-[12.5px] mt-1" style={{ color: "#897E73", fontWeight: 300 }}>
                         Chosen {soloDNA.allTimeNumber1.count}×
                       </p>
                     )}
@@ -1113,10 +1135,10 @@ export default function ProfilePage() {
                 {soloInsights.length > 0 && (
                   <div className="mt-5">
                     <p
-                      className="text-[10px] font-semibold tracking-widest uppercase mb-3"
-                      style={{ color: "rgba(245,237,224,0.35)" }}
+                      className="text-[10px] tracking-[2.4px] uppercase mb-3"
+                      style={{ color: "rgba(245,237,224,0.35)", fontFamily: "var(--font-jetbrains-mono)" }}
                     >
-                      WHAT THE DATA SAYS
+                      What the data says
                     </p>
                     <div className="flex flex-col gap-3">
                       {soloInsights.slice(0, 2).map((text, i) => (
@@ -1125,7 +1147,7 @@ export default function ProfilePage() {
                           className="pl-3"
                           style={{ borderLeft: "2px solid rgba(232,98,26,0.4)" }}
                         >
-                          <p className="font-body text-sm leading-snug" style={{ color: "rgba(245,237,224,0.8)" }}>{text}</p>
+                          <p className="font-body text-[13px] leading-snug" style={{ color: "rgba(199,189,172,0.85)", fontWeight: 300 }}>{text}</p>
                         </div>
                       ))}
                     </div>
@@ -1135,8 +1157,10 @@ export default function ProfilePage() {
                 {/* Share CTA — gradient */}
                 <button
                   onClick={() => { setRevealOpen(true); setShareError(null); }}
-                  className="mt-6 w-full font-display font-black text-sm py-4 rounded-full text-white transition hover:opacity-95 active:scale-[0.99]"
+                  className="mt-6 w-full text-sm py-4 rounded-full text-white transition hover:opacity-95 active:scale-[0.99]"
                   style={{
+                    fontFamily: "var(--font-quicksand)",
+                    fontWeight: 700,
                     background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
                     boxShadow: "0 0 24px rgba(232,98,26,0.35)",
                   }}
@@ -1168,21 +1192,23 @@ export default function ProfilePage() {
             />
             <div className="px-5 py-8 flex flex-col items-center text-center">
               <p
-                className="text-[11px] font-semibold tracking-widest uppercase mb-4"
-                style={{ color: "#E8621A" }}
+                className="text-[11px] tracking-[2.4px] uppercase mb-4"
+                style={{ color: "#E8621A", fontFamily: "var(--font-jetbrains-mono)" }}
               >
-                DECIDING TOGETHER
+                Deciding together
               </p>
-              <p className="font-display font-black text-xl text-white leading-tight mb-2">
+              <p className="text-white leading-tight mb-2" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "22px" }}>
                 Dinner&apos;s better shared.
               </p>
-              <p className="font-body text-sm leading-relaxed mb-6" style={{ color: "#897E73" }}>
+              <p className="font-body text-[13.5px] leading-relaxed mb-6" style={{ color: "#897E73", fontWeight: 300 }}>
                 Invite someone to swipe with you and we&apos;ll start building your shared flavor DNA.
               </p>
               <Link
                 href="/"
-                className="rounded-full px-6 py-3.5 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
+                className="rounded-full px-6 py-3.5 text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
                 style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
                   background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
                   boxShadow: "0 0 24px rgba(232,98,26,0.35)",
                 }}
@@ -1269,20 +1295,20 @@ export default function ProfilePage() {
 
               {/* Divider */}
               <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px" style={{ background: "rgba(245,237,224,0.08)" }} />
+                <div className="flex-1 h-px" style={{ background: "rgba(245,237,224,0.085)" }} />
                 <p
-                  className="text-[11px] font-semibold tracking-widest uppercase flex-shrink-0"
-                  style={{ color: "#897E73" }}
+                  className="text-[10px] tracking-[3px] uppercase flex-shrink-0"
+                  style={{ color: "#897E73", fontFamily: "var(--font-jetbrains-mono)" }}
                 >
-                  DECIDING TOGETHER
+                  Deciding together
                 </p>
-                <div className="flex-1 h-px" style={{ background: "rgba(245,237,224,0.08)" }} />
+                <div className="flex-1 h-px" style={{ background: "rgba(245,237,224,0.085)" }} />
               </div>
 
               {/* Partner header */}
               <div className="flex items-center gap-3 mb-5">
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                   style={{
                     background: "rgba(255,231,202,0.07)",
                     border: "1px solid rgba(245,237,224,0.1)",
@@ -1296,16 +1322,19 @@ export default function ProfilePage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="font-display font-black text-base text-[#E8621A]">
+                    <span className="text-[#E8621A]" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "16px" }}>
                       {initials(partnerName)}
                     </span>
                   )}
                 </div>
                 <div>
-                  <p className="font-display font-black text-base text-white">
+                  <p
+                    className="text-white"
+                    style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "19px" }}
+                  >
                     {partnerName ?? "Someone you matched with"}
                   </p>
-                  <p className="font-body text-xs" style={{ color: "#897E73" }}>Your dinner partner</p>
+                  <p className="font-body text-[13px] mt-0.5" style={{ color: "#897E73", fontWeight: 300 }}>Your dinner partner</p>
                 </div>
               </div>
 
@@ -1313,7 +1342,7 @@ export default function ProfilePage() {
               {couplesDNA ? (
                 <>
                   {/* Shared stats row */}
-                  <div className="grid grid-cols-3 gap-2 mb-5">
+                  <div className="grid grid-cols-3 gap-2.5 mb-5">
                     {[
                       { value: couplesDNA.totalMatchesTogether > 0 ? couplesDNA.totalMatchesTogether : "—", label: "Matches" },
                       { value: couplesDNA.totalSessionsTogether > 0 ? couplesDNA.totalSessionsTogether : "—", label: "Sessions" },
@@ -1323,13 +1352,18 @@ export default function ProfilePage() {
                         key={label}
                         className="rounded-[14px] p-3 flex flex-col items-center justify-center text-center"
                         style={{
-                          background: "rgba(255,231,202,0.055)",
-                          border: "1px solid rgba(245,237,224,0.09)",
+                          background: "rgba(255,231,202,0.045)",
+                          border: "1px solid rgba(245,237,224,0.085)",
                           boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
                         }}
                       >
-                        <span className="font-display font-black text-xl text-[#E8621A]">{value}</span>
-                        <span className="font-body text-[10px] mt-0.5 leading-tight" style={{ color: "#897E73" }}>{label}</span>
+                        <span
+                          className="text-[#E8621A] leading-none"
+                          style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "22px" }}
+                        >
+                          {value}
+                        </span>
+                        <span className="font-body text-[10px] mt-1 leading-tight" style={{ color: "#897E73", fontWeight: 400 }}>{label}</span>
                       </div>
                     ))}
                   </div>
@@ -1337,13 +1371,16 @@ export default function ProfilePage() {
                   {/* Couples flavor type */}
                   {couplesFlavorType && (
                     <div className="mb-5">
-                      <p className="font-display font-black text-xl text-white leading-tight">
+                      <p
+                        className="text-white leading-tight"
+                        style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "22px", letterSpacing: "-0.01em" }}
+                      >
                         {couplesFlavorType.personalizedName}
                       </p>
-                      <p className="font-body text-xs mt-0.5" style={{ color: "#E8621A" }}>
+                      <p className="font-body text-[13px] font-medium mt-1" style={{ color: "#E8621A" }}>
                         {getBaseTypeLabel(couplesFlavorType.baseType)}
                       </p>
-                      <p className="font-body text-sm mt-1" style={{ color: "rgba(245,237,224,0.7)" }}>
+                      <p className="font-body text-[13px] mt-1 leading-relaxed" style={{ color: "rgba(199,189,172,0.85)", fontWeight: 300 }}>
                         {couplesFlavorType.tagline}
                       </p>
                     </div>
@@ -1352,24 +1389,27 @@ export default function ProfilePage() {
                   {/* Compatibility pairing */}
                   {compatibilityPairing && (
                     <div
-                      className="rounded-[16px] p-4 mt-4"
+                      className="rounded-[18px] p-4 mt-4"
                       style={{
-                        background: "rgba(255,231,202,0.05)",
-                        border: "1px solid rgba(245,237,224,0.08)",
-                        borderLeft: "4px solid #E8621A",
-                        boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                        background: "rgba(255,231,202,0.045)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                        borderLeft: "3px solid #E8621A",
+                        boxShadow: "0 0 26px rgba(232,98,26,0.06), inset 0 1px 0 rgba(245,237,224,0.04)",
                       }}
                     >
                       <p
-                        className="text-[10px] font-semibold tracking-widest uppercase mb-1"
-                        style={{ color: "#E8621A" }}
+                        className="text-[10px] tracking-[2.4px] uppercase mb-2"
+                        style={{ color: "#E8621A", fontFamily: "var(--font-jetbrains-mono)" }}
                       >
-                        YOUR DYNAMIC
+                        Your dynamic
                       </p>
-                      <p className="font-display font-black text-lg text-white">
+                      <p
+                        className="text-white"
+                        style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "24px", letterSpacing: "-0.01em" }}
+                      >
                         {compatibilityPairing.name}
                       </p>
-                      <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
+                      <p className="font-body text-[13.5px] mt-2 leading-relaxed" style={{ color: "#897E73", fontWeight: 300 }}>
                         {compatibilityPairing.description}
                       </p>
                     </div>
@@ -1379,22 +1419,22 @@ export default function ProfilePage() {
                   {couplesTopTwo.length > 0 && (
                     <div className="mb-5 mt-5">
                       <p
-                        className="text-[10px] font-semibold tracking-widest uppercase mb-3"
-                        style={{ color: "rgba(245,237,224,0.35)" }}
+                        className="text-[10px] tracking-[2.4px] uppercase mb-3"
+                        style={{ color: "#897E73", fontFamily: "var(--font-jetbrains-mono)" }}
                       >
-                        MUTUAL FAVOURITES
+                        Mutual favourites
                       </p>
                       <div className="flex flex-col gap-2.5">
                         {couplesTopTwo.map(({ cuisine, pct }) => {
                           const barW = Math.round((pct / couplesMaxPct) * 100);
                           return (
                             <div key={cuisine}>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-body text-sm font-semibold text-white">{cuisine}</span>
-                                <span className="font-display font-bold text-sm" style={{ color: "#E8621A" }}>{pct}%</span>
+                              <div className="flex items-baseline justify-between mb-2">
+                                <span className="font-body text-sm font-medium text-white">{cuisine}</span>
+                                <span className="font-body text-sm font-semibold" style={{ color: "#E8621A" }}>{pct}%</span>
                               </div>
                               <div
-                                className="h-1.5 w-full rounded-full overflow-hidden"
+                                className="h-[5px] w-full rounded-full overflow-hidden"
                                 style={{ background: "rgba(255,231,202,0.08)" }}
                               >
                                 <div
@@ -1417,10 +1457,10 @@ export default function ProfilePage() {
                   {couplesInsights.length > 0 && (
                     <div className="mb-5">
                       <p
-                        className="text-[10px] font-semibold tracking-widest uppercase mb-3"
-                        style={{ color: "rgba(245,237,224,0.35)" }}
+                        className="text-[10px] tracking-[2.4px] uppercase mb-3"
+                        style={{ color: "rgba(245,237,224,0.35)", fontFamily: "var(--font-jetbrains-mono)" }}
                       >
-                        WHAT THE DATA SAYS
+                        What the data says
                       </p>
                       <div className="flex flex-col gap-3">
                         {couplesInsights.slice(0, 2).map((text, i) => (
@@ -1429,7 +1469,7 @@ export default function ProfilePage() {
                             className="pl-3"
                             style={{ borderLeft: "2px solid rgba(232,98,26,0.4)" }}
                           >
-                            <p className="font-body text-sm leading-snug" style={{ color: "rgba(245,237,224,0.8)" }}>{text}</p>
+                            <p className="font-body text-[13px] leading-snug" style={{ color: "rgba(199,189,172,0.85)", fontWeight: 300 }}>{text}</p>
                           </div>
                         ))}
                       </div>
@@ -1439,8 +1479,10 @@ export default function ProfilePage() {
                   {/* See full couples card */}
                   <button
                     onClick={() => setFlameOverlay("couples")}
-                    className="w-full font-display font-black text-sm py-3.5 rounded-full transition hover:opacity-80"
+                    className="w-full text-sm py-3.5 rounded-full transition hover:opacity-80"
                     style={{
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 700,
                       background: "rgba(255,231,202,0.05)",
                       border: "1px solid rgba(245,237,224,0.12)",
                       color: "rgba(245,237,224,0.6)",
@@ -1472,10 +1514,10 @@ export default function ProfilePage() {
           }}
         >
           <p
-            className="text-[11px] font-semibold tracking-widest uppercase mb-3"
-            style={{ color: "rgba(245,237,224,0.35)" }}
+            className="text-[11px] tracking-[2.4px] uppercase mb-3"
+            style={{ color: "rgba(245,237,224,0.35)", fontFamily: "var(--font-jetbrains-mono)" }}
           >
-            DIETARY RESTRICTIONS
+            Dietary restrictions
           </p>
           <div className="flex flex-wrap gap-2">
             {(prefs.dietaryRestrictions ?? []).map((item) => (
@@ -1537,10 +1579,10 @@ export default function ProfilePage() {
           }}
         >
           <p
-            className="text-[11px] font-semibold tracking-widest uppercase mb-3"
-            style={{ color: "rgba(245,237,224,0.35)" }}
+            className="text-[11px] tracking-[2.4px] uppercase mb-3"
+            style={{ color: "rgba(245,237,224,0.35)", fontFamily: "var(--font-jetbrains-mono)" }}
           >
-            HARD NOs — NEVER SHOWING THESE
+            Hard NOs — never showing these
           </p>
           <div className="flex flex-wrap gap-2">
             {prefs.hardNoFoods.map((food) => (
@@ -1648,8 +1690,10 @@ export default function ProfilePage() {
                 <div className="px-5 pb-8 flex flex-col gap-3">
                   <button
                     onClick={() => { setFlameOverlay(null); setShareError(null); }}
-                    className="w-full font-display font-black text-sm py-3 rounded-full transition hover:opacity-80"
+                    className="w-full text-sm py-3 rounded-full transition hover:opacity-80"
                     style={{
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 700,
                       background: "rgba(255,231,202,0.05)",
                       border: "1px solid rgba(245,237,224,0.12)",
                       color: "rgba(245,237,224,0.6)",
@@ -1660,8 +1704,10 @@ export default function ProfilePage() {
                   <button
                     onClick={() => void handleShare()}
                     disabled={sharing}
-                    className="w-full font-display font-black text-sm py-4 rounded-full text-white disabled:opacity-60 transition hover:opacity-95"
+                    className="w-full text-sm py-4 rounded-full text-white disabled:opacity-60 transition hover:opacity-95"
                     style={{
+                      fontFamily: "var(--font-quicksand)",
+                      fontWeight: 700,
                       background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
                       boxShadow: "0 0 24px rgba(232,98,26,0.35)",
                     }}

@@ -55,30 +55,34 @@ function MealCard({
     <div
       className="rounded-[20px] p-5 overflow-hidden"
       style={{
-        background: "rgba(255,231,202,0.055)",
-        border: "1px solid rgba(245,237,224,0.09)",
-        backdropFilter: "blur(12px)",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(245,237,224,0.05)",
+        background: "linear-gradient(180deg, rgba(255,231,202,0.07), rgba(255,231,202,0.02))",
+        border: "1px solid rgba(245,237,224,0.16)",
+        backdropFilter: "blur(20px)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 38px rgba(0,0,0,0.4)",
       }}
     >
       <div className="flex items-start justify-between gap-3">
         {/* Left: content */}
         <button onClick={onChoose} className="flex-1 min-w-0 text-left">
           <div
-            className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide mb-2"
+            className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide mb-2"
             style={{
-              background: "rgba(232,98,26,0.14)",
-              border: "1px solid rgba(232,98,26,0.28)",
-              color: "#E8621A",
+              background: "rgba(255,231,202,0.08)",
+              border: "1px solid rgba(245,237,224,0.12)",
+              color: "rgba(199,189,172,0.9)",
+              fontFamily: "var(--font-manrope)",
             }}
           >
             {meal.category}
           </div>
-          <p className="font-display font-black text-base text-white leading-tight">
+          <p
+            className="text-white leading-tight"
+            style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "20px", letterSpacing: "-0.01em" }}
+          >
             {meal.name}
           </p>
           {meal.whyItFits && (
-            <p className="font-body text-xs mt-1 leading-snug" style={{ color: "#897E73" }}>
+            <p className="font-body text-xs mt-1 leading-snug" style={{ color: "#897E73", fontWeight: 300 }}>
               {meal.whyItFits}
             </p>
           )}
@@ -237,8 +241,13 @@ export default function SavedPage() {
               )}
             </button>
           </div>
-          <h1 className="font-display font-black text-3xl text-white tracking-tight">Saved Meals</h1>
-          <p className="font-body text-sm mt-1" style={{ color: "#897E73" }}>
+          <h1
+            className="text-white"
+            style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "32px", letterSpacing: "-0.02em" }}
+          >
+            Saved Meals
+          </h1>
+          <p className="font-body text-sm mt-1" style={{ color: "#897E73", fontWeight: 300 }}>
             Everything you&apos;ve loved, matched, and decided on.
           </p>
         </div>
@@ -252,14 +261,16 @@ export default function SavedPage() {
             >
               🍽️
             </div>
-            <p className="font-display font-black text-lg text-white tracking-tight">Nothing saved yet</p>
-            <p className="mt-2 max-w-[26ch] font-body text-sm leading-relaxed" style={{ color: "#897E73" }}>
+            <p className="text-white" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "20px" }}>Nothing saved yet</p>
+            <p className="mt-2 max-w-[26ch] font-body text-sm leading-relaxed" style={{ color: "#897E73", fontWeight: 300 }}>
               Hit Save on the deck when a meal catches your eye.
             </p>
             <Link
               href="/deck"
-              className="mt-6 rounded-full px-6 py-3.5 font-display font-black text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
+              className="mt-6 rounded-full px-6 py-3.5 text-sm text-white transition hover:opacity-95 active:scale-[0.99]"
               style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
                 background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
                 boxShadow: "0 0 24px rgba(232,98,26,0.35)",
               }}
@@ -275,20 +286,23 @@ export default function SavedPage() {
 
             {/* ── Favorites ─────────────────────────────────────────────── */}
             <section id="favorites">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2.5 mb-4">
                 <span
-                  className="text-[11px] font-semibold tracking-widest uppercase"
-                  style={{ color: "#E8621A" }}
+                  className="text-[11px] tracking-[2.4px] uppercase"
+                  style={{ color: "#E8621A", fontFamily: "var(--font-jetbrains-mono)" }}
                 >
-                  FAVORITES
+                  Favorites
                 </span>
                 {favoriteMeals.length > 0 && (
                   <span
-                    className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    className="rounded-full px-2.5 py-0.5 text-[11px]"
                     style={{
                       background: "rgba(255,231,202,0.08)",
                       border: "1px solid rgba(245,237,224,0.12)",
-                      color: "rgba(245,237,224,0.5)",
+                      color: "rgba(199,189,172,0.8)",
+                      fontFamily: "var(--font-jetbrains-mono)",
+                      minWidth: "22px",
+                      textAlign: "center",
                     }}
                   >
                     {favoriteMeals.length}
@@ -331,19 +345,22 @@ export default function SavedPage() {
             {/* ── Saved for Later ─────────────────────────────────────────── */}
             {savedForLater.length > 0 && (
               <section id="saved">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2.5 mb-4">
                   <span
-                    className="text-[11px] font-semibold tracking-widest uppercase"
-                    style={{ color: "#E8621A" }}
+                    className="text-[11px] tracking-[2.4px] uppercase"
+                    style={{ color: "#E8621A", fontFamily: "var(--font-jetbrains-mono)" }}
                   >
-                    SAVED FOR LATER
+                    Saved for later
                   </span>
                   <span
-                    className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    className="rounded-full px-2.5 py-0.5 text-[11px]"
                     style={{
-                      background: "rgba(255,231,202,0.06)",
-                      border: "1px solid rgba(245,237,224,0.1)",
-                      color: "rgba(245,237,224,0.4)",
+                      background: "rgba(255,231,202,0.08)",
+                      border: "1px solid rgba(245,237,224,0.12)",
+                      color: "rgba(199,189,172,0.8)",
+                      fontFamily: "var(--font-jetbrains-mono)",
+                      minWidth: "22px",
+                      textAlign: "center",
                     }}
                   >
                     {savedForLater.length}

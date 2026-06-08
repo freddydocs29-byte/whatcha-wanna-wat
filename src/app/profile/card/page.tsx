@@ -157,8 +157,8 @@ export default function FlavorProfileCardPage() {
           ← Back
         </button>
         <h1
-          className="font-display font-black text-lg ml-4"
-          style={{ color: "#FFFFFF" }}
+          className="ml-4 text-white"
+          style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "20px" }}
         >
           Flavor Profile
         </h1>
@@ -184,22 +184,27 @@ export default function FlavorProfileCardPage() {
               🔥
             </div>
             <h2
-              className="font-display font-black text-2xl leading-tight mb-3"
-              style={{ color: "#FFFFFF" }}
+              className="leading-tight mb-3 text-white"
+              style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "26px" }}
             >
               Your Flame is still warming up.
             </h2>
             <p
               className="font-body text-sm leading-relaxed mb-8"
-              style={{ color: "#8A7F78" }}
+              style={{ color: "#8A7F78", fontWeight: 300 }}
             >
               Make a few more dinner decisions and Watcha will have something
               real to say.
             </p>
             <button
               onClick={() => router.push("/")}
-              className="font-display font-black text-sm px-6 py-3.5 rounded-full"
-              style={{ background: "#E8621A", color: "#FFFFFF" }}
+              className="text-sm px-6 py-3.5 rounded-full text-white"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+              }}
             >
               Go decide dinner →
             </button>
@@ -215,8 +220,13 @@ export default function FlavorProfileCardPage() {
             <button
               onClick={() => void handleShare()}
               disabled={sharing}
-              className="w-full max-w-sm font-display font-black text-sm py-4 rounded-full transition-opacity disabled:opacity-60"
-              style={{ background: "#E8621A", color: "#FFFFFF" }}
+              className="w-full max-w-sm text-sm py-4 rounded-full transition-opacity disabled:opacity-60 text-white"
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                boxShadow: "0 0 24px rgba(232,98,26,0.35)",
+              }}
             >
               {sharing ? "Making your card…" : "Share card →"}
             </button>
