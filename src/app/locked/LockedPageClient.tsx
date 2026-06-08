@@ -285,7 +285,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
                 <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
               </button>
               <button
-                onClick={() => { setShowEatModal(false); window.open(`https://www.google.com/search?q=${recipeQuery}`, "_blank", "noopener,noreferrer"); }}
+                onClick={() => { setShowEatModal(false); window.open(`https://www.google.com/maps/search/${encodeURIComponent(meal.name + " near me")}`, "_blank", "noopener,noreferrer"); }}
                 className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border transition-colors active:scale-[0.98]"
                 style={{
                   background: "rgba(255,231,202,0.04)",
