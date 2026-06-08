@@ -99,6 +99,48 @@ export default function V3LockedMealCard({
   const clampedDrag = Math.max(-THRESHOLD * 1.1, Math.min(THRESHOLD * 1.1, dragX));
   const isMoving = dragX !== 0;
 
+  // Direction-aware visual state
+  const cookActive = cookProgress > 0.04;
+  const orderActive = orderProgress > 0.04;
+
+  const glassBase =
+    "inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -10px 24px rgba(0,0,0,0.22), 0 12px 32px rgba(0,0,0,0.28)";
+  const trackGlow = cookActive
+    ? `${glassBase}, 0 0 28px rgba(94,158,110,${0.12 + cookProgress * 0.28})`
+    : orderActive
+      ? `${glassBase}, 0 0 28px rgba(232,98,26,${0.12 + orderProgress * 0.28})`
+      : `${glassBase}, 0 0 28px rgba(232,98,26,0.10)`;
+
+  const cookLabelColor = cookActive
+    ? `rgba(134,169,114,${0.7 + cookProgress * 0.3})`
+    : orderActive
+      ? `rgba(58,53,50,${0.55 + orderProgress * 0.45})`
+      : "#C7BDAC";
+
+  const orderLabelColor = orderActive
+    ? `rgba(255,138,61,${0.7 + orderProgress * 0.3})`
+    : cookActive
+      ? `rgba(58,53,50,${0.55 + cookProgress * 0.45})`
+      : "#C7BDAC";
+
+  const centerGlowBg = cookActive
+    ? `rgba(94,158,110,${0.18 + cookProgress * 0.32})`
+    : orderActive
+      ? `rgba(232,98,26,${0.15 + orderProgress * 0.32})`
+      : "rgba(245,237,224,0.10)";
+
+  const centerTextColor = cookActive
+    ? `rgba(210,240,215,${0.60 + cookProgress * 0.40})`
+    : orderActive
+      ? `rgba(255,218,180,${0.60 + orderProgress * 0.40})`
+      : "#F5EDE0";
+
+  const arrowColor = cookActive
+    ? `rgba(134,169,114,${0.50 + cookProgress * 0.40})`
+    : orderActive
+      ? `rgba(255,138,61,${0.50 + orderProgress * 0.40})`
+      : "rgba(199,189,172,0.55)";
+
   return (
     <div
       className="mx-[14px] mb-3 rounded-[18px] px-4 py-[14px] relative overflow-hidden shrink-0"
@@ -258,25 +300,34 @@ export default function V3LockedMealCard({
       <div>
         <div className="flex justify-between px-1 mb-[6px]">
           <span
-            className="text-[11px] text-[#5A5350]"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            className="text-[11px]"
+            style={{
+              fontFamily: "var(--font-manrope)",
+              color: cookLabelColor,
+              transition: isMoving ? "none" : "color 0.22s ease",
+            }}
           >
-            ← 🍳 Cook
+            ← Cook
           </span>
           <span
-            className="text-[11px] text-[#5A5350]"
-            style={{ fontFamily: "var(--font-manrope)" }}
+            className="text-[11px]"
+            style={{
+              fontFamily: "var(--font-manrope)",
+              color: orderLabelColor,
+              transition: isMoving ? "none" : "color 0.22s ease",
+            }}
           >
-            📱 Order →
+            Order →
           </span>
         </div>
 
         <div
           className="relative h-[54px] rounded-[14px] overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none"
           style={{
-            background: "rgba(255,231,202,0.07)",
-            border: "1px solid rgba(245,237,224,0.12)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)",
+            background: "linear-gradient(180deg, rgba(255,231,202,0.10) 0%, rgba(255,231,202,0.035) 100%)",
+            border: "1px solid rgba(245,237,224,0.14)",
+            boxShadow: trackGlow,
+            transition: isMoving ? "none" : "box-shadow 0.22s ease",
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -309,7 +360,7 @@ export default function V3LockedMealCard({
               className="text-[15px] font-black text-white"
               style={{ fontFamily: "var(--font-nunito)" }}
             >
-              🍳 We&apos;re cooking
+              We&apos;re cooking
             </span>
           </div>
 
@@ -322,34 +373,62 @@ export default function V3LockedMealCard({
               className="text-[15px] font-black text-white"
               style={{ fontFamily: "var(--font-nunito)" }}
             >
-              Let&apos;s order 📱
+              Let&apos;s order
             </span>
           </div>
 
-          {/* Center knob — translates with drag, fades as colour reveals */}
+          {/* Center label — floats freely over the glass rail, no border/box */}
           <div
-            className="absolute inset-0 flex items-center justify-between px-[18px] pointer-events-none"
+            className="absolute inset-0 pointer-events-none flex items-center justify-center gap-[7px]"
             style={{
               transform: `translateX(${clampedDrag}px)`,
-              opacity: Math.max(0, 1 - Math.max(cookProgress, orderProgress) * 1.4),
-              transition: isMoving ? "none" : "transform 0.25s ease, opacity 0.25s ease",
+              opacity: Math.max(0, 1 - Math.max(cookProgress, orderProgress) * 1.5),
+              transition: isMoving ? "none" : "transform 0.25s ease, opacity 0.22s ease",
             }}
           >
+            {/* Soft radial glow behind text — no hard edges */}
+            <div
+              style={{
+                position: "absolute",
+                width: 160,
+                height: 44,
+                borderRadius: 22,
+                background: centerGlowBg,
+                filter: "blur(14px)",
+                transition: isMoving ? "none" : "background 0.22s ease",
+              }}
+            />
             <span
-              className="text-[11px] text-[#5A5350]"
-              style={{ fontFamily: "var(--font-manrope)" }}
+              style={{
+                position: "relative",
+                fontFamily: "var(--font-manrope)",
+                fontSize: 11,
+                color: arrowColor,
+                transition: isMoving ? "none" : "color 0.22s ease",
+              }}
             >
               ←
             </span>
             <span
-              className="text-[15px] font-black text-white"
-              style={{ fontFamily: "var(--font-nunito)" }}
+              style={{
+                position: "relative",
+                fontFamily: "var(--font-nunito)",
+                fontWeight: 900,
+                fontSize: 15,
+                color: centerTextColor,
+                transition: isMoving ? "none" : "color 0.22s ease",
+              }}
             >
-              Let&apos;s Eat 🙌
+              Let&apos;s Eat
             </span>
             <span
-              className="text-[11px] text-[#5A5350]"
-              style={{ fontFamily: "var(--font-manrope)" }}
+              style={{
+                position: "relative",
+                fontFamily: "var(--font-manrope)",
+                fontSize: 11,
+                color: arrowColor,
+                transition: isMoving ? "none" : "color 0.22s ease",
+              }}
             >
               →
             </span>
