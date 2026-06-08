@@ -260,14 +260,43 @@ export default function RecommendPage() {
   // ── Deck exhausted ────────────────────────────────────────────────────────
   if (!meal) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-[#1C1A18] px-5 text-center text-white">
-        <p className="text-sm text-white/50">Nothing left to suggest.</p>
-        <button
-          onClick={() => router.push("/deck")}
-          className="mt-4 text-sm text-white/70 underline underline-offset-4"
-        >
-          Browse all options
-        </button>
+      <main className="relative flex min-h-screen flex-col items-center justify-center bg-[#1C1A18] px-6 text-center text-white">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div
+            className="absolute top-1/3 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+            style={{ background: "rgba(232,98,26,0.10)" }}
+          />
+        </div>
+        <div className="relative flex flex-col items-center gap-6 w-full max-w-xs">
+          <div
+            className="w-20 h-20 rounded-2xl flex items-center justify-center"
+            style={{
+              background: "rgba(232,98,26,0.10)",
+              boxShadow: "0 0 40px rgba(232,98,26,0.18)",
+            }}
+          >
+            <span className="text-4xl">🍽️</span>
+          </div>
+          <div>
+            <h1 className="font-display font-black text-3xl text-white leading-tight">
+              All out of ideas.
+            </h1>
+            <p className="mt-3 font-body text-sm text-[#8A7F78] max-w-xs mx-auto">
+              You&apos;ve seen everything for now. Browse the full list to pick something.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/deck")}
+            className="w-full rounded-full py-4 font-display font-black text-base text-white transition hover:opacity-95 active:scale-[0.98]"
+            style={{
+              background: "linear-gradient(135deg, #E8621A 0%, #C4501A 100%)",
+              boxShadow: "0 0 30px rgba(232,98,26,0.25)",
+            }}
+          >
+            Browse all options
+          </button>
+        </div>
       </main>
     );
   }

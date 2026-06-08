@@ -83,48 +83,70 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
 
         {/* 1. Headline block */}
         <div>
+          <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-3">
+            TONIGHT&apos;S PICK
+          </p>
           <h1 className="font-display font-black text-4xl text-white leading-tight">
-            Good call.
-          </h1>
-          <h1 className="font-display font-black text-4xl text-[#E8621A] leading-tight">
-            Now stop thinking about it.
+            Dinner is decided.
           </h1>
           <p className="font-body text-base text-[#8A7F78] mt-2">
-            Tonight&apos;s decision is done.
+            {meal.name} is locked in.
           </p>
         </div>
 
-        {/* 2. Tonight's match card */}
+        {/* 2. Tonight's pick card */}
         <div
-          className="w-full bg-[#2A2420] rounded-[20px] p-5 mt-6 border border-[#4A7C59]/30"
-          style={{ boxShadow: "0 0 30px rgba(74,124,89,0.12)" }}
+          className="w-full rounded-[20px] mt-6 overflow-hidden border border-white/[0.07]"
+          style={{
+            background: "rgba(255,237,210,0.04)",
+            backdropFilter: "blur(12px)",
+            boxShadow:
+              "0 0 40px rgba(232,98,26,0.10), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
         >
-          <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase mb-3">
-            TONIGHT&apos;S MATCH
-          </p>
-          <div className="flex items-center gap-4">
-            {/* Green checkmark */}
-            <div className="w-10 h-10 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0">
-              ✓
+          {/* Meal image */}
+          {meal.image && (
+            <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
+              <img
+                src={meal.image}
+                alt={meal.name}
+                className="w-full h-full object-cover"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(to top, rgba(28,26,24,0.85) 0%, transparent 60%)",
+                }}
+              />
             </div>
-            {/* Meal info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-display font-black text-xl text-white">
-                  🍽️ {meal.name}
-                </span>
+          )}
+          <div className="p-5">
+            <div className="flex items-center justify-between gap-4">
+              {/* Meal info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-black text-xl text-white truncate">
+                  {meal.name}
+                </p>
+                <p className="font-body text-xs text-[#8A7F78] mt-1">
+                  Decided with {decidedWith} · {timeLabel}
+                </p>
               </div>
-              <p className="font-body text-xs text-[#8A7F78] mt-1">
-                Decided with {decidedWith} · {timeLabel}
-              </p>
+              {/* CTA */}
+              <button
+                onClick={() => {
+                  trackEvent("lets_eat_clicked", { mealId: meal.id });
+                  setShowEatModal(true);
+                }}
+                className="rounded-full px-5 py-3 font-display font-black text-sm text-white whitespace-nowrap flex-shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, #E8621A 0%, #C4501A 100%)",
+                  boxShadow: "0 4px 20px rgba(232,98,26,0.35)",
+                }}
+              >
+                Let&apos;s eat 🙌
+              </button>
             </div>
-            {/* CTA */}
-            <button
-              onClick={() => { trackEvent("lets_eat_clicked", { mealId: meal.id }); setShowEatModal(true); }}
-              className="bg-[#4A7C59] text-white font-display font-black text-sm px-4 py-2.5 rounded-full whitespace-nowrap flex-shrink-0"
-            >
-              Let&apos;s eat 🙌
-            </button>
           </div>
         </div>
 

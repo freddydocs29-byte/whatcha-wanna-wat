@@ -115,7 +115,13 @@ export default function BrowsePage() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 32, stiffness: 320 }}
-              className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[34px] bg-[#111]"
+              className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[34px]"
+              style={{
+                background:
+                  "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.07) 0%, transparent 60%), #1C1A18",
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+                boxShadow: "0 -8px 40px rgba(0,0,0,0.55)",
+              }}
             >
               {/* Image */}
               <div className="relative aspect-[16/9] overflow-hidden">
@@ -134,7 +140,7 @@ export default function BrowsePage() {
                   className="absolute inset-0"
                   style={{
                     background:
-                      "linear-gradient(to top, rgba(17,17,17,1) 0%, rgba(17,17,17,0.35) 42%, transparent 100%)",
+                      "linear-gradient(to top, rgba(28,26,24,1) 0%, rgba(28,26,24,0.35) 42%, transparent 100%)",
                   }}
                 />
                 {/* Close button */}
