@@ -8,7 +8,7 @@ export default function V3AppShell({ children, className = "" }: V3AppShellProps
     <div
       className={`relative flex flex-col overflow-hidden w-full max-w-[430px] mx-auto ${className}`}
       style={{
-        minHeight: "100dvh",
+        height: "100dvh",
         background: "#0B0805",
       }}
     >

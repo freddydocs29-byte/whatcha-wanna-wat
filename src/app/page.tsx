@@ -1178,9 +1178,7 @@ export default function Home() {
         </div>
       ) : (
         /* ── PRE-DECISION STATE ──────────────────────────────── */
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 overflow-y-auto flex flex-col">
             {/* ── Hero greeting ─────────────────────────────── */}
             {(() => {
               // First name only — "Fred" not "Fred Paul" or a full username
@@ -1330,6 +1328,25 @@ export default function Home() {
                 onVibeChange={(vibe) => setSelectedVibe(vibe)}
               />
             )}
+            {/* ── Start CTA ─────────────────────────────────── */}
+            <V3PrimaryDecisionCTA
+              isSolo={selectedPeopleIds.length === 0}
+              hasGuests={selectedPeopleIds.length > 0}
+              onClick={() => {
+                if (selectedPeopleIds.length === 0) {
+                  router.push("/deck");
+                } else {
+                  trackEvent("decide_with_someone_clicked");
+                  void handleDecideWithSomeone();
+                }
+              }}
+              onDecideTogether={() => setShowInviteDrawer(true)}
+            />
+            {sessionError && (
+              <p className="text-center text-sm text-red-400 px-4 pb-2">
+                {sessionError}
+              </p>
+            )}
             {/* ── Recent Wins ───────────────────────────────── */}
             {(() => {
               const MEAL_EMOJI: Record<string, string> = {
@@ -1363,32 +1380,7 @@ export default function Home() {
                 />
               );
             })()}
-          </div>
-
-          {/* CTA — pinned at the bottom, with safe-area spacing */}
-          <div
-            className="shrink-0"
-            style={{ paddingBottom: "max(env(safe-area-inset-bottom), 12px)" }}
-          >
-            <V3PrimaryDecisionCTA
-              isSolo={selectedPeopleIds.length === 0}
-              hasGuests={selectedPeopleIds.length > 0}
-              onClick={() => {
-                if (selectedPeopleIds.length === 0) {
-                  router.push("/deck");
-                } else {
-                  trackEvent("decide_with_someone_clicked");
-                  void handleDecideWithSomeone();
-                }
-              }}
-              onDecideTogether={() => setShowInviteDrawer(true)}
-            />
-            {sessionError && (
-              <p className="text-center text-sm text-red-400 px-4 pb-2">
-                {sessionError}
-              </p>
-            )}
-          </div>
+            <div style={{ height: "max(env(safe-area-inset-bottom), 16px)" }} />
         </div>
       )}
 
