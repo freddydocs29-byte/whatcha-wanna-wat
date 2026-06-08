@@ -50,7 +50,7 @@ export default function BottomNav({ activeHref }: { activeHref?: string } = {}) 
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-[#2A2420] border-t border-white/[0.06] flex justify-around items-center px-4 pt-2"
+      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-auto bg-[#2A2420] border-t border-white/[0.06] flex justify-around items-center px-4 pt-2"
       style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))" }}
     >
       {tabs.map((tab) => {

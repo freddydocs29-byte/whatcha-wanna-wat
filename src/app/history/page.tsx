@@ -103,7 +103,7 @@ export default function HistoryPage() {
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden text-white pb-28"
+      className="relative min-h-screen overflow-hidden text-white pb-[calc(120px+env(safe-area-inset-bottom,0px))]"
       style={{ background: "#0B0805" }}
     >
       {/* Ambient glow */}

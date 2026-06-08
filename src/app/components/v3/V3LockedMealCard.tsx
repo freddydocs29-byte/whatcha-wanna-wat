@@ -100,9 +100,25 @@ export default function V3LockedMealCard({
   const isMoving = dragX !== 0;
 
   return (
-    <div className="mx-[14px] mb-3 bg-[#2A2420] rounded-[18px] px-4 py-[14px] border border-[#4A7C59]/20 relative overflow-hidden shrink-0">
-      {/* Green accent bar at top */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#4A7C59]" />
+    <div
+      className="mx-[14px] mb-3 rounded-[18px] px-4 py-[14px] relative overflow-hidden shrink-0"
+      style={{
+        background: "rgba(255,231,202,0.07)",
+        border: "1px solid rgba(245,237,224,0.14)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 6px 28px rgba(0,0,0,0.40)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+      }}
+    >
+      {/* Green resolution glow hairline at top */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to right, transparent 0%, rgba(106,175,122,0.85) 20%, rgba(106,175,122,0.95) 50%, rgba(106,175,122,0.85) 80%, transparent 100%)",
+          boxShadow: "0 0 10px rgba(106,175,122,0.45)",
+        }}
+      />
 
       {/* Label */}
       <div
@@ -145,11 +161,22 @@ export default function V3LockedMealCard({
           <button
             onClick={onSave}
             title={isSaved ? "Saved" : "Save meal"}
-            className={`w-[30px] h-[30px] rounded-full border flex items-center justify-center cursor-pointer transition-all ${
+            className="w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all"
+            style={
               isSaved
-                ? "bg-[#4A7C59]/30 border-[#4A7C59]/60 text-[#6BAF7A]"
-                : "bg-[#3D3733] border-white/10 text-[#8A7F78] hover:bg-[#4A7C59]/30 hover:text-[#6BAF7A] hover:border-[#4A7C59]/40"
-            }`}
+                ? {
+                    background: "rgba(74,124,89,0.22)",
+                    border: "1px solid rgba(106,175,122,0.45)",
+                    color: "#6BAF7A",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                  }
+                : {
+                    background: "rgba(255,231,202,0.07)",
+                    border: "1px solid rgba(245,237,224,0.12)",
+                    color: "#8A7F78",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+                  }
+            }
           >
             {savedJustNow ? <CheckIcon /> : <BookmarkIcon />}
           </button>
@@ -158,7 +185,13 @@ export default function V3LockedMealCard({
           <button
             onClick={onDetails}
             title="Meal details"
-            className="w-[30px] h-[30px] rounded-full bg-[#3D3733] border border-white/10 flex items-center justify-center text-[#8A7F78] cursor-pointer transition-all hover:bg-[#E8621A]/20 hover:text-[#E8621A] hover:border-[#E8621A]/30"
+            className="w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all"
+            style={{
+              background: "rgba(255,231,202,0.07)",
+              border: "1px solid rgba(245,237,224,0.12)",
+              color: "#8A7F78",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+            }}
           >
             <InfoIcon />
           </button>
@@ -167,7 +200,13 @@ export default function V3LockedMealCard({
           <button
             onClick={onClear}
             title="Change meal"
-            className="w-[30px] h-[30px] rounded-full bg-[#3D3733] border border-white/10 flex items-center justify-center text-xs text-[#8A7F78] cursor-pointer shrink-0 transition-all hover:bg-red-800/30 hover:text-[#E07070] hover:border-red-500/30"
+            className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-xs cursor-pointer shrink-0 transition-all"
+            style={{
+              background: "rgba(255,231,202,0.07)",
+              border: "1px solid rgba(245,237,224,0.12)",
+              color: "#8A7F78",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+            }}
           >
             ✕
           </button>
@@ -183,7 +222,12 @@ export default function V3LockedMealCard({
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-[#1C1A18] rounded-[10px] px-2 py-[7px] flex items-center gap-[5px]"
+            className="rounded-[10px] px-2 py-[7px] flex items-center gap-[5px]"
+            style={{
+              background: "rgba(255,231,202,0.055)",
+              border: "1px solid rgba(245,237,224,0.10)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+            }}
           >
             <span
               className={`text-[11px] shrink-0 ${stat.green ? "text-[#6BAF7A]" : ""}`}
@@ -229,7 +273,11 @@ export default function V3LockedMealCard({
 
         <div
           className="relative h-[54px] rounded-[14px] overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none"
-          style={{ background: "#3D3733", border: "1px solid rgba(255,255,255,0.06)" }}
+          style={{
+            background: "rgba(255,231,202,0.07)",
+            border: "1px solid rgba(245,237,224,0.12)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)",
+          }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
