@@ -194,7 +194,7 @@ export default function OnboardingPage() {
   const noveltyEmojis = ["🔁", "⚖️", "🌟"];
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
+    <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] text-white">
       <div className="mx-auto w-full max-w-md pb-32">
 
         {/* 1. PROGRESS BAR */}
@@ -338,7 +338,7 @@ export default function OnboardingPage() {
                   color: "#897E73",
                 }}
               >
-                {step} of 4
+                {step < 4 ? `${step} of 4` : "Last one"}
               </p>
 
               {/* 3. QUESTION HEADLINE */}
@@ -772,7 +772,7 @@ export default function OnboardingPage() {
            has a noveltyBias set so they can proceed without re-selecting. */}
       {step >= 1 && step < 5 && (step <= 3 || (step === 4 && noveltyBias !== null)) && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
-          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+          <div className="mx-auto w-full max-w-md px-5 pt-10 relative" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}>
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advance}
@@ -793,7 +793,7 @@ export default function OnboardingPage() {
       {/* Step 0 CTA */}
       {step === 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
-          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+          <div className="mx-auto w-full max-w-md px-5 pt-10 relative" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}>
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advance}
@@ -809,7 +809,7 @@ export default function OnboardingPage() {
       {/* Step 5 CTA */}
       {step === 5 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
-          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+          <div className="mx-auto w-full max-w-md px-5 pt-10 relative" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}>
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advance}

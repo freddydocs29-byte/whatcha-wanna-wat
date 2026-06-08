@@ -531,7 +531,7 @@ export default function SessionPage() {
     // ── Intro screen ────────────────────────────────────────────────────────
     if (setupStep === "intro") {
       return (
-        <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
+        <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] text-white">
           <div
             className="pointer-events-none absolute inset-0"
             style={{
@@ -618,7 +618,7 @@ export default function SessionPage() {
             </div>
           </div>
           <div className="fixed bottom-0 left-0 right-0 z-30">
-            <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+            <div className="mx-auto w-full max-w-md px-5 pt-10 relative" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}>
               <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
               <button
                 onClick={advanceSetup}
@@ -656,7 +656,7 @@ export default function SessionPage() {
         : setGuestHardNos;
 
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
+      <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] text-white">
         <div
           className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{
@@ -827,7 +827,7 @@ export default function SessionPage() {
 
         {/* Sticky CTA */}
         <div className="fixed bottom-0 left-0 right-0 z-30">
-          <div className="mx-auto w-full max-w-md px-5 pb-8 pt-10 relative">
+          <div className="mx-auto w-full max-w-md px-5 pt-10 relative" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}>
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
             <button
               onClick={advanceSetup}
