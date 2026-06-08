@@ -19,11 +19,21 @@ export default function JoinPage() {
     }
 
     const resolve = async () => {
-      const { data, error } = await supabase
+      const timeout = new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), 9000)
+      );
+      const query = supabase
         .from("sessions")
         .select("id, status, expires_at")
         .eq("session_code", code.toUpperCase())
         .single();
+
+      const result = await Promise.race([query, timeout]);
+      if (!result) {
+        setTerminal("not-found");
+        return;
+      }
+      const { data, error } = result as Awaited<typeof query>;
 
       if (error || !data) {
         setTerminal("not-found");

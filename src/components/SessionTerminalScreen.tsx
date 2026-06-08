@@ -40,12 +40,21 @@ export function SessionTerminalScreen({ variant }: { variant: SessionTerminalVar
     if (!code) return;
     setSearching(true);
     setInputError(false);
-    const { data } = await supabase
+    const timeout = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 9000)
+    );
+    const query = supabase
       .from("sessions")
       .select("id")
       .eq("session_code", code)
       .single();
+    const result = await Promise.race([query, timeout]);
     setSearching(false);
+    if (!result) {
+      setInputError(true);
+      return;
+    }
+    const { data } = result as Awaited<typeof query>;
     if (data?.id) {
       router.push(`/session/${data.id}`);
     } else {
