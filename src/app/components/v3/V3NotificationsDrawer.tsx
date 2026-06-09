@@ -25,6 +25,10 @@ interface V3NotificationsDrawerProps {
   onClose: () => void;
   pendingInvite: PendingInvite | null;
   activeSession: ActiveSession | null;
+  /** Pre-computed headline from Home's bannerVariant logic — keeps copy in sync with the Home banner. */
+  sessionBannerHeadline: string;
+  /** Pre-computed subtext from Home's bannerVariant logic, or null when not applicable. */
+  sessionBannerSubtext: string | null;
   onJoinInvite: () => void;
   onDismissInvite: () => void;
   onResume: () => void;
@@ -53,6 +57,8 @@ export default function V3NotificationsDrawer({
   onClose,
   pendingInvite,
   activeSession,
+  sessionBannerHeadline,
+  sessionBannerSubtext,
   onJoinInvite,
   onDismissInvite,
   onResume,
@@ -277,18 +283,14 @@ export default function V3NotificationsDrawer({
                           className="text-sm font-black text-white"
                           style={{ fontFamily: "var(--font-nunito)" }}
                         >
-                          {activeSession.status === "waiting"
-                            ? "Waiting for your partner"
-                            : activeSession.status === "ready"
-                            ? "Your partner joined! Tap to continue"
-                            : "Session in progress"}
+                          {sessionBannerHeadline}
                         </p>
-                        {activeSession.sessionCode && (
+                        {sessionBannerSubtext && (
                           <p
                             className="text-xs text-[#8A7F78] mt-0.5"
                             style={{ fontFamily: "var(--font-manrope)" }}
                           >
-                            Code: {activeSession.sessionCode}
+                            {sessionBannerSubtext}
                           </p>
                         )}
                       </div>

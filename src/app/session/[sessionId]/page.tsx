@@ -989,7 +989,7 @@ export default function SessionPage() {
 
   // ── Guest: waiting for deck to build ────────────────────────────────────
   if (role === "guest" && !(session?.deck_meal_ids?.length)) {
-    const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
+    const codeDisplay = session?.session_code ?? "…";
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#0B0805] flex flex-col items-center justify-center px-6 text-center">
@@ -1421,7 +1421,7 @@ export default function SessionPage() {
 
   // ── Host: sharing screen (vibe already set from home) ───────────────────
   if (role === "host" && hostNeedsOnboarding && hostStep === "sharing") {
-    const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
+    const codeDisplay = session?.session_code ?? "…";
 
     return (
       <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
@@ -1634,7 +1634,7 @@ export default function SessionPage() {
   // ── Host: waiting room ─────────────────────────────────────────────────────
   if (role === "host" && (hostStep === "waiting" || !hostNeedsOnboarding)) {
     const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
-    const codeDisplay = session?.session_code ?? sessionId?.slice(0, 8).toUpperCase();
+    const codeDisplay = session?.session_code ?? "…";
     const deckReady = !!(session?.deck_meal_ids?.length);
 
     // Sub-state: guest just joined, show "Start swiping →"

@@ -179,6 +179,9 @@ export default function Home() {
   const [partnerDoneSwiping, setPartnerDoneSwiping] = useState(false);
   const [showMatchCelebration, setShowMatchCelebration] = useState(false);
   const matchCelebrationShownRef = useRef<Set<string>>(new Set());
+  // Track session IDs the user has explicitly dismissed so the Home polling
+  // does not re-hydrate them after banner dismissal.
+  const dismissedSessionsRef = useRef<Set<string>>(new Set());
   // V3 Home shell state
   const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
   const [decidedSaved, setDecidedSaved] = useState(false);
@@ -414,6 +417,8 @@ export default function Home() {
 
     const checkSession = async () => {
       if (!mounted) return;
+      // If the user dismissed this session, do not re-hydrate it.
+      if (dismissedSessionsRef.current.has(sessionId)) return;
       try {
         const { data } = await supabase
           .from("sessions")
@@ -679,8 +684,15 @@ export default function Home() {
   }
 
   function handleDismissBanner() {
+    const sessionId = activeSession?.sessionId;
+    if (sessionId) {
+      dismissedSessionsRef.current.add(sessionId);
+      localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
+    }
     localStorage.removeItem("wwe_active_session");
     setActiveSession(null);
+    setUserDoneSwiping(false);
+    setPartnerDoneSwiping(false);
   }
 
   function handleRevealDismiss() {
@@ -1914,6 +1926,8 @@ export default function Home() {
         onClose={() => setShowNotificationsDrawer(false)}
         pendingInvite={pendingInvite}
         activeSession={activeSession}
+        sessionBannerHeadline={bannerHeadline}
+        sessionBannerSubtext={bannerSubtext}
         onJoinInvite={() => { void handleJoinInvite(); }}
         onDismissInvite={() => { void handleDismissInvite(); }}
         onResume={handleResumeBanner}
