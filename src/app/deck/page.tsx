@@ -452,6 +452,36 @@ function DeckContent() {
     }
   }, [bypassToExhausted, currentIndex, rankedMeals.length, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Restore shared deck position after the deck loads (shared mode only, runs once).
+  useEffect(() => {
+    if (!sessionId || rankedMeals.length === 0 || bypassToExhausted || deckIndexRestoredRef.current) return;
+    deckIndexRestoredRef.current = true;
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem(`wwe_shared_deck_index_${sessionId}`);
+    if (!stored) return;
+    const parsed = parseInt(stored, 10);
+    const limit = Math.min(rankedMeals.length, DECK_SIZE);
+    if (!isNaN(parsed) && parsed > 0 && parsed < limit) {
+      setCurrentIndex(parsed);
+    } else {
+      localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
+    }
+  }, [sessionId, rankedMeals.length, bypassToExhausted]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist shared deck position to localStorage (shared mode only).
+  // Only writes when sessionId exists and deck is loaded; skips if already done.
+  // Removes the key when at index 0 to avoid stale zero entries.
+  useEffect(() => {
+    if (!sessionId || rankedMeals.length === 0) return;
+    if (typeof window === 'undefined') return;
+    if (localStorage.getItem(`wwe_session_swiping_done_${sessionId}`) === 'true') return;
+    if (currentIndex === 0) {
+      localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
+    } else {
+      localStorage.setItem(`wwe_shared_deck_index_${sessionId}`, String(currentIndex));
+    }
+  }, [currentIndex, sessionId, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Check whether the user returned within 10 minutes of a resolved session.
   // Reads a token written to localStorage on acceptance and updates the DB row.
   useEffect(() => {
@@ -643,6 +673,7 @@ function DeckContent() {
         if (typeof window !== "undefined") {
           localStorage.removeItem("wwe_active_session");
           localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
+          localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
         }
         setSessionExpired(true);
         return;
@@ -783,6 +814,8 @@ function DeckContent() {
   // Mirror of currentIndex as a ref so async ritual callbacks can read it without
   // stale closure issues.
   const currentIndexRef = useRef(0);
+  // Guard: shared deck position restore runs only once per deck lifetime.
+  const deckIndexRestoredRef = useRef(false);
 
   // Track the last meal id we fired card_seen for so we don't double-fire.
   const lastSeenMealIdRef = useRef<string | null>(null);
@@ -1389,6 +1422,7 @@ function DeckContent() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("wwe_active_session");
       localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
+      localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
     }
     // Re-check auth state at navigation time — the mount-time isGuest value may
     // not yet be settled for guests joining via a share link.
@@ -1845,6 +1879,9 @@ function DeckContent() {
       .from("sessions")
       .update({ deck_meal_ids: null, status: "ready", updated_at: new Date().toISOString() })
       .eq("id", sessionId);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
+    }
     router.push(`/session/${sessionId}`);
   }
 
@@ -2455,6 +2492,7 @@ function DeckContent() {
                                 addToHistory(confirmMeal);
                                 saveDecidedMeal({ ...confirmMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
                                 if (sessionId) sessionStorage.removeItem(sharedResetKey(sessionId));
+                                if (sessionId) localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
                                 let confirmTimeToMatch: number | null = null;
                                 if (sessionId) {
                                   try {
@@ -2720,6 +2758,7 @@ function DeckContent() {
                   <button
                     onClick={() => {
                       localStorage.removeItem('wwe_active_session');
+                      if (sessionId) localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
                       router.push('/');
                     }}
                     className="transition-colors duration-200 mt-5"
