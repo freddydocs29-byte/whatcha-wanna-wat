@@ -651,7 +651,7 @@ function DeckContent() {
       // Match already confirmed by the other user
       if (sessionData?.status === "matched") {
         if (sessionData.locked_meal_id && !matchedMealRef.current) {
-          router.push("/");
+          router.push(isGuest ? "/guest-home" : "/");
         }
         return;
       }
@@ -2585,7 +2585,7 @@ function DeckContent() {
                             <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
                           </button>
                           <button
-                            onClick={() => router.push("/")}
+                            onClick={() => router.push(isGuest ? "/guest-home" : "/")}
                             className="mt-2 w-full rounded-full py-4 text-base transition active:scale-[0.98]"
                             style={{
                               fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#1c0c03",
@@ -2651,7 +2651,7 @@ function DeckContent() {
                             </button>
                           )}
                           <button
-                            onClick={() => router.push("/")}
+                            onClick={() => router.push(isGuest ? "/guest-home" : "/")}
                             className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
                             style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
                           >
