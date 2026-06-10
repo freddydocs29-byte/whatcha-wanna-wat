@@ -678,17 +678,16 @@ function DeckContent() {
         return;
       }
 
-      // Match already confirmed by the other user
+      // Match already confirmed by the other user — show the match screen so
+      // both participants see the celebration before routing. saveDecidedMeal
+      // and navigation are handled by handleMatchConfirm() after the user taps
+      // "Let's eat", keeping host and non-host paths identical.
       if (sessionData?.status === "matched") {
         if (sessionData.locked_meal_id && !matchedMealRef.current) {
-          if (isGuest) {
-            const matchedMeal = meals.find((m) => m.id === sessionData.locked_meal_id);
-            if (matchedMeal) {
-              saveDecidedMeal({ ...matchedMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
-            }
-            router.push("/guest-home");
-          } else {
-            router.push("/");
+          const found = meals.find((m) => m.id === sessionData.locked_meal_id);
+          if (found) {
+            matchPendingAdvanceRef.current = false;
+            setMatchedMeal(found);
           }
         }
         return;
@@ -2892,22 +2891,6 @@ function DeckContent() {
                       >
                         {matchConfirming ? "Locking in…" : "Let's eat 🙌"}
                       </button>
-                      <button
-                        onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
-                        disabled={matchConfirming}
-                        className="flex-1 py-4 rounded-[16px] transition active:scale-[0.98] disabled:opacity-60"
-                        style={{
-                          fontFamily: "'Quicksand', sans-serif",
-                          fontWeight: 700,
-                          fontSize: 15,
-                          color: "#C7BDAC",
-                          background: "rgba(255,231,202,0.045)",
-                          border: "1px solid rgba(245,237,224,0.16)",
-                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-                        }}
-                      >
-                        {matchConfirming ? "Locking in…" : (isGuest ? "Done for now →" : "Back to home")}
-                      </button>
                     </div>
                     {matchConfirmError && (
                       <p className="text-center text-sm text-red-400 mt-3">{matchConfirmError}</p>
@@ -3960,18 +3943,6 @@ function DeckContent() {
                     }}
                   >
                     {matchConfirming ? "Locking in…" : "Let's eat 🙌"}
-                  </button>
-                  <button
-                    onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
-                    disabled={matchConfirming}
-                    className="flex-1 py-4 rounded-[16px] text-base text-center disabled:opacity-60"
-                    style={{
-                      fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#F6EEE2",
-                      background: "rgba(255,231,202,0.045)",
-                      border: "1px solid rgba(245,237,224,0.16)",
-                    }}
-                  >
-                    {matchConfirming ? "Locking in…" : (isGuest ? "Done for now →" : "Back to home")}
                   </button>
                 </div>
                 {matchConfirmError && (
