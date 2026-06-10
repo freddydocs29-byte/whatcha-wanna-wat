@@ -639,12 +639,15 @@ export default function Home() {
     if (!revealPending) return;
 
     try {
-      const { typeName, tagline } = JSON.parse(revealPending) as { typeName: string; tagline: string };
-      // Record which type was just shown so the same personalizedName never
-      // queues another reveal (Profile → Home, ordinary meal choices, etc.).
-      // wwe_type_last_revealed replaces the old global wwe_type_revealed boolean
-      // and enables re-reveal when the type genuinely changes later.
-      localStorage.setItem("wwe_type_last_revealed", typeName);
+      const { typeName, tagline, baseType } = JSON.parse(revealPending) as { typeName: string; tagline: string; baseType?: string };
+      // Store the stable baseType (e.g. "night_owl") so the guard in
+      // getFlavorType compares stable key → stable key. typeName is the
+      // AI-generated display name and can vary across cache misses for the
+      // same underlying type — using it as the guard caused spurious re-reveals
+      // after hard close/reopen, shared-session completions, or any cache miss
+      // that produced a slightly different personalizedName.
+      // Fall back to typeName for payloads written before this change.
+      localStorage.setItem("wwe_type_last_revealed", baseType ?? typeName);
       localStorage.removeItem("wwe_type_reveal_pending");
       setTypeRevealData({ typeName, tagline });
     } catch {

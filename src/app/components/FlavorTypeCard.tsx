@@ -49,9 +49,11 @@ const FlavorTypeCard = forwardRef<HTMLDivElement, FlavorTypeCardProps>(
         <div
           style={{
             width: NATURAL_CARD_WIDTH,
-            minHeight: EXPORT_NATURAL_HEIGHT,
+            height: EXPORT_NATURAL_HEIGHT,   // exact, not min — guarantees scale fills 1080×1920
+            display: "grid",                 // grid item stretches to fill full cell height
             transformOrigin: "top left",
             transform: `scale(${EXPORT_SCALE})`,
+            overflow: "hidden",
           }}
         >
           {renderCard()}

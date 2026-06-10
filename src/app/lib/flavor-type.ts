@@ -523,21 +523,24 @@ export async function getFlavorType(
     //   - fresh compute only (cache hit returns early above)
     //   - totalDecisions >= 7 (meaningful threshold)
     //   - no pending reveal already waiting to be consumed
-    //   - personalizedName differs from the last type that was revealed
-    //     (prevents repeated reveals for the same type after Profile → Home
-    //     navigation or ordinary meal choices)
+    //   - stable baseType differs from the last type that was revealed
+    //     (prevents repeated reveals after Profile → Home navigation,
+    //     shared-session completions, hard close/reopen, or AI name drift —
+    //     where the same baseType can produce a slightly different
+    //     personalizedName across cache misses)
     if (
       context === "solo" &&
       dna.totalDecisions >= 7 &&
       typeof window !== "undefined" &&
       !localStorage.getItem("wwe_type_reveal_pending") &&
-      localStorage.getItem("wwe_type_last_revealed") !== result.personalizedName
+      localStorage.getItem("wwe_type_last_revealed") !== result.baseType
     ) {
       localStorage.setItem(
         "wwe_type_reveal_pending",
         JSON.stringify({
           typeName: result.personalizedName,
           tagline: result.tagline,
+          baseType: result.baseType,
         })
       );
     }

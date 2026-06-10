@@ -55,7 +55,7 @@ const APP_STORAGE_KEYS = [
   "wwe_active_session",    // current shared session created by this device
   "wwe_drawer_hint_seen", // one-time hint pointing to the meal detail drawer
   "wwe_type_reveal_pending",  // pending flavor-type reveal — cleared after shown
-  "wwe_type_last_revealed",   // personalizedName of the last type shown; re-reveal fires only when this changes
+  "wwe_type_last_revealed",   // stable baseType (e.g. "night_owl") of the last type shown; re-reveal fires only when this changes
   "wwe_hidden_partner_ids",   // device-stable list of hidden recent/home partner bubble IDs
 ] as const;
 
