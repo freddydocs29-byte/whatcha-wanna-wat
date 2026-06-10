@@ -259,12 +259,24 @@ export default function OnboardingPage() {
             >
               Here&apos;s the deal<span style={{ color: "#E8621A" }}>.</span>
             </h1>
+            <p
+              className="mt-3"
+              style={{
+                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                fontWeight: 300,
+                fontSize: 15,
+                lineHeight: 1.5,
+                color: "#C7BDAC",
+              }}
+            >
+              Watcha turns &ldquo;what do you want to eat?&rdquo; into a quick swipe &mdash; solo or with someone.
+            </p>
             <div className="mt-7 flex flex-col">
               {[
-                { title: "No surveys.", subtitle: "A few swipes teach us more than 20 questions." },
-                { title: "No random picks.", subtitle: "Every card is ranked for you, not pulled from a list." },
-                { title: "No infinite scroll.", subtitle: "Fast answer. Done. Every time." },
-                { title: "Works alone. Works better together.", subtitle: "Solo mode or shared — it adapts to how you decide." },
+                { title: "Takes less than a minute.", subtitle: "A few answers now. A real answer every time you're hungry." },
+                { title: "Swipe solo or decide together.", subtitle: "Use it alone or share a session — both work." },
+                { title: "We learn your taste over time.", subtitle: "Your swipes shape what shows up next." },
+                { title: "Save the good picks when you want.", subtitle: "Bookmark anything you'd actually order." },
               ].map((item, index) => (
                 <div
                   key={index}

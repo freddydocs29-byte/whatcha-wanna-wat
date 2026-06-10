@@ -560,14 +560,26 @@ export default function SessionPage() {
                   fontSize: 44,
                 }}
               >
-                Here&apos;s the deal<span style={{ color: "#E8621A" }}>.</span>
+                You&apos;re joining a dinner session<span style={{ color: "#E8621A" }}>.</span>
               </h1>
+              <p
+                className="mt-3"
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 300,
+                  fontSize: 15,
+                  lineHeight: 1.5,
+                  color: "#C7BDAC",
+                }}
+              >
+                Set a few quick preferences, then you&apos;ll both swipe the same deck.
+              </p>
               <div className="mt-7 flex flex-col">
                 {[
                   { title: "Takes 30 seconds.", subtitle: "Your answers make tonight's picks way better for both of you." },
-                  { title: "No account needed.", subtitle: "Just swipe. We handle the rest." },
+                  { title: "No sign-up required.", subtitle: "Just set your preferences and you're in." },
                   { title: "We build the deck together.", subtitle: "Your preferences + theirs = a deck you'll both actually want." },
-                  { title: "Your picks stay private.", subtitle: "We only share the match." },
+                  { title: "Your swipes stay private.", subtitle: "We only share the match." },
                 ].map((item, index) => (
                   <div
                     key={index}
