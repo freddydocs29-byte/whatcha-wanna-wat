@@ -3,12 +3,13 @@
 interface SplashScreenProps {
   onLetsGo?: () => void;
   onSignIn?: () => void;
+  onContinueAsGuest?: () => void;
 }
 
 const GRAIN_SVG =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
-export default function SplashScreen({ onLetsGo, onSignIn }: SplashScreenProps) {
+export default function SplashScreen({ onLetsGo, onSignIn, onContinueAsGuest }: SplashScreenProps) {
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
@@ -132,6 +133,23 @@ export default function SplashScreen({ onLetsGo, onSignIn }: SplashScreenProps) 
             Sign in
           </button>
         </p>
+
+        {/* Ghost CTA — no account needed */}
+        <button
+          onClick={onContinueAsGuest}
+          className="mt-6 w-full text-center"
+          style={{
+            fontFamily: "var(--font-sans, system-ui)",
+            fontWeight: 400,
+            fontSize: 13,
+            color: "rgba(137,126,115,0.6)",
+            background: "none",
+            border: "none",
+            padding: "8px 0",
+          }}
+        >
+          Continue as guest
+        </button>
       </div>
 
       {/* Detroit footer */}

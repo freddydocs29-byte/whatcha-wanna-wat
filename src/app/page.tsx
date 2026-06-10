@@ -964,6 +964,7 @@ export default function Home() {
       <SplashScreen
         onLetsGo={() => router.push("/auth?mode=signup")}
         onSignIn={() => router.push("/auth?mode=signin")}
+        onContinueAsGuest={() => router.push("/deck")}
       />
     );
   }

@@ -45,7 +45,7 @@ const tabs = [
   },
 ];
 
-export default function BottomNav({ activeHref }: { activeHref?: string } = {}) {
+export default function BottomNav({ activeHref, homeHref }: { activeHref?: string; homeHref?: string } = {}) {
   const pathname = usePathname();
 
   return (
@@ -54,11 +54,12 @@ export default function BottomNav({ activeHref }: { activeHref?: string } = {}) 
       style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))" }}
     >
       {tabs.map((tab) => {
+        const href = tab.label === "Home" && homeHref ? homeHref : tab.href;
         const isActive = (activeHref ?? pathname) === tab.href;
         return (
           <Link
             key={tab.href}
-            href={tab.href}
+            href={href}
             aria-label={tab.label}
             className="flex flex-col items-center justify-center gap-1"
           >

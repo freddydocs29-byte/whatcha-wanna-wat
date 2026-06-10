@@ -14,7 +14,7 @@ import {
 import { trackEvent } from "../lib/analytics";
 import BottomNav from "../components/BottomNav";
 import { fetchOrCreateProfile } from "../lib/supabase-profile";
-import { getUserId } from "../lib/identity";
+import { getUserId, getAuthUserId } from "../lib/identity";
 import type { Profile } from "../lib/supabase";
 
 type Props = {
@@ -30,6 +30,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [saved, setSaved] = useState(false);
   const [showEatModal, setShowEatModal] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
   const timeLabel = "just now";
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
     setStreak(getStreak());
     setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
     fetchOrCreateProfile(getUserId()).then(setProfile).catch(() => {});
+    getAuthUserId().then((uid) => setIsGuest(uid === null));
   }, [meal.id]);
 
   function toggleSave() {
@@ -52,7 +54,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
 
   function handleNewDeck() {
     trackEvent("change_mind_clicked", { mealId: meal.id });
-    router.push("/");
+    router.push(isGuest ? "/deck" : "/");
   }
 
   const decidedWith = pickedForYou ? "just for you" : "your partner";
@@ -246,7 +248,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
 
       </div>
 
-      <BottomNav activeHref="/" />
+      <BottomNav activeHref="/" homeHref={isGuest ? "/deck" : "/"} />
 
       {/* Cook vs Order modal */}
       {showEatModal && (

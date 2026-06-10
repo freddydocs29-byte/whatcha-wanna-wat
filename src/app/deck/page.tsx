@@ -1858,7 +1858,9 @@ function DeckContent() {
 
     addToHistory(topMeal);
     saveDecidedMeal({ ...topMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
-    router.push("/");
+    // Re-check auth at navigation time — isGuest may not have settled for guests joining via share link.
+    const { data: { user: jdNavUser } } = await supabase.auth.getUser();
+    router.push(jdNavUser ? "/" : "/guest-home");
   }
 
   // Shared-mode refresh: delete all swipes, clear the deck, return to the lobby so
@@ -3003,7 +3005,7 @@ function DeckContent() {
     function clearAndGoHome() {
       sessionStorage.removeItem(SOLO_RESET_SS_KEY);
       setSoloResetCount(0);
-      router.push("/");
+      router.push(isGuest ? "/deck" : "/");
     }
 
     // Helper to decide + navigate home (canonical path)
@@ -3029,7 +3031,7 @@ function DeckContent() {
           }
         });
       }
-      router.push("/");
+      router.push(isGuest ? `/locked?mealId=${meal.id}` : "/");
     }
 
     // ── Easter egg: reset 3+ (terminal state) ─────────────────────────────
@@ -3386,8 +3388,9 @@ function DeckContent() {
         <SoloLockOverlay
           meal={soloLockMeal}
           onComplete={() => {
+            const mealId = soloLockMeal?.id;
             setSoloLockMeal(null);
-            router.push("/");
+            router.push(isGuest && mealId ? `/locked?mealId=${mealId}` : "/");
           }}
         />
       )}
