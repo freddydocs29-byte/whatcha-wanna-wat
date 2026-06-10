@@ -475,9 +475,11 @@ export default function Home() {
         }
 
         // For active/swiping sessions, detect whether the partner has finished swiping.
-        // deck_meal_ids.length is the canonical shared deck size.
+        // deck_meal_ids stores the full ranked catalog (pre-sliced), but the deck page
+        // only shows the first DECK_SIZE (12) cards — cap deckSize to match.
         // Distinct meal_id count in swipes table is the partner's progress.
-        const deckSize = (data.deck_meal_ids as string[] | null)?.length ?? 0;
+        const rawDeckSize = (data.deck_meal_ids as string[] | null)?.length ?? 0;
+        const deckSize = rawDeckSize > 0 ? Math.min(rawDeckSize, 12) : 0;
         if (deckSize > 0) {
           const currentUserId = getUserId();
           const partnerId =
