@@ -11,6 +11,7 @@ import {
   getSavedMealsEnriched,
   addFavorite,
   removeFavorite,
+  saveDecidedMeal,
 } from "../lib/storage";
 import BottomNav from "../components/BottomNav";
 import { fetchOrCreateProfile } from "../lib/supabase-profile";
@@ -99,6 +100,12 @@ export default function HistoryPage() {
     clearHistory();
     setEntries([]);
     setConfirming(false);
+  }
+
+  function handleLetsEat(meal: Meal) {
+    saveDecidedMeal({ ...meal, decidedAt: new Date().toISOString(), mode: "solo" });
+    setDrawerOpen(false);
+    router.push("/");
   }
 
   return (
@@ -207,13 +214,14 @@ export default function HistoryPage() {
           {entries.map((entry, i) => (
             <div
               key={i}
-              className="rounded-[20px] overflow-hidden"
+              className="rounded-[20px] overflow-hidden cursor-pointer"
               style={{
                 background: "linear-gradient(180deg, rgba(255,231,202,0.07), rgba(255,231,202,0.02))",
                 border: "1px solid rgba(245,237,224,0.16)",
                 backdropFilter: "blur(20px)",
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 38px rgba(0,0,0,0.4)",
               }}
+              onClick={() => { setDrawerMeal(entry.meal); setDrawerOpen(true); }}
             >
               {/* Meal row */}
               <div className="flex items-center gap-4 p-5 pb-4">
@@ -241,7 +249,7 @@ export default function HistoryPage() {
                 </div>
                 {/* Info */}
                 <button
-                  onClick={() => { setDrawerMeal(entry.meal); setDrawerOpen(true); }}
+                  onClick={(e) => { e.stopPropagation(); setDrawerMeal(entry.meal); setDrawerOpen(true); }}
                   className="flex h-9 w-9 items-center justify-center rounded-full transition hover:opacity-80 active:scale-[0.95] flex-shrink-0"
                   style={{
                     background: "rgba(255,231,202,0.06)",
@@ -258,6 +266,7 @@ export default function HistoryPage() {
               <div
                 className="flex items-center gap-2 px-5 pb-5 pt-3.5"
                 style={{ borderTop: "1px solid rgba(245,237,224,0.08)" }}
+                onClick={(e) => e.stopPropagation()}
               >
                 <button
                   onClick={() => handleFavoriteToggle(entry.meal)}
@@ -282,23 +291,6 @@ export default function HistoryPage() {
                 >
                   {favoriteIds.has(entry.meal.id) ? "★ Unfavorite" : "Favorite"}
                 </button>
-                <a
-                  href={`https://www.google.com/search?q=${encodeURIComponent(entry.meal.name + " recipe")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 rounded-full text-center transition hover:opacity-75 active:scale-[0.97]"
-                  style={{
-                    padding: "10px",
-                    fontFamily: "var(--font-manrope)",
-                    fontWeight: 500,
-                    fontSize: "12.5px",
-                    background: "transparent",
-                    border: "1px solid rgba(245,237,224,0.085)",
-                    color: "rgba(199,189,172,0.8)",
-                  }}
-                >
-                  Cook it
-                </a>
                 <button
                   onClick={() => handleShare(entry.meal.name)}
                   className="flex-1 rounded-full text-center transition hover:opacity-75 active:scale-[0.97]"
@@ -379,6 +371,7 @@ export default function HistoryPage() {
         meal={drawerMeal}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        onLockIn={drawerMeal ? () => handleLetsEat(drawerMeal) : undefined}
         context="history"
       />
     </main>

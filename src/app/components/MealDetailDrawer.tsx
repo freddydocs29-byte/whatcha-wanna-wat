@@ -464,7 +464,7 @@ export function MealDetailDrawer({
                   </button>
                 )}
 
-                {(context === "saved" || context === "history") && (
+                {context === "saved" && (
                   <button
                     onClick={onClose}
                     className="w-full font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
@@ -476,6 +476,34 @@ export function MealDetailDrawer({
                   >
                     Close
                   </button>
+                )}
+
+                {context === "history" && (
+                  <div className="flex flex-col gap-3">
+                    {onLockIn && (
+                      <button
+                        onClick={onLockIn}
+                        className="w-full text-white font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
+                        style={{
+                          background: "linear-gradient(135deg, #F07840 0%, #E8621A 60%, #C94E10 100%)",
+                          boxShadow: "0 0 20px rgba(232,98,26,0.30)",
+                        }}
+                      >
+                        Let&apos;s eat tonight →
+                      </button>
+                    )}
+                    <button
+                      onClick={onClose}
+                      className="w-full font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
+                      style={{
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(245,237,224,0.09)",
+                        color: "#8A7F78",
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
                 )}
 
                 {context === "home-win" && (

@@ -314,7 +314,6 @@ function DeckContent() {
   const [drawerHintSeen, setDrawerHintSeen] = useState(
     () => typeof window !== "undefined" && !!localStorage.getItem("wwe_drawer_hint_seen")
   );
-  const [showCookOrderModal, setShowCookOrderModal] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   // ── Solo exhausted diagnostic state ────────────────────────────────────────
   const [soloExhaustedView, setSoloExhaustedView] = useState<"main" | "top3" | "vibe-select">("main");
@@ -2001,8 +2000,6 @@ function DeckContent() {
         }
       }
     }
-    x.set(0);
-    setCurrentIndex((i) => i + 1);
   }
 
   function handleChoose() {
@@ -2871,8 +2868,9 @@ function DeckContent() {
                     {/* 8. CTA buttons */}
                     <div className="flex gap-3 w-full mt-7">
                       <button
-                        onClick={() => setShowCookOrderModal(true)}
-                        className="flex-1 py-4 rounded-[16px] transition active:scale-[0.98]"
+                        onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
+                        disabled={matchConfirming}
+                        className="flex-1 py-4 rounded-[16px] transition active:scale-[0.98] disabled:opacity-60"
                         style={{
                           fontFamily: "'Quicksand', sans-serif",
                           fontWeight: 700,
@@ -2882,7 +2880,7 @@ function DeckContent() {
                           boxShadow: "0 1px 0 rgba(190,230,200,0.35) inset, 0 -2px 0 rgba(30,70,40,0.35) inset, 0 14px 30px rgba(94,158,110,0.32)",
                         }}
                       >
-                        Let&apos;s eat 🙌
+                        {matchConfirming ? "Locking in…" : "Let's eat 🙌"}
                       </button>
                       <button
                         onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
@@ -2910,73 +2908,6 @@ function DeckContent() {
             )}
           </AnimatePresence>
 
-          {/* Cook vs Order modal — shared match */}
-          <AnimatePresence>
-          {showCookOrderModal && (
-            <div className="fixed inset-0 z-[60] flex items-end justify-center">
-              <motion.div
-                key="cook-order-backdrop-1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0 bg-black/60"
-                onClick={() => setShowCookOrderModal(false)}
-              />
-              <motion.div
-                key="cook-order-sheet-1"
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 28, stiffness: 260 }}
-                drag="y"
-                dragDirectionLock
-                dragConstraints={{ top: 0, bottom: 0 }}
-                dragElastic={{ top: 0, bottom: 0.25 }}
-                onDragEnd={(_, info) => {
-                  if (info.offset.y > 80 || info.velocity.y > 500) setShowCookOrderModal(false);
-                }}
-                className="relative w-full max-w-md rounded-t-[28px] px-6 pt-4 pb-10"
-                style={{
-                  background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, #120D09 6%)",
-                  borderTop: "1px solid rgba(245,237,224,0.085)",
-                  boxShadow: "0 -8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)",
-                  backdropFilter: "blur(24px)",
-                }}
-              >
-                <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "rgba(245,237,224,0.15)" }} />
-                <p className="text-2xl text-center" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#F6EEE2", letterSpacing: "-0.01em" }}>
-                  How are you eating?
-                </p>
-                <div className="grid grid-cols-2 gap-3 mt-6">
-                  <button
-                    onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                    disabled={matchConfirming}
-                    className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer transition-all duration-150 disabled:opacity-60"
-                    style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
-                  >
-                    <span className="text-4xl">🍳</span>
-                    <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: "#F6EEE2" }}>Cook it</p>
-                    <p className="text-xs text-center mt-1" style={{ color: "#897E73" }}>See what you need</p>
-                  </button>
-                  <button
-                    onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                    disabled={matchConfirming}
-                    className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer transition-all duration-150 disabled:opacity-60"
-                    style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
-                  >
-                    <span className="text-4xl">🚗</span>
-                    <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: "#F6EEE2" }}>Order in</p>
-                    <p className="text-xs text-center mt-1" style={{ color: "#897E73" }}>Find delivery options</p>
-                  </button>
-                </div>
-                {matchConfirmError && (
-                  <p className="text-center text-sm text-red-400 mt-4">{matchConfirmError}</p>
-                )}
-              </motion.div>
-            </div>
-          )}
-          </AnimatePresence>
         </main>
       );
     }
@@ -4008,15 +3939,16 @@ function DeckContent() {
                 {/* 8. CTA buttons */}
                 <div className="flex gap-3 w-full mt-6">
                   <button
-                    onClick={() => setShowCookOrderModal(true)}
-                    className="flex-1 py-4 rounded-[16px] text-base"
+                    onClick={() => void handleMatchConfirm()}
+                    disabled={matchConfirming}
+                    className="flex-1 py-4 rounded-[16px] text-base disabled:opacity-60"
                     style={{
                       fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#06140a",
                       background: "linear-gradient(180deg, #86C796 0%, #5E9E6E 50%, #3F744F 100%)",
                       boxShadow: "0 1px 0 rgba(220,255,228,0.5) inset, 0 -2px 0 rgba(20,60,30,0.4) inset, 0 14px 30px rgba(94,158,110,0.32)",
                     }}
                   >
-                    Let&apos;s eat 🙌
+                    {matchConfirming ? "Locking in…" : "Let's eat 🙌"}
                   </button>
                   <button
                     onClick={() => sessionId ? void handleMatchConfirm() : router.push("/")}
@@ -4234,78 +4166,6 @@ function DeckContent() {
         )}
       </AnimatePresence>
 
-      {/* Cook vs Order modal — solo match */}
-      <AnimatePresence>
-      {showCookOrderModal && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center">
-          <motion.div
-            key="cook-order-backdrop-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setShowCookOrderModal(false)}
-          />
-          <motion.div
-            key="cook-order-sheet-2"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            drag="y"
-            dragDirectionLock
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.25 }}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 80 || info.velocity.y > 500) setShowCookOrderModal(false);
-            }}
-            className="relative w-full rounded-t-[28px] px-6 pt-6 pb-10"
-            style={{
-              background: "radial-gradient(ellipse 80% 30% at 50% 0%, rgba(232,98,26,0.08) 0%, transparent 60%), linear-gradient(180deg, #1a1410 0%, #120c08 100%)",
-              borderTop: "1px solid rgba(245,237,224,0.10)",
-              borderLeft: "none",
-              borderRight: "none",
-              borderBottom: "none",
-            }}
-          >
-            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "rgba(245,237,224,0.15)" }} />
-            <p className="font-display font-black text-2xl text-white text-center">
-              How are you eating?
-            </p>
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <button
-                onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                disabled={matchConfirming}
-                className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border transition-colors active:scale-[0.98] disabled:opacity-60"
-                style={{ background: "rgba(255,231,202,0.04)", borderColor: "rgba(245,237,224,0.07)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
-              >
-                <span className="text-4xl">🍳</span>
-                <p className="font-display font-black text-lg text-white">Cook it</p>
-                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">See what you need</p>
-              </button>
-              <button
-                onClick={() => { setShowCookOrderModal(false); void handleMatchConfirm(); }}
-                disabled={matchConfirming}
-                className="rounded-[20px] p-5 flex flex-col items-center gap-3 cursor-pointer border transition-colors active:scale-[0.98] disabled:opacity-60"
-                style={{ background: "rgba(255,231,202,0.04)", borderColor: "rgba(245,237,224,0.07)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(232,98,26,0.40)")}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(245,237,224,0.07)")}
-              >
-                <span className="text-4xl">🚗</span>
-                <p className="font-display font-black text-lg text-white">Order in</p>
-                <p className="font-body text-xs text-[#8A7F78] text-center mt-1">Find delivery options</p>
-              </button>
-            </div>
-            {matchConfirmError && (
-              <p className="text-center text-sm text-red-400 mt-4">{matchConfirmError}</p>
-            )}
-          </motion.div>
-        </div>
-      )}
-      </AnimatePresence>
     </main>
   );
 }
