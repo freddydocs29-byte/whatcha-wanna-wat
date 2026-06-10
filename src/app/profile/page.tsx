@@ -81,25 +81,10 @@ const DIETARY_OPTIONS = [
 ];
 
 const NOVELTY_OPTIONS: { value: number; label: string; desc: string }[] = [
-  { value: 0.2, label: "I like what I know",       desc: "Stick to tried and tested" },
-  { value: 0.5, label: "Mix of both",               desc: "Some variety, some comfort" },
-  { value: 0.8, label: "I love trying new things",  desc: "Surprise me every time" },
+  { value: 0.2, label: "Keep it familiar",  desc: "Stick to what you know"              },
+  { value: 0.5, label: "Mix it up",         desc: "Some variety, some comfort"          },
+  { value: 0.8, label: "Surprise me",       desc: "Discover something new every time"   },
 ];
-
-// ── Category display name map ─────────────────────────────────────────────────
-
-const CATEGORY_LABELS: Record<string, string> = {
-  "Comfort food": "Comfort",
-  "Fresh & Healthy": "Fresh",
-  "Crowd-pleasers": "Crowd",
-  "Indulgent": "Indulgent",
-  "Quick & Easy": "Quick",
-  "Adventurous": "Bold",
-};
-
-function shortCategory(cat: string): string {
-  return CATEGORY_LABELS[cat] ?? cat.split(" ")[0];
-}
 
 /** Returns up to 2 uppercase initials from a display name. */
 function initials(name: string | null | undefined): string {
@@ -901,7 +886,7 @@ export default function ProfilePage() {
           {[
             { value: history.length, label: "Decisions" },
             { value: mealsTriedCount, label: "Meals tried" },
-            { value: 0, label: "With others" },
+            { value: couplesDNA?.totalMatchesTogether ?? 0, label: "With others" },
           ].map(({ value, label }) => (
             <div
               key={label}
@@ -1632,6 +1617,57 @@ export default function ProfilePage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Novelty bias */}
+        <div
+          className="mx-5 mt-6 mb-4 rounded-[20px] px-5 py-5"
+          style={{
+            background: "rgba(255,231,202,0.04)",
+            border: "1px solid rgba(245,237,224,0.08)",
+            boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+          }}
+        >
+          <p
+            className="text-[11px] tracking-[2.4px] uppercase mb-1"
+            style={{ color: "rgba(245,237,224,0.35)", fontFamily: "var(--font-jetbrains-mono)" }}
+          >
+            Deck vibe
+          </p>
+          <p className="font-body text-xs mb-4" style={{ color: "rgba(199,189,172,0.55)" }}>
+            Controls how familiar or adventurous your deck feels.
+          </p>
+          <div className="flex flex-col gap-2">
+            {NOVELTY_OPTIONS.map((opt) => {
+              const active = noveltyBias === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => selectNoveltyBias(opt.value)}
+                  className="flex items-center justify-between px-4 py-3 rounded-[14px] text-left transition hover:opacity-90"
+                  style={{
+                    background: active ? "rgba(232,98,26,0.15)" : "rgba(255,231,202,0.04)",
+                    border: active ? "1px solid rgba(232,98,26,0.4)" : "1px solid rgba(245,237,224,0.07)",
+                  }}
+                >
+                  <div>
+                    <p
+                      className="font-body font-semibold text-sm"
+                      style={{ color: active ? "#E8621A" : "rgba(245,237,224,0.8)" }}
+                    >
+                      {opt.label}
+                    </p>
+                    <p className="font-body text-xs mt-0.5" style={{ color: "rgba(199,189,172,0.5)" }}>
+                      {opt.desc}
+                    </p>
+                  </div>
+                  {active && (
+                    <span style={{ color: "#E8621A", fontSize: "16px" }}>✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Bottom nav ───────────────────────────────────────────────────────── */}

@@ -99,8 +99,8 @@ export default function EditProfilePage() {
             🍽️
           </div>
           <div className="flex-1">
-            <p className="font-display font-bold text-base text-white">Cuisines & Restrictions</p>
-            <p className="font-body text-sm text-[#8A7F78] mt-0.5">Update what you like and what's off limits</p>
+            <p className="font-display font-bold text-base text-white">Edit food preferences</p>
+            <p className="font-body text-sm text-[#8A7F78] mt-0.5">Update cuisines, dietary needs, and hard NOs</p>
           </div>
           <span className="text-[#8A7F78]">→</span>
         </button>
