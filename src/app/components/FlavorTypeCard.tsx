@@ -49,11 +49,14 @@ const FlavorTypeCard = forwardRef<HTMLDivElement, FlavorTypeCardProps>(
         <div
           style={{
             width: NATURAL_CARD_WIDTH,
-            height: EXPORT_NATURAL_HEIGHT,   // exact, not min — guarantees scale fills 1080×1920
-            display: "grid",                 // grid item stretches to fill full cell height
+            height: EXPORT_NATURAL_HEIGHT,   // exact — guarantees scale fills 1080×1920
+            display: "grid",                 // stretches card child to fill full 694px height
             transformOrigin: "top left",
             transform: `scale(${EXPORT_SCALE})`,
-            overflow: "hidden",
+            // NOTE: do NOT add overflow:hidden here — html2canvas clips scaled elements to
+            // their layout box when overflow:hidden is present, causing the card to appear
+            // at 390px (natural) width with empty black space filling the right side.
+            // The outer 1080×1920 container already has overflow:hidden for safe clamping.
           }}
         >
           {renderCard()}
