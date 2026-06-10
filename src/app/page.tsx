@@ -1058,6 +1058,8 @@ export default function Home() {
         hasNotification={!!(pendingInvite || activeSession)}
         onMenuClick={() => setShowMenuDrawer(true)}
         onNotificationsClick={() => setShowNotificationsDrawer(true)}
+        onLogoClick={() => router.push("/")}
+        onProfileClick={() => router.push("/profile")}
       />
 
       {/* ── Active session banner (preserved, inline) ──────── */}

@@ -144,47 +144,28 @@ export default function V3PrimaryDecisionCTA({
             cursor: dragging.current ? "grabbing" : "grab",
           }}
         >
-          {/* Plate-and-cutlery icon using borders */}
-          <span
-            className="relative flex items-center justify-center"
-            style={{ width: 24, height: 24 }}
+          {/* Fork-and-knife icon */}
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             aria-hidden="true"
           >
-            {/* Plate circle */}
-            <span
-              className="absolute"
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                border: "2px solid #2a1206",
-              }}
-            />
-            {/* Inner ring */}
-            <span
-              className="absolute"
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                border: "1.5px solid rgba(42,18,6,0.5)",
-              }}
-            />
-            {/* Fork handle above */}
-            <span
-              className="absolute"
-              style={{
-                left: "50%",
-                top: -4,
-                transform: "translateX(-50%)",
-                width: 2,
-                height: 7,
-                background: "#2a1206",
-                borderRadius: 2,
-                boxShadow: "-4px 0 0 #2a1206, 4px 0 0 #2a1206",
-              }}
-            />
-          </span>
+            {/* Fork: outer tines */}
+            <line x1="5" y1="2" x2="5" y2="6" />
+            <line x1="9" y1="2" x2="9" y2="6" />
+            {/* Fork: tine connector + handle */}
+            <path d="M5 6a2 2 0 0 0 4 0" />
+            <line x1="7" y1="8" x2="7" y2="22" />
+            {/* Knife: blade + handle */}
+            <path d="M15 2c0 0 4 2 4 8h-4" />
+            <line x1="15" y1="10" x2="15" y2="22" />
+          </svg>
         </div>
 
         {/* Text label — fades out as thumb slides */}

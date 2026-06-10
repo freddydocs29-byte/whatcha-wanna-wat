@@ -5,6 +5,8 @@ interface V3WatchaHeaderProps {
   showShare?: boolean;
   onMenuClick?: () => void;
   onNotificationsClick?: () => void;
+  onLogoClick?: () => void;
+  onProfileClick?: () => void;
 }
 
 export default function V3WatchaHeader({
@@ -12,6 +14,8 @@ export default function V3WatchaHeader({
   showShare = false,
   onMenuClick,
   onNotificationsClick,
+  onLogoClick,
+  onProfileClick,
 }: V3WatchaHeaderProps) {
   return (
     <div
@@ -42,8 +46,13 @@ export default function V3WatchaHeader({
         </span>
       </button>
 
-      {/* Wordmark — Quicksand + Instrument Serif italic */}
-      <div className="flex flex-col items-center" style={{ lineHeight: 0.82 }}>
+      {/* Wordmark — tappable, routes Home */}
+      <button
+        onClick={onLogoClick}
+        className="flex flex-col items-center cursor-pointer transition-transform active:scale-[0.95]"
+        style={{ lineHeight: 0.82, background: "none", border: "none", padding: 0 }}
+        aria-label="Go home"
+      >
         <span
           style={{
             fontFamily: "var(--font-quicksand)",
@@ -69,10 +78,33 @@ export default function V3WatchaHeader({
         >
           wanna eat?
         </span>
-      </div>
+      </button>
 
-      {/* Right side: bell + optional share */}
+      {/* Right side: profile + bell + optional share */}
       <div className="flex gap-[7px]">
+        {onProfileClick && (
+          <button
+            onClick={onProfileClick}
+            className="flex items-center justify-center cursor-pointer transition-transform active:scale-[0.93]"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: "rgba(255,231,202,0.045)",
+              border: "1px solid rgba(245,237,224,0.085)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              color: "#F6EEE2",
+            }}
+            aria-label="Go to profile"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+          </button>
+        )}
+
         <div className="relative">
           <button
             onClick={onNotificationsClick}

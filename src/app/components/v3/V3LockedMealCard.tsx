@@ -34,13 +34,14 @@ function CheckIcon() {
   );
 }
 
-// Info icon — small, clean
-function InfoIcon() {
+// Expand/detail icon — opens meal detail view
+function ExpandIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="8.5" />
-      <line x1="12" y1="12" x2="12" y2="16" />
+      <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+      <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+      <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
     </svg>
   );
 }
@@ -235,7 +236,7 @@ export default function V3LockedMealCard({
               boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
             }}
           >
-            <InfoIcon />
+            <ExpandIcon />
           </button>
 
           {/* Clear / Change */}

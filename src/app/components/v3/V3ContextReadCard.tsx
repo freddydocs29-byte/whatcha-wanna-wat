@@ -51,13 +51,28 @@ const TIME_CHIPS: Record<TimeOfDay, string> = {
   latenight: "Late night",
 };
 
+const EYEBROW_LABEL: Record<TimeOfDay, string> = {
+  morning: "Morning read",
+  afternoon: "Afternoon read",
+  evening: "Tonight\u2019s read",
+  latenight: "Tonight\u2019s read",
+};
+
+const TIME_LABELS: Record<TimeOfDay, string> = {
+  morning: "morning",
+  afternoon: "afternoon",
+  evening: "evening",
+  latenight: "night",
+};
+
 function pickHeadline(timeOfDay: TimeOfDay, insights: string[], hardNos: string[]): string {
   if (timeOfDay === "latenight" && insights.length > 0) return "Late night. Comfort pattern. No repeats.";
   if (timeOfDay === "latenight") return "Late night. We\u2019ve got you.";
-  if (insights.length >= 2) return "We know what kind of night this is.";
-  if (insights.length === 1 && hardNos.length > 0) return "We know what kind of night this is.";
+  const label = TIME_LABELS[timeOfDay];
+  if (insights.length >= 2) return `We know what kind of ${label} this is.`;
+  if (insights.length === 1 && hardNos.length > 0) return `We know what kind of ${label} this is.`;
   if (insights.length > 0) return "You\u2019ve been here before. We adjusted.";
-  return "We know what kind of night this is.";
+  return `We know what kind of ${label} this is.`;
 }
 
 // Which word in the headline should be italic + orange?
@@ -251,7 +266,7 @@ export default function V3ContextReadCard({
               fontWeight: 500,
             }}
           >
-            Tonight&apos;s read
+            {EYEBROW_LABEL[timeOfDay]}
           </span>
         </div>
 
