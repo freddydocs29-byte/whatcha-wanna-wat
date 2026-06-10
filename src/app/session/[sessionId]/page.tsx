@@ -447,7 +447,7 @@ export default function SessionPage() {
   function handleShare() {
     if (navigator.share) {
       navigator.share({
-        title: "Join my Whatcha Wanna Eat session",
+        title: "Join my Watcha session",
         text: "Help me pick what we're eating tonight",
         url: sessionUrl,
       });

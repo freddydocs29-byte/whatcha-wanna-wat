@@ -743,10 +743,6 @@ export default function Home() {
     setCreatingSession(true);
     setSessionError(null);
 
-    // Diagnostic: log env var presence (not values) so preview failures are immediately visible
-    console.log("[session] env check — NEXT_PUBLIC_SUPABASE_URL present:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log("[session] env check — NEXT_PUBLIC_SUPABASE_ANON_KEY present:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-
     try {
       const hostId = getUserId();
       // 12-hour window — matches the DB column default
@@ -1844,7 +1840,6 @@ export default function Home() {
               </button>
               <button
                 onClick={async () => {
-                  console.log('[X button] clearing meal, setting cleared_at to:', Date.now())
                   // 1. Set cleared timestamp first — synchronously
                   localStorage.setItem('wwe_meal_cleared_at', Date.now().toString())
                   localStorage.removeItem('watcha_decided_meal')
@@ -1861,7 +1856,6 @@ export default function Home() {
                       .from('profiles')
                       .update({ last_decided_meal: null })
                       .eq('user_id', userId)
-                    console.log('[decidedMeal] cleared from home and Supabase')
                   }
 
                   // 4. NOW dispatch the event to update ProfileProvider in-memory state

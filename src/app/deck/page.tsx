@@ -681,7 +681,15 @@ function DeckContent() {
       // Match already confirmed by the other user
       if (sessionData?.status === "matched") {
         if (sessionData.locked_meal_id && !matchedMealRef.current) {
-          router.push(isGuest ? "/guest-home" : "/");
+          if (isGuest) {
+            const matchedMeal = meals.find((m) => m.id === sessionData.locked_meal_id);
+            if (matchedMeal) {
+              saveDecidedMeal({ ...matchedMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
+            }
+            router.push("/guest-home");
+          } else {
+            router.push("/");
+          }
         }
         return;
       }

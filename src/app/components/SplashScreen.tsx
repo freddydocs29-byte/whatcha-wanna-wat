@@ -142,9 +142,10 @@ export default function SplashScreen({ onLetsGo, onSignIn, onContinueAsGuest }: 
             fontFamily: "var(--font-sans, system-ui)",
             fontWeight: 400,
             fontSize: 13,
-            color: "rgba(137,126,115,0.6)",
-            background: "none",
-            border: "none",
+            color: "#C7BDAC",
+            background: "rgba(255,231,202,0.045)",
+            border: "1px solid rgba(245,237,224,0.14)",
+            borderRadius: 8,
             padding: "8px 0",
           }}
         >

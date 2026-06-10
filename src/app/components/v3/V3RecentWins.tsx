@@ -49,7 +49,7 @@ export default function V3RecentWins({ wins, savedMealIds, onToggleSave, onSeeAl
               fontWeight: 400,
             }}
           >
-            last 7 days
+            Recent picks
           </span>
         </div>
         <button

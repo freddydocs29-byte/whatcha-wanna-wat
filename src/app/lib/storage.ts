@@ -89,17 +89,11 @@ export type DecidedMeal = Meal & {
 export function mealWasManuallyClearedAfter(decidedAt: string): boolean {
   if (typeof window === "undefined") return false;
   const clearedAt = localStorage.getItem('wwe_meal_cleared_at')
-  console.log('[clearCheck] wwe_meal_cleared_at:', clearedAt, '| decidedAt:', decidedAt)
-  if (!clearedAt) {
-    console.log('[clearCheck] no cleared timestamp — returning false')
-    return false
-  }
+  if (!clearedAt) return false;
   const clearedAtTime = parseInt(clearedAt, 10);
   const decidedAtTime = new Date(decidedAt).getTime();
-  const result = clearedAtTime > decidedAtTime
-  console.log('[clearCheck] clearedAtTime:', clearedAtTime, '> decidedAtTime:', decidedAtTime, '=', result)
   if (Number.isNaN(clearedAtTime) || Number.isNaN(decidedAtTime)) return false;
-  return result;
+  return clearedAtTime > decidedAtTime;
 }
 
 /** Returns the currently decided meal, or null if none is set. */
@@ -117,15 +111,9 @@ export function saveDecidedMeal(meal: DecidedMeal): void {
   localStorage.removeItem('wwe_meal_cleared_at');
 
   const userId = getUserId();
-  console.log('[decidedMeal] userId at save time:', userId);
-
-  if (!userId) {
-    console.warn('[decidedMeal] no userId — skipping Supabase write');
-    return;
-  }
+  if (!userId) return;
 
   upsertLastDecidedMeal(userId, meal)
-    .then(() => console.log('[decidedMeal] saved to Supabase:', meal.name))
     .catch((err) => console.error('[decidedMeal] Supabase write failed:', err));
 }
 
