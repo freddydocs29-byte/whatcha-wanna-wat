@@ -3,17 +3,20 @@ export interface WinItem {
   emoji: string;
   name: string;
   day: string;
-  /** isFavorite is not currently wired for Recent Wins — heart is displayed non-interactive */
-  isFavorite?: boolean;
+  mealId: string;
 }
 
 interface V3RecentWinsProps {
   wins?: WinItem[];
+  /** Set of meal IDs currently in the user's saved collection. */
+  savedMealIds?: Set<string>;
+  /** Called when the heart is tapped. Parent handles save/unsave logic. */
+  onToggleSave?: (mealId: string) => void;
   onSeeAll?: () => void;
   onMealClick?: (index: number) => void;
 }
 
-export default function V3RecentWins({ wins, onSeeAll, onMealClick }: V3RecentWinsProps) {
+export default function V3RecentWins({ wins, savedMealIds, onToggleSave, onSeeAll, onMealClick }: V3RecentWinsProps) {
   if (!wins || wins.length === 0) return null;
 
   return (
@@ -166,10 +169,13 @@ export default function V3RecentWins({ wins, onSeeAll, onMealClick }: V3RecentWi
                 {win.day}
               </span>
 
-              {/* Heart — non-interactive display only.
-                  TODO: wire to real save/unsave logic when Recent Wins save
-                  behavior is supported in the data layer. */}
-              <span
+              {/* Heart — save/unsave button wired to real saved-meals state */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSave?.(win.mealId);
+                }}
+                aria-label={savedMealIds?.has(win.mealId) ? "Remove from saved" : "Save meal"}
                 className="absolute z-[3] flex items-center justify-center"
                 style={{
                   top: 9,
@@ -182,14 +188,14 @@ export default function V3RecentWins({ wins, onSeeAll, onMealClick }: V3RecentWi
                   backdropFilter: "blur(8px)",
                   WebkitBackdropFilter: "blur(8px)",
                   fontSize: 11,
-                  color: "#C7BDAC",
-                  cursor: "default",
+                  color: savedMealIds?.has(win.mealId) ? "#E8621A" : "#C7BDAC",
+                  cursor: "pointer",
                   userSelect: "none",
+                  padding: 0,
                 }}
-                aria-hidden="true"
               >
-                ♡
-              </span>
+                {savedMealIds?.has(win.mealId) ? "♥" : "♡"}
+              </button>
             </div>
 
             {/* Dish name — Instrument Serif italic */}

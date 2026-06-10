@@ -54,8 +54,8 @@ const APP_STORAGE_KEYS = [
   "wwe_locked_headlines_seen", // last 15 variantIds shown in the decided-state headline
   "wwe_active_session",    // current shared session created by this device
   "wwe_drawer_hint_seen", // one-time hint pointing to the meal detail drawer
-  "wwe_type_reveal_pending", // pending flavor-type reveal — cleared after shown
-  "wwe_type_revealed",       // permanent marker — prevents reveal from firing again
+  "wwe_type_reveal_pending",  // pending flavor-type reveal — cleared after shown
+  "wwe_type_last_revealed",   // personalizedName of the last type shown; re-reveal fires only when this changes
 ] as const;
 
 /**

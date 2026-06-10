@@ -517,19 +517,21 @@ export async function getFlavorType(
     writeCache(key, { result, decisionCount: dna.totalDecisions });
     if (userId) void upsertFlavorType(userId, context, result);
 
-    // Set reveal-pending flag on the very first solo type assignment only.
+    // Queue a reveal when the user's type is newly unlocked or has changed.
     // Guards:
-    //   - solo context (never partner)
+    //   - solo context only (never partner/couples)
     //   - fresh compute only (cache hit returns early above)
-    //   - enough decisions to be meaningful
-    //   - no pending flag already waiting to be consumed
-    //   - wwe_type_revealed is not set (permanent "already shown" marker)
+    //   - totalDecisions >= 7 (meaningful threshold)
+    //   - no pending reveal already waiting to be consumed
+    //   - personalizedName differs from the last type that was revealed
+    //     (prevents repeated reveals for the same type after Profile → Home
+    //     navigation or ordinary meal choices)
     if (
       context === "solo" &&
       dna.totalDecisions >= 7 &&
       typeof window !== "undefined" &&
       !localStorage.getItem("wwe_type_reveal_pending") &&
-      localStorage.getItem("wwe_type_revealed") !== "true"
+      localStorage.getItem("wwe_type_last_revealed") !== result.personalizedName
     ) {
       localStorage.setItem(
         "wwe_type_reveal_pending",

@@ -1887,6 +1887,7 @@ function DeckContent() {
 
   function handlePass() {
     dismissHint();
+    dismissSwipeTip();
     dismissDrawerHint();
     if (meal) {
       trackingSwipeCountRef.current += 1;
@@ -2007,6 +2008,7 @@ function DeckContent() {
   function handleChoose() {
     if (!meal || isChoosing || isExiting) return;
     dismissHint();
+    dismissSwipeTip();
     dismissDrawerHint();
 
     trackingSwipeCountRef.current += 1;

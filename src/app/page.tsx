@@ -186,6 +186,7 @@ export default function Home() {
   const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
   const [decidedSaved, setDecidedSaved] = useState(false);
   const [savedJustNow, setSavedJustNow] = useState(false);
+  const [winSavedIds, setWinSavedIds] = useState<Set<string>>(new Set());
   const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
   const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
@@ -254,8 +255,10 @@ export default function Home() {
       setTodaysPick(pick);
       const decided = getDecidedMeal();
       setDecidedMealState(decided);
-      if (decided) setDecidedSaved(getSavedMealsEnriched().some((s) => s.meal.id === decided.id));
-      if (pick) setSaved(getSavedMealsEnriched().some((s) => s.meal.id === pick.meal.id));
+      const enriched = getSavedMealsEnriched();
+      if (decided) setDecidedSaved(enriched.some((s) => s.meal.id === decided.id));
+      if (pick) setSaved(enriched.some((s) => s.meal.id === pick.meal.id));
+      setWinSavedIds(new Set(enriched.map((s) => s.meal.id)));
       setStreak(getStreak());
       fetchProfileByAuthUserId(session.user.id).then((p) => {
         setProfile(p);
@@ -267,9 +270,27 @@ export default function Home() {
       // Fire-and-forget — never blocks Home from showing
       const userId = getUserId();
       getAllPartners(userId).then((list) => {
-        const hiddenRaw = typeof window !== "undefined"
-          ? localStorage.getItem(`wwe_hidden_home_partners_${userId}`)
-          : null;
+        // ── Hidden-partners: stable device key ─────────────────────────────
+        // New canonical key — not userId-suffixed so it survives UUID rotation.
+        const HIDDEN_KEY = "wwe_hidden_partner_ids";
+
+        // One-time migration: merge any IDs from the old userId-suffixed key.
+        const oldKey = `wwe_hidden_home_partners_${userId}`;
+        const oldRaw = typeof window !== "undefined" ? localStorage.getItem(oldKey) : null;
+        if (oldRaw) {
+          try {
+            const oldIds: string[] = JSON.parse(oldRaw);
+            if (oldIds.length > 0) {
+              const stableRaw = localStorage.getItem(HIDDEN_KEY);
+              const stableIds: string[] = stableRaw ? JSON.parse(stableRaw) : [];
+              const merged = Array.from(new Set([...stableIds, ...oldIds]));
+              localStorage.setItem(HIDDEN_KEY, JSON.stringify(merged));
+            }
+          } catch { /* non-fatal */ }
+          localStorage.removeItem(oldKey); // remove old key after migration
+        }
+
+        const hiddenRaw = typeof window !== "undefined" ? localStorage.getItem(HIDDEN_KEY) : null;
         const hiddenIds = new Set<string>(hiddenRaw ? JSON.parse(hiddenRaw) : []);
         const visible = list.filter((p) => !hiddenIds.has(p.partnerId));
         setPartners(visible.slice(0, 3));
@@ -619,9 +640,11 @@ export default function Home() {
 
     try {
       const { typeName, tagline } = JSON.parse(revealPending) as { typeName: string; tagline: string };
-      // Mark revealed before updating state — prevents any race if component
-      // unmounts before onDismiss fires.
-      localStorage.setItem("wwe_type_revealed", "true");
+      // Record which type was just shown so the same personalizedName never
+      // queues another reveal (Profile → Home, ordinary meal choices, etc.).
+      // wwe_type_last_revealed replaces the old global wwe_type_revealed boolean
+      // and enables re-reveal when the type genuinely changes later.
+      localStorage.setItem("wwe_type_last_revealed", typeName);
       localStorage.removeItem("wwe_type_reveal_pending");
       setTypeRevealData({ typeName, tagline });
     } catch {
@@ -1282,13 +1305,11 @@ export default function Home() {
               onChange={(ids) => setSelectedPeopleIds(ids)}
               onInvite={() => setShowInviteDrawer(true)}
               onHidePartner={(id) => {
-                const userId = getUserId();
-                const key = `wwe_hidden_home_partners_${userId}`;
                 const existing: string[] = JSON.parse(
-                  localStorage.getItem(key) ?? "[]"
+                  localStorage.getItem("wwe_hidden_partner_ids") ?? "[]"
                 );
                 if (!existing.includes(id)) {
-                  localStorage.setItem(key, JSON.stringify([...existing, id]));
+                  localStorage.setItem("wwe_hidden_partner_ids", JSON.stringify([...existing, id]));
                 }
                 setPartners((prev) => prev.filter((p) => p.partnerId !== id));
                 setSelectedPeopleIds((prev) => prev.filter((s) => s !== id));
@@ -1382,11 +1403,24 @@ export default function Home() {
                 emoji: MEAL_EMOJI[entry.meal.category] ?? "🍽️",
                 name: entry.meal.name,
                 day: new Date(entry.chosenAt).toLocaleDateString("en-US", { weekday: "short" }),
-                isFavorite: false,
+                mealId: entry.meal.id,
               }));
               return (
                 <V3RecentWins
                   wins={wins}
+                  savedMealIds={winSavedIds}
+                  onToggleSave={(mealId) => {
+                    if (winSavedIds.has(mealId)) {
+                      removeSavedMeal(mealId);
+                      setWinSavedIds((prev) => { const next = new Set(prev); next.delete(mealId); return next; });
+                    } else {
+                      const meal = recentHistory.find((e) => e.meal.id === mealId)?.meal;
+                      if (meal) {
+                        saveMeal(meal);
+                        setWinSavedIds((prev) => new Set(prev).add(mealId));
+                      }
+                    }
+                  }}
                   onSeeAll={() => router.push("/history")}
                   onMealClick={(index) => {
                     const entry = recentHistory[index];
