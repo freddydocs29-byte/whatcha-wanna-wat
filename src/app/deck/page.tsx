@@ -1685,8 +1685,18 @@ function DeckContent() {
    * "Fresh Ideas" button handler — explicit user-triggered AI enrichment.
    * Rebuilds the static deck first to get a clean base, then enriches with AI.
    */
+  function canGuestRequestNewDeck(): boolean {
+    if (!isGuest) return true;
+    if (!tryConsumeGuestDeckBudget()) {
+      setShowGuestLimit(true);
+      return false;
+    }
+    return true;
+  }
+
   async function handleFreshIdeas(): Promise<void> {
     if (aiMealsLoading || sessionId) return;
+    if (!canGuestRequestNewDeck()) return;
     trackEvent("fresh_ideas_tapped", { pantryMode, ingredientCount: selectedIngredients.length, vibeMode: sessionVibeMode });
     deckFinishedFiredRef.current = false;
     swipeFatigueFiredRef.current = false;
@@ -1743,12 +1753,7 @@ function DeckContent() {
   }
 
   function handleRefreshDeckWithVibe(vibe: SessionVibeMode) {
-    if (isGuest) {
-      if (!tryConsumeGuestDeckBudget()) {
-        setShowGuestLimit(true);
-        return;
-      }
-    }
+    if (!canGuestRequestNewDeck()) return;
     // Increment solo reset counter in sessionStorage and state
     const nextCount = (parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0) + 1;
     sessionStorage.setItem(SOLO_RESET_SS_KEY, String(nextCount));
@@ -3003,6 +3008,9 @@ function DeckContent() {
               </div>
             </div>
           </div>
+          {showGuestLimit && (
+            <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
+          )}
         </main>
       );
     }
@@ -3175,6 +3183,9 @@ function DeckContent() {
               ))}
             </div>
           </div>
+          {showGuestLimit && (
+            <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
+          )}
         </main>
       );
     }
@@ -3256,6 +3267,9 @@ function DeckContent() {
               Build my deck →
             </button>
           </div>
+          {showGuestLimit && (
+            <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
+          )}
         </main>
       );
     }
@@ -3371,6 +3385,9 @@ function DeckContent() {
             </button>
           </div>
         </div>
+        {showGuestLimit && (
+          <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
+        )}
       </main>
     );
   }
