@@ -31,7 +31,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const router = useRouter();
   const [saved, setSaved] = useState(false);
   const [savedJustNow, setSavedJustNow] = useState(false);
-  const [isGuest, setIsGuest] = useState(false);
+  const [isGuest, setIsGuest] = useState<boolean | null>(null);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -162,7 +162,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           cookTime={meal.tags.find((t) => /\d+\s*min/i.test(t)) ?? "—"}
           spice={meal.tags.some((t) => /spic/i.test(t)) ? "🌶️🌶️" : "Mild"}
           matchScore={matchScore}
-          onClear={isGuest ? undefined : handleNewDeck}
+          onClear={isGuest === false ? handleNewDeck : undefined}
           onSave={isGuest ? () => router.push("/auth?mode=signup") : toggleSave}
           isSaved={saved}
           savedJustNow={savedJustNow}
@@ -206,7 +206,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
         )}
       </div>
 
-      {!isGuest && <BottomNav activeHref="/" />}
+      {isGuest === false && <BottomNav activeHref="/" />}
 
       {mealActionMode && (
         <V3MealActionDrawer
