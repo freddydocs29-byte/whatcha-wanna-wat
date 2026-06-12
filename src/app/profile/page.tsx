@@ -137,6 +137,7 @@ export default function ProfilePage() {
   const [soloInsights, setSoloInsights] = useState<string[]>([]);
   const [flavorType, setFlavorType] = useState<FlavorTypeResult | null>(null);
   const [couplesDNA, setCouplesDNA] = useState<CouplesDNA | null>(null);
+  const [totalSharedDecisions, setTotalSharedDecisions] = useState<number>(0);
   const [couplesFlavorType, setCouplesFlavorType] = useState<FlavorTypeResult | null>(null);
   const [couplesInsights, setCouplesInsights] = useState<string[]>([]);
   const [partnerName, setPartnerName] = useState<string | null>(null);
@@ -236,11 +237,13 @@ export default function ProfilePage() {
           soloInsights: null;
           couplesInsights: null;
           partners: PartnerInfo[] | null;
+          totalSharedDecisions?: number;
         };
 
         const allPartners = data.partners ?? [];
         setSoloDNA(data.solo);
         setPartners(allPartners);
+        setTotalSharedDecisions(data.totalSharedDecisions ?? 0);
 
         // Insights use localStorage — generate client-side after receiving DNA
         if (data.solo && data.solo.totalDecisions >= 3) {
@@ -896,7 +899,7 @@ export default function ProfilePage() {
           {[
             { value: history.length, label: "Decisions" },
             { value: mealsTriedCount, label: "Meals tried" },
-            { value: couplesDNA?.totalMatchesTogether ?? 0, label: "With others" },
+            { value: totalSharedDecisions, label: "With others" },
           ].map(({ value, label }) => (
             <div
               key={label}

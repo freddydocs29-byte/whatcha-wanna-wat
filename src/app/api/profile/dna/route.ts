@@ -3,6 +3,7 @@ import {
   getSoloDNA,
   getCouplesDNA,
   getAllPartners,
+  getTotalSharedDecisions,
   type SoloDNA,
   type CouplesDNA,
   type PartnerInfo,
@@ -19,6 +20,9 @@ interface DNAResponse {
   soloInsights: null;
   couplesInsights: null;
   partners: PartnerInfo[] | null;
+  // Global count of matched shared sessions for this user across all partners.
+  // Not filtered by partnerId — safe to use as a cumulative "With others" stat.
+  totalSharedDecisions: number;
 }
 
 // ── GET /api/profile/dna ───────────────────────────────────────────────────────
@@ -44,6 +48,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     soloInsights: null,
     couplesInsights: null,
     partners: null,
+    totalSharedDecisions: 0,
   };
 
   // ── Solo DNA ──────────────────────────────────────────────────────────────
@@ -58,6 +63,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     result.partners = await getAllPartners(userId);
   } catch (err) {
     console.error("[api/profile/dna] getAllPartners failed:", err);
+  }
+
+  // ── Global shared decision count (all partners) ──────────────────────────
+  try {
+    result.totalSharedDecisions = await getTotalSharedDecisions(userId);
+  } catch (err) {
+    console.error("[api/profile/dna] getTotalSharedDecisions failed:", err);
   }
 
   // ── Couples DNA (only when partnerId provided) ────────────────────────────

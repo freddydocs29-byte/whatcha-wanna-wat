@@ -682,3 +682,22 @@ export async function getCouplesDNA(
     userBFlavorTags: computeFlavorTags(userBRows),
   };
 }
+
+// ── Global shared decision count (all partners) ────────────────────────────
+// Returns the number of matched sessions the user has participated in across
+// ALL partners — not filtered by a specific partner. One count per session
+// (no double-counting when both users have rows in the decisions table).
+export async function getTotalSharedDecisions(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("id")
+    .or(`host_user_id.eq.${userId},guest_user_id.eq.${userId}`)
+    .eq("status", "matched");
+
+  if (error) {
+    console.error("[getTotalSharedDecisions] query failed:", error);
+    return 0;
+  }
+
+  return (data ?? []).length;
+}
