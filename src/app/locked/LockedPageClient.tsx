@@ -16,6 +16,8 @@ import { getAuthUserId } from "../lib/identity";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
 import V3MealActionRows from "../components/v3/V3MealActionRows";
+import V3MealActionDrawer from "../components/v3/V3MealActionDrawer";
+import { MealDetailDrawer } from "../components/MealDetailDrawer";
 
 type Props = {
   meal: Meal;
@@ -29,6 +31,8 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [savedJustNow, setSavedJustNow] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
@@ -65,20 +69,12 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
 
   function handleCook() {
     trackEvent("cook_clicked", { mealId: meal.id });
-    window.open(
-      `https://www.google.com/search?q=${recipeQuery}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    setMealActionMode("cook");
   }
 
   function handleOrder() {
     trackEvent("order_clicked", { mealId: meal.id });
-    window.open(
-      `https://www.google.com/maps/search/${encodeURIComponent(meal.name + " near me")}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    setMealActionMode("order");
   }
 
   function buildAuthUrl(authMode: "signup" | "signin") {
@@ -155,12 +151,13 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           cookTime={meal.tags.find((t) => /\d+\s*min/i.test(t)) ?? "—"}
           spice={meal.tags.some((t) => /spic/i.test(t)) ? "🌶️🌶️" : "Mild"}
           matchScore={matchScore}
-          onClear={handleNewDeck}
+          onClear={isGuest ? undefined : handleNewDeck}
           onSave={isGuest ? () => router.push("/auth?mode=signup") : toggleSave}
           isSaved={saved}
           savedJustNow={savedJustNow}
           onCook={handleCook}
           onOrder={handleOrder}
+          onDetails={() => setDetailOpen(true)}
         />
 
         <V3MealActionRows
@@ -199,6 +196,21 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
       </div>
 
       {!isGuest && <BottomNav activeHref="/" />}
+
+      {mealActionMode && (
+        <V3MealActionDrawer
+          meal={meal}
+          mode={mealActionMode}
+          onClose={() => setMealActionMode(null)}
+        />
+      )}
+
+      <MealDetailDrawer
+        meal={meal}
+        isOpen={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        context="solo"
+      />
     </main>
   );
 }

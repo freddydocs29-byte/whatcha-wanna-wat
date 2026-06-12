@@ -239,20 +239,22 @@ export default function V3LockedMealCard({
             <ExpandIcon />
           </button>
 
-          {/* Clear / Change */}
-          <button
-            onClick={onClear}
-            title="Change meal"
-            className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-xs cursor-pointer shrink-0 transition-all"
-            style={{
-              background: "rgba(255,231,202,0.07)",
-              border: "1px solid rgba(245,237,224,0.12)",
-              color: "#8A7F78",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
-            }}
-          >
-            ✕
-          </button>
+          {/* Clear / Change — hidden for guests (onClear not provided) */}
+          {onClear && (
+            <button
+              onClick={onClear}
+              title="Change meal"
+              className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-xs cursor-pointer shrink-0 transition-all"
+              style={{
+                background: "rgba(255,231,202,0.07)",
+                border: "1px solid rgba(245,237,224,0.12)",
+                color: "#8A7F78",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 

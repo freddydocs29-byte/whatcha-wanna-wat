@@ -3439,8 +3439,8 @@ function DeckContent() {
           </button>
         </header>
 
-        {/* Pantry bar + Fresh Ideas — solo only */}
-        {!sessionId && (
+        {/* Pantry bar + Fresh Ideas — solo authenticated only */}
+        {!sessionId && !isGuest && (
           <div className="px-5 mt-1 flex items-stretch gap-2">
             <motion.button
               onClick={() => {
