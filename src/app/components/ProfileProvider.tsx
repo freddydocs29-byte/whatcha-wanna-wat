@@ -35,7 +35,7 @@ import {
   upsertRecentlySeen,
   linkAuthToProfile,
 } from "../lib/supabase-profile";
-import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter } from "../lib/storage";
+import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter, saveDecidedMeal, addToHistory, getHistory, type DecidedMeal } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/supabase";
 
@@ -165,7 +165,7 @@ function applyPendingGuestMeal(): boolean {
   // Always clear the key — we either apply it now or it's invalid.
   localStorage.removeItem(PENDING_GUEST_MEAL_KEY);
   try {
-    const pending = JSON.parse(raw) as { decidedAt?: string };
+    const pending = JSON.parse(raw) as DecidedMeal;
     if (!pending?.decidedAt) return false;
     const currentRaw = localStorage.getItem(DECIDED_MEAL_KEY);
     if (currentRaw) {
@@ -175,8 +175,34 @@ function applyPendingGuestMeal(): boolean {
       // Keep whichever meal is newer; discard the pending meal if older.
       if (pendingTime < currentTime) return false;
     }
+    // Write to localStorage (immediate visual state).
     localStorage.setItem(DECIDED_MEAL_KEY, raw);
     console.log("[profile] applied pending guest meal:", pending.decidedAt);
+
+    // Persist to Supabase so the meal survives page refresh and future logins.
+    // saveDecidedMeal uses getUserId() which is already updated to the authenticated
+    // user's profile user_id by the time applyPendingGuestMeal() runs (Step 1 of
+    // initializeProfile updates wwe_user_id in localStorage for returning users).
+    saveDecidedMeal(pending);
+
+    // Add to history, guarding against duplicate entries for the signup path where
+    // deck/page.tsx already wrote the anon user's history to Supabase. Only skip if
+    // this exact meal was recorded within the last 2 hours (same session).
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    const pendingDecidedTime = new Date(pending.decidedAt).getTime();
+    const alreadyInHistory = getHistory().some(
+      (h) =>
+        h.meal.id === pending.id &&
+        Math.abs(new Date(h.chosenAt).getTime() - pendingDecidedTime) < TWO_HOURS,
+    );
+    if (!alreadyInHistory) {
+      addToHistory(pending);
+    }
+
+    // Notify the home page so it updates React state immediately without waiting
+    // for the next full render cycle triggered by setProfileReady(true).
+    window.dispatchEvent(new Event("decidedMealRestored"));
+
     return true;
   } catch {
     return false;
