@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getDecidedMeal, type DecidedMeal } from "../lib/storage";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "../lib/locked-copy";
+import V3PostMatchHome from "../components/v3/V3PostMatchHome";
+import V3LockedMealCard from "../components/v3/V3LockedMealCard";
+import V3MealActionDrawer from "../components/v3/V3MealActionDrawer";
 
 export default function GuestHomePage() {
   const router = useRouter();
   const [decidedMeal, setDecidedMeal] = useState<DecidedMeal | null | undefined>(undefined);
   const [headline, setHeadline] = useState<LockedMealHeadlineResult | null>(null);
+  const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
 
   useEffect(() => {
     const meal = getDecidedMeal();
@@ -31,7 +35,7 @@ export default function GuestHomePage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center px-6 pt-14 pb-16 relative overflow-hidden"
+      className="min-h-screen flex flex-col overflow-hidden relative"
       style={{ background: "#0B0805" }}
     >
       {/* Ember ambient glow */}
@@ -53,8 +57,8 @@ export default function GuestHomePage() {
         style={{ boxShadow: "inset 0 0 100px 20px rgba(0,0,0,0.5)" }}
       />
 
-      <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-        {/* Wordmark — Quicksand + Instrument Serif italic, matching Splash */}
+      {/* Wordmark */}
+      <div className="relative z-10 flex flex-col items-center pt-14 pb-4 shrink-0">
         <div className="flex flex-col items-center" style={{ lineHeight: 0.85 }}>
           <span
             style={{
@@ -82,11 +86,14 @@ export default function GuestHomePage() {
             wanna eat?
           </span>
         </div>
+      </div>
 
-        {/* ── Decided meal card ── */}
-        {missing ? (
-          <div
-            className="mt-12 w-full rounded-[20px] p-6 text-center"
+      {/* Scrollable content */}
+      <div className="relative z-10 flex-1 overflow-y-auto flex flex-col pb-8">
+
+        {/* ── Missing state ── */}
+        {missing && (
+          <div className="mx-[14px] mt-4 rounded-[20px] p-6 text-center"
             style={{
               background: "rgba(255,231,202,0.04)",
               border: "1px solid rgba(245,237,224,0.10)",
@@ -100,67 +107,37 @@ export default function GuestHomePage() {
               Ask them to resend the link.
             </p>
           </div>
-        ) : decidedMeal ? (
-          <div className="mt-10 w-full">
-            {/* Headline */}
-            <h1 className="font-display font-black text-4xl text-white leading-tight">
-              {headline?.headline ?? "Good call."}
-            </h1>
-            <h1 className="font-display font-black text-4xl text-[#E8621A] leading-tight text-balance">
-              {headline?.subheadline ?? "Stop thinking about it."}
-            </h1>
+        )}
 
-            {/* Card */}
-            <div
-              className="w-full rounded-[20px] p-5 mt-6"
-              style={{
-                background: "rgba(255,231,202,0.05)",
-                border: "1px solid rgba(74,124,89,0.30)",
-                boxShadow: "0 0 30px rgba(74,124,89,0.12), inset 0 1px 0 rgba(255,255,255,0.05)",
-              }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <p className="text-[#4A7C59] text-[11px] font-semibold tracking-widest uppercase">
-                  TONIGHT&apos;S PICK
-                </p>
-              </div>
-
-              {decidedMeal.image && (
-                <div
-                  className="w-full rounded-[14px] overflow-hidden mb-4"
-                  style={{
-                    aspectRatio: "16/9",
-                    background: "rgba(255,231,202,0.04)",
-                    border: "1px solid rgba(245,237,224,0.08)",
-                  }}
-                >
-                  <img
-                    src={decidedMeal.image}
-                    alt={decidedMeal.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#4A7C59] flex items-center justify-center font-display font-black text-lg text-white flex-shrink-0">
-                  ✓
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-display font-black text-xl text-white">
-                    🍽️ {decidedMeal.name}
-                  </span>
-                  <p className="font-body text-xs text-[#8A7F78] mt-1">
-                    Decided with your partner
-                  </p>
-                </div>
-              </div>
+        {/* ── Matched meal — current locked experience ── */}
+        {decidedMeal && (
+          <>
+            <div className="mt-4">
+              <V3PostMatchHome
+                mealName={decidedMeal.name}
+                headline={headline?.headline ?? "Dinner is\nlocked in."}
+                sub={headline?.subheadline ?? `You matched ${decidedMeal.name}.`}
+                mealImage={decidedMeal.image || undefined}
+              />
             </div>
-          </div>
-        ) : null /* loading — render nothing until resolved */}
+            <V3LockedMealCard
+              mealName={decidedMeal.name}
+              tags={[decidedMeal.cuisine, decidedMeal.category].filter(Boolean).join(" • ")}
+              cookTime={decidedMeal.tags.find((t) => /\d+\s*min/i.test(t)) ?? "—"}
+              spice={decidedMeal.tags.some((t) => /spic/i.test(t)) ? "🌶️🌶️" : "Mild"}
+              matchScore="Matched!"
+              onCook={() => setMealActionMode("cook")}
+              onOrder={() => setMealActionMode("order")}
+              onClear={() => router.push("/deck")}
+            />
+          </>
+        )}
+
+        {/* Loading — render nothing until storage resolves */}
+        {decidedMeal === undefined && null}
 
         {/* ── Account creation prompt ── */}
-        <div className="mt-10 w-full">
+        <div className="px-6 mt-8">
           <h2 className="font-display font-black text-2xl text-white leading-tight">
             Want picks like this again?
           </h2>
@@ -169,7 +146,17 @@ export default function GuestHomePage() {
           </p>
 
           <button
-            onClick={() => router.push("/auth?mode=signup&from=guest-match")}
+            onClick={() => {
+              if (decidedMeal) {
+                try {
+                  localStorage.setItem("wwe_pending_guest_meal", JSON.stringify(decidedMeal));
+                } catch { /* quota exceeded — ignore, ProfileProvider fallback still runs */ }
+              }
+              const params = new URLSearchParams({ mode: "signup", from: "guest-match" });
+              if (decidedMeal?.id) params.set("mealId", decidedMeal.id);
+              if (decidedMeal?.sessionId) params.set("sessionId", decidedMeal.sessionId);
+              router.push(`/auth?${params.toString()}`);
+            }}
             className="mt-6 w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full"
             style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
           >
@@ -177,7 +164,17 @@ export default function GuestHomePage() {
           </button>
 
           <button
-            onClick={() => router.push("/auth?mode=signin&from=guest-match")}
+            onClick={() => {
+              if (decidedMeal) {
+                try {
+                  localStorage.setItem("wwe_pending_guest_meal", JSON.stringify(decidedMeal));
+                } catch { /* quota exceeded — ignore, ProfileProvider fallback still runs */ }
+              }
+              const params = new URLSearchParams({ mode: "signin", from: "guest-match" });
+              if (decidedMeal?.id) params.set("mealId", decidedMeal.id);
+              if (decidedMeal?.sessionId) params.set("sessionId", decidedMeal.sessionId);
+              router.push(`/auth?${params.toString()}`);
+            }}
             className="mt-3 w-full font-body text-sm text-[#8A7F78] text-center py-3"
           >
             Already have an account? Sign in
@@ -185,13 +182,24 @@ export default function GuestHomePage() {
         </div>
 
         {/* ── Guest-safe continue option ── */}
-        <button
-          onClick={() => router.push("/deck")}
-          className="mt-6 w-full rounded-full border border-white/10 bg-transparent py-4 text-center font-display font-black text-base text-white/70"
-        >
-          Start your own pick →
-        </button>
+        <div className="px-6 mt-2">
+          <button
+            onClick={() => router.push("/deck")}
+            className="w-full rounded-full border border-white/10 bg-transparent py-4 text-center font-display font-black text-base text-white/70"
+          >
+            Start your own pick →
+          </button>
+        </div>
       </div>
+
+      {/* Cook / Order action drawer */}
+      {mealActionMode && decidedMeal && (
+        <V3MealActionDrawer
+          meal={decidedMeal}
+          mode={mealActionMode}
+          onClose={() => setMealActionMode(null)}
+        />
+      )}
     </main>
   );
 }

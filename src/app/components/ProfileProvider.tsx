@@ -43,6 +43,8 @@ import type { Profile } from "../lib/supabase";
 
 const TASTE_KEY = "wwe_taste_profile";
 const SEEN_KEY = "wwe_seen_sessions";
+const DECIDED_MEAL_KEY = "watcha_decided_meal";
+const PENDING_GUEST_MEAL_KEY = "wwe_pending_guest_meal";
 /** Hard cap on the flat seen-IDs list stored in Supabase. */
 const MAX_SEEN_IDS = 120;
 
@@ -141,6 +143,44 @@ async function withRetry<T>(
   }
   console.warn(`[profile] ${label} failed after ${maxAttempts} attempts`);
   return null;
+}
+
+// ─── Pending guest meal ───────────────────────────────────────────────────────
+
+/**
+ * Applies wwe_pending_guest_meal to watcha_decided_meal after all profile
+ * restores are complete, preventing a returning user's Supabase
+ * last_decided_meal from overwriting a guest match result.
+ *
+ * Written by guest-home before navigating to auth (belt-and-suspenders copy
+ * also made by auth/page.tsx at submit time). Cleared immediately after use.
+ * Only applied when the pending meal is at least as new as the current meal.
+ *
+ * Returns true if a pending meal was applied.
+ */
+function applyPendingGuestMeal(): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = localStorage.getItem(PENDING_GUEST_MEAL_KEY);
+  if (!raw) return false;
+  // Always clear the key — we either apply it now or it's invalid.
+  localStorage.removeItem(PENDING_GUEST_MEAL_KEY);
+  try {
+    const pending = JSON.parse(raw) as { decidedAt?: string };
+    if (!pending?.decidedAt) return false;
+    const currentRaw = localStorage.getItem(DECIDED_MEAL_KEY);
+    if (currentRaw) {
+      const current = JSON.parse(currentRaw) as { decidedAt?: string };
+      const pendingTime = new Date(pending.decidedAt).getTime();
+      const currentTime = new Date(current?.decidedAt ?? 0).getTime();
+      // Keep whichever meal is newer; discard the pending meal if older.
+      if (pendingTime < currentTime) return false;
+    }
+    localStorage.setItem(DECIDED_MEAL_KEY, raw);
+    console.log("[profile] applied pending guest meal:", pending.decidedAt);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ─── Restore helper ───────────────────────────────────────────────────────────
@@ -381,6 +421,14 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
       upsertRecentlySeen(resolvedUserId, merged).catch(() => {});
     }
   }
+
+  // ── Apply pending guest meal (must run last, after all profile restores) ──
+  //
+  // Protects the decided meal a guest locked during a shared session from
+  // being overwritten by this user's Supabase last_decided_meal. Written by
+  // guest-home (and backed up by auth/page.tsx) before the auth flow starts.
+  // Cleared here after first use so it never affects subsequent boots.
+  applyPendingGuestMeal();
 }
 
 // ─── Loading screen ───────────────────────────────────────────────────────────

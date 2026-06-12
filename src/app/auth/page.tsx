@@ -100,6 +100,10 @@ export default function AuthPage() {
   // Read ?mode=signup|signin from URL — set by the splash screen buttons.
   const initialMode: Mode = searchParams.get("mode") === "signin" ? "signin" : "signup";
   const fromGuestMatch = searchParams.get("from") === "guest-match";
+  // Used as a belt-and-suspenders fallback: if guest-home somehow failed to
+  // write wwe_pending_guest_meal, we can still copy watcha_decided_meal at
+  // submit time before the auth state change fires.
+  const pendingMealId = searchParams.get("mealId");
   const [mode, setMode] = useState<Mode>(initialMode);
 
   const [name, setName] = useState("");
@@ -120,6 +124,25 @@ export default function AuthPage() {
     setLoading(true);
 
     const anonUserId = getUserId();
+
+    // Belt-and-suspenders: if coming from a guest match, ensure the decided
+    // meal is protected in the pending key before the auth state change fires.
+    // guest-home writes this key on button click; this fallback covers edge
+    // cases where that write was missed (new tab, storage quota error, etc.).
+    if (fromGuestMatch) {
+      try {
+        if (!localStorage.getItem("wwe_pending_guest_meal")) {
+          const decidedRaw = localStorage.getItem("watcha_decided_meal");
+          if (decidedRaw) {
+            // Only copy if the meal matches the mealId passed in the URL (when present).
+            const meal = JSON.parse(decidedRaw) as { id?: string };
+            if (!pendingMealId || meal?.id === pendingMealId) {
+              localStorage.setItem("wwe_pending_guest_meal", decidedRaw);
+            }
+          }
+        }
+      } catch { /* non-fatal — ProfileProvider applies the key on its own */ }
+    }
 
     try {
       if (mode === "signup") {
@@ -173,6 +196,12 @@ export default function AuthPage() {
         // the correct user_id via fetchProfileByAuthUserId — do not call
         // linkAuthToProfile here, which would risk overwriting a returning
         // user's existing profile with the current device's anon ID.
+        //
+        // If fromGuestMatch: the wwe_pending_guest_meal key written above is
+        // applied by ProfileProvider's applyPendingGuestMeal() at the end of
+        // initializeProfile, after all profile restores complete. This prevents
+        // the returning user's Supabase last_decided_meal from overwriting the
+        // guest match result.
         router.replace("/");
       }
     } catch (err) {
