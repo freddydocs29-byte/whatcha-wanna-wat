@@ -566,12 +566,18 @@ export async function getCouplesDNA(
   // accidentally include shared decisions from sessions with other partners.
   const { data: pairSessions } = await supabase
     .from("sessions")
-    .select("id")
+    .select("id, status")
     .or(
       `and(host_user_id.eq.${userIdA},guest_user_id.eq.${userIdB}),and(host_user_id.eq.${userIdB},guest_user_id.eq.${userIdA})`
     );
 
-  const pairSessionIds = (pairSessions ?? []).map((s) => (s as { id: string }).id);
+  // Count sessions the RPC marked as matched — this is the ground truth for
+  // completed shared picks (the RPC sets status='matched' atomically).
+  const totalMatchesTogether = (pairSessions ?? []).filter(
+    (s) => (s as { id: string; status: string }).status === "matched"
+  ).length;
+
+  const pairSessionIds = (pairSessions ?? []).map((s) => (s as { id: string; status: string }).id);
 
   // All accepted shared decisions for both users, scoped to this pair's sessions
   const { data: sharedDecisions } = pairSessionIds.length
@@ -603,7 +609,7 @@ export async function getCouplesDNA(
     // Return relationship counts even when no complete shared sessions exist yet
     return {
       ...emptyCouplesDNA(),
-      totalMatchesTogether: (relationship.match_count as number) ?? 0,
+      totalMatchesTogether,
       totalSessionsTogether: (relationship.session_count as number) ?? 0,
     };
   }
@@ -667,7 +673,7 @@ export async function getCouplesDNA(
     userAOnlyCuisines: [], // populated from solo DNA cross-ref when card ships
     userBOnlyCuisines: [],
     allTimeNumber1Together,
-    totalMatchesTogether: (relationship.match_count as number) ?? 0,
+    totalMatchesTogether,
     totalSessionsTogether: (relationship.session_count as number) ?? 0,
     fastestMatchTogether,
     avgMatchTimeTogether,
