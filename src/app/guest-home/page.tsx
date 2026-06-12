@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getDecidedMeal, type DecidedMeal } from "../lib/storage";
+import { getDecidedMeal, clearDecidedMeal, type DecidedMeal } from "../lib/storage";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "../lib/locked-copy";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
@@ -184,7 +184,7 @@ export default function GuestHomePage() {
         {/* ── Guest-safe continue option ── */}
         <div className="px-6 mt-2">
           <button
-            onClick={() => router.push("/deck")}
+            onClick={() => { clearDecidedMeal(); router.push("/deck"); }}
             className="w-full rounded-full border border-white/10 bg-transparent py-4 text-center font-display font-black text-base text-white/70"
           >
             Start your own pick →

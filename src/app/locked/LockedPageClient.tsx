@@ -84,18 +84,20 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
       />
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col">
 
-        {/* Top bar — avatar */}
-        <div className="flex items-center justify-end mb-6">
-          <Link
-            href="/profile"
-            className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
-          >
-            {profile?.avatar_url
-              ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
-              : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
-            }
-          </Link>
-        </div>
+        {/* Top bar — avatar (authenticated only) */}
+        {!isGuest && (
+          <div className="flex items-center justify-end mb-6">
+            <Link
+              href="/profile"
+              className="w-11 h-11 rounded-full bg-[#E8621A] overflow-hidden flex items-center justify-center font-display font-black text-lg text-white cursor-pointer"
+            >
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Profile" />
+                : <span>{profile?.display_name?.[0]?.toUpperCase() ?? '?'}</span>
+              }
+            </Link>
+          </div>
+        )}
 
         {/* 1. Headline block */}
         <div>
@@ -188,29 +190,50 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
             <span className="text-[#8A7F78] text-lg">→</span>
           </button>
 
-          {/* Save meal */}
-          <button
-            onClick={toggleSave}
-            className="w-full rounded-[18px] p-4 flex items-center gap-4 text-left"
-            style={{
-              background: "rgba(255,231,202,0.05)",
-              border: "1px solid rgba(245,237,224,0.10)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.30)",
-            }}
-          >
-            <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-2xl flex-shrink-0" style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(232,98,26,0.18)" }}>
-              ⭐
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display font-black text-base text-white">
-                {saved ? `Saved — ${meal.name}` : `Save ${meal.name}`}
-              </p>
-              <p className="font-body text-sm text-[#8A7F78] mt-0.5">
-                {saved ? "Tap to remove from favorites." : "Add to your favorites."}
-              </p>
-            </div>
-            <span className="text-[#8A7F78] text-lg">{saved ? "✓" : "→"}</span>
-          </button>
+          {/* Save meal — guests see sign-up prompt instead */}
+          {isGuest ? (
+            <button
+              onClick={() => router.push("/auth?mode=signup")}
+              className="w-full rounded-[18px] p-4 flex items-center gap-4 text-left"
+              style={{
+                background: "rgba(255,231,202,0.05)",
+                border: "1px solid rgba(245,237,224,0.10)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.30)",
+              }}
+            >
+              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-2xl flex-shrink-0" style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(232,98,26,0.18)" }}>
+                ⭐
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-black text-base text-white">Sign up to save</p>
+                <p className="font-body text-sm text-[#8A7F78] mt-0.5">Create an account to keep your favorites.</p>
+              </div>
+              <span className="text-[#8A7F78] text-lg">→</span>
+            </button>
+          ) : (
+            <button
+              onClick={toggleSave}
+              className="w-full rounded-[18px] p-4 flex items-center gap-4 text-left"
+              style={{
+                background: "rgba(255,231,202,0.05)",
+                border: "1px solid rgba(245,237,224,0.10)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.30)",
+              }}
+            >
+              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-2xl flex-shrink-0" style={{ background: "rgba(255,231,202,0.06)", border: "1px solid rgba(232,98,26,0.18)" }}>
+                ⭐
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-black text-base text-white">
+                  {saved ? `Saved — ${meal.name}` : `Save ${meal.name}`}
+                </p>
+                <p className="font-body text-sm text-[#8A7F78] mt-0.5">
+                  {saved ? "Tap to remove from favorites." : "Add to your favorites."}
+                </p>
+              </div>
+              <span className="text-[#8A7F78] text-lg">{saved ? "✓" : "→"}</span>
+            </button>
+          )}
         </div>
 
         {/* 4. Streak section */}
@@ -248,7 +271,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
 
       </div>
 
-      <BottomNav activeHref="/" homeHref={isGuest ? "/deck" : "/"} />
+      {!isGuest && <BottomNav activeHref="/" />}
 
       {/* Cook vs Order modal */}
       {showEatModal && (
