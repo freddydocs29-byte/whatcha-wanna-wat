@@ -35,7 +35,7 @@ import {
   upsertRecentlySeen,
   linkAuthToProfile,
 } from "../lib/supabase-profile";
-import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter, saveDecidedMeal, addToHistory, getHistory, type DecidedMeal } from "../lib/storage";
+import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter, saveDecidedMeal, saveMeal, addToHistory, getHistory, type DecidedMeal } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/supabase";
 
@@ -239,6 +239,28 @@ function restoreProfileLocalState(profile: Profile): void {
   if (profile.avatar_url) {
     localStorage.setItem('wwe_avatar_url', profile.avatar_url);
     console.log('[restore] avatar restored:', !!profile.avatar_url);
+  }
+}
+
+// ─── Pending save meal ────────────────────────────────────────────────────────
+
+/**
+ * After a guest signs up/in via the save-button flow, applies the deferred save.
+ * Written by the guest-home save button before navigating to /auth.
+ * Cleared immediately after use.
+ */
+function applyPendingSaveMeal(): void {
+  if (typeof window === "undefined") return;
+  const raw = localStorage.getItem("wwe_pending_save_meal");
+  if (!raw) return;
+  localStorage.removeItem("wwe_pending_save_meal");
+  try {
+    const meal = JSON.parse(raw);
+    if (!meal?.id) return;
+    saveMeal(meal);
+    console.log("[profile] applied pending save meal:", meal.id);
+  } catch {
+    // non-fatal — ignore
   }
 }
 
@@ -455,6 +477,13 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
   // guest-home (and backed up by auth/page.tsx) before the auth flow starts.
   // Cleared here after first use so it never affects subsequent boots.
   applyPendingGuestMeal();
+
+  // ── Apply pending save meal (deferred save from guest save-button flow) ──
+  //
+  // Written by the guest-home bookmark button before navigating to /auth.
+  // Cleared here after first use. Runs after profile restores so saveMeal
+  // writes to the correct user_id.
+  applyPendingSaveMeal();
 }
 
 // ─── Loading screen ───────────────────────────────────────────────────────────

@@ -131,6 +131,14 @@ export default function GuestHomePage() {
               cookTime={decidedMeal.tags.find((t) => /\d+\s*min/i.test(t)) ?? "—"}
               spice={decidedMeal.tags.some((t) => /spic/i.test(t)) ? "🌶️🌶️" : "Mild"}
               matchScore="Matched!"
+              onSave={() => {
+                try {
+                  localStorage.setItem('wwe_pending_save_meal', JSON.stringify(decidedMeal));
+                } catch { /* quota exceeded — ignore */ }
+                const params = new URLSearchParams({ mode: 'signup', from: 'guest-save' });
+                if (decidedMeal.id) params.set('mealId', decidedMeal.id);
+                router.push(`/auth?${params.toString()}`);
+              }}
               onCook={() => setMealActionMode("cook")}
               onOrder={() => setMealActionMode("order")}
               onDetails={() => setDetailOpen(true)}
@@ -194,11 +202,9 @@ export default function GuestHomePage() {
                 setShowGuestLimit(true);
                 return;
               }
-              console.log('[guest-restart-v2] context/store sessionId before navigation:', 'N/A — no context/store; session only lives in URL params or localStorage');
-              console.log('[guest-restart-v2] restore-mode switch variable before navigation: sharedLoading will be false (no sessionId param being passed to /deck)');
               incrementGuestAttempts();
               clearDecidedMeal();
-              router.push("/deck");
+              window.location.href = '/deck';
             }}
             className="w-full rounded-full border border-white/10 bg-transparent py-4 text-center font-display font-black text-base text-white/70"
           >

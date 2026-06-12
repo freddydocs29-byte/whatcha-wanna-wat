@@ -283,10 +283,6 @@ function DeckContent() {
   const searchParams = useSearchParams();
   const isChangeMeal = searchParams.get("change") === "1";
   const sessionId = searchParams.get("sessionId");
-  console.log('[deck-boot-v2] URL sessionId:', searchParams?.get('sessionId'));
-  console.log('[deck-boot-v2] context/store sessionId:', 'N/A — no context/store used; deck reads URL param only');
-  console.log('[deck-boot-v2] restore-mode switch variable: sharedLoading will init =', !!sessionId, '(sharedLoading = !!sessionId at line 364)');
-  console.log('[deck-boot-v2] final sessionId used for query:', sessionId);
   const [existingMeal, setExistingMeal] = useState<HistoryEntry | null>(null);
   const [rankedMeals, setRankedMeals] = useState<RankedMeal[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
