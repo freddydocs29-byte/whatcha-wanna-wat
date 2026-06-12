@@ -2799,7 +2799,7 @@ function DeckContent() {
                       {/* Outer ring */}
                       <div className="absolute rounded-full" style={{ width: 200, height: 200, background: "rgba(94,158,110,0.04)" }} />
                       {/* Mid ring */}
-                      <div className="absolute rounded-full" style={{ width: 164, height: 164, background: "rgba(94,158,110,0.08)" }} />
+                      <div className="absolute rounded-full animate-pulse-soft" style={{ width: 164, height: 164, background: "rgba(94,158,110,0.08)" }} />
                       {/* Green orb */}
                       <div
                         className="relative flex items-center justify-center"

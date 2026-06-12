@@ -1207,7 +1207,7 @@ export default function SessionPage() {
         {/* Green rings orb */}
         <div className="relative w-[160px] h-[160px] flex items-center justify-center">
           <div
-            className="absolute rounded-full"
+            className="absolute rounded-full animate-pulse-soft"
             style={{
               inset: -14,
               border: "1px solid rgba(94,158,110,0.3)",
@@ -1215,7 +1215,7 @@ export default function SessionPage() {
             }}
           />
           <div
-            className="absolute rounded-full"
+            className="absolute rounded-full animate-pulse"
             style={{
               inset: 8,
               border: "1px solid rgba(94,158,110,0.6)",
