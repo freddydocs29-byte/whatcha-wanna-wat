@@ -194,6 +194,8 @@ export default function GuestHomePage() {
                 setShowGuestLimit(true);
                 return;
               }
+              console.log('[guest-restart-v2] context/store sessionId before navigation:', 'N/A — no context/store; session only lives in URL params or localStorage');
+              console.log('[guest-restart-v2] restore-mode switch variable before navigation: sharedLoading will be false (no sessionId param being passed to /deck)');
               incrementGuestAttempts();
               clearDecidedMeal();
               router.push("/deck");

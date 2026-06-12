@@ -20,13 +20,17 @@ const RETRY_KEY = "wwe_guest_retry_used";
 /** Number of solo deck starts this guest has initiated. */
 export function getGuestAttempts(): number {
   if (typeof window === "undefined") return 0;
-  return parseInt(localStorage.getItem(ATTEMPTS_KEY) ?? "0", 10);
+  const val = parseInt(localStorage.getItem(ATTEMPTS_KEY) ?? "0", 10);
+  console.log('[guest-limit-v2] action:', 'read', 'value:', val, 'location:', 'getGuestAttempts');
+  return val;
 }
 
 /** Record one more solo deck start. */
 export function incrementGuestAttempts(): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(ATTEMPTS_KEY, String(getGuestAttempts() + 1));
+  const next = getGuestAttempts() + 1;
+  localStorage.setItem(ATTEMPTS_KEY, String(next));
+  console.log('[guest-limit-v2] action:', 'increment', 'value:', next, 'location:', 'incrementGuestAttempts');
 }
 
 /** Whether the guest has already used their one "Changed your mind?" retry. */
