@@ -8,6 +8,7 @@ import {
   saveMeal,
   removeSavedMeal,
   clearDecidedMeal,
+  getDecidedMeal,
 } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
 import BottomNav from "../components/BottomNav";
@@ -27,10 +28,13 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [saved, setSaved] = useState(false);
   const [savedJustNow, setSavedJustNow] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
     getAuthUserId().then((uid) => setIsGuest(uid === null));
+    const decided = getDecidedMeal();
+    if (decided?.sessionId) setSessionId(decided.sessionId);
   }, [meal.id]);
 
   function toggleSave() {
@@ -75,6 +79,33 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
       "_blank",
       "noopener,noreferrer",
     );
+  }
+
+  function buildAuthUrl(authMode: "signup" | "signin") {
+    const params = new URLSearchParams({ mode: authMode, from: "guest-match" });
+    if (meal.id) params.set("mealId", meal.id);
+    if (sessionId) params.set("sessionId", sessionId);
+    return `/auth?${params.toString()}`;
+  }
+
+  function handleCreateAccount() {
+    const decided = getDecidedMeal();
+    if (decided) {
+      try {
+        localStorage.setItem("wwe_pending_guest_meal", JSON.stringify(decided));
+      } catch { /* quota exceeded — ignore */ }
+    }
+    router.push(buildAuthUrl("signup"));
+  }
+
+  function handleSignIn() {
+    const decided = getDecidedMeal();
+    if (decided) {
+      try {
+        localStorage.setItem("wwe_pending_guest_meal", JSON.stringify(decided));
+      } catch { /* quota exceeded — ignore */ }
+    }
+    router.push(buildAuthUrl("signin"));
   }
 
   const headline = pickedForYou ? "Decided\nfor you." : "Tonight's pick\nis locked in.";
@@ -144,6 +175,27 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
             saveAction,
           ]}
         />
+
+        {isGuest && (
+          <div className="px-6 mt-8 mb-4">
+            <button
+              onClick={handleCreateAccount}
+              className="w-full bg-[#E8621A] text-white font-display font-black text-base py-4 rounded-full"
+              style={{ boxShadow: "0 0 30px rgba(232,98,26,0.3)" }}
+            >
+              Create account →
+            </button>
+            <p className="font-body text-sm text-[#8A7F78] text-center mt-2 leading-relaxed px-2">
+              Keep this pick, save favorites, and build your flavor profile.
+            </p>
+            <button
+              onClick={handleSignIn}
+              className="mt-3 w-full font-body text-sm text-[#8A7F78] text-center py-3"
+            >
+              Already have an account? Sign in
+            </button>
+          </div>
+        )}
       </div>
 
       {!isGuest && <BottomNav activeHref="/" />}
