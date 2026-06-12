@@ -124,6 +124,11 @@ export function saveDecidedMeal(meal: DecidedMeal): void {
 export function clearDecidedMeal(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(DECIDED_MEAL_KEY);
+  // Write cleared-at timestamp so restoreDecidedMealFromProfile / mealWasManuallyClearedAfter
+  // can correctly suppress Supabase restores for meals that were explicitly dismissed.
+  // Without this, ProfileProvider finds the old meal in Supabase last_decided_meal and
+  // silently puts it back into localStorage because the cleared-at guard is never triggered.
+  localStorage.setItem('wwe_meal_cleared_at', String(Date.now()));
   const userId = getUserId();
   if (userId) {
     upsertLastDecidedMeal(userId, null).catch(() => {});

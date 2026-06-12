@@ -9,12 +9,14 @@ import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
 import V3MealActionDrawer from "../components/v3/V3MealActionDrawer";
+import { MealDetailDrawer } from "../components/MealDetailDrawer";
 
 export default function GuestHomePage() {
   const router = useRouter();
   const [decidedMeal, setDecidedMeal] = useState<DecidedMeal | null | undefined>(undefined);
   const [headline, setHeadline] = useState<LockedMealHeadlineResult | null>(null);
   const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [showGuestLimit, setShowGuestLimit] = useState(false);
 
   useEffect(() => {
@@ -131,15 +133,7 @@ export default function GuestHomePage() {
               matchScore="Matched!"
               onCook={() => setMealActionMode("cook")}
               onOrder={() => setMealActionMode("order")}
-              onClear={() => {
-                if (guestSoloDeckExhausted()) {
-                  setShowGuestLimit(true);
-                  return;
-                }
-                incrementGuestAttempts();
-                clearDecidedMeal();
-                router.push("/deck");
-              }}
+              onDetails={() => setDetailOpen(true)}
             />
           </>
         )}
@@ -217,6 +211,16 @@ export default function GuestHomePage() {
           meal={decidedMeal}
           mode={mealActionMode}
           onClose={() => setMealActionMode(null)}
+        />
+      )}
+
+      {/* Meal detail drawer — no save/profile/history CTAs at context="shared" */}
+      {decidedMeal && (
+        <MealDetailDrawer
+          meal={decidedMeal}
+          isOpen={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          context="shared"
         />
       )}
 
