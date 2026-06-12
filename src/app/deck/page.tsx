@@ -590,6 +590,7 @@ function DeckContent() {
   // `isExhausted` const to avoid a temporal-dead-zone issue with the dep array.
   useEffect(() => {
     const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    console.log('[reset-guest] effect check. isHost:', isHost, 'exhausted:', exhausted, 'sessionId:', sessionId, 'userId:', userId)
     if (!sessionId || !userId || !exhausted) return;
 
     const totalDeckSize = Math.min(rankedMeals.length, DECK_SIZE);
@@ -604,6 +605,10 @@ function DeckContent() {
         .eq("id", sessionId)
         .single();
 
+      // NOTE: status/updated_at are NOT in this select — both will log as undefined (by design, for diagnosis)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const _d = sessionData as any;
+      console.log('[reset-guest] polling tick. session.status:', _d?.status, 'session.updated_at:', _d?.updated_at, 'session.deck_meal_ids:', sessionData?.deck_meal_ids)
       if (!mounted || !sessionData) return;
 
       // Detect host/guest role once so the exhausted UI can render the right CTA.
@@ -1923,12 +1928,16 @@ function DeckContent() {
     setSharedResetCount(nextCount);
     trackEvent("deck_refreshed", { mode: "shared", sessionId });
     setSharedRefreshing(true);
+    console.log('[reset-write] host starting shared reset. sessionId:', sessionId, 'role:', isHost === true ? 'host' : isHost === false ? 'guest' : 'unknown')
     await supabase.from("swipes").delete().eq("session_id", sessionId);
     // Reset deck and status back to 'ready' so the session page auto-rebuilds
-    await supabase
+    const { data: updatedSession } = await supabase
       .from("sessions")
       .update({ deck_meal_ids: null, status: "ready", updated_at: new Date().toISOString() })
       .eq("id", sessionId);
+    console.log('[reset-write] host reset success. sessionId:', sessionId, 'new status should be ready, deck_meal_ids should be null')
+    // updatedSession is null without .select() — logged to confirm no data is returned
+    console.log('[reset-write] returned session:', updatedSession)
     if (typeof window !== "undefined") {
       localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
     }
