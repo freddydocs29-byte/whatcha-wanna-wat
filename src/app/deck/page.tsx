@@ -808,6 +808,7 @@ function DeckContent() {
   const pendingNudgeRef = useRef<NudgeTrigger | null>(null);
   const [activeNudge, setActiveNudge] = useState<NudgeTrigger | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [savedFeedback, setSavedFeedback] = useState<Set<string>>(new Set());
 
   // ── Ritual detection refs ─────────────────────────────────────────────────
   // Stores the ritual result once detectRituals() completes (async on mount).
@@ -1985,8 +1986,14 @@ function DeckContent() {
 
   function handleSave() {
     if (meal) {
+      if (savedFeedback.has(meal.id)) {
+        setToastMessage("Already saved");
+        return;
+      }
       saveMeal(meal);
       updateTasteProfile(meal, "save");
+      setSavedFeedback(prev => { const s = new Set(prev); s.add(meal.id); return s; });
+      setToastMessage("Saved ★");
 
       // ── Progressive onboarding: track prefer signals (solo only) ─────────
       // handleSave doesn't use triggerExit so we show the nudge immediately
