@@ -365,7 +365,6 @@ export function addToHistory(meal: Meal): void {
       .eq('user_id', userId)
       .then(({ error }) => {
         if (error) console.error('[history] sync failed:', error.message);
-        else console.log('[history] synced to Supabase');
       });
   }
 }

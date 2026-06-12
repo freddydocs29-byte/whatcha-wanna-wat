@@ -238,8 +238,6 @@ export async function recordDecision(opts: {
   const userId = getUserId();
   if (!userId) return;
 
-  console.log('[decisions] writing with userId:', userId);
-
   const now = new Date();
   const { mealPeriod, dayType } = inferSessionContext(now);
 
@@ -265,7 +263,6 @@ export async function recordDecision(opts: {
   if (error) {
     console.error('[decisions] insert failed:', error.message, error.details, error.hint);
   } else {
-    console.log('[decisions] insert success for meal:', opts.meal.name);
     if (opts.outcome === "accepted") {
       void checkAndTriggerTypeReveal();
     }

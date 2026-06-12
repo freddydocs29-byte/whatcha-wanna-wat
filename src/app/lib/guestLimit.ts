@@ -24,7 +24,6 @@ export const GUEST_DECK_BUDGET = 2;
 export function getGuestAttempts(): number {
   if (typeof window === "undefined") return 0;
   const val = parseInt(localStorage.getItem(ATTEMPTS_KEY) ?? "0", 10);
-  console.log('[guest-limit-v2] action:', 'read', 'value:', val, 'location:', 'getGuestAttempts');
   return val;
 }
 
@@ -33,7 +32,6 @@ export function incrementGuestAttempts(): void {
   if (typeof window === "undefined") return;
   const next = getGuestAttempts() + 1;
   localStorage.setItem(ATTEMPTS_KEY, String(next));
-  console.log('[guest-limit-v2] action:', 'increment', 'value:', next, 'location:', 'incrementGuestAttempts');
 }
 
 /** Whether the guest has already used their one "Changed your mind?" retry. */
