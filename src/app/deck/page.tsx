@@ -377,6 +377,8 @@ function DeckContent() {
   // Ref guards for one-time actions that live inside async/interval callbacks
   const isHostDetectedRef = useRef(false);
   const followedResetRef = useRef(false);
+  const guestFollowedResetRef = useRef(false);
+  const originalDeckMealIdsRef = useRef<string[] | null>(null);
   const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
   const [matchConfirmError, setMatchConfirmError] = useState<string | null>(null);
   const [matchConfirming, setMatchConfirming] = useState(false);
@@ -590,7 +592,6 @@ function DeckContent() {
   // `isExhausted` const to avoid a temporal-dead-zone issue with the dep array.
   useEffect(() => {
     const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
-    console.log('[reset-guest] effect check. isHost:', isHost, 'exhausted:', exhausted, 'sessionId:', sessionId, 'userId:', userId)
     if (!sessionId || !userId || !exhausted) return;
 
     const totalDeckSize = Math.min(rankedMeals.length, DECK_SIZE);
@@ -601,14 +602,10 @@ function DeckContent() {
 
       const { data: sessionData } = await supabase
         .from("sessions")
-        .select("host_user_id, guest_user_id, deck_meal_ids")
+        .select("host_user_id, guest_user_id, deck_meal_ids, status, updated_at")
         .eq("id", sessionId)
         .single();
 
-      // NOTE: status/updated_at are NOT in this select — both will log as undefined (by design, for diagnosis)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const _d = sessionData as any;
-      console.log('[reset-guest] polling tick. session.status:', _d?.status, 'session.updated_at:', _d?.updated_at, 'session.deck_meal_ids:', sessionData?.deck_meal_ids)
       if (!mounted || !sessionData) return;
 
       // Detect host/guest role once so the exhausted UI can render the right CTA.
@@ -617,10 +614,33 @@ function DeckContent() {
         setIsHost(userId === sessionData.host_user_id);
       }
 
-      // If the deck was cleared (host hit "Start a fresh session"), follow them to
-      // the lobby. Use router.replace so the stale exhausted screen is not in the
-      // back stack. Guard with followedResetRef so it only fires once.
-      if (!sessionData.deck_meal_ids?.length) {
+      const isGuestRole = userId === sessionData.guest_user_id;
+      const isSharedSession = !!(sessionData.host_user_id && sessionData.guest_user_id);
+
+      // Snapshot the guest's original deck once on the first successful poll.
+      if (isGuestRole && originalDeckMealIdsRef.current === null && sessionData.deck_meal_ids) {
+        originalDeckMealIdsRef.current = sessionData.deck_meal_ids;
+      }
+
+      // Guest auto-advance: detect when host has reset and rebuilt the deck.
+      // Fires on EITHER status === "ready" OR deck_meal_ids changed from the original snapshot.
+      // Guards ensure this only triggers from the shared exhausted state and only once.
+      if (isSharedSession && isGuestRole && exhausted && !guestFollowedResetRef.current) {
+        const deckChanged =
+          originalDeckMealIdsRef.current !== null &&
+          JSON.stringify(sessionData.deck_meal_ids) !== JSON.stringify(originalDeckMealIdsRef.current);
+
+        const statusReady = sessionData.status === "ready";
+
+        if (statusReady || (deckChanged && sessionData.deck_meal_ids && sessionData.deck_meal_ids.length > 0)) {
+          guestFollowedResetRef.current = true;
+          window.location.href = `/session/${sessionId}`;
+          return;
+        }
+      }
+
+      // Host path: if the deck was cleared, follow back to the lobby.
+      if (!isGuestRole && !sessionData.deck_meal_ids?.length) {
         if (!followedResetRef.current) {
           followedResetRef.current = true;
           router.replace(`/session/${sessionId}`);
@@ -1928,20 +1948,16 @@ function DeckContent() {
     setSharedResetCount(nextCount);
     trackEvent("deck_refreshed", { mode: "shared", sessionId });
     setSharedRefreshing(true);
-    console.log('[reset-write] host starting shared reset. sessionId:', sessionId, 'role:', isHost === true ? 'host' : isHost === false ? 'guest' : 'unknown')
     await supabase.from("swipes").delete().eq("session_id", sessionId);
     // Reset deck and status back to 'ready' so the session page auto-rebuilds
-    const { data: updatedSession } = await supabase
+    await supabase
       .from("sessions")
       .update({ deck_meal_ids: null, status: "ready", updated_at: new Date().toISOString() })
       .eq("id", sessionId);
-    console.log('[reset-write] host reset success. sessionId:', sessionId, 'new status should be ready, deck_meal_ids should be null')
-    // updatedSession is null without .select() — logged to confirm no data is returned
-    console.log('[reset-write] returned session:', updatedSession)
     if (typeof window !== "undefined") {
       localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
     }
-    router.push(`/session/${sessionId}`);
+    window.location.href = `/session/${sessionId}`;
   }
 
   function handlePass() {

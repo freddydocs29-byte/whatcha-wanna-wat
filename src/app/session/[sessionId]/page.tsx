@@ -394,18 +394,9 @@ export default function SessionPage() {
     session?.status === "matched";
 
   const prevBothConnectedRef = useRef(false);
-  console.log('[reset-host] component render. sessionId:', sessionId, 'prevBothConnectedRef on render:', prevBothConnectedRef.current, 'showStartSwiping:', showStartSwiping)
   useEffect(() => {
-    console.log('[reset-host] effect fired. bothConnected:', bothConnected, 'prevBothConnectedRef:', prevBothConnectedRef.current, 'role:', role, 'showStartSwiping:', showStartSwiping, 'session.status:', session?.status)
-    if (!bothConnected || prevBothConnectedRef.current) {
-      console.log('[reset-host] effect returning early. reason:', !bothConnected ? 'bothConnected false' : 'prevBothConnectedRef already true')
-      return
-    }
-    if (role !== "host") {
-      console.log('[reset-host] effect returning early. reason: not host')
-      return
-    }
-    console.log('[reset-host] proceeding — setting hostStep waiting, starting 2s timer')
+    if (!bothConnected || prevBothConnectedRef.current) return;
+    if (role !== "host") return;
     prevBothConnectedRef.current = true;
     setHostStep("waiting");
     const timer = setTimeout(() => setShowStartSwiping(true), 2000);
