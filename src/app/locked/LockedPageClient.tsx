@@ -13,7 +13,7 @@ import {
 import { trackEvent } from "../lib/analytics";
 import BottomNav from "../components/BottomNav";
 import { getAuthUserId } from "../lib/identity";
-import { guestRetryExhausted, markGuestRetryUsed, incrementGuestAttempts } from "../lib/guestLimit";
+import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget } from "../lib/guestLimit";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
@@ -60,14 +60,12 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   function handleNewDeck() {
     trackEvent("change_mind_clicked", { mealId: meal.id });
     if (isGuest) {
-      // Check if the guest has already used their one retry.
-      if (guestRetryExhausted()) {
+      if (guestDeckBudgetExhausted()) {
         setShowGuestLimit(true);
         return;
       }
-      // Consume the retry and start a fresh deck.
-      markGuestRetryUsed();
-      incrementGuestAttempts();
+      // Consume budget and start a fresh deck.
+      tryConsumeGuestDeckBudget();
       // Clear the active decided meal before navigating so the deck starts fresh.
       // Without this, watcha_decided_meal would remain set in localStorage and
       // could cause stale state across the new deck session.

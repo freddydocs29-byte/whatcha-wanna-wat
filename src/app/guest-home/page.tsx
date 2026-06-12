@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getDecidedMeal, clearDecidedMeal, type DecidedMeal } from "../lib/storage";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "../lib/locked-copy";
-import { guestSoloDeckExhausted, incrementGuestAttempts } from "../lib/guestLimit";
+import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget } from "../lib/guestLimit";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
@@ -198,11 +198,11 @@ export default function GuestHomePage() {
         <div className="px-6 mt-2">
           <button
             onClick={() => {
-              if (guestSoloDeckExhausted()) {
+              if (guestDeckBudgetExhausted()) {
                 setShowGuestLimit(true);
                 return;
               }
-              incrementGuestAttempts();
+              tryConsumeGuestDeckBudget();
               clearDecidedMeal();
               window.location.href = '/deck';
             }}

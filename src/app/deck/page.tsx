@@ -23,6 +23,8 @@ import { type SoftAvoid } from "../lib/supabase";
 import { detectRituals, getRitualLabel, isRitualSuppressed, recordRitualRejection, type RitualDetection } from "../lib/rituals";
 import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
+import GuestLimitPrompt from "../components/GuestLimitPrompt";
+import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
@@ -315,6 +317,7 @@ function DeckContent() {
     () => typeof window !== "undefined" && !!localStorage.getItem("wwe_drawer_hint_seen")
   );
   const [isGuest, setIsGuest] = useState(false);
+  const [showGuestLimit, setShowGuestLimit] = useState(false);
   // ── Solo exhausted diagnostic state ────────────────────────────────────────
   const [soloExhaustedView, setSoloExhaustedView] = useState<"main" | "top3" | "vibe-select">("main");
   const [diagSelectedVibe, setDiagSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
@@ -401,6 +404,19 @@ function DeckContent() {
       setIsGuest(!user);
     });
   }, []);
+
+  // Guest budget mount gate — blocks rogue /deck navigations when budget is exhausted.
+  // consumeGuestDeckEntryGrant() reads and clears the one-time grant written by
+  // tryConsumeGuestDeckBudget(), so a legitimately-allowed deck is never blocked.
+  useEffect(() => {
+    if (!isGuest) return;
+    if (guestDeckBudgetExhausted()) {
+      const hasEntryGrant = consumeGuestDeckEntryGrant();
+      if (!hasEntryGrant) {
+        setShowGuestLimit(true);
+      }
+    }
+  }, [isGuest]);
 
   // Mount guard: if user already completed this shared session, skip straight to exhausted UI
   useEffect(() => {
@@ -1727,6 +1743,12 @@ function DeckContent() {
   }
 
   function handleRefreshDeckWithVibe(vibe: SessionVibeMode) {
+    if (isGuest) {
+      if (!tryConsumeGuestDeckBudget()) {
+        setShowGuestLimit(true);
+        return;
+      }
+    }
     // Increment solo reset counter in sessionStorage and state
     const nextCount = (parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0) + 1;
     sessionStorage.setItem(SOLO_RESET_SS_KEY, String(nextCount));
@@ -4144,6 +4166,9 @@ function DeckContent() {
         )}
       </AnimatePresence>
 
+      {showGuestLimit && (
+        <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
+      )}
     </main>
   );
 }
