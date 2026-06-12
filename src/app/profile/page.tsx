@@ -315,29 +315,39 @@ export default function ProfilePage() {
             } catch { /* non-fatal */ }
           })();
 
-          if (data.couples) {
-            setCouplesDNA(data.couples);
-            const ci = await getCouplesInsights(
-              data.couples,
-              selfProfile?.display_name ?? undefined,
-              firstPartner.displayName ?? undefined,
-              userId,
-              firstPartner.partnerId
-            ).catch(() => []);
-            setCouplesInsights(ci);
+          // The initial fetch has no partnerId so data.couples is always null.
+          // Make a second call with the first partner's ID to get couplesDNA.
+          try {
+            const couplesRes = await fetch(
+              `/api/profile/dna?userId=${encodeURIComponent(userId)}&partnerId=${encodeURIComponent(firstPartner.partnerId)}`
+            );
+            if (couplesRes.ok) {
+              const couplesData = (await couplesRes.json()) as { couples: CouplesDNA | null };
+              if (couplesData.couples) {
+                setCouplesDNA(couplesData.couples);
+                const ci = await getCouplesInsights(
+                  couplesData.couples,
+                  selfProfile?.display_name ?? undefined,
+                  firstPartner.displayName ?? undefined,
+                  userId,
+                  firstPartner.partnerId
+                ).catch(() => []);
+                setCouplesInsights(ci);
 
-            // Couples flavor type — only when 7+ shared accepted matches
-            if (data.couples.totalMatchesTogether >= 7) {
-              getFlavorType(
-                data.couples,
-                { partnerId: firstPartner.partnerId },
-                selfProfile?.display_name ?? undefined,
-                userId
-              )
-                .then(setCouplesFlavorType)
-                .catch(() => { /* non-fatal */ });
+                // Couples flavor type — only when 7+ shared accepted matches
+                if (couplesData.couples.totalMatchesTogether >= 7) {
+                  getFlavorType(
+                    couplesData.couples,
+                    { partnerId: firstPartner.partnerId },
+                    selfProfile?.display_name ?? undefined,
+                    userId
+                  )
+                    .then(setCouplesFlavorType)
+                    .catch(() => { /* non-fatal */ });
+                }
+              }
             }
-          }
+          } catch { /* non-fatal */ }
         }
       } catch (err) {
         console.warn("[profile] DNA load error:", err);
