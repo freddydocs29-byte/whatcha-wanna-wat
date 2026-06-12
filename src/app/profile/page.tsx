@@ -1619,6 +1619,25 @@ export default function ProfilePage() {
           )}
         </div>
 
+        {/* Edit food preferences CTA */}
+        <div className="mx-5 mt-4 mb-2">
+          <button
+            onClick={() => router.push("/onboarding?edit=true")}
+            className="w-full flex items-center justify-between rounded-[14px] px-4 py-3.5 transition hover:opacity-90"
+            style={{
+              background: "rgba(255,231,202,0.055)",
+              border: "1px solid rgba(245,237,224,0.09)",
+              boxShadow: "inset 0 1px 0 rgba(245,237,224,0.05)",
+            }}
+          >
+            <div>
+              <p className="text-white text-left" style={{ fontFamily: "var(--font-quicksand)", fontWeight: 700, fontSize: "14px" }}>Edit food preferences</p>
+              <p className="font-body text-xs mt-0.5 text-left" style={{ color: "#897E73", fontWeight: 300 }}>Update cuisines, dietary needs, and hard NOs.</p>
+            </div>
+            <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
+          </button>
+        </div>
+
         {/* Novelty bias */}
         <div
           className="mx-5 mt-6 mb-4 rounded-[20px] px-5 py-5"
