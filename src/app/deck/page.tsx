@@ -372,6 +372,11 @@ function DeckContent() {
   const [bothDone, setBothDone] = useState(false);
   const [bypassToExhausted, setBypassToExhausted] = useState(false);
   const [sharedRefreshing, setSharedRefreshing] = useState(false);
+  // Whether the current user is the session host. Null until first checkState fires.
+  const [isHost, setIsHost] = useState<boolean | null>(null);
+  // Ref guards for one-time actions that live inside async/interval callbacks
+  const isHostDetectedRef = useRef(false);
+  const followedResetRef = useRef(false);
   const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
   const [matchConfirmError, setMatchConfirmError] = useState<string | null>(null);
   const [matchConfirming, setMatchConfirming] = useState(false);
@@ -601,9 +606,20 @@ function DeckContent() {
 
       if (!mounted || !sessionData) return;
 
-      // If the deck was cleared (other user hit "Refresh deck"), follow them to the lobby
+      // Detect host/guest role once so the exhausted UI can render the right CTA.
+      if (!isHostDetectedRef.current) {
+        isHostDetectedRef.current = true;
+        setIsHost(userId === sessionData.host_user_id);
+      }
+
+      // If the deck was cleared (host hit "Start a fresh session"), follow them to
+      // the lobby. Use router.replace so the stale exhausted screen is not in the
+      // back stack. Guard with followedResetRef so it only fires once.
       if (!sessionData.deck_meal_ids?.length) {
-        router.push(`/session/${sessionId}`);
+        if (!followedResetRef.current) {
+          followedResetRef.current = true;
+          router.replace(`/session/${sessionId}`);
+        }
         return;
       }
 
@@ -2702,23 +2718,46 @@ function DeckContent() {
                             </div>
                             <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
                           </button>
-                          <button
-                            onClick={() => void handleSharedRefreshDeck()}
-                            disabled={sharedRefreshing}
-                            className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
-                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
-                          >
-                            <span className="text-2xl flex-shrink-0">🔄</span>
-                            <div className="flex-1 min-w-0">
-                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
-                                {sharedRefreshing ? "Starting fresh…" : "Start a fresh session"}
-                              </p>
-                              <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
-                                {sharedRefreshing ? "Clearing swipes and rebuilding your deck" : "Build a new deck together"}
-                              </p>
+                          {isHost === false ? (
+                            /* Guest: passive waiting row — host is the only one who can reset */
+                            <div
+                              className="rounded-[18px] p-4 flex items-center gap-4 w-full"
+                              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)", opacity: 0.75 }}
+                            >
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <div className="w-2 h-2 rounded-full bg-[#E8621A]/50 animate-pulse" />
+                                <div className="w-2 h-2 rounded-full bg-[#E8621A]/50 animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                <div className="w-2 h-2 rounded-full bg-[#E8621A]/50 animate-pulse" style={{ animationDelay: "0.4s" }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
+                                  Waiting for your partner to start a fresh round…
+                                </p>
+                                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
+                                  You&apos;ll be taken there automatically
+                                </p>
+                              </div>
                             </div>
-                            {!sharedRefreshing && <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>}
-                          </button>
+                          ) : (
+                            /* Host (or role not yet resolved): active reset button */
+                            <button
+                              onClick={() => void handleSharedRefreshDeck()}
+                              disabled={sharedRefreshing}
+                              className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
+                              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
+                            >
+                              <span className="text-2xl flex-shrink-0">🔄</span>
+                              <div className="flex-1 min-w-0">
+                                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
+                                  {sharedRefreshing ? "Starting fresh…" : "Start a fresh session"}
+                                </p>
+                                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
+                                  {sharedRefreshing ? "Clearing swipes and rebuilding your deck" : "Build a new deck together"}
+                                </p>
+                              </div>
+                              {!sharedRefreshing && <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>}
+                            </button>
+                          )}
                           <button
                             onClick={() => router.push(isGuest ? "/guest-home" : "/")}
                             className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
