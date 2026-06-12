@@ -496,7 +496,9 @@ export default function SessionPage() {
     }
     const vibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;
     trackEvent("shared_deck_started", { sessionId, vibe });
-    router.push(`/deck?sessionId=${sessionId}&vibe=${vibe}`);
+    // Hard nav: consistent with the shared-reset flow; ensures /deck mounts fresh
+    // with no stale component state from a prior visit.
+    window.location.href = `/deck?sessionId=${sessionId}&vibe=${vibe}`;
   }
 
   // ── Guest quick setup ─────────────────────────────────────────────────────
@@ -1296,7 +1298,8 @@ export default function SessionPage() {
         <button
           onClick={() => {
             trackEvent("shared_deck_started", { sessionId, vibe: guestVibe });
-            router.push(`/deck?sessionId=${sessionId}&vibe=${guestVibe}`);
+            // Hard nav: ensures /deck mounts fresh with no stale component state
+            window.location.href = `/deck?sessionId=${sessionId}&vibe=${guestVibe}`;
           }}
           className="mt-7 w-full max-w-xs text-white font-bold text-base py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
           style={gradientPrimary}

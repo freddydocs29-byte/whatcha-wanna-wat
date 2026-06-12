@@ -1956,6 +1956,8 @@ function DeckContent() {
       .eq("id", sessionId);
     if (typeof window !== "undefined") {
       localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
+      // Clear the completion flag so /deck doesn't bypass-to-exhausted on the fresh deck
+      localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
     }
     window.location.href = `/session/${sessionId}`;
   }
@@ -2469,6 +2471,43 @@ function DeckContent() {
             </p>
             <p className="mt-1" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 18, color: "#C7BDAC" }}>
               Syncing with your partner…
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Layer B structural guard: deck not populated yet ─────────────────────
+  // Checked BEFORE isExhausted so an empty rankedMeals array (length === 0)
+  // never satisfies currentIndex (0) >= totalCount (0) and shows "still deciding".
+  // Handles the case where bypassToExhausted prematurely cleared sharedLoading.
+  const deckNotReady = !!sessionId && rankedMeals.length === 0 && !sharedError && !sessionExpired;
+  if (deckNotReady) {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center bg-[#0B0805] text-white overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 candlelight-animate" style={{ background: "radial-gradient(ellipse 90% 36% at 50% -4%, rgba(232,98,26,0.12) 0%, transparent 60%)", animation: "candlelight-amb 9s ease-in-out infinite" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
+        <div className="relative z-10 flex flex-col items-center gap-4 px-8 text-center">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse"
+            style={{
+              background: "rgba(232,98,26,0.10)",
+              border: "1px solid rgba(232,98,26,0.22)",
+              boxShadow: "0 0 30px rgba(232,98,26,0.18)",
+              fontSize: 28,
+            }}
+          >
+            🍽️
+          </div>
+          <span className="h-1.5 w-1.5 animate-ping rounded-full" style={{ background: "rgba(232,98,26,0.7)" }} />
+          <div>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#E8621A" }}>
+              Building your deck
+            </p>
+            <p className="mt-1" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 18, color: "#C7BDAC" }}>
+              Almost ready…
             </p>
           </div>
         </div>
