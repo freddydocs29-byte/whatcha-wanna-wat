@@ -190,16 +190,12 @@ export default function GuestHomePage() {
         <div className="px-6 mt-2">
           <button
             onClick={() => {
-              console.log('[guest-restart] handler fired');
-              console.log('[guest-restart] localStorage keys before clear:', Object.keys(localStorage).filter(k => k.startsWith('wwe_') || k.startsWith('watcha_')));
               if (guestSoloDeckExhausted()) {
                 setShowGuestLimit(true);
                 return;
               }
               incrementGuestAttempts();
               clearDecidedMeal();
-              console.log('[guest-restart] localStorage keys after clear:', Object.keys(localStorage).filter(k => k.startsWith('wwe_') || k.startsWith('watcha_')));
-              console.log('[guest-restart] navigating to /deck');
               router.push("/deck");
             }}
             className="w-full rounded-full border border-white/10 bg-transparent py-4 text-center font-display font-black text-base text-white/70"

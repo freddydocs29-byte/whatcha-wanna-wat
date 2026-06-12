@@ -395,17 +395,6 @@ function DeckContent() {
     setUserId(getUserId());
   }, []);
 
-  // ── Debug: trace restart / mount state ───────────────────────────────────────
-  useEffect(() => {
-    console.log('[deck-boot] mount — searchParams:', searchParams?.toString());
-    console.log('[deck-boot] sessionId from URL param:', searchParams?.get('sessionId'));
-    if (typeof window !== 'undefined') {
-      const lsKeys = Object.keys(localStorage).filter(k => k.startsWith('wwe_') || k.startsWith('watcha_'));
-      console.log('[deck-boot] localStorage keys:', lsKeys);
-      console.log('[deck-boot] wwe_active_session:', localStorage.getItem('wwe_active_session'));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Detect guest state (no Supabase auth session) for post-match routing.
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -667,16 +656,11 @@ function DeckContent() {
       if (matchedMealRef.current) return; // Already showing match modal
 
       // Fetch enough fields for match detection, expiry, and abandonment checks
-      console.log('[deck-boot] fetching session status for sessionId:', sessionId);
       const { data: sessionData } = await supabase
         .from("sessions")
         .select("status, locked_meal_id, expires_at, updated_at, host_user_id, guest_user_id")
         .eq("id", sessionId)
         .single();
-      console.log('[deck-boot] session query result:', sessionData);
-      if (sessionData?.status === 'matched') {
-        console.log('[deck-boot] session is MATCHED — this will trigger match modal. locked_meal_id:', sessionData.locked_meal_id);
-      }
 
       // Expiry check — stop polling and show expired screen
       if (
@@ -701,8 +685,6 @@ function DeckContent() {
           const found = meals.find((m) => m.id === sessionData.locked_meal_id);
           if (found) {
             matchPendingAdvanceRef.current = false;
-            console.log('[deck-boot] match modal triggered. source: poll — status=matched restore. meal:', found.name);
-            console.log('[deck-boot] meal shown in modal:', found);
             setMatchedMeal(found);
           }
         }
@@ -775,8 +757,6 @@ function DeckContent() {
             }
           }
           matchPendingAdvanceRef.current = false; // Detected via poll, not own swipe
-          console.log('[deck-boot] match modal triggered. source: poll — live swipe match detection. meal:', found.name);
-          console.log('[deck-boot] meal shown in modal:', found);
           setMatchedMeal(found);
           return;
         }
@@ -1349,8 +1329,6 @@ function DeckContent() {
 
     if (isMatch && !rejectedMatchIdsRef.current.has(chosenMeal.id)) {
       matchPendingAdvanceRef.current = true;
-      console.log('[deck-boot] match modal triggered. source: direct swipe — own yes swipe caused match. meal:', chosenMeal.name);
-      console.log('[deck-boot] meal shown in modal:', chosenMeal);
       setMatchedMeal(chosenMeal);
 
       // Immediately write matched state so the other user's Home polling can
