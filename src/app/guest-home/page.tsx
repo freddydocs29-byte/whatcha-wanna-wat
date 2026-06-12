@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getDecidedMeal, clearDecidedMeal, type DecidedMeal } from "../lib/storage";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "../lib/locked-copy";
+import { guestSoloDeckExhausted, incrementGuestAttempts } from "../lib/guestLimit";
+import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
 import V3MealActionDrawer from "../components/v3/V3MealActionDrawer";
@@ -13,6 +15,7 @@ export default function GuestHomePage() {
   const [decidedMeal, setDecidedMeal] = useState<DecidedMeal | null | undefined>(undefined);
   const [headline, setHeadline] = useState<LockedMealHeadlineResult | null>(null);
   const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
+  const [showGuestLimit, setShowGuestLimit] = useState(false);
 
   useEffect(() => {
     const meal = getDecidedMeal();
@@ -128,7 +131,15 @@ export default function GuestHomePage() {
               matchScore="Matched!"
               onCook={() => setMealActionMode("cook")}
               onOrder={() => setMealActionMode("order")}
-              onClear={() => router.push("/deck")}
+              onClear={() => {
+                if (guestSoloDeckExhausted()) {
+                  setShowGuestLimit(true);
+                  return;
+                }
+                incrementGuestAttempts();
+                clearDecidedMeal();
+                router.push("/deck");
+              }}
             />
           </>
         )}
@@ -184,7 +195,15 @@ export default function GuestHomePage() {
         {/* ── Guest-safe continue option ── */}
         <div className="px-6 mt-2">
           <button
-            onClick={() => { clearDecidedMeal(); router.push("/deck"); }}
+            onClick={() => {
+              if (guestSoloDeckExhausted()) {
+                setShowGuestLimit(true);
+                return;
+              }
+              incrementGuestAttempts();
+              clearDecidedMeal();
+              router.push("/deck");
+            }}
             className="w-full rounded-full border border-white/10 bg-transparent py-4 text-center font-display font-black text-base text-white/70"
           >
             Start your own pick →
@@ -199,6 +218,10 @@ export default function GuestHomePage() {
           mode={mealActionMode}
           onClose={() => setMealActionMode(null)}
         />
+      )}
+
+      {showGuestLimit && (
+        <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
       )}
     </main>
   );

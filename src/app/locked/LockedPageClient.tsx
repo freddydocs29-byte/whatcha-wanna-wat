@@ -13,6 +13,8 @@ import {
 import { trackEvent } from "../lib/analytics";
 import BottomNav from "../components/BottomNav";
 import { getAuthUserId } from "../lib/identity";
+import { guestRetryExhausted, markGuestRetryUsed, incrementGuestAttempts } from "../lib/guestLimit";
+import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
 import V3MealActionRows from "../components/v3/V3MealActionRows";
@@ -33,6 +35,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [showGuestLimit, setShowGuestLimit] = useState(false);
 
   useEffect(() => {
     setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
@@ -57,6 +60,14 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   function handleNewDeck() {
     trackEvent("change_mind_clicked", { mealId: meal.id });
     if (isGuest) {
+      // Check if the guest has already used their one retry.
+      if (guestRetryExhausted()) {
+        setShowGuestLimit(true);
+        return;
+      }
+      // Consume the retry and start a fresh deck.
+      markGuestRetryUsed();
+      incrementGuestAttempts();
       // Clear the active decided meal before navigating so the deck starts fresh.
       // Without this, watcha_decided_meal would remain set in localStorage and
       // could cause stale state across the new deck session.
@@ -211,6 +222,10 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
         onClose={() => setDetailOpen(false)}
         context="solo"
       />
+
+      {showGuestLimit && (
+        <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
+      )}
     </main>
   );
 }

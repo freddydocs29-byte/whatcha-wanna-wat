@@ -9,6 +9,7 @@ import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
 import SplashScreen from "./components/SplashScreen";
 import { supabase } from "./lib/supabase";
 import { getUserId } from "./lib/identity";
+import { guestSoloDeckExhausted, incrementGuestAttempts } from "./lib/guestLimit";
 import {
   getSavedMeals,
   getFavorites,
@@ -963,7 +964,14 @@ export default function Home() {
       <SplashScreen
         onLetsGo={() => router.push("/auth?mode=signup")}
         onSignIn={() => router.push("/auth?mode=signin")}
-        onContinueAsGuest={() => router.push("/deck")}
+        onContinueAsGuest={() => {
+          if (guestSoloDeckExhausted()) {
+            router.push("/auth?mode=signup&from=guest-limit");
+            return;
+          }
+          incrementGuestAttempts();
+          router.push("/deck");
+        }}
       />
     );
   }
