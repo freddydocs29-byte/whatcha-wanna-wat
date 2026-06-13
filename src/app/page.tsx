@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import BottomNav from "./components/BottomNav";
 import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
 import SplashScreen from "./components/SplashScreen";
+import SessionResumeBanner, { computeBannerText } from "./components/SessionResumeBanner";
 import { supabase } from "./lib/supabase";
 import { getUserId } from "./lib/identity";
 import { guestSoloDeckExhausted, incrementGuestAttempts } from "./lib/guestLimit";
@@ -705,7 +706,13 @@ export default function Home() {
 
   function handleResumeBanner() {
     if (!activeSession) return;
-    if (activeSession.status === "swiping") {
+    // "swiping", "active": normal deck resume.
+    // "abandoned": partner left — Watcha's Call runs on /deck, not the lobby.
+    if (
+      activeSession.status === "swiping" ||
+      activeSession.status === "active" ||
+      activeSession.status === "abandoned"
+    ) {
       router.push(`/deck?sessionId=${activeSession.sessionId}&vibe=${activeSession.vibe ?? "mix-it-up"}`);
     } else {
       router.push(`/session/${activeSession.sessionId}`);
@@ -959,6 +966,7 @@ export default function Home() {
   if (!showSplash && !ready) return null;
 
   // No session — logged-out user sees the splash.
+  // Pass activeSession so guests with a live shared session see the resume banner.
   if (showSplash) {
     return (
       <SplashScreen
@@ -972,6 +980,11 @@ export default function Home() {
           incrementGuestAttempts();
           router.push("/deck");
         }}
+        activeSession={activeSession}
+        userDoneSwiping={userDoneSwiping}
+        partnerDoneSwiping={partnerDoneSwiping}
+        onResume={handleResumeBanner}
+        onDismiss={handleDismissBanner}
       />
     );
   }
@@ -1019,48 +1032,6 @@ export default function Home() {
   const greetingPhrase =
     timeOfDay === "latenight" ? "Still up" : `Good ${timeOfDay}`;
 
-  // Banner variant drives copy and visual styling.
-  // Evaluated once per render from stable state so the JSX stays declarative.
-  const bannerVariant: 'waiting' | 'ready' | 'swiping' | 'partner-done' | 'user-done' | 'both-done' =
-    !activeSession ? 'swiping' :
-    activeSession.status === 'waiting' ? 'waiting' :
-    activeSession.status === 'ready' ? 'ready' :
-    (activeSession.status === 'swiping' || activeSession.status === 'active') && !userDoneSwiping && partnerDoneSwiping ? 'partner-done' :
-    (activeSession.status === 'swiping' || activeSession.status === 'active') && userDoneSwiping && partnerDoneSwiping ? 'both-done' :
-    (activeSession.status === 'swiping' || activeSession.status === 'active') && userDoneSwiping && !partnerDoneSwiping ? 'user-done' :
-    'swiping';
-
-  const bannerBorderClass =
-    bannerVariant === 'partner-done' ? 'border-[#4A7C59]/50' :
-    bannerVariant === 'both-done' ? 'border-[#C9983A]/40' :
-    'border-[#E8621A]/40';
-
-  const bannerBoxShadow =
-    bannerVariant === 'partner-done' ? '0 0 24px rgba(74,124,89,0.2)' :
-    '0 0 20px rgba(232,98,26,0.15)';
-
-  const bannerDotClass =
-    bannerVariant === 'partner-done' ? 'bg-[#4A7C59]' :
-    bannerVariant === 'both-done' ? 'bg-[#C9983A]' :
-    'bg-[#E8621A]';
-
-  const bannerDotPingClass =
-    bannerVariant === 'partner-done' ? 'bg-[#4A7C59]/70' : 'bg-[#E8621A]/70';
-
-  const bannerHeadline =
-    bannerVariant === 'waiting' ? 'Waiting for your partner' :
-    bannerVariant === 'ready' ? 'Your partner joined! Tap to continue' :
-    bannerVariant === 'partner-done' ? 'Your partner finished swiping' :
-    bannerVariant === 'user-done' ? "You\u2019re done swiping" :
-    bannerVariant === 'both-done' ? 'No match yet' :
-    'Session in progress \u00b7 Tap to keep swiping';
-
-  const bannerSubtext: string | null =
-    bannerVariant === 'partner-done' ? 'Your turn to finish \u00b7 Tap to keep swiping' :
-    bannerVariant === 'user-done' ? `Waiting on their picks\u00b7 Code: ${activeSession?.sessionCode ?? ''}` :
-    bannerVariant === 'both-done' ? 'You both finished swiping \u00b7 See what they liked' :
-    bannerVariant === 'waiting' && activeSession?.sessionCode ? `Code: ${activeSession.sessionCode}` :
-    null;
 
   return (
     <V3AppShell>
@@ -1073,51 +1044,15 @@ export default function Home() {
         onProfileClick={() => router.push("/profile")}
       />
 
-      {/* ── Active session banner (preserved, inline) ──────── */}
+      {/* ── Active session banner ────────────────────────────── */}
       {activeSession && (
-        <section
-          className={`mx-[14px] mb-2 rounded-[20px] p-4 border cursor-pointer transition-all duration-300 shrink-0 ${bannerBorderClass}`}
-          style={{
-            background: "rgba(255,231,202,0.05)",
-            boxShadow: bannerBoxShadow,
-          }}
-          onClick={handleResumeBanner}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${bannerDotPingClass} opacity-75`} />
-                <span className={`relative inline-flex h-2 w-2 rounded-full ${bannerDotClass}${bannerVariant === 'partner-done' ? ' animate-pulse' : ''}`} />
-              </span>
-              <span className="text-[#8A7F78] text-[10px] font-semibold tracking-widest uppercase">
-                Active session
-              </span>
-            </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDismissBanner(); }}
-              className="text-[#8A7F78] text-base leading-none hover:text-white/50 w-6 h-6 flex items-center justify-center"
-              aria-label="Dismiss session banner"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${bannerVariant === 'partner-done' ? 'bg-[#4A7C59]/10' : 'bg-[#E8621A]/10'}`}>
-              👥
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display font-black text-sm text-white">
-                {bannerHeadline}
-              </p>
-              {bannerSubtext && (
-                <p className="font-body text-xs text-[#8A7F78] mt-0.5">
-                  {bannerSubtext}
-                </p>
-              )}
-            </div>
-            <span className={`text-lg flex-shrink-0 ${bannerVariant === 'partner-done' ? 'text-[#4A7C59]' : 'text-[#E8621A]'}`}>→</span>
-          </div>
-        </section>
+        <SessionResumeBanner
+          activeSession={activeSession}
+          userDoneSwiping={userDoneSwiping}
+          partnerDoneSwiping={partnerDoneSwiping}
+          onResume={handleResumeBanner}
+          onDismiss={handleDismissBanner}
+        />
       )}
 
       {/* ── Pending invite banner ───────────────────────────── */}
@@ -1954,17 +1889,24 @@ export default function Home() {
 
       {/* ── Notifications drawer (bell) ─────────────────────── */}
       {/* Reads from pendingInvite + activeSession already loaded on Home — no second Supabase query */}
-      <V3NotificationsDrawer
-        open={showNotificationsDrawer}
-        onClose={() => setShowNotificationsDrawer(false)}
-        pendingInvite={pendingInvite}
-        activeSession={activeSession}
-        sessionBannerHeadline={bannerHeadline}
-        sessionBannerSubtext={bannerSubtext}
-        onJoinInvite={() => { void handleJoinInvite(); }}
-        onDismissInvite={() => { void handleDismissInvite(); }}
-        onResume={handleResumeBanner}
-      />
+      {(() => {
+        const { headline: notifHeadline, subtext: notifSubtext } = activeSession
+          ? computeBannerText(activeSession, userDoneSwiping, partnerDoneSwiping)
+          : { headline: "", subtext: null };
+        return (
+          <V3NotificationsDrawer
+            open={showNotificationsDrawer}
+            onClose={() => setShowNotificationsDrawer(false)}
+            pendingInvite={pendingInvite}
+            activeSession={activeSession}
+            sessionBannerHeadline={notifHeadline}
+            sessionBannerSubtext={notifSubtext}
+            onJoinInvite={() => { void handleJoinInvite(); }}
+            onDismissInvite={() => { void handleDismissInvite(); }}
+            onResume={handleResumeBanner}
+          />
+        );
+      })()}
     </V3AppShell>
   );
 }

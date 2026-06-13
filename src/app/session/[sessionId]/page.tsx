@@ -492,6 +492,17 @@ export default function SessionPage() {
           const parsed = JSON.parse(stored);
           localStorage.setItem("wwe_active_session", JSON.stringify({ ...parsed, status: "swiping" }));
         } catch {}
+      } else {
+        // Joining guest (or auth user) never had this key — write it now so
+        // the home banner can surface a resume option if they leave mid-swipe.
+        localStorage.setItem("wwe_active_session", JSON.stringify({
+          sessionId,
+          sessionCode: session?.session_code ?? null,
+          createdAt: new Date().toISOString(),
+          expiresAt: session?.expires_at ?? new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+          status: "swiping",
+          vibe: session?.vibe ?? "mix-it-up",
+        }));
       }
     }
     const vibe = (session?.vibe ?? "mix-it-up") as SessionVibeMode;

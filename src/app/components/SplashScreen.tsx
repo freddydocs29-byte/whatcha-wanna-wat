@@ -1,18 +1,34 @@
 "use client";
 
+import SessionResumeBanner, { type ActiveSessionForBanner } from "./SessionResumeBanner";
+
 interface SplashScreenProps {
   onLetsGo?: () => void;
   onSignIn?: () => void;
   onContinueAsGuest?: () => void;
+  activeSession?: ActiveSessionForBanner | null;
+  userDoneSwiping?: boolean;
+  partnerDoneSwiping?: boolean;
+  onResume?: () => void;
+  onDismiss?: () => void;
 }
 
 const GRAIN_SVG =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
-export default function SplashScreen({ onLetsGo, onSignIn, onContinueAsGuest }: SplashScreenProps) {
+export default function SplashScreen({
+  onLetsGo,
+  onSignIn,
+  onContinueAsGuest,
+  activeSession,
+  userDoneSwiping = false,
+  partnerDoneSwiping = false,
+  onResume,
+  onDismiss,
+}: SplashScreenProps) {
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
+      className="min-h-screen flex flex-col relative overflow-hidden"
       style={{ background: "#0B0805" }}
     >
       {/* Ambient ember glow — two-layer radial, matches mockup body */}
@@ -40,8 +56,21 @@ export default function SplashScreen({ onLetsGo, onSignIn, onContinueAsGuest }: 
         style={{ boxShadow: "inset 0 0 100px 20px rgba(0,0,0,0.5)" }}
       />
 
-      {/* Centered content column */}
-      <div className="relative z-10 flex flex-col items-center px-6 w-full">
+      {/* Resume banner — shown when guest has an active shared session */}
+      {activeSession && onResume && onDismiss && (
+        <div className="relative z-10 pt-4">
+          <SessionResumeBanner
+            activeSession={activeSession}
+            userDoneSwiping={userDoneSwiping}
+            partnerDoneSwiping={partnerDoneSwiping}
+            onResume={onResume}
+            onDismiss={onDismiss}
+          />
+        </div>
+      )}
+
+      {/* Centered content column — flex-1 so it fills remaining space */}
+      <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-6 w-full">
         {/* App icon */}
         <div
           className="w-24 h-24 bg-[#E8621A] rounded-[22%] flex items-center justify-center mb-8"
@@ -155,7 +184,7 @@ export default function SplashScreen({ onLetsGo, onSignIn, onContinueAsGuest }: 
 
       {/* Detroit footer */}
       <p
-        className="absolute bottom-8 pointer-events-none"
+        className="relative z-10 text-center pb-8 pointer-events-none"
         style={{
           fontFamily: "var(--font-mono, monospace)",
           fontSize: 11,
