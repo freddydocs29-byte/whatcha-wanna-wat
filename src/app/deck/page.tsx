@@ -25,6 +25,7 @@ import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
+import WatchasCall from "../components/WatchasCall";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
@@ -65,15 +66,6 @@ const SOLO_EXHAUSTED_HEADLINES_R2 = [
 ];
 
 const SOLO_RESET_SS_KEY = "wwe_solo_deck_resets";
-const sharedResetKey = (id: string) => `wwe_shared_deck_resets_${id}`;
-
-const WAITING_HEADLINES = [
-  "Your picks are in. Waiting on them.",
-  "The ball is in their court.",
-  "They're still deciding. Hang tight.",
-  "Almost there. Probably.",
-  "Good things take two people.",
-];
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -323,20 +315,10 @@ function DeckContent() {
   const [diagSelectedVibe, setDiagSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
   // Solo reset progression — synced from sessionStorage on mount
   const [soloResetCount, setSoloResetCount] = useState(0);
-  // ── Shared exhausted partner picks state ───────────────────────────────────
-  const [sharedExhaustedView, setSharedExhaustedView] = useState<"main" | "partner-picks">("main");
-  const [partnerPicks, setPartnerPicks] = useState<Meal[]>([]);
-  const [partnerPicksLoading, setPartnerPicksLoading] = useState(false);
-  // Confirm-lock dialog for partner picks
-  const [confirmMeal, setConfirmMeal] = useState<Meal | null>(null);
-  // Shared reset progression — synced from sessionStorage on mount
-  const [sharedResetCount, setSharedResetCount] = useState(0);
-  // Session code shown in "Start a fresh session" info message
-  const [sharedSessionCode, setSharedSessionCode] = useState<string | null>(null);
   // Partner's user ID — set once bothDone detection resolves
   const [partnerUserId, setPartnerUserId] = useState<string | null>(null);
-  // Rotating waiting headline index (cycles every 3 s while !bothDone)
-  const [waitingHeadlineIdx, setWaitingHeadlineIdx] = useState(0);
+  // Partner's display name (fetched from profiles once partnerUserId is known)
+  const [partnerName, setPartnerName] = useState<string>("");
   // ── AI Fresh Ideas state ────────────────────────────────────────────────────
   const [aiMealsLoading, setAiMealsLoading] = useState(false);
   // Tracks IDs of AI-generated meals so the card can show the right label.
@@ -371,14 +353,9 @@ function DeckContent() {
   const [userId, setUserId] = useState<string>("");
   const [bothDone, setBothDone] = useState(false);
   const [bypassToExhausted, setBypassToExhausted] = useState(false);
-  const [sharedRefreshing, setSharedRefreshing] = useState(false);
-  // Whether the current user is the session host. Null until first checkState fires.
-  const [isHost, setIsHost] = useState<boolean | null>(null);
-  // Ref guards for one-time actions that live inside async/interval callbacks
-  const isHostDetectedRef = useRef(false);
-  const followedResetRef = useRef(false);
-  const guestFollowedResetRef = useRef(false);
-  const originalDeckMealIdsRef = useRef<string[] | null>(null);
+  // Guard: once both users have finished swiping with no match, suppress the normal
+  // match modal — WatchasCall handles detection and routing from this point.
+  const tiebreakActiveRef = useRef(false);
   const [matchedMeal, setMatchedMealState] = useState<Meal | null>(null);
   const [matchConfirmError, setMatchConfirmError] = useState<string | null>(null);
   const [matchConfirming, setMatchConfirming] = useState(false);
@@ -434,31 +411,31 @@ function DeckContent() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync solo/shared reset counters from sessionStorage on mount
+  // Sync solo reset counter from sessionStorage on mount
   useEffect(() => {
     setSoloResetCount(parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0);
-    if (sessionId) {
-      setSharedResetCount(parseInt(sessionStorage.getItem(sharedResetKey(sessionId)) ?? "0", 10) || 0);
-    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch session code when shared deck is exhausted by both users
+  // Fetch partner display name once their user ID is known
   useEffect(() => {
-    if (!bothDone || !sessionId || sharedSessionCode) return;
-    // Try localStorage first (host device)
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("wwe_active_session");
-        if (stored) {
-          const parsed = JSON.parse(stored) as { sessionCode?: string };
-          if (parsed.sessionCode) { setSharedSessionCode(parsed.sessionCode); return; }
-        }
-      } catch { /* ignore */ }
-    }
-    // Fallback: fetch from DB
-    void supabase.from("sessions").select("session_code").eq("id", sessionId).single()
-      .then(({ data }) => { if (data?.session_code) setSharedSessionCode(data.session_code); });
-  }, [bothDone, sessionId, sharedSessionCode]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!partnerUserId) return;
+    void supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", partnerUserId)
+      .single()
+      .then(({ data }) => {
+        if (data?.display_name) setPartnerName(data.display_name as string);
+      });
+  }, [partnerUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // §2: 60-second timeout — if partner hasn't finished by then, auto-advance
+  useEffect(() => {
+    const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    if (!sessionId || !exhausted || bothDone) return;
+    const timer = setTimeout(() => setBothDone(true), 60_000);
+    return () => clearTimeout(timer);
+  }, [sessionId, bypassToExhausted, currentIndex, rankedMeals.length, bothDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist a completion flag once the user finishes swiping their shared deck.
   // Only written after the deck has actually loaded (rankedMeals.length > 0) to avoid
@@ -602,51 +579,11 @@ function DeckContent() {
 
       const { data: sessionData } = await supabase
         .from("sessions")
-        .select("host_user_id, guest_user_id, deck_meal_ids, status, updated_at")
+        .select("host_user_id, guest_user_id")
         .eq("id", sessionId)
         .single();
 
       if (!mounted || !sessionData) return;
-
-      // Detect host/guest role once so the exhausted UI can render the right CTA.
-      if (!isHostDetectedRef.current) {
-        isHostDetectedRef.current = true;
-        setIsHost(userId === sessionData.host_user_id);
-      }
-
-      const isGuestRole = userId === sessionData.guest_user_id;
-      const isSharedSession = !!(sessionData.host_user_id && sessionData.guest_user_id);
-
-      // Snapshot the guest's original deck once on the first successful poll.
-      if (isGuestRole && originalDeckMealIdsRef.current === null && sessionData.deck_meal_ids) {
-        originalDeckMealIdsRef.current = sessionData.deck_meal_ids;
-      }
-
-      // Guest auto-advance: detect when host has reset and rebuilt the deck.
-      // Fires on EITHER status === "ready" OR deck_meal_ids changed from the original snapshot.
-      // Guards ensure this only triggers from the shared exhausted state and only once.
-      if (isSharedSession && isGuestRole && exhausted && !guestFollowedResetRef.current) {
-        const deckChanged =
-          originalDeckMealIdsRef.current !== null &&
-          JSON.stringify(sessionData.deck_meal_ids) !== JSON.stringify(originalDeckMealIdsRef.current);
-
-        const statusReady = sessionData.status === "ready";
-
-        if (statusReady || (deckChanged && sessionData.deck_meal_ids && sessionData.deck_meal_ids.length > 0)) {
-          guestFollowedResetRef.current = true;
-          window.location.href = `/session/${sessionId}`;
-          return;
-        }
-      }
-
-      // Host path: if the deck was cleared, follow back to the lobby.
-      if (!isGuestRole && !sessionData.deck_meal_ids?.length) {
-        if (!followedResetRef.current) {
-          followedResetRef.current = true;
-          router.replace(`/session/${sessionId}`);
-        }
-        return;
-      }
 
       const otherUserId =
         userId === sessionData.host_user_id
@@ -655,7 +592,7 @@ function DeckContent() {
 
       if (!otherUserId) return;
 
-      // Persist partner ID so other parts of the exhausted UI can query their swipes
+      // Persist partner ID so WatchasCall can query their swipes
       if (mounted) setPartnerUserId(otherUserId);
 
       const { count } = await supabase
@@ -665,6 +602,7 @@ function DeckContent() {
         .eq("user_id", otherUserId);
 
       if (mounted && (count ?? 0) >= totalDeckSize) {
+        tiebreakActiveRef.current = true;
         setBothDone(true);
       }
     };
@@ -692,17 +630,6 @@ function DeckContent() {
       setSoloExhaustedView("main");
     }
   }, [bypassToExhausted, currentIndex, rankedMeals.length, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Cycle the waiting headline every 3 s while the partner hasn't finished yet.
-  useEffect(() => {
-    if (!sessionId || bothDone) return;
-    const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
-    if (!exhausted) return;
-    const interval = setInterval(() => {
-      setWaitingHeadlineIdx((i) => (i + 1) % WAITING_HEADLINES.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [sessionId, bothDone, bypassToExhausted, currentIndex, rankedMeals.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for matches while inside a shared session.
   // Also checks for expiry and surfaces the abandonment banner.
@@ -737,7 +664,9 @@ function DeckContent() {
       // both participants see the celebration before routing. saveDecidedMeal
       // and navigation are handled by handleMatchConfirm() after the user taps
       // "Let's eat", keeping host and non-host paths identical.
+      // When tiebreakActiveRef is true, WatchasCall manages lock detection itself.
       if (sessionData?.status === "matched") {
+        if (tiebreakActiveRef.current) return; // WatchasCall handles this
         if (sessionData.locked_meal_id && !matchedMealRef.current) {
           const found = meals.find((m) => m.id === sessionData.locked_meal_id);
           if (found) {
@@ -791,6 +720,7 @@ function DeckContent() {
 
       for (const [mealId, voters] of Object.entries(mealVoters)) {
         if (voters.size < 2) continue;
+        if (tiebreakActiveRef.current) break; // WatchasCall handles post-exhaustion lock
         if (rejectedMatchIdsRef.current.has(mealId)) continue;
 
         const found = meals.find((m) => m.id === mealId);
@@ -1816,59 +1746,6 @@ function DeckContent() {
     setExitX(null);
   }
 
-  async function handleLoadPartnerPicks() {
-    if (!sessionId) return;
-    // Resolve partner ID: prefer state (set during bothDone polling),
-    // fallback to a fresh session query if it hasn't populated yet.
-    let partnerId = partnerUserId;
-    if (!partnerId) {
-      const { data: sessionData } = await supabase
-        .from("sessions")
-        .select("host_user_id, guest_user_id")
-        .eq("id", sessionId)
-        .single();
-      if (!sessionData) return;
-      partnerId =
-        userId === sessionData.host_user_id
-          ? sessionData.guest_user_id
-          : sessionData.host_user_id;
-      if (partnerId) setPartnerUserId(partnerId);
-    }
-    if (!partnerId) return;
-
-    setPartnerPicksLoading(true);
-    // Fetch only the partner's yes-swipes for this session
-    const { data: swipeData } = await supabase
-      .from("swipes")
-      .select("meal_id")
-      .eq("session_id", sessionId)
-      .eq("user_id", partnerId)
-      .eq("decision", "yes");
-
-    if (!swipeData) { setPartnerPicksLoading(false); return; }
-
-    // Dedupe raw swipe rows by meal_id before building the ID set
-    const uniqueSwipeRows = swipeData.filter(
-      (row, idx, self) => idx === self.findIndex((r) => r.meal_id === row.meal_id)
-    );
-    const partnerYesIds = new Set(uniqueSwipeRows.map((s) => s.meal_id as string));
-    // Hydrate from static meals data, then dedupe by meal.id in case the static
-    // meals array contains duplicate entries for the same ID.
-    const picked = meals
-      .filter((m) => partnerYesIds.has(m.id))
-      .filter((meal, idx, self) => idx === self.findIndex((m) => m.id === meal.id));
-    // Sort by ranked position in current deck, then alphabetically
-    const rankMap = new Map(rankedMeals.map((r, idx) => [r.meal.id, idx]));
-    picked.sort((a, b) => {
-      const ra = rankMap.get(a.id) ?? 9999;
-      const rb = rankMap.get(b.id) ?? 9999;
-      return ra !== rb ? ra - rb : a.name.localeCompare(b.name);
-    });
-    setPartnerPicks(picked);
-    setSharedExhaustedView("partner-picks");
-    setPartnerPicksLoading(false);
-  }
-
   // "Just decide for us" — takes position 0 from the shared deck (the group's
   // top-scored meal) and locks it in immediately without waiting for a mutual swipe.
   // Both users are routed to the same /locked screen via the match-polling mechanism.
@@ -1935,31 +1812,6 @@ function DeckContent() {
     // Re-check auth at navigation time — isGuest may not have settled for guests joining via share link.
     const { data: { user: jdNavUser } } = await supabase.auth.getUser();
     router.push(jdNavUser ? "/" : "/guest-home");
-  }
-
-  // Shared-mode refresh: delete all swipes, clear the deck, return to the lobby so
-  // the host can pick a new vibe and generate a fresh deck.  The other user's
-  // both-done poller detects the cleared deck_meal_ids and follows automatically.
-  async function handleSharedRefreshDeck() {
-    if (!sessionId) return;
-    // Increment shared reset counter
-    const nextCount = (parseInt(sessionStorage.getItem(sharedResetKey(sessionId)) ?? "0", 10) || 0) + 1;
-    sessionStorage.setItem(sharedResetKey(sessionId), String(nextCount));
-    setSharedResetCount(nextCount);
-    trackEvent("deck_refreshed", { mode: "shared", sessionId });
-    setSharedRefreshing(true);
-    await supabase.from("swipes").delete().eq("session_id", sessionId);
-    // Reset deck and status back to 'ready' so the session page auto-rebuilds
-    await supabase
-      .from("sessions")
-      .update({ deck_meal_ids: null, status: "ready", updated_at: new Date().toISOString() })
-      .eq("id", sessionId);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
-      // Clear the completion flag so /deck doesn't bypass-to-exhausted on the fresh deck
-      localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
-    }
-    window.location.href = `/session/${sessionId}`;
   }
 
   function handlePass() {
@@ -2517,8 +2369,7 @@ function DeckContent() {
 
   // ── Exhausted screen ──────────────────────────────────────────────────────
   if (isExhausted) {
-    // ── Shared async waiting state ─────────────────────────────────────────
-    // User has swiped through all cards. Keep polling; show match modal if one arrives.
+    // ── Shared async waiting state / Watcha's Call ────────────────────────
     if (sessionId) {
       return (
         <main className="relative min-h-screen overflow-hidden bg-[#0B0805] px-5 pb-6 safe-top text-white">
@@ -2532,380 +2383,75 @@ function DeckContent() {
           {/* Vignette */}
           <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
           <div className="mx-auto relative flex min-h-screen w-full max-w-md flex-col">
-            <header className="flex items-center justify-between py-4">
-              <span className="font-display font-black text-base text-white">
-                Watcha<span className="text-[#E8621A]">?</span>
-              </span>
-              <button
-                onClick={() => router.push("/")}
-                className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
-              >
-                Back
-              </button>
-            </header>
+            {!bothDone && (
+              <header className="flex items-center justify-between py-4">
+                <span className="font-display font-black text-base text-white">
+                  Watcha<span className="text-[#E8621A]">?</span>
+                </span>
+                <button
+                  onClick={() => { window.location.href = "/"; }}
+                  className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
+                >
+                  Back
+                </button>
+              </header>
+            )}
 
             <div className="flex flex-1 flex-col items-center justify-center text-center">
-              {bothDone ? (
-                sharedExhaustedView === "partner-picks" ? (
-                  /* ── Partner picks sub-screen ────────────────────────── */
-                  <div className="w-full text-left">
-                    <button
-                      onClick={() => setSharedExhaustedView("main")}
-                      className="mb-6 font-body text-sm text-[#8A7F78] hover:text-white transition"
-                    >
-                      ← Back
-                    </button>
-                    <p className="text-[#E8621A] text-[11px] font-semibold tracking-widest uppercase mb-2">
-                      THEIR YES PILE
-                    </p>
-                    <h2 className="font-display font-black text-2xl text-white leading-tight">
-                      What they liked.
-                    </h2>
-                    <p className="font-body text-sm text-[#8A7F78] mt-2 mb-6">
-                      Pick one as tonight&apos;s compromise.
-                    </p>
-                    {/* Confirm-lock dialog */}
-                    <AnimatePresence>
-                    {confirmMeal && (
-                      <div className="fixed inset-0 z-50 flex items-end justify-center">
-                        <motion.div
-                          key="confirm-lock-backdrop"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute inset-0 bg-black/60"
-                          onClick={() => setConfirmMeal(null)}
-                        />
-                        <motion.div
-                          key="confirm-lock-sheet"
-                          initial={{ y: "100%" }}
-                          animate={{ y: 0 }}
-                          exit={{ y: "100%" }}
-                          transition={{ type: "spring", damping: 28, stiffness: 260 }}
-                          drag="y"
-                          dragDirectionLock
-                          dragConstraints={{ top: 0, bottom: 0 }}
-                          dragElastic={{ top: 0, bottom: 0.25 }}
-                          onDragEnd={(_, info) => {
-                            if (info.offset.y > 80 || info.velocity.y > 500) setConfirmMeal(null);
-                          }}
-                          className="relative w-full max-w-md rounded-t-[28px] px-6 pt-4 pb-10"
-                          style={{
-                            background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, #120D09 6%)",
-                            borderTop: "1px solid rgba(245,237,224,0.085)",
-                            boxShadow: "0 -8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)",
-                            backdropFilter: "blur(24px)",
-                          }}
-                        >
-                          <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "rgba(245,237,224,0.15)" }} />
-                          <div className="flex items-center gap-2 mb-4">
-                            <span style={{ color: "#5E9E6E", fontSize: 11 }}>✦</span>
-                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#86A972" }}>Lock it in</span>
-                          </div>
-                          <p className="text-xl text-center" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#F6EEE2", letterSpacing: "-0.01em" }}>
-                            Lock in {confirmMeal.name} as tonight&apos;s pick?
-                          </p>
-                          <div className="flex flex-col gap-3 mt-6">
-                            <button
-                              onClick={async () => {
-                                addToHistory(confirmMeal);
-                                saveDecidedMeal({ ...confirmMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
-                                if (sessionId) sessionStorage.removeItem(sharedResetKey(sessionId));
-                                if (sessionId) localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
-                                let confirmTimeToMatch: number | null = null;
-                                if (sessionId) {
-                                  try {
-                                    const { data: confirmSessionData } = await supabase
-                                      .from("sessions")
-                                      .select("created_at")
-                                      .eq("id", sessionId)
-                                      .single();
-                                    confirmTimeToMatch = confirmSessionData?.created_at
-                                      ? Math.max(0, Math.round((Date.now() - new Date(confirmSessionData.created_at).getTime()) / 1000))
-                                      : null;
-                                  } catch {
-                                    console.warn("[partner-picks] could not fetch session created_at for time_to_match");
-                                  }
-                                }
-                                void recordAcceptedDecision({ meal: confirmMeal, positionInDeck: 0, sessionType: "shared", sessionId: sessionId ?? null, vibeSelection: sessionVibeMode, timeToMatchSeconds: confirmTimeToMatch });
-                                if (!trackingClosedRef.current) {
-                                  trackingClosedRef.current = true;
-                                  trackingSessionPromiseRef.current?.then((tsId) => {
-                                    if (tsId && trackingOpenedAtRef.current) {
-                                      void closeTrackingSession({
-                                        trackingSessionId: tsId,
-                                        resolved: true,
-                                        swipeCount: trackingSwipeCountRef.current,
-                                        openedAt: trackingOpenedAtRef.current,
-                                      });
-                                    }
-                                  });
-                                }
-                                router.push("/");
-                              }}
-                              className="w-full rounded-full py-4 text-base transition active:scale-[0.98]"
-                              style={{
-                                fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#06140a",
-                                background: "linear-gradient(180deg,#86C796,#5E9E6E 50%,#3F744F)",
-                                boxShadow: "0 1px 0 rgba(220,255,228,0.5) inset, 0 -2px 0 rgba(20,60,30,0.4) inset, 0 14px 30px rgba(94,158,110,0.32)",
-                              }}
-                            >
-                              Yes, let&apos;s eat →
-                            </button>
-                            <button
-                              onClick={() => setConfirmMeal(null)}
-                              className="w-full rounded-full py-3 text-sm transition active:scale-[0.98]"
-                              style={{ fontFamily: "'Inter', sans-serif", color: "#897E73", border: "1px solid rgba(245,237,224,0.085)", background: "rgba(255,231,202,0.03)" }}
-                            >
-                              Keep looking
-                            </button>
-                          </div>
-                        </motion.div>
-                      </div>
-                    )}
-                    </AnimatePresence>
-                    {(() => {
-                      const uniquePartnerPicks = partnerPicks.filter(
-                        (meal, idx, self) => idx === self.findIndex((m) => m.id === meal.id)
-                      );
-                      return uniquePartnerPicks.length === 0 ? (
-                      <p className="font-body text-sm text-[#8A7F78] text-center py-8">
-                        They didn&apos;t swipe yes on anything — no picks to show.
-                      </p>
-                    ) : (
-                      <div className="flex flex-col gap-4">
-                        {uniquePartnerPicks.map((meal) => (
-                          <button
-                            key={meal.id}
-                            onClick={() => setConfirmMeal(meal)}
-                            className="w-full text-left rounded-[20px] overflow-hidden transition-all duration-200"
-                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
-                          >
-                            <div className="w-full relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                              <img src={meal.image || FALLBACK_IMAGE} alt={meal.name} className="w-full h-full object-cover" />
-                              {/* Top spotlight */}
-                              <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.55) 0%, rgba(255,228,190,0.10) 30%, transparent 58%)", mixBlendMode: "screen" }} />
-                            </div>
-                            <div className="p-4">
-                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 19, color: "#F6EEE2", letterSpacing: "-0.01em" }}>{meal.name}</p>
-                              <p className="mt-1" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12.5, color: "#C7BDAC" }}>{meal.description}</p>
-                              {meal.tags && meal.tags.length > 0 && (
-                                <div className="flex gap-1.5 flex-wrap mt-2">
-                                  {meal.tags.slice(0, 3).map((tag) => (
-                                    <span key={tag} style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)", borderRadius: 100, padding: "4px 10px", fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11, color: "#C7BDAC" }}>
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    );
-                    })()}
-                  </div>
-                ) : (
-                  /* ── Shared no-match main screen ─────────────────────── */
-                  <div className="w-full">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span style={{ color: "#E8621A", filter: "drop-shadow(0 0 5px rgba(232,98,26,0.5))", fontSize: 11 }}>✦</span>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.4px", textTransform: "uppercase", color: "#E8621A" }}>
-                        Deck complete
-                      </span>
-                    </div>
-                    {sharedResetCount >= 2 ? (
-                      /* ── Shared terminal: exhausted all resets ──────── */
-                      <>
-                        <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: "#F6EEE2", lineHeight: 1.1, textAlign: "center" }}>
-                          You&apos;ve both seen everything.
-                        </h2>
-                        <p className="text-center mt-2 mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
-                          Sometimes the answer isn&apos;t on the menu. Take a break and come back with fresh eyes.
-                        </p>
-                        <div className="flex flex-col gap-2.5 w-full text-left">
-                          <button
-                            onClick={() => void handleLoadPartnerPicks()}
-                            disabled={partnerPicksLoading}
-                            className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
-                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
-                          >
-                            <span className="text-2xl flex-shrink-0">👀</span>
-                            <div className="flex-1 min-w-0">
-                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
-                                {partnerPicksLoading ? "Loading…" : "See what they liked"}
-                              </p>
-                              <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
-                                Browse their yes pile and pick a compromise
-                              </p>
-                            </div>
-                            <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
-                          </button>
-                          <button
-                            onClick={() => router.push(isGuest ? "/guest-home" : "/")}
-                            className="mt-2 w-full rounded-full py-4 text-base transition active:scale-[0.98]"
-                            style={{
-                              fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: "#1c0c03",
-                              background: "linear-gradient(180deg,#FF8A3D,#E8621A 50%,#B84A12)",
-                              boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 12px 26px rgba(232,98,26,0.35)",
-                            }}
-                          >
-                            Go home
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      /* ── Standard shared no-match options ───────────── */
-                      <>
-                        <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 28, color: "#F6EEE2", lineHeight: 1.05, letterSpacing: "-0.01em" }}>
-                          You&apos;ve both swiped everything.
-                        </h2>
-                        <p className="mt-2 mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
-                          Still no match. Here&apos;s what you can do.
-                        </p>
-                        <div className="flex flex-col gap-2.5 w-full text-left">
-                          <button
-                            onClick={() => void handleLoadPartnerPicks()}
-                            disabled={partnerPicksLoading}
-                            className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
-                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
-                          >
-                            <span className="text-2xl flex-shrink-0">👀</span>
-                            <div className="flex-1 min-w-0">
-                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
-                                {partnerPicksLoading ? "Loading…" : "See what they liked"}
-                              </p>
-                              <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
-                                Browse their yes pile and pick a compromise
-                              </p>
-                            </div>
-                            <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>
-                          </button>
-                          {isHost === false ? (
-                            /* Guest: passive waiting row — host is the only one who can reset */
-                            <div
-                              className="rounded-[18px] p-4 flex items-center gap-4 w-full"
-                              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)", opacity: 0.75 }}
-                            >
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <div className="w-2 h-2 rounded-full bg-[#E8621A]/50 animate-pulse" />
-                                <div className="w-2 h-2 rounded-full bg-[#E8621A]/50 animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                <div className="w-2 h-2 rounded-full bg-[#E8621A]/50 animate-pulse" style={{ animationDelay: "0.4s" }} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
-                                  Waiting for your partner to start a fresh round…
-                                </p>
-                                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
-                                  You&apos;ll be taken there automatically
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            /* Host (or role not yet resolved): active reset button */
-                            <button
-                              onClick={() => void handleSharedRefreshDeck()}
-                              disabled={sharedRefreshing}
-                              className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200 disabled:opacity-60"
-                              style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
-                            >
-                              <span className="text-2xl flex-shrink-0">🔄</span>
-                              <div className="flex-1 min-w-0">
-                                <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>
-                                  {sharedRefreshing ? "Starting fresh…" : "Start a fresh session"}
-                                </p>
-                                <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>
-                                  {sharedRefreshing ? "Clearing swipes and rebuilding your deck" : "Build a new deck together"}
-                                </p>
-                              </div>
-                              {!sharedRefreshing && <span style={{ color: "#E8621A", fontSize: 18, flexShrink: 0 }}>›</span>}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => router.push(isGuest ? "/guest-home" : "/")}
-                            className="rounded-[18px] p-4 flex items-center gap-4 w-full cursor-pointer transition-all duration-200"
-                            style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.085)" }}
-                          >
-                            <span className="text-2xl flex-shrink-0">🏠</span>
-                            <div className="flex-1 min-w-0">
-                              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>Go home</p>
-                              <p className="mt-0.5" style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#897E73" }}>Navigate home without action</p>
-                            </div>
-                            <span style={{ color: "#897E73", fontSize: 18, flexShrink: 0 }}>›</span>
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
+              {!bothDone ? (
+                /* §2: Hang tight — partner still deciding */
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <div
+                    className="w-8 h-8 rounded-full border-2 animate-spin"
+                    style={{ borderColor: "rgba(232,98,26,0.3)", borderTopColor: "#E8621A" }}
+                  />
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
+                    Hang tight{partnerName ? ` — ${partnerName} is still deciding.` : " — they\u2019re still deciding."}
+                  </p>
+                </div>
+              ) : partnerUserId ? (
+                /* §4–§5: Watcha's Call */
+                <WatchasCall
+                  sessionId={sessionId}
+                  userId={userId}
+                  partnerUserId={partnerUserId}
+                  partnerName={partnerName}
+                  orderedMeals={rankedMeals.map((r) => r.meal)}
+                  deckSize={Math.min(rankedMeals.length, DECK_SIZE)}
+                  aiMealIds={aiMealIds}
+                  sessionVibeMode={sessionVibeMode}
+                  onResolve={() => {
+                    if (!trackingClosedRef.current) {
+                      trackingClosedRef.current = true;
+                      trackingSessionPromiseRef.current?.then((tsId) => {
+                        if (tsId && trackingOpenedAtRef.current) {
+                          void closeTrackingSession({
+                            trackingSessionId: tsId,
+                            resolved: true,
+                            swipeCount: trackingSwipeCountRef.current,
+                            openedAt: trackingOpenedAtRef.current,
+                          });
+                        }
+                      });
+                    }
+                  }}
+                />
               ) : (
-                /* ── Branded waiting screen ──────────────────────────────── */
-                <div className="flex flex-col items-center w-full">
-                  {/* Glass card container */}
-                  <div className="w-full rounded-[24px] p-7 text-center" style={{ background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, rgba(255,231,202,0.02) 100%)", border: "1px solid rgba(245,237,224,0.16)", backdropFilter: "blur(24px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 24px 50px rgba(0,0,0,0.45)" }}>
-                    {/* Live session eyebrow */}
-                    <div className="flex items-center justify-center gap-2 mb-8">
-                      <span className="w-2 h-2 rounded-full animate-ping" style={{ background: "#E8621A", boxShadow: "0 0 8px rgba(232,98,26,0.6)" }} />
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "#E8621A" }}>
-                        Your picks are in
-                      </span>
-                    </div>
-                    {/* Avatar pair */}
-                    <div className="flex items-center justify-center gap-5 mb-8">
-                      {/* Your avatar — ember orb */}
-                      <div className="flex flex-col items-center gap-2">
-                        <div
-                          className="w-14 h-14 rounded-full flex items-center justify-center"
-                          style={{ background: "linear-gradient(180deg,#FF8A3D,#E8621A 60%,#B84A12)", boxShadow: "0 0 24px rgba(232,98,26,0.35)" }}
-                        >
-                          <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "#fff" }}>✓</span>
-                        </div>
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12, color: "#897E73" }}>You</span>
-                      </div>
-                      {/* Connector dots */}
-                      <div className="flex gap-1 pb-4">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.12)" }} />
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.08)" }} />
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.04)" }} />
-                      </div>
-                      {/* Partner avatar — hollow with pulsing ember ring */}
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="relative w-14 h-14">
-                          <div className="absolute inset-0 rounded-full border-2 border-[#E8621A] animate-ping opacity-30" />
-                          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(232,98,26,0.40)", background: "rgba(255,231,202,0.04)" }}>
-                            <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "rgba(232,98,26,0.45)" }}>?</span>
-                          </div>
-                        </div>
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12, color: "#897E73" }}>Them</span>
-                      </div>
-                    </div>
-                    {/* Rotating headline */}
-                    <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: "#F6EEE2", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
-                      {WAITING_HEADLINES[waitingHeadlineIdx]}
-                    </h2>
-                    <p className="mt-3" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
-                      We&apos;ll match the moment they swipe right on something you liked.
-                    </p>
-                  </div>
-                  {/* Leave session button */}
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('wwe_active_session');
-                      if (sessionId) localStorage.removeItem(`wwe_shared_deck_index_${sessionId}`);
-                      router.push('/');
-                    }}
-                    className="transition-colors duration-200 mt-5"
-                    style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 13, color: "#574E45" }}
-                  >
-                    Leave session for now →
-                  </button>
+                /* partnerUserId not yet loaded — brief spinner */
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <div
+                    className="w-8 h-8 rounded-full border-2 animate-spin"
+                    style={{ borderColor: "rgba(232,98,26,0.3)", borderTopColor: "#E8621A" }}
+                  />
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
+                    Loading…
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Match modal — polling continues in the background */}
+          {/* Match modal — only fires while !bothDone; suppressed once tiebreakActiveRef is set */}
           <AnimatePresence>
             {matchedMeal && (
               <motion.div
@@ -3015,7 +2561,7 @@ function DeckContent() {
                           boxShadow: "0 1px 0 rgba(190,230,200,0.35) inset, 0 -2px 0 rgba(30,70,40,0.35) inset, 0 14px 30px rgba(94,158,110,0.32)",
                         }}
                       >
-                        {matchConfirming ? "Locking in…" : "Let's eat 🙌"}
+                        {matchConfirming ? "Locking in…" : "Let\u2019s eat 🙌"}
                       </button>
                     </div>
                     {matchConfirmError && (
