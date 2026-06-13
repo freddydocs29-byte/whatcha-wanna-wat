@@ -150,6 +150,10 @@ export default function SessionPage() {
   const deckTriggeredRef = useRef(false);
   // Guard so loadSession polling never resets a vibe the user has already selected
   const vibeInitializedRef = useRef(false);
+  // Tracks whether this is the first successful loadSession call (re-entry detection)
+  const firstSessionLoadRef = useRef(true);
+  // Tracks the previous session status so we can detect live transitions
+  const previousSessionStatusRef = useRef<string | null>(null);
 
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
 
@@ -225,10 +229,15 @@ export default function SessionPage() {
         setHostNeedsOnboarding(false);
       }
       // If guest already joined when host loads (status ready/active),
-      // jump directly to the waiting step to avoid a vibe-selector flash
+      // jump directly to the waiting step to avoid a vibe-selector flash.
+      // On re-entry (first load with guest already connected), skip the 2s animation
+      // and show the CTA immediately. On live waiting→ready transitions, leave
+      // prevBothConnectedRef alone so the bothConnected effect runs the 2s timer.
       if (s.status === "ready" || s.status === "active") {
         setHostStep("waiting");
-        prevBothConnectedRef.current = true;
+        if (firstSessionLoadRef.current) {
+          setShowStartSwiping(true);
+        }
       }
     } else if (myId === s.guest_user_id) {
       setRole("guest");
@@ -242,6 +251,10 @@ export default function SessionPage() {
         return !hasCompletedOnboarding();
       });
     }
+
+    // Track status across polls for transition detection; mark first load done
+    previousSessionStatusRef.current = s.status;
+    firstSessionLoadRef.current = false;
   }, [sessionId]);
 
   // Generates the shared deck from both users' profiles and stores it on the
@@ -309,6 +322,33 @@ export default function SessionPage() {
     setSession(s);
     setRole("guest");
     setJoining(false);
+
+    // Write wwe_active_session now so the home banner can surface a resume option
+    // if the guest goes back before tapping Start Swiping.
+    // Overwrite only if missing, expired, malformed, or pointing to a different session.
+    if (typeof window !== "undefined") {
+      let shouldWrite = true;
+      const existingRaw = localStorage.getItem("wwe_active_session");
+      if (existingRaw) {
+        try {
+          const existing = JSON.parse(existingRaw);
+          const expiresAt = existing?.expiresAt ? new Date(existing.expiresAt).getTime() : 0;
+          const isSameSession = existing?.sessionId === s.id;
+          const isNotExpired = expiresAt > Date.now();
+          shouldWrite = !(isSameSession && isNotExpired);
+        } catch { shouldWrite = true; }
+      }
+      if (shouldWrite) {
+        localStorage.setItem("wwe_active_session", JSON.stringify({
+          sessionId: s.id,
+          sessionCode: s.session_code ?? null,
+          expiresAt: s.expires_at,
+          status: s.status,  // "ready" at this point; handleStartSwiping will update to "swiping"
+          vibe: s.vibe ?? "mix-it-up",
+        }));
+      }
+    }
+
     syncBehavioralSignalsToSupabase(myId).catch((err) =>
       console.warn("[sync] behavioral signals failed:", err),
     );
@@ -1802,6 +1842,15 @@ export default function SessionPage() {
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
           </div>
+
+          {/* Safety-net escape — timer should fire in 2s but host must never be truly trapped */}
+          <Link
+            href="/"
+            className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg"
+            style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
+          >
+            ←
+          </Link>
 
           {/* Two avatar circles, animating in */}
           <div className="flex items-center gap-4 mb-8">

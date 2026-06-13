@@ -185,6 +185,10 @@ export default function Home() {
   // Track session IDs the user has explicitly dismissed so the Home polling
   // does not re-hydrate them after banner dismissal.
   const dismissedSessionsRef = useRef<Set<string>>(new Set());
+  // Re-bootstrap key: incrementing this re-runs the session-poll effect after soft nav.
+  const [sessionPollKey, setSessionPollKey] = useState(0);
+  // Guard so the visibility/focus effect never starts a duplicate poll.
+  const pollRunningRef = useRef(false);
   // V3 Home shell state
   const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
   const [decidedSaved, setDecidedSaved] = useState(false);
@@ -406,6 +410,8 @@ export default function Home() {
   // Load, validate, and poll any active shared session from localStorage.
   // Handles matched state directly on the home screen so the user sees their
   // match without re-entering the deck.
+  // sessionPollKey is incremented by the visibility/focus re-bootstrap effect so this
+  // effect re-runs after soft navigation back to home when storage was written post-mount.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = localStorage.getItem("wwe_active_session");
@@ -433,6 +439,7 @@ export default function Home() {
     const sessionId = parsed.sessionId;
     let mounted = true;
     let intervalId: ReturnType<typeof setInterval> | null = null;
+    pollRunningRef.current = true;
 
     // Read immediately on mount — don't wait for the async query to resolve
     const doneSwiping = localStorage.getItem(`wwe_session_swiping_done_${sessionId}`) === 'true';
@@ -538,6 +545,34 @@ export default function Home() {
     return () => {
       mounted = false;
       if (intervalId) clearInterval(intervalId);
+      pollRunningRef.current = false;
+    };
+  }, [sessionPollKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-bootstrap the active-session poll when the user returns to home after soft navigation.
+  // The session-poll effect above reads wwe_active_session only once per [sessionPollKey] run;
+  // if the session was created (or joined) after that run, no poll was started. Incrementing
+  // sessionPollKey re-runs the effect and starts the poll. pollRunningRef guards against
+  // starting a duplicate poll while one is already in flight.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const tryRebootstrap = () => {
+      if (pollRunningRef.current) return; // poll already running
+      if (!localStorage.getItem("wwe_active_session")) return;
+      setSessionPollKey((k) => k + 1);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") tryRebootstrap();
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", tryRebootstrap);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", tryRebootstrap);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
