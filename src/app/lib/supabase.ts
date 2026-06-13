@@ -40,7 +40,7 @@ export type Session = {
   session_code: string | null;
   host_user_id: string;
   guest_user_id: string | null;
-  status: "waiting" | "ready" | "active" | "swiping" | "matched" | "expired";
+  status: "waiting" | "ready" | "active" | "swiping" | "matched" | "expired" | "abandoned";
   locked_meal_id: string | null;
   deck_meal_ids: string[] | null;
   vibe: string | null;

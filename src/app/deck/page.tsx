@@ -367,6 +367,9 @@ function DeckContent() {
   const [bothDone, setBothDone] = useState(false);
   const [bypassToExhausted, setBypassToExhausted] = useState(false);
   const [waitingHeadlineIdx, setWaitingHeadlineIdx] = useState(0);
+  // Set when the poll detects status:"abandoned" — partner left during Step 2 wait
+  const [partnerSteppedAway, setPartnerSteppedAway] = useState(false);
+  const partnerSteppedAwayRef = useRef(false);
   // Guard: once both users have finished swiping with no match, suppress the normal
   // match modal — WatchasCall handles detection and routing from this point.
   const tiebreakActiveRef = useRef(false);
@@ -465,6 +468,14 @@ function DeckContent() {
     const timer = setTimeout(() => setBothDone(true), 60_000);
     return () => clearTimeout(timer);
   }, [sessionId, bypassToExhausted, currentIndex, rankedMeals.length, bothDone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // §2c: When the partner's leave signal is detected, show a brief transition
+  // message for 2.5 s then advance into Watcha's Call.
+  useEffect(() => {
+    if (!partnerSteppedAway) return;
+    const timer = setTimeout(() => setBothDone(true), 2500);
+    return () => clearTimeout(timer);
+  }, [partnerSteppedAway]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cycle the waiting headline every 3 s while the partner hasn't finished yet.
   useEffect(() => {
@@ -615,10 +626,11 @@ function DeckContent() {
 
     const checkState = async () => {
       if (!mounted) return;
+      if (partnerSteppedAwayRef.current) return; // bridge showing, timer pending
 
       const { data: sessionData } = await supabase
         .from("sessions")
-        .select("host_user_id, guest_user_id")
+        .select("host_user_id, guest_user_id, status")
         .eq("id", sessionId)
         .single();
 
@@ -633,6 +645,14 @@ function DeckContent() {
 
       // Persist partner ID so WatchasCall can query their swipes
       if (mounted) setPartnerUserId(otherUserId);
+
+      // Partner left during Step 2 — show bridge then advance to Watcha's Call
+      if (sessionData.status === "abandoned") {
+        partnerSteppedAwayRef.current = true;
+        tiebreakActiveRef.current = true;
+        if (mounted) setPartnerSteppedAway(true);
+        return;
+      }
 
       const { count } = await supabase
         .from("swipes")
@@ -2428,7 +2448,20 @@ function DeckContent() {
                   Watcha<span className="text-[#E8621A]">?</span>
                 </span>
                 <button
-                  onClick={() => { window.location.href = "/"; }}
+                  onClick={async () => {
+                    if (isExhausted && sessionId) {
+                      // Write leave signal so the waiting partner advances to Watcha's Call
+                      try {
+                        await supabase
+                          .from("sessions")
+                          .update({ status: "abandoned", updated_at: new Date().toISOString() })
+                          .eq("id", sessionId);
+                      } catch {
+                        // best-effort; navigate home regardless
+                      }
+                    }
+                    window.location.href = "/";
+                  }}
                   className="font-body text-sm text-[#8A7F78] transition hover:text-white/60"
                 >
                   Back
@@ -2438,6 +2471,17 @@ function DeckContent() {
 
             <div className="flex flex-1 flex-col items-center justify-center text-center">
               {!bothDone ? (
+                partnerSteppedAway ? (
+                  /* §2b: Partner stepped away — brief bridge before Watcha's Call */
+                  <div className="flex flex-col items-center gap-3 text-center px-6">
+                    <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "#F6EEE2", lineHeight: 1.2 }}>
+                      Looks like they stepped away.
+                    </p>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
+                      We&apos;ll make the call from what we have.
+                    </p>
+                  </div>
+                ) : (
                 /* §2: Branded waiting screen — partner still deciding */
                 <div className="flex flex-col items-center w-full">
                   {/* Glass card container */}
@@ -2487,6 +2531,7 @@ function DeckContent() {
                     </p>
                   </div>
                 </div>
+                )
               ) : partnerUserId ? (
                 /* §4–§5: Watcha's Call */
                 <WatchasCall
