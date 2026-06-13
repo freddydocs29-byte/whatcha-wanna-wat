@@ -210,11 +210,26 @@ export default function WatchasCall({
       if (!mounted || lockInitiatedRef.current) return;
       const { data } = await supabase
         .from("sessions")
-        .select("status")
+        .select("status, locked_meal_id")
         .eq("id", sessionId)
         .single();
       if (!mounted) return;
       if (data?.status === "matched") {
+        // Save the decided meal for the waiting user — the confirmer already saved
+        // it in handleConfirm(), but this user detected the lock via poll and never
+        // went through that path. Without this, home has no watcha_decided_meal.
+        if (data.locked_meal_id) {
+          const meal = meals.find((m) => m.id === data.locked_meal_id);
+          if (meal) {
+            addToHistory(meal);
+            saveDecidedMeal({
+              ...meal,
+              decidedAt: new Date().toISOString(),
+              mode: "shared",
+              sessionId,
+            });
+          }
+        }
         clearTimers();
         setView("locked");
       }

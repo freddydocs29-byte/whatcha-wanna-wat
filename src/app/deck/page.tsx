@@ -67,6 +67,15 @@ const SOLO_EXHAUSTED_HEADLINES_R2 = [
 
 const SOLO_RESET_SS_KEY = "wwe_solo_deck_resets";
 
+// Rotating copy for the shared waiting screen (shown while partner hasn't finished swiping)
+const WAITING_HEADLINES = [
+  "Your picks are in. Waiting on them.",
+  "The ball is in their court.",
+  "They're still deciding. Hang tight.",
+  "Almost there. Probably.",
+  "Good things take two people.",
+];
+
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
 
@@ -353,6 +362,7 @@ function DeckContent() {
   const [userId, setUserId] = useState<string>("");
   const [bothDone, setBothDone] = useState(false);
   const [bypassToExhausted, setBypassToExhausted] = useState(false);
+  const [waitingHeadlineIdx, setWaitingHeadlineIdx] = useState(0);
   // Guard: once both users have finished swiping with no match, suppress the normal
   // match modal — WatchasCall handles detection and routing from this point.
   const tiebreakActiveRef = useRef(false);
@@ -435,6 +445,16 @@ function DeckContent() {
     if (!sessionId || !exhausted || bothDone) return;
     const timer = setTimeout(() => setBothDone(true), 60_000);
     return () => clearTimeout(timer);
+  }, [sessionId, bypassToExhausted, currentIndex, rankedMeals.length, bothDone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cycle the waiting headline every 3 s while the partner hasn't finished yet.
+  useEffect(() => {
+    const exhausted = bypassToExhausted || currentIndex >= Math.min(rankedMeals.length, DECK_SIZE);
+    if (!sessionId || !exhausted || bothDone) return;
+    const interval = setInterval(() => {
+      setWaitingHeadlineIdx((i) => (i + 1) % WAITING_HEADLINES.length);
+    }, 3000);
+    return () => clearInterval(interval);
   }, [sessionId, bypassToExhausted, currentIndex, rankedMeals.length, bothDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist a completion flag once the user finishes swiping their shared deck.
@@ -2399,15 +2419,54 @@ function DeckContent() {
 
             <div className="flex flex-1 flex-col items-center justify-center text-center">
               {!bothDone ? (
-                /* §2: Hang tight — partner still deciding */
-                <div className="flex flex-col items-center gap-4 text-center">
-                  <div
-                    className="w-8 h-8 rounded-full border-2 animate-spin"
-                    style={{ borderColor: "rgba(232,98,26,0.3)", borderTopColor: "#E8621A" }}
-                  />
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
-                    Hang tight{partnerName ? ` — ${partnerName} is still deciding.` : " — they\u2019re still deciding."}
-                  </p>
+                /* §2: Branded waiting screen — partner still deciding */
+                <div className="flex flex-col items-center w-full">
+                  {/* Glass card container */}
+                  <div className="w-full rounded-[24px] p-7 text-center" style={{ background: "linear-gradient(180deg, rgba(255,231,202,0.07) 0%, rgba(255,231,202,0.02) 100%)", border: "1px solid rgba(245,237,224,0.16)", backdropFilter: "blur(24px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 24px 50px rgba(0,0,0,0.45)" }}>
+                    {/* Live session eyebrow */}
+                    <div className="flex items-center justify-center gap-2 mb-8">
+                      <span className="w-2 h-2 rounded-full animate-ping" style={{ background: "#E8621A", boxShadow: "0 0 8px rgba(232,98,26,0.6)" }} />
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "#E8621A" }}>
+                        Your picks are in
+                      </span>
+                    </div>
+                    {/* Avatar pair */}
+                    <div className="flex items-center justify-center gap-5 mb-8">
+                      {/* Your avatar — ember orb */}
+                      <div className="flex flex-col items-center gap-2">
+                        <div
+                          className="w-14 h-14 rounded-full flex items-center justify-center"
+                          style={{ background: "linear-gradient(180deg,#FF8A3D,#E8621A 60%,#B84A12)", boxShadow: "0 0 24px rgba(232,98,26,0.35)" }}
+                        >
+                          <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "#fff" }}>✓</span>
+                        </div>
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12, color: "#897E73" }}>You</span>
+                      </div>
+                      {/* Connector dots */}
+                      <div className="flex gap-1 pb-4">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.12)" }} />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.08)" }} />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,237,224,0.04)" }} />
+                      </div>
+                      {/* Partner avatar — hollow with pulsing ember ring */}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="relative w-14 h-14">
+                          <div className="absolute inset-0 rounded-full border-2 border-[#E8621A] animate-ping opacity-30" />
+                          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(232,98,26,0.40)", background: "rgba(255,231,202,0.04)" }}>
+                            <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: "rgba(232,98,26,0.45)" }}>?</span>
+                          </div>
+                        </div>
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 12, color: "#897E73" }}>{partnerName ? partnerName.split(" ")[0] : "Them"}</span>
+                      </div>
+                    </div>
+                    {/* Rotating headline */}
+                    <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: "#F6EEE2", lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+                      {WAITING_HEADLINES[waitingHeadlineIdx]}
+                    </h2>
+                    <p className="mt-3" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#897E73" }}>
+                      We&apos;ll make the call the moment they&apos;re done.
+                    </p>
+                  </div>
                 </div>
               ) : partnerUserId ? (
                 /* §4–§5: Watcha's Call */
