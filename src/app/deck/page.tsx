@@ -547,7 +547,7 @@ function DeckContent() {
     const load = async () => {
       const { data } = await supabase
         .from("sessions")
-        .select("deck_meal_ids, vibe")
+        .select("deck_meal_ids, vibe, session_code, expires_at, status")
         .eq("id", sessionId)
         .single();
 
@@ -586,7 +586,44 @@ function DeckContent() {
       // Vibe fallback: if the URL param is missing or not a known vibe value,
       // read vibe from the session row so deck generation uses the host's choice.
       // Defaults to "mix-it-up" only when the DB value is also absent/invalid.
-      const dbVibe = (data as { deck_meal_ids?: string[]; vibe?: string } | null)?.vibe ?? null;
+      const sessionData = data as { deck_meal_ids?: string[]; vibe?: string; session_code?: string | null; expires_at?: string; status?: string } | null;
+      const dbVibe = sessionData?.vibe ?? null;
+
+      // Self-healing wwe_active_session write — ensures the home resume banner
+      // can surface for any shared-session participant (guest or host) who
+      // navigates away mid-swipe, even if the pointer was never written or was
+      // cleared by an expiry/match removeItem call earlier in the session.
+      // Overwrites only when the pointer is missing, expired, malformed, or
+      // pointing to a different sessionId. Leaves a valid same-session pointer alone.
+      if (typeof window !== 'undefined' && sessionId && sessionData) {
+        let shouldWrite = true
+
+        const existingRaw = localStorage.getItem('wwe_active_session')
+        if (existingRaw) {
+          try {
+            const existing = JSON.parse(existingRaw)
+            const expiresAt = existing?.expiresAt
+              ? new Date(existing.expiresAt).getTime()
+              : 0
+            const isSameSession = existing?.sessionId === sessionId
+            const isNotExpired = expiresAt > Date.now()
+            shouldWrite = !(isSameSession && isNotExpired)
+          } catch {
+            shouldWrite = true
+          }
+        }
+
+        if (shouldWrite) {
+          localStorage.setItem('wwe_active_session', JSON.stringify({
+            sessionId,
+            sessionCode: sessionData.session_code ?? null,
+            expiresAt: sessionData.expires_at,
+            status: sessionData.status ?? 'swiping',
+            vibe: sessionData.vibe ?? 'mix-it-up',
+          }))
+        }
+      }
+
       if (!vibeParam || !VALID_VIBE_MODES.includes(vibeParam as SessionVibeMode)) {
         const fallback = (dbVibe && VALID_VIBE_MODES.includes(dbVibe as SessionVibeMode))
           ? (dbVibe as SessionVibeMode)
