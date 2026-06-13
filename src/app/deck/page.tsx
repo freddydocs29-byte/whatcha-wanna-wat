@@ -328,6 +328,10 @@ function DeckContent() {
   const [partnerUserId, setPartnerUserId] = useState<string | null>(null);
   // Partner's display name (fetched from profiles once partnerUserId is known)
   const [partnerName, setPartnerName] = useState<string>("");
+  // Avatar URLs for Watcha's Call overlap avatars
+  const [myDisplayName, setMyDisplayName] = useState<string>("");
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  const [partnerAvatarUrl, setPartnerAvatarUrl] = useState<string | null>(null);
   // ── AI Fresh Ideas state ────────────────────────────────────────────────────
   const [aiMealsLoading, setAiMealsLoading] = useState(false);
   // Tracks IDs of AI-generated meals so the card can show the right label.
@@ -426,18 +430,33 @@ function DeckContent() {
     setSoloResetCount(parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch partner display name once their user ID is known
+  // Fetch partner display name + avatar once their user ID is known
   useEffect(() => {
     if (!partnerUserId) return;
     void supabase
       .from("profiles")
-      .select("display_name")
+      .select("display_name, avatar_url")
       .eq("user_id", partnerUserId)
       .single()
       .then(({ data }) => {
         if (data?.display_name) setPartnerName(data.display_name as string);
+        if (data?.avatar_url) setPartnerAvatarUrl(data.avatar_url as string);
       });
   }, [partnerUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch current user's display name + avatar for Watcha's Call overlap
+  useEffect(() => {
+    if (!userId) return;
+    void supabase
+      .from("profiles")
+      .select("display_name, avatar_url")
+      .eq("user_id", userId)
+      .single()
+      .then(({ data }) => {
+        if (data?.display_name) setMyDisplayName(data.display_name as string);
+        if (data?.avatar_url) setMyAvatarUrl(data.avatar_url as string);
+      });
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // §2: 60-second timeout — if partner hasn't finished by then, auto-advance
   useEffect(() => {
@@ -2475,6 +2494,9 @@ function DeckContent() {
                   userId={userId}
                   partnerUserId={partnerUserId}
                   partnerName={partnerName}
+                  myName={myDisplayName}
+                  myAvatarUrl={myAvatarUrl}
+                  partnerAvatarUrl={partnerAvatarUrl}
                   orderedMeals={rankedMeals.map((r) => r.meal)}
                   deckSize={Math.min(rankedMeals.length, DECK_SIZE)}
                   aiMealIds={aiMealIds}

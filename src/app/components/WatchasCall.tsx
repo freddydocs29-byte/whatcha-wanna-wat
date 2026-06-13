@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { meals, type Meal } from "../data/meals";
 import { inferSessionContext } from "../lib/session-tracking";
@@ -115,6 +115,31 @@ function tierReason(tier: Tier): string {
   }
 }
 
+// ─── Reveal copy ─────────────────────────────────────────────────────────────
+
+const NO_MATCH_COPY = [
+  { headline: "Nobody blinked.", sub: "A genuine standoff. We respect it." },
+  { headline: "No match tonight.", sub: "You two are surprisingly hard to please together." },
+  { headline: "Total deadlock.", sub: "Honestly? Kind of impressive." },
+  { headline: "Not a single yes overlapped.", sub: "We were taking notes anyway." },
+  { headline: "Stalemate.", sub: "Don\u2019t worry \u2014 we were watching the whole time." },
+] as const;
+
+// ─── Avatar helpers ───────────────────────────────────────────────────────────
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+const AvatarSilhouette = () => (
+  <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
+    <circle cx="15" cy="10" r="5.5" fill="#5A5350" />
+    <path d="M2 28c0-7.18 5.82-13 13-13s13 5.82 13 13" fill="#5A5350" />
+  </svg>
+);
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 type TBView = "loading" | "reveal" | "main" | "locking" | "locked" | "exit";
@@ -124,6 +149,9 @@ export interface WatchasCallProps {
   userId: string;
   partnerUserId: string;
   partnerName: string;
+  myName?: string;
+  myAvatarUrl?: string | null;
+  partnerAvatarUrl?: string | null;
   orderedMeals: Meal[];
   deckSize: number;
   aiMealIds: Set<string>;
@@ -136,6 +164,9 @@ export default function WatchasCall({
   userId,
   partnerUserId,
   partnerName,
+  myName,
+  myAvatarUrl,
+  partnerAvatarUrl,
   orderedMeals,
   deckSize,
   aiMealIds,
@@ -149,6 +180,11 @@ export default function WatchasCall({
   const [mainPlaying, setMainPlaying] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const lockInitiatedRef = useRef(false);
+  // Picked once per component instance — stable across re-renders and state updates
+  const revealCopy = useMemo(
+    () => NO_MATCH_COPY[Math.floor(Math.random() * NO_MATCH_COPY.length)],
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const prefersReduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -192,13 +228,12 @@ export default function WatchasCall({
     setRevealStage(0);
     timersRef.current.push(setTimeout(() => setRevealStage(1), 120));
     timersRef.current.push(setTimeout(() => setRevealStage(2), 1500));
-    timersRef.current.push(setTimeout(() => setRevealStage(3), 2850));
     timersRef.current.push(
       setTimeout(() => {
         setView("main");
         setMainPlaying(true);
         setTimeout(() => setMainPlaying(false), 900);
-      }, 4200),
+      }, 3500),
     );
   }
 
@@ -428,7 +463,7 @@ export default function WatchasCall({
             ...vis(1),
           }}
         >
-          Nobody blinked.
+          {revealCopy.headline}
         </h2>
         {/* Sub */}
         <div
@@ -443,23 +478,7 @@ export default function WatchasCall({
             ...vis(2),
           }}
         >
-          {deckSize} cards. Zero matches. Genuinely impressive.
-        </div>
-        {/* Transition line */}
-        <div
-          style={{
-            marginTop: 8,
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: "italic",
-            fontSize: 18,
-            lineHeight: 1.3,
-            color: "#FF8A3D",
-            maxWidth: 300,
-            transition: "opacity 0.7s ease, transform 0.7s ease",
-            ...vis(3),
-          }}
-        >
-          So we made the call \u2014
+          {revealCopy.sub}
         </div>
       </div>
     );
@@ -756,18 +775,33 @@ export default function WatchasCall({
             border: "1px solid rgba(245,237,224,0.085)",
           }}
         >
-          {/* You avatar — warm brown gradient */}
+          {/* You avatar */}
           <div
             style={{
               width: 34,
               height: 34,
               borderRadius: "50%",
               flexShrink: 0,
-              background:
-                "radial-gradient(circle at 38% 26%, #E8C49E 0%, #B6794C 42%, #5A3016 74%, #1c0e06 100%)",
+              background: "#3D3733",
+              border: "1.5px solid rgba(245,237,224,0.12)",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               boxShadow: "0 6px 16px rgba(0,0,0,0.4)",
             }}
-          />
+          >
+            {myAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={myAvatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : myName ? (
+              <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-nunito)" }}>
+                {getInitials(myName)}
+              </span>
+            ) : (
+              <AvatarSilhouette />
+            )}
+          </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
@@ -846,18 +880,33 @@ export default function WatchasCall({
             border: "1px solid rgba(245,237,224,0.085)",
           }}
         >
-          {/* Partner avatar — purple gradient */}
+          {/* Partner avatar */}
           <div
             style={{
               width: 34,
               height: 34,
               borderRadius: "50%",
               flexShrink: 0,
-              background:
-                "radial-gradient(circle at 36% 26%, #C9A4D6 0%, #7E5295 42%, #3c2148 74%, #160a1c 100%)",
+              background: "#3D3733",
+              border: "1.5px solid rgba(245,237,224,0.12)",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               boxShadow: "0 6px 16px rgba(0,0,0,0.4)",
             }}
-          />
+          >
+            {partnerAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={partnerAvatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : firstName && firstName !== "them" ? (
+              <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-nunito)" }}>
+                {getInitials(firstName)}
+              </span>
+            ) : (
+              <AvatarSilhouette />
+            )}
+          </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
