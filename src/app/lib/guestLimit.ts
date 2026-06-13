@@ -34,35 +34,36 @@ export function incrementGuestAttempts(): void {
   localStorage.setItem(ATTEMPTS_KEY, String(next));
 }
 
-/** Whether the guest has already used their one "Changed your mind?" retry. */
+/**
+ * @deprecated v1 API — wwe_guest_retry_used is never written in the v2 budget
+ * flow, so this always returns false. Kept exported for reference only.
+ */
 export function isGuestRetryUsed(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(RETRY_KEY) === "true";
 }
 
-/** Consume the retry — call once when the guest confirms "Changed your mind?". */
+/**
+ * @deprecated v1 API — never called in the v2 budget flow.
+ * Kept exported for reference only.
+ */
 export function markGuestRetryUsed(): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(RETRY_KEY, "true");
 }
 
 /**
- * Returns true when a guest tries to use "Changed your mind?" but has
- * already spent their one retry.
- *
- * Use this gate inside the locked-page handler.
+ * @deprecated v1 API — delegates to isGuestRetryUsed() which is always false
+ * in the v2 budget flow. Kept exported for reference only.
  */
 export function guestRetryExhausted(): boolean {
   return isGuestRetryUsed();
 }
 
 /**
- * Returns true when a guest tries to start a brand-new solo deck
- * (splash or guest-home) but has already had their deck + retry.
- *
- * We only block when they have BOTH spent their retry AND already
- * started at least one solo deck — this way a guest who joined a
- * shared session but hasn't touched a solo deck yet can still begin one.
+ * @deprecated v1 API — depends on wwe_guest_retry_used which is never written
+ * in the v2 budget flow, making this permanently return false.
+ * Use guestDeckBudgetExhausted() instead. Kept exported for reference only.
  */
 export function guestSoloDeckExhausted(): boolean {
   return isGuestRetryUsed() && getGuestAttempts() >= 1;
@@ -75,26 +76,54 @@ export function guestDeckBudgetExhausted(): boolean {
   return getGuestAttempts() >= GUEST_DECK_BUDGET;
 }
 
+/** Grants are valid for this many ms after being written.
+ *  Legitimate use (tryConsumeGuestDeckBudget → /deck navigation → mount) is
+ *  sub-second. Anything older is an orphan left by a hard-close. */
+const GRANT_TTL_MS = 60_000; // 60 seconds
+
 /**
  * Stamps a one-time entry grant so the /deck mount gate knows the
  * navigation was authorised by a budget-consuming action.
+ * Written as a timestamped JSON object so orphaned grants (left by a
+ * hard-close before the deck mounted) can be rejected on reopen.
  */
 export function grantGuestDeckEntry(): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(GUEST_DECK_ENTRY_GRANT_KEY, "true");
+  window.localStorage.setItem(
+    GUEST_DECK_ENTRY_GRANT_KEY,
+    JSON.stringify({ granted: true, grantedAt: Date.now() }),
+  );
 }
 
 /**
  * Reads and clears the entry grant in one step.
- * Returns true if the grant was present (and has now been consumed).
+ * Returns true only if the grant is present, well-formed, and less than
+ * GRANT_TTL_MS old — rejecting both orphaned grants and the legacy bare
+ * "true" string that old clients may have written.
  */
 export function consumeGuestDeckEntryGrant(): boolean {
   if (typeof window === "undefined") return false;
-  const granted = window.localStorage.getItem(GUEST_DECK_ENTRY_GRANT_KEY) === "true";
-  if (granted) {
+  const raw = window.localStorage.getItem(GUEST_DECK_ENTRY_GRANT_KEY);
+  if (!raw) return false;
+  try {
+    const grant = JSON.parse(raw);
+    // Always remove whatever was stored.
     window.localStorage.removeItem(GUEST_DECK_ENTRY_GRANT_KEY);
+    // Reject legacy "true" grants and any other malformed shapes.
+    if (
+      !grant ||
+      typeof grant !== "object" ||
+      grant.granted !== true ||
+      typeof grant.grantedAt !== "number"
+    ) {
+      return false;
+    }
+    const age = Date.now() - grant.grantedAt;
+    return age >= 0 && age < GRANT_TTL_MS;
+  } catch {
+    window.localStorage.removeItem(GUEST_DECK_ENTRY_GRANT_KEY);
+    return false;
   }
-  return granted;
 }
 
 /**

@@ -10,7 +10,7 @@ import SplashScreen from "./components/SplashScreen";
 import SessionResumeBanner, { computeBannerText } from "./components/SessionResumeBanner";
 import { supabase } from "./lib/supabase";
 import { getUserId } from "./lib/identity";
-import { guestSoloDeckExhausted, incrementGuestAttempts } from "./lib/guestLimit";
+import { guestDeckBudgetExhausted, incrementGuestAttempts } from "./lib/guestLimit";
 import {
   getSavedMeals,
   getFavorites,
@@ -1008,7 +1008,7 @@ export default function Home() {
         onLetsGo={() => router.push("/auth?mode=signup")}
         onSignIn={() => router.push("/auth?mode=signin")}
         onContinueAsGuest={() => {
-          if (guestSoloDeckExhausted()) {
+          if (guestDeckBudgetExhausted()) {
             router.push("/auth?mode=signup&from=guest-limit");
             return;
           }
