@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
-import { getUserId } from "../lib/identity";
+import { clearAllLocalState, getUserId } from "../lib/identity";
 import { linkAuthToProfile } from "../lib/supabase-profile";
 
 type Mode = "signin" | "signup";
@@ -146,6 +146,15 @@ export default function AuthPage() {
 
     try {
       if (mode === "signup") {
+        // 0. Wipe any stale localStorage/sessionStorage state from a previous
+        //    account on this device before the new account is created.
+        //    This runs BEFORE signUp, profile creation, and any restore logic
+        //    so the new account starts from a genuine blank slate — exactly as
+        //    if the browser were in incognito / first-install mode.
+        //    anonUserId and wwe_pending_guest_meal (not in APP_STORAGE_KEYS) are
+        //    both captured above and will not be affected by this clear.
+        clearAllLocalState();
+
         // 1. Create the Supabase Auth account
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,

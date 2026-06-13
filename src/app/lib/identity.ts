@@ -99,6 +99,22 @@ export function clearAllLocalState(): void {
   }
   for (const k of swipingDoneKeys) localStorage.removeItem(k);
 
+  // Clear dynamic shared deck position keys (wwe_shared_deck_index_{sessionId}).
+  const sharedDeckIndexKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("wwe_shared_deck_index_")) sharedDeckIndexKeys.push(k);
+  }
+  for (const k of sharedDeckIndexKeys) localStorage.removeItem(k);
+
+  // Clear dynamic decision deduplication flags (wwe_decision_written_{sessionId}_{mealId}).
+  const decisionWrittenKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("wwe_decision_written_")) decisionWrittenKeys.push(k);
+  }
+  for (const k of decisionWrittenKeys) localStorage.removeItem(k);
+
   // Clear dynamic DNA insight cache keys (wwe_insights_{userId} and wwe_insights_{userIdA}_{userIdB}).
   const insightKeys: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -114,6 +130,13 @@ export function clearAllLocalState(): void {
     if (k?.startsWith("wwe_flavor_type_")) flavorTypeKeys.push(k);
   }
   for (const k of flavorTypeKeys) localStorage.removeItem(k);
+
+  // Clear session-scoped sessionStorage keys. These naturally expire when the
+  // browser tab closes, but must also be wiped when an account changes within
+  // the same tab (signup or logout) to prevent cross-account leaks.
+  sessionStorage.removeItem("wwe_solo_deck_resets");
+  sessionStorage.removeItem("wwe_app_opened");
+  sessionStorage.removeItem("wwe_recommend_deck");
 
 }
 
