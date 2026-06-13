@@ -1,5 +1,10 @@
+import Avatar from "../Avatar";
+
 interface AvatarItem {
   avatarUrl?: string | null;
+  /** Name used to derive initials when no photo is available */
+  name?: string | null;
+  /** @deprecated Pass name instead; kept for backwards compat */
   initials?: string | null;
 }
 
@@ -7,18 +12,10 @@ interface V3PostMatchHomeProps {
   mealName?: string;
   headline?: string;
   sub?: string;
-  /** Real avatar data for each participant. Replaces the old avatarCount placeholder. */
+  /** Real avatar data for each participant. */
   avatars?: AvatarItem[];
   mealImage?: string;
 }
-
-/** Fallback silhouette — only rendered when no avatarUrl and no initials */
-const AvatarSilhouette = () => (
-  <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
-    <circle cx="15" cy="10" r="5.5" fill="#5A5350" />
-    <path d="M2 28c0-7.18 5.82-13 13-13s13 5.82 13 13" fill="#5A5350" />
-  </svg>
-);
 
 export default function V3PostMatchHome({
   mealName = "Tikka Masala",
@@ -131,24 +128,14 @@ export default function V3PostMatchHome({
           <div className="flex gap-[6px] items-center">
             {avatars.map((av, i) => (
               <div key={i} className="relative shrink-0">
-                <div className="w-[38px] h-[38px] rounded-full bg-[#3D3733] flex items-center justify-center border-2 border-white/25 overflow-hidden">
-                  {av.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={av.avatarUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : av.initials ? (
-                    <span
-                      className="text-[13px] font-bold text-white"
-                      style={{ fontFamily: "var(--font-nunito)" }}
-                    >
-                      {av.initials}
-                    </span>
-                  ) : (
-                    <AvatarSilhouette />
-                  )}
+                <div className="relative w-[38px] h-[38px] rounded-full bg-[#3D3733] border-2 border-white/25 overflow-hidden">
+                  <Avatar
+                    avatarUrl={av.avatarUrl}
+                    name={av.name ?? av.initials ?? null}
+                    initialsSize={13}
+                    silhouetteColor="#5A5350"
+                    silhouetteSize={22}
+                  />
                 </div>
                 <div className="absolute bottom-[-1px] right-[-1px] w-[14px] h-[14px] rounded-full bg-[#4A7C59] border-[1.5px] border-[#1C1A18] flex items-center justify-center text-[7px] text-white font-bold">
                   ✓

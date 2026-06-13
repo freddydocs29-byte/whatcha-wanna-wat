@@ -546,6 +546,85 @@ export async function getAllPartners(userId: string): Promise<PartnerInfo[]> {
   });
 }
 
+/**
+ * Returns partners sorted by most-recently-shared session, with deduplication.
+ * Falls back to getAllPartners (session-count order) if no sessions exist yet.
+ * Used for homepage display — does not affect scoring or DNA computation.
+ */
+export async function getRecentPartners(userId: string): Promise<PartnerInfo[]> {
+  // Query sessions with a real partner, most recent first
+  const { data: sessions } = await supabase
+    .from("sessions")
+    .select("host_user_id, guest_user_id, created_at")
+    .or(`host_user_id.eq.${userId},guest_user_id.eq.${userId}`)
+    .not("guest_user_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (!sessions?.length) {
+    return getAllPartners(userId);
+  }
+
+  // Deduplicate: first occurrence of each partner = most recent session
+  const seen = new Set<string>();
+  const recentPartnerIds: string[] = [];
+  const latestSessionAt = new Map<string, string>();
+  for (const s of sessions) {
+    const partnerId =
+      (s.host_user_id as string) === userId
+        ? (s.guest_user_id as string)
+        : (s.host_user_id as string);
+    if (partnerId && !seen.has(partnerId)) {
+      seen.add(partnerId);
+      recentPartnerIds.push(partnerId);
+      latestSessionAt.set(partnerId, s.created_at as string);
+    }
+  }
+
+  if (!recentPartnerIds.length) return getAllPartners(userId);
+
+  // Fetch profiles for recent partners
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, display_name, avatar_url")
+    .in("user_id", recentPartnerIds);
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p) => [p.user_id as string, p])
+  );
+
+  // Fetch session/match counts from partner_relationships for PartnerInfo shape
+  const { data: relationships } = await supabase
+    .from("partner_relationships")
+    .select("user_id_a, user_id_b, session_count, match_count")
+    .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`);
+
+  const relMap = new Map<string, { sessionCount: number; matchCount: number }>();
+  for (const r of relationships ?? []) {
+    const pid =
+      (r.user_id_a as string) === userId
+        ? (r.user_id_b as string)
+        : (r.user_id_a as string);
+    relMap.set(pid, {
+      sessionCount: (r.session_count as number) ?? 0,
+      matchCount: (r.match_count as number) ?? 0,
+    });
+  }
+
+  return recentPartnerIds.map((partnerId) => {
+    const profile = profileMap.get(partnerId);
+    const rel = relMap.get(partnerId);
+    return {
+      partnerId,
+      sessionCount: rel?.sessionCount ?? 0,
+      matchCount: rel?.matchCount ?? 0,
+      lastSessionAt: latestSessionAt.get(partnerId) ?? null,
+      displayName: (profile?.display_name as string | null) ?? null,
+      avatarUrl: (profile?.avatar_url as string | null) ?? null,
+    };
+  });
+}
+
 export async function getCouplesDNA(
   userIdA: string,
   userIdB: string

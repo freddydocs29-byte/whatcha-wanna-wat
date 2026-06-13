@@ -1,13 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import Avatar from "../Avatar";
 
 export interface PersonV3 {
   id: string;
   /** Display label — first name preferred, "Someone" as fallback */
   name: string;
-  /** Avatar image URL; null/undefined triggers initials or "?" fallback */
+  /** Avatar image URL; null/undefined triggers initials or silhouette fallback */
   avatarUrl?: string | null;
 }
 
@@ -18,44 +18,6 @@ interface V3PeopleSelectorProps {
   onHidePartner?: (id: string) => void;
   avatarUrl?: string | null;
   displayName?: string | null;
-}
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
-
-const AvatarSilhouette = () => (
-  <svg width="28" height="28" viewBox="0 0 30 30" fill="none">
-    <circle cx="15" cy="10" r="5.5" fill="#4A3F3A" />
-    <path d="M2 28c0-7.18 5.82-13 13-13s13 5.82 13 13" fill="#4A3F3A" />
-  </svg>
-);
-
-function PartnerAvatar({ person }: { person: PersonV3 }) {
-  if (person.avatarUrl) {
-    return (
-      <Image
-        src={person.avatarUrl}
-        alt={person.name}
-        fill
-        className="object-cover"
-        unoptimized
-      />
-    );
-  }
-  if (person.name && person.name !== "Someone" && person.name !== "Recent") {
-    return (
-      <span
-        className="text-[17px] font-black text-white"
-        style={{ fontFamily: "var(--font-nunito)" }}
-      >
-        {getInitials(person.name)}
-      </span>
-    );
-  }
-  return <AvatarSilhouette />;
 }
 
 export default function V3PeopleSelector({
@@ -124,7 +86,6 @@ export default function V3PeopleSelector({
     ? people.find((p) => p.id === menuOpenForId)
     : null;
 
-  const initials = displayName ? getInitials(displayName) : null;
 
   return (
     <>
@@ -154,26 +115,7 @@ export default function V3PeopleSelector({
                 "0 0 0 2px #E8621A",
             }}
           >
-            {avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={displayName ?? "You"}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            ) : initials ? (
-              <span
-                className="absolute inset-0 flex items-center justify-center text-[17px] font-black text-white"
-                style={{ fontFamily: "var(--font-nunito)" }}
-              >
-                {initials}
-              </span>
-            ) : (
-              <span className="absolute inset-0 flex items-center justify-center">
-                <AvatarSilhouette />
-              </span>
-            )}
+            <Avatar avatarUrl={avatarUrl} name={displayName} />
 
             {/* Portrait lighting overlay */}
             <div
@@ -244,7 +186,7 @@ export default function V3PeopleSelector({
                     : "0 8px 20px rgba(0,0,0,0.45)",
                 }}
               >
-                <PartnerAvatar person={person} />
+                <Avatar avatarUrl={person.avatarUrl} name={person.name} />
 
                 {/* Portrait lighting overlay */}
                 <div

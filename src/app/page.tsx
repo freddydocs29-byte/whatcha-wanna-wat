@@ -55,9 +55,10 @@ import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
 import V3InviteDrawer from "./components/v3/V3InviteDrawer";
 import V3MenuDrawer from "./components/v3/V3MenuDrawer";
 import V3NotificationsDrawer from "./components/v3/V3NotificationsDrawer";
-import { getAllPartners, type PartnerInfo } from "./lib/dna";
+import { getRecentPartners, type PartnerInfo } from "./lib/dna";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PersonV3 } from "./components/v3/V3PeopleSelector";
+import Avatar from "./components/Avatar";
 
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
@@ -270,7 +271,7 @@ export default function Home() {
 
       // Fire-and-forget — never blocks Home from showing
       const userId = getUserId();
-      getAllPartners(userId).then((list) => {
+      getRecentPartners(userId).then((list) => {
         // ── Hidden-partners: stable device key ─────────────────────────────
         // New canonical key — not userId-suffixed so it survives UUID rotation.
         const HIDDEN_KEY = "wwe_hidden_partner_ids";
@@ -1127,20 +1128,15 @@ export default function Home() {
           style={{ boxShadow: "0 0 24px rgba(74,124,89,0.15)" }}
         >
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#4A7C59]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {pendingInvite.inviterAvatar ? (
-                <Image
-                  src={pendingInvite.inviterAvatar}
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-base font-bold text-[#4A7C59]">
-                  {pendingInvite.inviterName ? pendingInvite.inviterName[0].toUpperCase() : "?"}
-                </span>
-              )}
+            <div className="relative w-10 h-10 rounded-full bg-[#4A7C59]/20 flex-shrink-0 overflow-hidden">
+              <Avatar
+                avatarUrl={pendingInvite.inviterAvatar}
+                name={pendingInvite.inviterName}
+                initialsSize={16}
+                initialsColor="#4A7C59"
+                silhouetteColor="#4A7C59"
+                silhouetteSize={22}
+              />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-display font-black text-sm text-white">
@@ -1176,16 +1172,10 @@ export default function Home() {
             headline={lockedHeadline?.headline ?? "Dinner is\nlocked in."}
             sub={lockedHeadline?.subheadline ?? `You chose ${decidedMeal.name}.`}
             avatars={(() => {
-              const meInitials = profile?.display_name
-                ? profile.display_name.split(" ").filter(Boolean).map((n) => n[0].toUpperCase()).join("").slice(0, 2)
-                : null;
-              const meAvatar = { avatarUrl: resolvedAvatarUrl, initials: meInitials ?? "?" };
+              const meAvatar = { avatarUrl: resolvedAvatarUrl, name: profile?.display_name ?? null };
               if (decidedMeal.mode === "shared" && partners.length > 0) {
                 const partner = partners[0];
-                const partnerInitials = partner.displayName
-                  ? partner.displayName.split(" ").filter(Boolean).map((n) => n[0].toUpperCase()).join("").slice(0, 2)
-                  : null;
-                return [meAvatar, { avatarUrl: partner.avatarUrl ?? null, initials: partnerInitials ?? "?" }];
+                return [meAvatar, { avatarUrl: partner.avatarUrl ?? null, name: partner.displayName ?? null }];
               }
               return [meAvatar];
             })()}

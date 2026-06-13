@@ -6,6 +6,7 @@ import { meals, type Meal } from "../data/meals";
 import { inferSessionContext } from "../lib/session-tracking";
 import { addToHistory, saveDecidedMeal } from "../lib/storage";
 import type { SessionVibeMode } from "../lib/scoring";
+import Avatar from "./Avatar";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -124,21 +125,6 @@ const NO_MATCH_COPY = [
   { headline: "Not a single yes overlapped.", sub: "We were taking notes anyway." },
   { headline: "Stalemate.", sub: "Don\u2019t worry \u2014 we were watching the whole time." },
 ] as const;
-
-// ─── Avatar helpers ───────────────────────────────────────────────────────────
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
-
-const AvatarSilhouette = () => (
-  <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
-    <circle cx="15" cy="10" r="5.5" fill="#5A5350" />
-    <path d="M2 28c0-7.18 5.82-13 13-13s13 5.82 13 13" fill="#5A5350" />
-  </svg>
-);
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -778,6 +764,7 @@ export default function WatchasCall({
           {/* You avatar */}
           <div
             style={{
+              position: "relative",
               width: 34,
               height: 34,
               borderRadius: "50%",
@@ -785,22 +772,16 @@ export default function WatchasCall({
               background: "#3D3733",
               border: "1.5px solid rgba(245,237,224,0.12)",
               overflow: "hidden",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               boxShadow: "0 6px 16px rgba(0,0,0,0.4)",
             }}
           >
-            {myAvatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={myAvatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : myName ? (
-              <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-nunito)" }}>
-                {getInitials(myName)}
-              </span>
-            ) : (
-              <AvatarSilhouette />
-            )}
+            <Avatar
+              avatarUrl={myAvatarUrl}
+              name={myName}
+              initialsSize={13}
+              silhouetteColor="#5A5350"
+              silhouetteSize={22}
+            />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
@@ -883,6 +864,7 @@ export default function WatchasCall({
           {/* Partner avatar */}
           <div
             style={{
+              position: "relative",
               width: 34,
               height: 34,
               borderRadius: "50%",
@@ -890,22 +872,16 @@ export default function WatchasCall({
               background: "#3D3733",
               border: "1.5px solid rgba(245,237,224,0.12)",
               overflow: "hidden",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               boxShadow: "0 6px 16px rgba(0,0,0,0.4)",
             }}
           >
-            {partnerAvatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={partnerAvatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : firstName && firstName !== "them" ? (
-              <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-nunito)" }}>
-                {getInitials(firstName)}
-              </span>
-            ) : (
-              <AvatarSilhouette />
-            )}
+            <Avatar
+              avatarUrl={partnerAvatarUrl}
+              name={firstName}
+              initialsSize={13}
+              silhouetteColor="#5A5350"
+              silhouetteSize={22}
+            />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
