@@ -264,8 +264,7 @@ export default function Home() {
       setStreak(getStreak());
       fetchProfileByAuthUserId(session.user.id).then((p) => {
         setProfile(p);
-        const url = p?.avatar_url ?? localStorage.getItem('wwe_avatar_url');
-        if (url) setResolvedAvatarUrl(url);
+        if (p?.avatar_url) setResolvedAvatarUrl(p.avatar_url);
       }).catch(() => {});
       setReady(true);
 

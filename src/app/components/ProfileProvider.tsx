@@ -236,10 +236,9 @@ function restoreProfileLocalState(profile: Profile): void {
     }
   }
 
-  if (profile.avatar_url) {
-    localStorage.setItem('wwe_avatar_url', profile.avatar_url);
-    console.log('[restore] avatar restored:', !!profile.avatar_url);
-  }
+  // avatar_url is fetched directly from Supabase on each home page load —
+  // no localStorage cache needed, and a global (non-user-scoped) cache key
+  // would leak a previous user's avatar URL to a new account on the same device.
 }
 
 // ─── Pending save meal ────────────────────────────────────────────────────────
