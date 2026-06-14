@@ -26,6 +26,7 @@ import { MealDetailDrawer } from "../components/MealDetailDrawer";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, tryConsumeGuestDeckBudgetNoGrant, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
 import WatchasCall from "../components/WatchasCall";
+import { WatchaCallDetailsDrawer } from "../components/WatchaCallDetailsDrawer";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
@@ -363,6 +364,8 @@ function DeckContent() {
   const [soloWatchaCallView, setSoloWatchaCallView] = useState<"reveal" | "main" | "locked" | "exit" | null>(null);
   const [soloWatchaCallMeal, setSoloWatchaCallMeal] = useState<Meal | null>(null);
   const [soloWatchaCallTier, setSoloWatchaCallTier] = useState<"A" | "B" | "C" | null>(null);
+  // Details drawer — isolated; never touches lock/exit/reveal state
+  const [watchaCallDetailsOpen, setWatchaCallDetailsOpen] = useState(false);
   const [soloWCRevealStage, setSoloWCRevealStage] = useState(0);
   // Picked once per component instance — stable across re-renders
   // Picked once per reveal instance in the trigger effect below; initial value is a stable placeholder.
@@ -3196,8 +3199,29 @@ function DeckContent() {
                 </div>
               </div>
             </div>
+            {/* See details */}
+            <button
+              onClick={() => setWatchaCallDetailsOpen(true)}
+              style={{
+                marginTop: 10,
+                background: "none",
+                border: "1px solid rgba(245,237,224,0.14)",
+                borderRadius: 100,
+                cursor: "pointer",
+                width: "100%",
+                padding: "10px 0",
+                fontFamily: "'Quicksand', sans-serif",
+                fontWeight: 600,
+                fontSize: 13.5,
+                color: "#C7BDAC",
+                letterSpacing: "0.01em",
+              }}
+            >
+              See details
+            </button>
+
             {/* Actions */}
-            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
               <button
                 onClick={doSoloWCLock}
                 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, borderRadius: 100, border: "none", width: "100%", fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15.5, letterSpacing: "-0.01em", cursor: "pointer", color: "#1c0c03", background: "linear-gradient(180deg,#FF8A3D,#E8621A 48%,#B84A12)", boxShadow: "0 1px 0 rgba(255,224,188,0.6) inset, 0 -2px 0 rgba(120,52,0,0.4) inset, 0 14px 30px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.3)" }}
@@ -3214,6 +3238,19 @@ function DeckContent() {
                 Not tonight
               </button>
             </div>
+
+            {/* Solo Watcha's Call details drawer */}
+            <WatchaCallDetailsDrawer
+              meal={wc}
+              isOpen={watchaCallDetailsOpen}
+              onClose={() => setWatchaCallDetailsOpen(false)}
+              onLockIn={() => {
+                setWatchaCallDetailsOpen(false);
+                doSoloWCLock();
+              }}
+              mode="solo"
+              tierReason={soloTierReason()}
+            />
           </div>
         </main>
       );

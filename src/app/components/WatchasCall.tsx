@@ -7,6 +7,7 @@ import { inferSessionContext } from "../lib/session-tracking";
 import { addToHistory, saveDecidedMeal } from "../lib/storage";
 import type { SessionVibeMode } from "../lib/scoring";
 import Avatar from "./Avatar";
+import { WatchaCallDetailsDrawer } from "./WatchaCallDetailsDrawer";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
@@ -164,6 +165,8 @@ export default function WatchasCall({
   const [lockError, setLockError] = useState<string | null>(null);
   const [revealStage, setRevealStage] = useState(0); // 0=none, 1=s0, 2=s0+s1, 3=all
   const [mainPlaying, setMainPlaying] = useState(false);
+  // ── Watcha's Call details drawer (isolated — does not affect lock/exit/polling state) ─
+  const [watchaCallDetailsOpen, setWatchaCallDetailsOpen] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const lockInitiatedRef = useRef(false);
   // Picked once per component instance — stable across re-renders and state updates
@@ -1024,8 +1027,29 @@ export default function WatchasCall({
         </div>
       </div>
 
+      {/* See details */}
+      <button
+        onClick={() => setWatchaCallDetailsOpen(true)}
+        style={{
+          marginTop: 10,
+          background: "none",
+          border: "1px solid rgba(245,237,224,0.14)",
+          borderRadius: 100,
+          cursor: "pointer",
+          width: "100%",
+          padding: "10px 0",
+          fontFamily: "'Quicksand', sans-serif",
+          fontWeight: 600,
+          fontSize: 13.5,
+          color: "#C7BDAC",
+          letterSpacing: "0.01em",
+        }}
+      >
+        See details
+      </button>
+
       {/* Actions */}
-      <div className="wce-s4" style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 5 }}>
+      <div className="wce-s4" style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
         {lockError && (
           <div
             style={{
@@ -1096,6 +1120,20 @@ export default function WatchasCall({
           Not tonight
         </button>
       </div>
+
+      {/* Watcha's Call details drawer */}
+      <WatchaCallDetailsDrawer
+        meal={result?.meal ?? null}
+        isOpen={watchaCallDetailsOpen}
+        onClose={() => setWatchaCallDetailsOpen(false)}
+        onLockIn={() => {
+          setWatchaCallDetailsOpen(false);
+          void handleLockItIn();
+        }}
+        mode="shared"
+        tierReason={result ? tierReason(result.tier) : ""}
+        lockingInProgress={view === "locking"}
+      />
     </div>
   );
 }
