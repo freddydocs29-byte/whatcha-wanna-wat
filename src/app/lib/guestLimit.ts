@@ -79,7 +79,7 @@ export function guestDeckBudgetExhausted(): boolean {
 /** Grants are valid for this many ms after being written.
  *  Legitimate use (tryConsumeGuestDeckBudget → /deck navigation → mount) is
  *  sub-second. Anything older is an orphan left by a hard-close. */
-const GRANT_TTL_MS = 60_000; // 60 seconds
+const GRANT_TTL_MS = 5_000; // legitimate tap-to-mount is sub-second; 5s covers slow devices
 
 /**
  * Stamps a one-time entry grant so the /deck mount gate knows the
@@ -130,10 +130,32 @@ export function consumeGuestDeckEntryGrant(): boolean {
  * Tries to consume one unit of the guest deck budget.
  * Returns true and increments the counter + writes an entry grant if allowed.
  * Returns false (counter untouched, no grant) if the budget is already exhausted.
+ *
+ * Use this for navigation-based deck starts (SplashScreen, /locked, guest-home)
+ * where a /deck mount will immediately consume the grant.
  */
 export function tryConsumeGuestDeckBudget(): boolean {
   if (getGuestAttempts() >= GUEST_DECK_BUDGET) return false;
   incrementGuestAttempts();
   grantGuestDeckEntry();
+  return true;
+}
+
+/**
+ * Tries to consume one unit of the guest deck budget for an in-place deck
+ * rebuild (Fresh Ideas). Increments the counter but writes NO entry grant —
+ * no /deck navigation will occur, so a grant would be orphaned and could
+ * later be used as a bypass key. Also removes any existing grant to prevent
+ * a prior grant from being preserved across the rebuild.
+ *
+ * Returns false (counter untouched) if the budget is already exhausted.
+ */
+export function tryConsumeGuestDeckBudgetNoGrant(): boolean {
+  if (getGuestAttempts() >= GUEST_DECK_BUDGET) return false;
+  incrementGuestAttempts();
+  // In-place rebuilds should never leave or preserve a /deck entry grant.
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(GUEST_DECK_ENTRY_GRANT_KEY);
+  }
   return true;
 }

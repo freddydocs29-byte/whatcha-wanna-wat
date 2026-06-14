@@ -24,7 +24,7 @@ import { detectRituals, getRitualLabel, isRitualSuppressed, recordRitualRejectio
 import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
-import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
+import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, tryConsumeGuestDeckBudgetNoGrant, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
 import WatchasCall from "../components/WatchasCall";
 
 const SWIPE_THRESHOLD = 100;
@@ -1754,7 +1754,7 @@ function DeckContent() {
    */
   function canGuestRequestNewDeck(): boolean {
     if (!isGuest) return true;
-    if (!tryConsumeGuestDeckBudget()) {
+    if (!tryConsumeGuestDeckBudgetNoGrant()) {
       setShowGuestLimit(true);
       return false;
     }
@@ -2834,7 +2834,7 @@ function DeckContent() {
     function clearAndGoHome() {
       sessionStorage.removeItem(SOLO_RESET_SS_KEY);
       setSoloResetCount(0);
-      router.push(isGuest ? "/deck" : "/");
+      router.push("/");
     }
 
     // Helper to decide + navigate home (canonical path)
