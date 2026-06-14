@@ -253,15 +253,26 @@ async function main() {
   // 1. All meals (total pool)
   const allMeals = meals;
 
-  // 2. Already on Supabase — always skipped regardless of other filters
-  const alreadyDone = allMeals.filter((m) =>
-    m.image.includes("supabase.co/storage")
-  );
+  // 2. Meals permanently excluded from regeneration (keep existing images)
+  const SKIP_IDS = new Set([
+    "saffron-rice",
+    "spicy-carrot-salad",
+    "briouat",
+    "harira-soup",
+    "vegetable-tagine",
+    "zucchini-fritters",
+    "orange-salad",
+    "moroccan-pizza",
+    "kefta-meatballs",
+    "moroccan-chicken-skewers",
+    "pastilla",
+    "couscous-vegetable",
+  ]);
 
-  // 3. Needs an image
-  let eligible = allMeals.filter(
-    (m) => !m.image.includes("supabase.co/storage")
-  );
+  const alreadyDone = allMeals.filter((m) => SKIP_IDS.has(m.id));
+
+  // 3. All meals not in the skip list are eligible (including those already on Supabase)
+  let eligible = allMeals.filter((m) => !SKIP_IDS.has(m.id));
 
   // 4. ONLY_IDS filter — overrides cuisine and START_AFTER
   if (ONLY_IDS.length > 0) {
@@ -314,7 +325,7 @@ async function main() {
   console.log(
     ` Batch this run     : ${targets.length} (size: ${BATCH_SIZE})`
   );
-  console.log(` Model              : gpt-image-1  1024×1024  standard`);
+  console.log(` Model              : gpt-image-1  1024×1024  high`);
   console.log(` Estimated cost     : ~$${(targets.length * 0.04).toFixed(2)}`);
   console.log(
     ` Auto-write         : ${
@@ -362,7 +373,7 @@ async function main() {
         model: "gpt-image-1",
         prompt: buildPrompt(meal.name),
         size: "1024x1024",
-        quality: "medium",
+        quality: "high",
         n: 1,
       });
 
@@ -440,7 +451,7 @@ async function main() {
   console.log(` Processed this run : ${targets.length}`);
   console.log(` Succeeded          : ${succeeded}`);
   console.log(` Failed             : ${failed}`);
-  console.log(` Skipped (Supabase) : ${alreadyDone.length}`);
+  console.log(` Skipped (excluded) : ${alreadyDone.length}`);
   console.log(` Remaining after run: ${remainingAfterRun}`);
   console.log(` Actual cost        : ~$${(succeeded * 0.04).toFixed(2)}`);
   if (AUTO_WRITE) {
