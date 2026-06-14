@@ -118,7 +118,7 @@ function tierReason(tier: Tier): string {
 
 // ─── Reveal copy ─────────────────────────────────────────────────────────────
 
-const NO_MATCH_COPY = [
+export const NO_MATCH_COPY = [
   { headline: "Nobody blinked.", sub: "A genuine standoff. We respect it." },
   { headline: "No match tonight.", sub: "You two are surprisingly hard to please together." },
   { headline: "Total deadlock.", sub: "Honestly? Kind of impressive." },

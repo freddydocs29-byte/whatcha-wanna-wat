@@ -25,7 +25,7 @@ import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, tryConsumeGuestDeckBudgetNoGrant, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
-import WatchasCall from "../components/WatchasCall";
+import WatchasCall, { NO_MATCH_COPY } from "../components/WatchasCall";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
@@ -78,6 +78,31 @@ const WAITING_HEADLINES = [
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
+
+// ── Solo Watcha's Call algorithm ──────────────────────────────────────────────
+// Variables used: rankedMeals (ordered pool), savedFeedback (★'d meals), currentIndex (cards seen)
+// Tier A: highest-ranked meal the user saved (liked) this session
+// Tier B: highest-ranked seen meal not saved (neutral — saw it, neither loved nor chose it)
+// Tier C: top of tonight's deck regardless of swipe
+function computeSoloWCE(
+  rankedMeals: RankedMeal[],
+  savedFeedback: Set<string>,
+  currentIndex: number,
+): { meal: Meal; tier: "A" | "B" | "C" } | null {
+  if (rankedMeals.length === 0) return null;
+  // Tier A: saved (liked) meals, highest-ranked first
+  for (const { meal } of rankedMeals) {
+    if (savedFeedback.has(meal.id)) return { meal, tier: "A" };
+  }
+  // Tier B: seen but not saved (neutral)
+  const seenCount = Math.min(currentIndex, rankedMeals.length);
+  for (let i = 0; i < seenCount; i++) {
+    const { meal } = rankedMeals[i];
+    if (!savedFeedback.has(meal.id)) return { meal, tier: "B" };
+  }
+  // Tier C: top of deck regardless
+  return { meal: rankedMeals[0].meal, tier: "C" };
+}
 
 function FridgeClosed() {
   return (
@@ -324,6 +349,14 @@ function DeckContent() {
   const [diagSelectedVibe, setDiagSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
   // Solo reset progression — synced from sessionStorage on mount
   const [soloResetCount, setSoloResetCount] = useState(0);
+  // ── Solo Watcha's Call state (isolated — never touches shared session flow) ─
+  const [soloWatchaCallView, setSoloWatchaCallView] = useState<"reveal" | "main" | "locked" | "exit" | null>(null);
+  const [soloWatchaCallMeal, setSoloWatchaCallMeal] = useState<Meal | null>(null);
+  const [soloWatchaCallTier, setSoloWatchaCallTier] = useState<"A" | "B" | "C" | null>(null);
+  const [soloWCRevealStage, setSoloWCRevealStage] = useState(0);
+  // Picked once per component instance — stable across re-renders
+  const soloWCRevealCopyRef = useRef(NO_MATCH_COPY[Math.floor(Math.random() * NO_MATCH_COPY.length)]);
+  const soloWCTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Partner's user ID — set once bothDone detection resolves
   const [partnerUserId, setPartnerUserId] = useState<string | null>(null);
   // Partner's display name (fetched from profiles once partnerUserId is known)
@@ -432,6 +465,35 @@ function DeckContent() {
   useEffect(() => {
     setSoloResetCount(parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialize Solo Watcha's Call when deck exhausts on 2nd+ run (soloResetCount >= 1)
+  // Uses: rankedMeals (ordered pool), savedFeedback (★'d meals), currentIndex (cards seen)
+  useEffect(() => {
+    if (sessionId || soloResetCount < 1 || soloResetCount >= 3) return;
+    if (soloWatchaCallView !== null) return; // already initialized
+    const totalCount = Math.min(rankedMeals.length, DECK_SIZE);
+    if (rankedMeals.length === 0 || (!bypassToExhausted && currentIndex < totalCount)) return;
+    const result = computeSoloWCE(rankedMeals, savedFeedback, currentIndex);
+    if (!result) return;
+    setSoloWatchaCallMeal(result.meal);
+    setSoloWatchaCallTier(result.tier);
+    setSoloWatchaCallView("reveal");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, soloResetCount, soloWatchaCallView, currentIndex, bypassToExhausted, rankedMeals.length]);
+
+  // Solo Watcha's Call reveal animation timing
+  useEffect(() => {
+    if (soloWatchaCallView !== "reveal") return;
+    setSoloWCRevealStage(0);
+    const t1 = setTimeout(() => setSoloWCRevealStage(1), 120);
+    const t2 = setTimeout(() => setSoloWCRevealStage(2), 1500);
+    const t3 = setTimeout(() => setSoloWatchaCallView("main"), 3500);
+    soloWCTimersRef.current = [t1, t2, t3];
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      soloWCTimersRef.current = [];
+    };
+  }, [soloWatchaCallView]);
 
   // Fetch partner display name + avatar once their user ID is known
   useEffect(() => {
@@ -2915,6 +2977,227 @@ function DeckContent() {
                 </p>
               </>
             )}
+          </div>
+        </main>
+      );
+    }
+
+    // ── Solo Watcha's Call (soloResetCount >= 1 — resolution of 2nd+ deck) ───
+    // Guest rule: this is deck RESOLUTION, not deck entry — no budget consumed,
+    // no GuestLimitPrompt, no new deck created.
+    if (soloResetCount >= 1) {
+      // Initializing — effect fires on next tick; blank dark screen prevents flash
+      if (soloWatchaCallView === null) {
+        return <main className="min-h-screen bg-[#0B0805]" />;
+      }
+
+      const wc = soloWatchaCallMeal;
+
+      function soloTierReason(): string {
+        switch (soloWatchaCallTier) {
+          case "A": return "Your strongest lean from tonight\u2019s deck.";
+          case "B": return "Nothing you loved, but nothing you hated either. This was the safest call.";
+          case "C": return "Top of tonight\u2019s deck. Still our best read on what you\u2019d eat.";
+          default: return "";
+        }
+      }
+
+      // Lock path: same data writes as lockInMeal() — no shared RPC, no navigation here.
+      // Navigation happens in "Let's eat 🙌" after the green locked view.
+      // Note: do NOT call setSoloResetCount(0) here — soloResetCount must stay >= 1
+      // so the locked view condition remains true. sessionStorage cleared so a refresh starts fresh.
+      function doSoloWCLock() {
+        if (!wc) return;
+        sessionStorage.removeItem(SOLO_RESET_SS_KEY);
+        addToHistory(wc);
+        saveDecidedMeal({ ...wc, decidedAt: new Date().toISOString(), mode: "solo" });
+        void recordAcceptedDecision({ meal: wc, positionInDeck: 0, sessionType: "solo", sessionId: null, vibeSelection: sessionVibeMode });
+        if (!trackingClosedRef.current) {
+          trackingClosedRef.current = true;
+          trackingSessionPromiseRef.current?.then((tsId) => {
+            if (tsId && trackingOpenedAtRef.current) {
+              void closeTrackingSession({
+                trackingSessionId: tsId,
+                resolved: true,
+                swipeCount: trackingSwipeCountRef.current,
+                openedAt: trackingOpenedAtRef.current,
+              });
+            }
+          });
+        }
+        setSoloWatchaCallView("locked");
+      }
+
+      // Reusable background layers
+      const bgLayers = (
+        <>
+          <div className="pointer-events-none absolute inset-0 candlelight-animate" style={{ background: "radial-gradient(ellipse 80% 45% at 50% 0%, rgba(232,98,26,0.13) 0%, transparent 65%)", animation: "candlelight-amb 9s ease-in-out infinite" }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
+        </>
+      );
+
+      // ── Reveal ──────────────────────────────────────────────────────────────
+      if (soloWatchaCallView === "reveal") {
+        const vis = (stage: number) => ({
+          opacity: soloWCRevealStage >= stage ? 1 : 0,
+          transform: soloWCRevealStage >= stage ? "none" : "translateY(10px)",
+        });
+        return (
+          <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
+            {bgLayers}
+            <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center text-center" style={{ padding: "0 36px", gap: 13 }}>
+              {/* Pulsing ember dot */}
+              <div style={{ width: 13, height: 13, borderRadius: "50%", background: "radial-gradient(circle at 40% 35%, #FF8A3D, #E8621A 70%, #B84A12)", boxShadow: "0 0 24px rgba(232,98,26,0.5), 0 0 0 10px rgba(232,98,26,0.08), 0 0 0 22px rgba(232,98,26,0.04)", animation: "wce-pulse 1.8s ease-in-out infinite" }} />
+              {/* Eyebrow */}
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "3px", textTransform: "uppercase", color: "#E8621A", transition: "opacity 0.6s ease, transform 0.6s ease", ...vis(1) }}>
+                Watcha&apos;s Call
+              </div>
+              {/* Headline */}
+              <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 39, lineHeight: 1.0, letterSpacing: "-0.02em", color: "#F6EEE2", transition: "opacity 0.7s cubic-bezier(0.2,0.7,0.2,1), transform 0.7s cubic-bezier(0.2,0.7,0.2,1)", ...vis(1) }}>
+                {soloWCRevealCopyRef.current.headline}
+              </h2>
+              {/* Sub */}
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 14, lineHeight: 1.5, color: "#C7BDAC", maxWidth: 280, transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", ...vis(2) }}>
+                {soloWCRevealCopyRef.current.sub}
+              </div>
+            </div>
+          </main>
+        );
+      }
+
+      // ── Locked (green ambient shift) ─────────────────────────────────────────
+      if (soloWatchaCallView === "locked") {
+        return (
+          <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
+            {/* Green ambient overlay */}
+            <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 40% at 50% 40%, rgba(94,158,110,0.20), transparent 60%), radial-gradient(ellipse 80% 50% at 50% 104%, rgba(184,74,18,0.08), transparent 66%)", transition: "opacity 0.7s ease" }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05, mixBlendMode: "overlay", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: "inset 0 0 120px 28px rgba(0,0,0,0.55)" }} />
+            <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center text-center" style={{ padding: "0 32px", gap: 15 }}>
+              {/* Green orb */}
+              <div style={{ width: 138, height: 138, borderRadius: "50%", background: "radial-gradient(circle at 42% 36%, #86C796, #5E9E6E 55%, #3F744F)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 54, boxShadow: "0 0 64px rgba(94,158,110,0.45), 0 0 0 16px rgba(94,158,110,0.08), 0 0 0 34px rgba(94,158,110,0.04)", animation: "wce-pop 0.7s cubic-bezier(0.2,0.8,0.2,1) backwards" }}>
+                ✓
+              </div>
+              {/* Eyebrow */}
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, letterSpacing: "3px", textTransform: "uppercase", color: "#86A972" }}>
+                Watcha&apos;s Call · locked
+              </div>
+              {/* Headline */}
+              <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 36, letterSpacing: "-0.02em", color: "#F6EEE2", lineHeight: 1 }}>
+                Dinner&apos;s decided.
+              </h2>
+              {/* Meal name (italic, green accent) */}
+              <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 27, color: "#86A972" }}>
+                {wc?.name}
+              </div>
+              {/* Line */}
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13.5, lineHeight: 1.5, color: "#C7BDAC", maxWidth: 280 }}>
+                You&apos;ll take credit for this later. We&apos;ll allow it.
+              </div>
+              {/* CTA */}
+              <button
+                onClick={() => { window.location.href = "/"; }}
+                style={{ marginTop: 8, padding: "15px 30px", borderRadius: 100, border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15.5, color: "#06140a", background: "linear-gradient(180deg,#86C796,#5E9E6E 50%,#3F744F)", boxShadow: "0 1px 0 rgba(220,255,228,0.5) inset, 0 -2px 0 rgba(20,60,30,0.4) inset, 0 14px 30px rgba(94,158,110,0.32)" }}
+              >
+                Let&apos;s eat 🙌
+              </button>
+            </div>
+          </main>
+        );
+      }
+
+      // ── Exit ─────────────────────────────────────────────────────────────────
+      if (soloWatchaCallView === "exit") {
+        return (
+          <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
+            {bgLayers}
+            <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center text-center" style={{ padding: "0 38px", gap: 14 }}>
+              {/* Ring icon */}
+              <div style={{ width: 74, height: 74, borderRadius: "50%", border: "1.5px solid rgba(245,237,224,0.16)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, color: "#E8621A", background: "rgba(255,231,202,0.045)" }}>
+                ◠
+              </div>
+              {/* Eyebrow */}
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "3px", textTransform: "uppercase", color: "#897E73" }}>
+                Called off
+              </div>
+              {/* Headline */}
+              <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 32, letterSpacing: "-0.02em", color: "#F6EEE2", lineHeight: 1.02 }}>
+                All yours tonight.
+              </h2>
+              {/* Sub */}
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13.5, lineHeight: 1.55, color: "#C7BDAC", maxWidth: 290 }}>
+                No new deck tonight. We&apos;ll be ready when you are.
+              </div>
+              {/* Back home */}
+              <button
+                onClick={() => { window.location.href = "/"; }}
+                style={{ marginTop: 10, padding: "14px 28px", borderRadius: 100, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15.5, color: "#F6EEE2", background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.16)" }}
+              >
+                Back home
+              </button>
+            </div>
+          </main>
+        );
+      }
+
+      // ── Main view ─────────────────────────────────────────────────────────────
+      // No overlap section — solo has no partner avatars or "You leaned / They leaned"
+      return (
+        <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] text-white">
+          {bgLayers}
+          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col" style={{ padding: "6px 22px 22px" }}>
+            {/* Eyebrow */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "2.6px", textTransform: "uppercase", color: "#E8621A" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8621A", boxShadow: "0 0 8px rgba(232,98,26,0.5)", animation: "wce-breathe 2.4s ease-in-out infinite", flexShrink: 0 }} />
+              Watcha&apos;s Call
+            </div>
+            {/* Lead line */}
+            <div style={{ marginTop: 11 }}>
+              <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 23, lineHeight: 1.08, letterSpacing: "-0.01em", color: "#F6EEE2" }}>
+                You swiped everything.{" "}
+              </span>
+              <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: 23, lineHeight: 1.08, color: "#FF8A3D" }}>
+                So we picked one.
+              </em>
+            </div>
+            {/* Pick card */}
+            <div style={{ position: "relative", height: 286, borderRadius: 22, overflow: "hidden", marginTop: 15, border: "1px solid rgba(245,237,224,0.16)", boxShadow: "0 18px 40px rgba(0,0,0,0.5)" }}>
+              <img src={wc?.image || FALLBACK_IMAGE} alt={wc?.name ?? ""} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              {/* Top spotlight */}
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.55) 0%, rgba(255,228,190,0.10) 30%, transparent 58%)", mixBlendMode: "screen", pointerEvents: "none" }} />
+              {/* Scrim */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(7,4,2,0.97) 16%, rgba(7,4,2,0.5) 50%, transparent 80%)" }} />
+              {/* Watcha's Call badge */}
+              <div style={{ position: "absolute", top: 14, left: 14, fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: "1.6px", textTransform: "uppercase", color: "#1c0c03", background: "linear-gradient(180deg,#FF8A3D,#E8621A)", padding: "6px 11px", borderRadius: 100, boxShadow: "0 6px 16px rgba(232,98,26,0.4)" }}>
+                Watcha&apos;s Call
+              </div>
+              {/* Info overlay */}
+              <div style={{ position: "absolute", left: 16, right: 16, bottom: 15 }}>
+                <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 29, color: "#F6EEE2", letterSpacing: "-0.01em", textShadow: "0 2px 14px rgba(0,0,0,0.6)" }}>{wc?.name}</h3>
+                <div style={{ marginTop: 11, fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontSize: 16.5, lineHeight: 1.32, color: "#F6EEE2" }}>
+                  {soloTierReason()}
+                </div>
+              </div>
+            </div>
+            {/* Actions */}
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 5 }}>
+              <button
+                onClick={doSoloWCLock}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, borderRadius: 100, border: "none", width: "100%", fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15.5, letterSpacing: "-0.01em", cursor: "pointer", color: "#1c0c03", background: "linear-gradient(180deg,#FF8A3D,#E8621A 48%,#B84A12)", boxShadow: "0 1px 0 rgba(255,224,188,0.6) inset, 0 -2px 0 rgba(120,52,0,0.4) inset, 0 14px 30px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.3)" }}
+              >
+                Lock it in
+              </button>
+              <div style={{ textAlign: "center", fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 11, color: "#897E73", padding: "5px 0 1px" }}>
+                Locked in for tonight.
+              </div>
+              <button
+                onClick={() => setSoloWatchaCallView("exit")}
+                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", fontWeight: 600, fontSize: 14, color: "#C7BDAC", padding: 9, textAlign: "center" as const }}
+              >
+                Not tonight
+              </button>
+            </div>
           </div>
         </main>
       );
