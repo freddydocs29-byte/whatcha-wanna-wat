@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type Meal } from "../../data/meals";
+import { MealImageFallback } from "../MealImageFallback";
 
 export type V3MealActionDrawerProps = {
   meal: Meal;
@@ -90,6 +92,7 @@ function ArrowLeftIcon() {
 }
 
 export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealActionDrawerProps) {
+  const [imgFailed, setImgFailed] = useState(false);
   const isCook = mode === "cook";
   const accentColor = isCook ? "#4A7C59" : "#E8621A";
   const accentLight = isCook ? "#6BAF7A" : "#F07840";
@@ -221,35 +224,22 @@ export default function V3MealActionDrawer({ meal, mode, onClose }: V3MealAction
 
           {/* Meal thumbnail + header */}
           <div className="flex items-center gap-3 mb-5">
-            {meal.image ? (
-              <div
-                className="w-[52px] h-[52px] rounded-[12px] shrink-0 overflow-hidden"
-                style={{ border: `1px solid ${accentBorder}` }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div
+              className="relative w-[52px] h-[52px] rounded-[12px] shrink-0 overflow-hidden"
+              style={{ border: `1px solid ${accentBorder}` }}
+            >
+              {meal.image && !imgFailed ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={meal.image}
                   alt={meal.name}
                   className="w-full h-full object-cover"
+                  onError={() => setImgFailed(true)}
                 />
-              </div>
-            ) : (
-              <div
-                className="w-[52px] h-[52px] rounded-[12px] shrink-0 flex items-center justify-center"
-                style={{ background: accentBg, border: `1px solid ${accentBorder}`, color: accentColor }}
-              >
-                {isCook ? (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 11l19-9-9 19-2-8-8-2z" />
-                  </svg>
-                ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="5" y="2" width="14" height="20" rx="2" />
-                    <line x1="12" y1="18" x2="12.01" y2="18" />
-                  </svg>
-                )}
-              </div>
-            )}
+              ) : (
+                <MealImageFallback mealName={meal.name} />
+              )}
+            </div>
 
             <div className="flex-1 min-w-0">
               <p

@@ -7,9 +7,7 @@ import { meals, type Meal } from "../data/meals";
 import { addToHistory, updateTasteProfile } from "../lib/storage";
 import CookOrderButtons from "../locked/CookOrderButtons";
 import SaveLaterButton from "../locked/SaveLaterButton";
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
+import { MealImageFallback } from "../components/MealImageFallback";
 
 function getRecipeQuery(meal: Meal): string {
   const isQuickOrEasy = meal.tags.some((t) =>
@@ -83,17 +81,16 @@ export default function BrowsePage() {
               className="group relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-white/[0.03] text-left active:scale-[0.97] transition-transform"
             >
               <div className="relative aspect-[3/4]">
-                <img
-                  src={imgErrors.has(meal.id) ? FALLBACK_IMAGE : meal.image}
-                  alt={meal.name}
-                  onError={() => handleImgError(meal.id)}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  style={
-                    imgErrors.has(meal.id)
-                      ? { filter: "brightness(0.75) saturate(0.5)" }
-                      : undefined
-                  }
-                />
+                {imgErrors.has(meal.id) || !meal.image ? (
+                  <MealImageFallback mealName={meal.name} />
+                ) : (
+                  <img
+                    src={meal.image}
+                    alt={meal.name}
+                    onError={() => handleImgError(meal.id)}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
                 {/* gradient */}
                 <div
                   className="absolute inset-0"
@@ -147,16 +144,16 @@ export default function BrowsePage() {
             >
               {/* Image */}
               <div className="relative aspect-[16/9] overflow-hidden">
-                <img
-                  src={imgErrors.has(selected.id) ? FALLBACK_IMAGE : selected.image}
-                  alt={selected.name}
-                  className="h-full w-full object-cover"
-                  style={
-                    imgErrors.has(selected.id)
-                      ? { filter: "brightness(0.75) saturate(0.5)" }
-                      : undefined
-                  }
-                />
+                {imgErrors.has(selected.id) || !selected.image ? (
+                  <MealImageFallback mealName={selected.name} />
+                ) : (
+                  <img
+                    src={selected.image}
+                    alt={selected.name}
+                    className="h-full w-full object-cover"
+                    onError={() => handleImgError(selected.id)}
+                  />
+                )}
                 {/* fade into sheet bg */}
                 <div
                   className="absolute inset-0"

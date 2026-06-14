@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type Meal } from "../data/meals";
+import { MealImageFallback } from "./MealImageFallback";
 
 export type MealDetailDrawerContext = "solo" | "shared" | "top5" | "saved" | "history" | "home-win";
 
@@ -99,8 +100,12 @@ export function MealDetailDrawer({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atScrollTop, setAtScrollTop] = useState(true);
+  // Track which meal ID had an image load failure — auto-resets when meal changes
+  const [imgFailedId, setImgFailedId] = useState<string | null>(null);
 
   if (!meal) return null;
+
+  const imgFailed = imgFailedId === meal.id;
 
   const cookTime = parseCookTime(meal.tags);
   const effort = parseEffort(meal.tags);
@@ -194,21 +199,15 @@ export function MealDetailDrawer({
 
               {/* Meal image */}
               <div className="relative mx-4 rounded-[16px] overflow-hidden mb-4" style={{ height: 200 }}>
-                {meal.image ? (
+                {meal.image && !imgFailed ? (
                   <img
                     src={meal.image}
                     alt={meal.name}
                     className="w-full h-full object-cover"
+                    onError={() => setImgFailedId(meal.id)}
                   />
                 ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center text-6xl"
-                    style={{
-                      background: isTop5 ? "#DDD8D0" : "rgba(255,255,255,0.04)",
-                    }}
-                  >
-                    🍽️
-                  </div>
+                  <MealImageFallback mealName={meal.name} />
                 )}
                 {/* Bottom scrim */}
                 <div

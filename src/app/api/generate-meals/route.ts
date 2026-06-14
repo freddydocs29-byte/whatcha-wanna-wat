@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { Meal } from "../../data/meals";
+import { FALLBACK_IMAGE, CATEGORY_FALLBACK_IMAGES } from "../../lib/images";
 
 // ── Constants ────────────────────────────────────────────────────────────────
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
 
 const VALID_CUISINES = new Set([
   "Italian", "Mexican", "Japanese", "Chinese", "Thai", "Indian", "Korean",
@@ -22,7 +20,7 @@ const VALID_CATEGORIES = new Set([
   "Elevated",
   "Mediterranean",
   "Classic Italian",
-  "Quick & Easy",
+  "Quick & casual",
   "Crowd pleaser",
 ]);
 
@@ -134,7 +132,7 @@ REQUIRED JSON STRUCTURE — return exactly this shape:
       "id": "kebab-case-unique-id",
       "name": "Specific Meal Name",
       "description": "Sensory, appealing 1-2 sentence description.",
-      "category": "one of: Comfort food | Quick & casual | Bold flavors | Fresh | Healthy | Elevated | Mediterranean | Classic Italian | Quick & Easy | Crowd pleaser",
+      "category": "one of: Comfort food | Quick & casual | Bold flavors | Fresh | Healthy | Elevated | Mediterranean | Classic Italian | Crowd pleaser",
       "tags": ["20 min", "Easy"],
       "ingredients": ["Chicken", "Rice"],
       "estimatedTimeMinutes": 25,
@@ -202,7 +200,7 @@ function transformMeal(raw: RawAIMeal, hardNos: string[], fallbackCuisine = "Ame
     tags,
     ingredients,
     whyItFits: `${cuisine} inspired`,
-    image: FALLBACK_IMAGE,
+    image: CATEGORY_FALLBACK_IMAGES[category] ?? FALLBACK_IMAGE,
     aiGenerated: true,
     aiLabel,
   };

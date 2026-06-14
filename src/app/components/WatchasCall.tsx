@@ -8,9 +8,7 @@ import { addToHistory, saveDecidedMeal } from "../lib/storage";
 import type { SessionVibeMode } from "../lib/scoring";
 import Avatar from "./Avatar";
 import { WatchaCallDetailsDrawer } from "./WatchaCallDetailsDrawer";
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
+import { MealImageFallback } from "./MealImageFallback";
 
 // ─── Algorithm ───────────────────────────────────────────────────────────────
 
@@ -167,6 +165,8 @@ export default function WatchasCall({
   const [mainPlaying, setMainPlaying] = useState(false);
   // ── Watcha's Call details drawer (isolated — does not affect lock/exit/polling state) ─
   const [watchaCallDetailsOpen, setWatchaCallDetailsOpen] = useState(false);
+  // Track which meal ID had a pick-card image load failure
+  const [wcImgFailedId, setWcImgFailedId] = useState<string | null>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const lockInitiatedRef = useRef(false);
   // Picked once per component instance — stable across re-renders and state updates
@@ -937,17 +937,22 @@ export default function WatchasCall({
         }}
       >
         {/* Photo */}
-        <img
-          src={meal?.image || FALLBACK_IMAGE}
-          alt={meal?.name ?? ""}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-        />
+        {meal?.image && wcImgFailedId !== meal.id ? (
+          <img
+            src={meal.image}
+            alt={meal.name}
+            onError={() => setWcImgFailedId(meal.id)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        ) : (
+          <MealImageFallback mealName={meal?.name ?? "Tonight's pick"} />
+        )}
         {/* Top spotlight */}
         <div
           style={{

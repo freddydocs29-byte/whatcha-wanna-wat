@@ -27,6 +27,7 @@ import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, tryConsumeGuestDeckBudgetNoGrant, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
 import WatchasCall from "../components/WatchasCall";
 import { WatchaCallDetailsDrawer } from "../components/WatchaCallDetailsDrawer";
+import { MealImageFallback } from "../components/MealImageFallback";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
@@ -86,9 +87,6 @@ const WAITING_HEADLINES = [
   "Almost there. Probably.",
   "Good things take two people.",
 ];
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
 
 // ── Solo Watcha's Call algorithm ──────────────────────────────────────────────
 // Variables used: rankedMeals (ordered pool), savedFeedback (★'d meals), currentIndex (cards seen)
@@ -3119,7 +3117,16 @@ function DeckContent() {
             </div>
             {/* Pick card */}
             <div style={{ position: "relative", height: 286, borderRadius: 22, overflow: "hidden", marginTop: 15, border: "1px solid rgba(245,237,224,0.16)", boxShadow: "0 18px 40px rgba(0,0,0,0.5)" }}>
-              <img src={wc?.image || FALLBACK_IMAGE} alt={wc?.name ?? ""} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              {wc?.image && !imgErrors.has(wc.id) ? (
+                <img
+                  src={wc.image}
+                  alt={wc.name}
+                  onError={() => setImgErrors((prev) => new Set(prev).add(wc.id))}
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <MealImageFallback mealName={wc?.name ?? "Tonight's pick"} />
+              )}
               {/* Top spotlight */}
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.55) 0%, rgba(255,228,190,0.10) 30%, transparent 58%)", mixBlendMode: "screen", pointerEvents: "none" }} />
               {/* Scrim */}
@@ -3240,7 +3247,16 @@ function DeckContent() {
                   }}
                 >
                   <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                    <img src={meal.image || FALLBACK_IMAGE} alt={meal.name} className="w-full h-full object-cover" />
+                    {meal.image && !imgErrors.has(meal.id) ? (
+                      <img
+                        src={meal.image}
+                        alt={meal.name}
+                        className="w-full h-full object-cover"
+                        onError={() => setImgErrors((prev) => new Set(prev).add(meal.id))}
+                      />
+                    ) : (
+                      <MealImageFallback mealName={meal.name} />
+                    )}
                     {/* Top spotlight */}
                     <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.60) 0%, rgba(255,235,200,0.30) 28%, transparent 65%)", mixBlendMode: "screen" }} />
                     {/* Bottom scrim */}
@@ -3681,14 +3697,17 @@ function DeckContent() {
             className="relative rounded-[28px] overflow-hidden w-full bg-[#2A2420] cursor-grab select-none touch-none z-10 shadow-[0_10px_40px_rgba(0,0,0,0.35)] active:cursor-grabbing"
           >
             {/* Layer 1 — Food image */}
-            <img
-              src={imgErrors.has(meal.id) || !meal.image ? FALLBACK_IMAGE : meal.image}
-              alt={meal.name}
-              draggable={false}
-              onError={() => setImgErrors((prev) => new Set(prev).add(meal.id))}
-              className="absolute inset-0 w-full h-full object-cover"
-              style={imgErrors.has(meal.id) ? { filter: "brightness(0.88) saturate(0.6)" } : undefined}
-            />
+            {imgErrors.has(meal.id) || !meal.image ? (
+              <MealImageFallback mealName={meal.name} />
+            ) : (
+              <img
+                src={meal.image}
+                alt={meal.name}
+                draggable={false}
+                onError={() => setImgErrors((prev) => new Set(prev).add(meal.id))}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
 
             {/* Layer 2 — Top spotlight (studio food photography treatment) */}
             <div
@@ -3900,7 +3919,7 @@ function DeckContent() {
 
           {/* YES button — dimensional ember */}
           <div className="flex flex-col items-center gap-1.5">
-            <span className="text-[11px] text-[#897E73]">Yes</span>
+            <span className="text-[11px] text-[#897E73]">Choose</span>
             <button
               onClick={handleChoose}
               disabled={isExiting || isChoosing}

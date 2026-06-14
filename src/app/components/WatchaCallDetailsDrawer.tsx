@@ -3,9 +3,7 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type Meal } from "../data/meals";
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
+import { MealImageFallback } from "./MealImageFallback";
 
 type WatchaCallDetailsDrawerProps = {
   meal: Meal | null;
@@ -28,6 +26,7 @@ export function WatchaCallDetailsDrawer({
 }: WatchaCallDetailsDrawerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atScrollTop, setAtScrollTop] = useState(true);
+  const [imgFailedId, setImgFailedId] = useState<string | null>(null);
 
   const helperCopy =
     mode === "shared"
@@ -90,11 +89,16 @@ export function WatchaCallDetailsDrawer({
                 className="relative mx-4 rounded-[16px] overflow-hidden mb-4"
                 style={{ height: 200 }}
               >
-                <img
-                  src={meal.image || FALLBACK_IMAGE}
-                  alt={meal.name}
-                  className="w-full h-full object-cover"
-                />
+                {meal.image && imgFailedId !== meal.id ? (
+                  <img
+                    src={meal.image}
+                    alt={meal.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgFailedId(meal.id)}
+                  />
+                ) : (
+                  <MealImageFallback mealName={meal.name} />
+                )}
                 {/* Scrim */}
                 <div
                   className="absolute inset-0 pointer-events-none"

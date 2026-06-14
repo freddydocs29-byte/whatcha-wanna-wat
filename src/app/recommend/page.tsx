@@ -33,9 +33,7 @@ import {
   isRitualSuppressed,
   recordRitualRejection,
 } from "../lib/rituals";
-
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&h=750&q=80";
+import { MealImageFallback } from "../components/MealImageFallback";
 
 const MIN_DECK_SIZE = 15;
 const DECK_SIZE = 20;
@@ -185,7 +183,7 @@ export default function RecommendPage() {
   const contextLine = isRitualCard
     ? getRitualLabel(ritualRef.current!.context)
     : (meal ? generateContextLine(meal, ctx) : "");
-  const imgSrc = !imgError && meal?.image ? meal.image : FALLBACK_IMAGE;
+  const showImgFallback = imgError || !meal?.image;
 
   function handleChoose() {
     if (!meal || isAnimating) return;
@@ -334,13 +332,17 @@ export default function RecommendPage() {
                 className="relative w-full overflow-hidden rounded-[28px]"
                 style={{ aspectRatio: "4/3" }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imgSrc}
-                  alt={meal.name}
-                  className="h-full w-full object-cover"
-                  onError={() => setImgError(true)}
-                />
+                {showImgFallback ? (
+                  <MealImageFallback mealName={meal.name} />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={meal.image}
+                    alt={meal.name}
+                    className="h-full w-full object-cover"
+                    onError={() => setImgError(true)}
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
               </div>
 
