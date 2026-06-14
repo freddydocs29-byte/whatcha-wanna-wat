@@ -1930,74 +1930,6 @@ function DeckContent() {
     setExitX(null);
   }
 
-  // "Just decide for us" — takes position 0 from the shared deck (the group's
-  // top-scored meal) and locks it in immediately without waiting for a mutual swipe.
-  // Both users are routed to the same /locked screen via the match-polling mechanism.
-  async function handleJustDecide() {
-    const topMeal = rankedMeals[0]?.meal;
-    if (!topMeal || !sessionId) return;
-
-    trackEvent("just_decide_tapped", { mealId: topMeal.id, sessionId, positionInDeck: 0 });
-
-    // Fetch session start time before any async writes so it's available in the closure
-    const { data: justDecideSession } = await supabase
-      .from("sessions")
-      .select("created_at")
-      .eq("id", sessionId)
-      .single();
-    const justDecideStart = justDecideSession?.created_at ?? null;
-    const justDecideTimeToMatch = justDecideStart
-      ? Math.max(0, Math.round((Date.now() - new Date(justDecideStart).getTime()) / 1000))
-      : null;
-
-    const { mealPeriod: jdMealPeriod, dayType: jdDayType } = inferSessionContext(new Date());
-
-    // Single RPC: updates session status, writes both users' decision rows,
-    // and upserts the partner relationship atomically.
-    const { error: jdError } = await supabase.rpc("record_shared_match_decision", {
-      p_session_id: sessionId,
-      p_meal_id: topMeal.id,
-      p_meal_name: topMeal.name,
-      p_meal_period: jdMealPeriod,
-      p_day_type: jdDayType,
-      p_is_ai_generated: aiMealIds.has(topMeal.id),
-      p_cuisine_tag: topMeal.cuisine ?? null,
-      p_archetype: topMeal.category ?? null,
-      p_vibe_selection: sessionVibeMode ?? null,
-      p_time_to_match_seconds: justDecideTimeToMatch,
-    });
-
-    if (jdError) {
-      console.error("[just-decide] record_shared_match_decision failed:", jdError.message);
-      // Non-fatal: partner can still see the match via session polling.
-      // Continue to local state updates and navigation.
-    }
-
-    // Guard: prevent home-screen polling from writing a duplicate decision row.
-    if (typeof window !== "undefined") {
-      localStorage.setItem(`wwe_decision_written_${sessionId}_${topMeal.id}`, "1");
-    }
-
-    // Close tracking session — RPC handled the decision row write.
-    trackingClosedRef.current = true;
-    trackingSessionPromiseRef.current?.then((tsId) => {
-      if (tsId && trackingOpenedAtRef.current) {
-        void closeTrackingSession({
-          trackingSessionId: tsId,
-          resolved: true,
-          swipeCount: trackingSwipeCountRef.current,
-          openedAt: trackingOpenedAtRef.current,
-        });
-      }
-    });
-
-    addToHistory(topMeal);
-    saveDecidedMeal({ ...topMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });
-    // Re-check auth at navigation time — isGuest may not have settled for guests joining via share link.
-    const { data: { user: jdNavUser } } = await supabase.auth.getUser();
-    router.push(jdNavUser ? "/" : "/guest-home");
-  }
-
   function handlePass() {
     dismissHint();
     dismissDrawerHint();
@@ -3947,65 +3879,61 @@ function DeckContent() {
         </div>
 
         {/* 4. ACTION BUTTONS */}
-        <div className="flex items-center justify-center gap-6 mt-auto pb-6 pt-4">
+        <div className="flex items-end justify-center gap-6 mt-auto pb-6 pt-4">
           {/* PASS button */}
-          <button
-            onClick={handlePass}
-            disabled={isExiting || isChoosing}
-            className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
-            style={{
-              width: 54, height: 54, borderRadius: "50%",
-              background: "rgba(255,231,202,0.045)",
-              border: "1px solid rgba(245,237,224,0.16)",
-              color: "#C7BDAC", fontSize: 20,
-            }}
-          >
-            ✕
-          </button>
-
-          {/* YES button — dimensional ember */}
-          <button
-            onClick={handleChoose}
-            disabled={isExiting || isChoosing}
-            className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
-            style={{
-              width: 68, height: 68, borderRadius: "50%",
-              background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 60%, #B84A12 100%)",
-              color: "#fff", fontSize: 26,
-              boxShadow: "0 1px 0 rgba(255,224,188,0.55) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 14px 30px rgba(232,98,26,0.5), 0 0 0 1px rgba(232,98,26,0.4)",
-            }}
-          >
-            ✓
-          </button>
-
-          {/* SAVE button — green resolution accent */}
-          <button
-            onClick={handleSave}
-            disabled={isExiting || isChoosing}
-            className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
-            style={{
-              width: 54, height: 54, borderRadius: "50%",
-              background: "linear-gradient(180deg, #86C796 0%, #5E9E6E 60%, #3F744F 100%)",
-              color: "#FFD86A", fontSize: 20,
-              boxShadow: "0 12px 26px rgba(94,158,110,0.4)",
-            }}
-          >
-            ★
-          </button>
-        </div>
-
-        {/* Just decide — shared sessions only */}
-        {sessionId && (
-          <div className="flex justify-center -mt-2 pb-4">
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-[11px] text-[#897E73]">Pass</span>
             <button
-              onClick={() => void handleJustDecide()}
-              disabled={isExiting || isChoosing || rankedMeals.length === 0}
-              className="text-[13px] text-white/25 transition hover:text-white/50 disabled:opacity-0"
+              onClick={handlePass}
+              disabled={isExiting || isChoosing}
+              className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
+              style={{
+                width: 54, height: 54, borderRadius: "50%",
+                background: "rgba(255,231,202,0.045)",
+                border: "1px solid rgba(245,237,224,0.16)",
+                color: "#C7BDAC", fontSize: 20,
+              }}
             >
-              Just decide for us
+              ✕
             </button>
           </div>
-        )}
+
+          {/* YES button — dimensional ember */}
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-[11px] text-[#897E73]">Yes</span>
+            <button
+              onClick={handleChoose}
+              disabled={isExiting || isChoosing}
+              className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
+              style={{
+                width: 68, height: 68, borderRadius: "50%",
+                background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 60%, #B84A12 100%)",
+                color: "#fff", fontSize: 26,
+                boxShadow: "0 1px 0 rgba(255,224,188,0.55) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 14px 30px rgba(232,98,26,0.5), 0 0 0 1px rgba(232,98,26,0.4)",
+              }}
+            >
+              ✓
+            </button>
+          </div>
+
+          {/* SAVE button — green resolution accent */}
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-[11px] text-[#897E73]">Save</span>
+            <button
+              onClick={handleSave}
+              disabled={isExiting || isChoosing}
+              className="flex items-center justify-center active:scale-90 transition-transform duration-150 disabled:opacity-40"
+              style={{
+                width: 54, height: 54, borderRadius: "50%",
+                background: "linear-gradient(180deg, #86C796 0%, #5E9E6E 60%, #3F744F 100%)",
+                color: "#FFD86A", fontSize: 20,
+                boxShadow: "0 12px 26px rgba(94,158,110,0.4)",
+              }}
+            >
+              ★
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ── Match modal ──────────────────────────────────────────────────── */}
