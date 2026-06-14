@@ -44,8 +44,9 @@ const APP_STORAGE_KEYS = [
   "wwe_novelty_bias",
   "wwe_favorites",          // legacy — still clear it
   "wwe_last_decide_pick",
-  "wwe_swipe_hint_seen",
-  "watcha_swipe_tip_seen",
+  "wwe_swipe_tutorial_seen", // canonical swipe tutorial flag (replaces both legacy keys below)
+  "wwe_swipe_hint_seen",    // legacy — migrated to wwe_swipe_tutorial_seen on deck mount
+  "watcha_swipe_tip_seen",  // legacy — migrated to wwe_swipe_tutorial_seen on deck mount
   "wwe_ritual_rejections",
   "wwe_pending_return_check",
   "wwe_nudge_cooldown",

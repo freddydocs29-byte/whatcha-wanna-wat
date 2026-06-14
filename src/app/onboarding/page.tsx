@@ -582,6 +582,24 @@ export default function OnboardingPage() {
                 {/* ── Step 3: cuisine preferences ────────────────────────── */}
                 {step === 3 && (
                   <>
+                    {/* Select all / Deselect all */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() =>
+                          cuisines.length === CUISINES.length
+                            ? setCuisines([])
+                            : setCuisines(CUISINES.map((c) => c.label))
+                        }
+                        style={{
+                          fontFamily: "var(--font-quicksand)",
+                          fontWeight: 600,
+                          fontSize: 13,
+                          color: "#E8621A",
+                        }}
+                      >
+                        {cuisines.length === CUISINES.length ? "Deselect all" : "Select all"}
+                      </button>
+                    </div>
                     {CUISINES.map((c) => {
                       const selected = cuisines.includes(c.label);
                       return (

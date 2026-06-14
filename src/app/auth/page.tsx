@@ -100,6 +100,11 @@ export default function AuthPage() {
   // Read ?mode=signup|signin from URL — set by the splash screen buttons.
   const initialMode: Mode = searchParams.get("mode") === "signin" ? "signin" : "signup";
   const fromGuestMatch = searchParams.get("from") === "guest-match";
+  // True when the user is upgrading from a guest session — preserve existing copy.
+  const isGuestUpgrade =
+    searchParams.get("from") === "guest" ||
+    searchParams.get("from") === "guest-save" ||
+    searchParams.get("from") === "guest-limit";
   // Used as a belt-and-suspenders fallback: if guest-home somehow failed to
   // write wwe_pending_guest_meal, we can still copy watcha_decided_meal at
   // submit time before the auth state change fires.
@@ -317,7 +322,9 @@ export default function AuthPage() {
           style={{ fontFamily: "var(--font-sans, system-ui)", fontWeight: 300, fontSize: 13, color: "#897E73" }}
         >
           {mode === "signup"
-            ? "Your existing preferences stay — we're just adding a login."
+            ? isGuestUpgrade
+              ? "Your existing preferences stay — we're just adding a login."
+              : "Create your Watcha account and we'll start learning your taste."
             : "Sign in to sync your profile across devices."}
         </p>
 

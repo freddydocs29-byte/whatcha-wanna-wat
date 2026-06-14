@@ -343,10 +343,7 @@ function DeckContent() {
   const [isChoosing, setIsChoosing] = useState(false);
   const [soloLockMeal, setSoloLockMeal] = useState<Meal | null>(null);
   const [showSwipeHint, setShowSwipeHint] = useState(
-    () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_hint_seen")
-  );
-  const [showSwipeTip, setShowSwipeTip] = useState(
-    () => typeof window !== "undefined" && !localStorage.getItem("watcha_swipe_tip_seen")
+    () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_tutorial_seen")
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
@@ -444,6 +441,21 @@ function DeckContent() {
 
   useEffect(() => {
     setUserId(getUserId());
+  }, []);
+
+  // Migrate legacy swipe hint keys to canonical wwe_swipe_tutorial_seen.
+  // Runs once on deck mount — not in render. Existing users who already dismissed
+  // the old hints will never see the tutorial again.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const oldHint = localStorage.getItem("wwe_swipe_hint_seen");
+    const oldTip = localStorage.getItem("watcha_swipe_tip_seen");
+    if (oldHint || oldTip) {
+      localStorage.setItem("wwe_swipe_tutorial_seen", "true");
+      localStorage.removeItem("wwe_swipe_hint_seen");
+      localStorage.removeItem("watcha_swipe_tip_seen");
+      setShowSwipeHint(false);
+    }
   }, []);
 
   // Detect guest state (no Supabase auth session) for post-match routing.
@@ -1354,13 +1366,8 @@ function DeckContent() {
 
   function dismissHint() {
     if (!showSwipeHint) return;
-    localStorage.setItem("wwe_swipe_hint_seen", "1");
+    localStorage.setItem("wwe_swipe_tutorial_seen", "true");
     setShowSwipeHint(false);
-  }
-
-  function dismissSwipeTip() {
-    localStorage.setItem("watcha_swipe_tip_seen", "true");
-    setShowSwipeTip(false);
   }
 
   function dismissDrawerHint() {
@@ -1993,7 +2000,6 @@ function DeckContent() {
 
   function handlePass() {
     dismissHint();
-    dismissSwipeTip();
     dismissDrawerHint();
     if (meal) {
       trackingSwipeCountRef.current += 1;
@@ -2118,7 +2124,6 @@ function DeckContent() {
   function handleChoose() {
     if (!meal || isChoosing || isExiting) return;
     dismissHint();
-    dismissSwipeTip();
     dismissDrawerHint();
 
     trackingSwipeCountRef.current += 1;
@@ -3701,27 +3706,6 @@ function DeckContent() {
           </div>
         )}
 
-        {/* Swipe tip banner — first-time only */}
-        {showSwipeTip && (
-          <div className="mx-5 mb-3 rounded-[16px] px-5 py-4 flex items-center gap-4" style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs" style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.16)", color: "#897E73" }}>✕</div>
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs" style={{ background: "linear-gradient(180deg,#FF8A3D,#E8621A 60%,#B84A12)", color: "#fff", boxShadow: "0 0 12px rgba(232,98,26,0.4)" }}>✓</div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: "#F6EEE2" }}>Swipe right to say yes.</p>
-              <p className="text-sm mt-0.5" style={{ color: "#897E73" }}>Left to pass. Or use the buttons below.</p>
-            </div>
-            <button
-              onClick={dismissSwipeTip}
-              className="font-semibold text-sm flex-shrink-0"
-              style={{ color: "#E8621A" }}
-            >
-              Got it
-            </button>
-          </div>
-        )}
-
         {/* 3. BACK CARD + 2. SWIPE CARD */}
         <div className="relative mx-4 mt-2">
 
@@ -3852,7 +3836,7 @@ function DeckContent() {
                     dismissDrawerHint();
                   }}
                   className={`inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm ${
-                    !drawerHintSeen && currentIndex === 0 ? "animate-pulse" : ""
+                    !drawerHintSeen && currentIndex === 0 && !showSwipeHint ? "animate-pulse" : ""
                   }`}
                   style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#C7BDAC", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
                 >
@@ -3899,9 +3883,9 @@ function DeckContent() {
               )}
             </div>
 
-            {/* Swipe hint — fades in after a short delay, dismissed on first interaction */}
+            {/* Swipe hint — first card only, dismissed on first swipe interaction */}
             <AnimatePresence>
-              {showSwipeHint && (
+              {showSwipeHint && currentIndex === 0 && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}

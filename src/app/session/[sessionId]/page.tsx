@@ -729,7 +729,10 @@ export default function SessionPage() {
               "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
           }}
         />
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-28">
+        {/* pb-40 (160px) ensures last option clears the sticky CTA on all viewports,
+            accounting for: CTA gradient (40px) + button (~54px) + safe-area inset (≤34px)
+            + iOS Safari browser toolbar (≤50px) = ~178px worst case. */}
+        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-40">
 
           <div className="flex flex-col gap-6 pt-6">
             {/* Header */}
@@ -823,6 +826,27 @@ export default function SessionPage() {
                 {setupStep === "hardNos" && "Hard NOs are never shown. Ever."}
               </p>
             </div>
+
+            {/* Select all / Deselect all — cuisine step only */}
+            {setupStep === "cuisines" && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() =>
+                    guestCuisines.length === GUEST_CUISINES.length
+                      ? setGuestCuisines([])
+                      : setGuestCuisines(GUEST_CUISINES.map((c) => c.label))
+                  }
+                  style={{
+                    fontFamily: "var(--font-quicksand)",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: "#E8621A",
+                  }}
+                >
+                  {guestCuisines.length === GUEST_CUISINES.length ? "Deselect all" : "Select all"}
+                </button>
+              </div>
+            )}
 
             {/* Options */}
             <div className="flex flex-col gap-3">
