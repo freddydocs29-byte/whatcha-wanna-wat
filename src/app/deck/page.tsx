@@ -25,7 +25,7 @@ import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, tryConsumeGuestDeckBudgetNoGrant, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
-import WatchasCall, { NO_MATCH_COPY } from "../components/WatchasCall";
+import WatchasCall from "../components/WatchasCall";
 
 const SWIPE_THRESHOLD = 100;
 const MIN_DECK_SIZE = 8;
@@ -66,6 +66,16 @@ const SOLO_EXHAUSTED_HEADLINES_R2 = [
 ];
 
 const SOLO_RESET_SS_KEY = "wwe_solo_deck_resets";
+
+// Solo-specific Watcha's Call reveal copy — NOT shared with the shared (partner) flow.
+// Shared flow uses NO_MATCH_COPY in WatchasCall.tsx; this array must never be merged with it.
+const SOLO_NO_MATCH_COPY = [
+  { headline: "Nothing landed.", sub: "Happens to the best of us. We kept watching." },
+  { headline: "No clear winner tonight.", sub: "You\u2019ve seen it all. We\u2019ve seen what you lingered on." },
+  { headline: "You swiped everything.", sub: "So we did what we do." },
+  { headline: "Indecision: 1. You: also 1.", sub: "It\u2019s fine. That\u2019s what we\u2019re here for." },
+  { headline: "Clean sweep, no match.", sub: "We were paying attention the whole time." },
+] as const;
 
 // Rotating copy for the shared waiting screen (shown while partner hasn't finished swiping)
 const WAITING_HEADLINES = [
@@ -355,7 +365,8 @@ function DeckContent() {
   const [soloWatchaCallTier, setSoloWatchaCallTier] = useState<"A" | "B" | "C" | null>(null);
   const [soloWCRevealStage, setSoloWCRevealStage] = useState(0);
   // Picked once per component instance — stable across re-renders
-  const soloWCRevealCopyRef = useRef(NO_MATCH_COPY[Math.floor(Math.random() * NO_MATCH_COPY.length)]);
+  // Picked once per reveal instance in the trigger effect below; initial value is a stable placeholder.
+  const soloWCRevealCopyRef = useRef<typeof SOLO_NO_MATCH_COPY[number]>(SOLO_NO_MATCH_COPY[0]);
   const soloWCTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Partner's user ID — set once bothDone detection resolves
   const [partnerUserId, setPartnerUserId] = useState<string | null>(null);
@@ -477,6 +488,8 @@ function DeckContent() {
     if (!result) return;
     setSoloWatchaCallMeal(result.meal);
     setSoloWatchaCallTier(result.tier);
+    // Pick a fresh variant for this reveal instance (stable for the rest of the reveal).
+    soloWCRevealCopyRef.current = SOLO_NO_MATCH_COPY[Math.floor(Math.random() * SOLO_NO_MATCH_COPY.length)];
     setSoloWatchaCallView("reveal");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, soloResetCount, soloWatchaCallView, currentIndex, bypassToExhausted, rankedMeals.length]);
@@ -1887,6 +1900,9 @@ function DeckContent() {
     const nextCount = (parseInt(sessionStorage.getItem(SOLO_RESET_SS_KEY) ?? "0", 10) || 0) + 1;
     sessionStorage.setItem(SOLO_RESET_SS_KEY, String(nextCount));
     setSoloResetCount(nextCount);
+    // Reset Solo WC view so stale state from a previous reveal doesn't re-appear
+    // before the new deck is exhausted and the trigger effect re-fires.
+    setSoloWatchaCallView(null);
     setSessionVibeMode(vibe);
     setSoloExhaustedView("main");
     trackEvent("deck_refreshed", { mode: "solo", vibe });
