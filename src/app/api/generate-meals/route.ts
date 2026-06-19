@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { Meal } from "../../data/meals";
 import { FALLBACK_IMAGE, CATEGORY_FALLBACK_IMAGES } from "../../lib/images";
+import { expandCuisines } from "../../lib/scoring";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,7 @@ const VALID_CUISINES = new Set([
   "Italian", "Mexican", "Japanese", "Chinese", "Thai", "Indian", "Korean",
   "Vietnamese", "Mediterranean", "Middle Eastern", "American", "French",
   "Greek", "Breakfast", "Indonesian", "Spanish", "Caribbean", "Moroccan",
+  "Filipino", "Malaysian", "Brazilian", "Colombian", "Peruvian", "Venezuelan", "Argentine",
 ]);
 
 const VALID_CATEGORIES = new Set([
@@ -20,7 +22,6 @@ const VALID_CATEGORIES = new Set([
   "Elevated",
   "Mediterranean",
   "Classic Italian",
-  "Quick & casual",
   "Crowd pleaser",
 ]);
 
@@ -136,7 +137,7 @@ REQUIRED JSON STRUCTURE — return exactly this shape:
       "tags": ["20 min", "Easy"],
       "ingredients": ["Chicken", "Rice"],
       "estimatedTimeMinutes": 25,
-      "cuisine": "one of: Italian | Mexican | Japanese | Chinese | Thai | Indian | Korean | Vietnamese | Mediterranean | Middle Eastern | American | French | Greek | Breakfast | Indonesian | Spanish | Caribbean | Moroccan",
+      "cuisine": "one of: Italian | Mexican | Japanese | Chinese | Thai | Indian | Korean | Vietnamese | Mediterranean | Middle Eastern | American | French | Greek | Breakfast | Indonesian | Spanish | Caribbean | Moroccan | Filipino | Malaysian | Brazilian | Colombian | Peruvian | Venezuelan | Argentine",
       "aiLabel": "Made from your pantry"
     }
   ]
@@ -263,9 +264,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const safeCount = Math.min(Math.max(1, Number(count) || 10), 12);
 
+    // Expand broad onboarding labels ("Global Flavors" → ["Filipino", "Malaysian", ...])
+    // so the AI prompt receives specific cuisine names GPT-4o-mini understands.
+    const expandedCuisinesForPrompt = expandCuisines(cuisines);
+
     const promptContext: PromptContext = {
       hardNos,
-      cuisines,
+      cuisines: expandedCuisinesForPrompt,
       spiceLevel: preferences.spiceLevel ?? "any",
       cookOrOrder: preferences.cookOrOrder ?? cookMode ?? "either",
       pantryIngredients: Array.isArray(pantryIngredients) ? pantryIngredients : [],

@@ -38,6 +38,7 @@ const CUISINES = [
   { label: "Japanese",     emoji: "🍱" },
   { label: "Indian",       emoji: "🍛" },
   { label: "Middle Eastern",emoji: "🧆" },
+  { label: "Global Flavors", emoji: "🌍" },
 ];
 
 /** Step 3 options — map directly to novelty_bias float on profiles. */

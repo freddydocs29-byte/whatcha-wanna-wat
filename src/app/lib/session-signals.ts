@@ -47,6 +47,7 @@ const AVOID_KEYWORDS: Record<string, string[]> = {
 const PREFERRED_CUISINES = new Set([
   "Italian", "Mexican", "Japanese", "Indian", "Mediterranean",
   "Korean", "Thai", "Chinese", "Middle Eastern", "Greek", "French",
+  "Filipino", "Malaysian", "Brazilian", "Colombian", "Peruvian", "Venezuelan", "Argentine",
 ]);
 
 // ── Types ─────────────────────────────────────────────────────────────────────

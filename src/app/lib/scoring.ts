@@ -98,10 +98,11 @@ const CUISINE_EXPANSION: Record<string, string[]> = {
   Asian:           ["Japanese", "Chinese", "Thai", "Korean", "Vietnamese", "Indian", "Filipino", "Malaysian", "Indonesian"],
   American:        ["American", "Southern", "BBQ", "Tex-Mex"],
   European:        ["Italian", "French", "Spanish", "Greek", "German"],
-  Latin:           ["Mexican", "Cuban", "Peruvian", "Colombian", "Brazilian"],
+  Latin:           ["Mexican", "Cuban", "Peruvian", "Colombian", "Brazilian", "Venezuelan", "Argentine"],
   Mediterranean:   ["Mediterranean", "Greek", "Spanish", "Turkish", "Lebanese"],
   "Middle Eastern":["Middle Eastern", "Lebanese", "Turkish", "Persian", "Israeli", "Moroccan"],
   African:         ["Moroccan", "Ethiopian", "West African"],
+  "Global Flavors": ["Filipino", "Malaysian", "Brazilian", "Colombian", "Peruvian", "Venezuelan", "Argentine"],
 };
 
 /**
