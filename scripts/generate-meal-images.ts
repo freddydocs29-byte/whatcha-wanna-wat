@@ -271,8 +271,11 @@ async function main() {
 
   const alreadyDone = allMeals.filter((m) => SKIP_IDS.has(m.id));
 
-  // 3. All meals not in the skip list are eligible (including those already on Supabase)
-  let eligible = allMeals.filter((m) => !SKIP_IDS.has(m.id));
+  // 3. Meals not in the skip list AND without an existing Supabase image are eligible
+  const onlyIdsSet = ONLY_IDS.length > 0 ? new Set(ONLY_IDS) : null;
+  let eligible = allMeals.filter(
+    (m) => !SKIP_IDS.has(m.id) && (onlyIdsSet ? onlyIdsSet.has(m.id) : !m.image.includes("supabase"))
+  );
 
   // 4. ONLY_IDS filter — overrides cuisine and START_AFTER
   if (ONLY_IDS.length > 0) {
@@ -320,7 +323,7 @@ async function main() {
     console.log(` START_AFTER        : ${START_AFTER}`);
   }
   console.log(` Total meals        : ${allMeals.length}`);
-  console.log(` Already on Supabase: ${alreadyDone.length} (skipping)`);
+  console.log(` Excluded (hardcoded): ${alreadyDone.length} (skipping)`);
   console.log(` Remaining (eligible): ${eligible.length}`);
   console.log(
     ` Batch this run     : ${targets.length} (size: ${BATCH_SIZE})`
