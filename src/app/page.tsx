@@ -192,6 +192,10 @@ export default function Home() {
   // V3 Home shell state
   const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
   const [decidedSaved, setDecidedSaved] = useState(false);
+  // Scroll discoverability: track whether the CTA swipe button is below the visible fold
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [ctaBelowFold, setCtaBelowFold] = useState(false);
   const [savedJustNow, setSavedJustNow] = useState(false);
   const [winSavedIds, setWinSavedIds] = useState<Set<string>>(new Set());
   const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
@@ -739,6 +743,22 @@ export default function Home() {
     setUserDoneSwiping(done);
   }, [activeSession?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Observe whether the start-deck CTA is below the visible fold.
+  // Only relevant (and shown) when a partner is selected — cleaned up on unmount.
+  useEffect(() => {
+    const cta = ctaRef.current;
+    if (!cta) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCtaBelowFold(!entry.isIntersecting),
+      {
+        root: scrollContainerRef.current ?? null,
+        threshold: 0.5,
+      },
+    );
+    observer.observe(cta);
+    return () => observer.disconnect();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleResumeBanner() {
     if (!activeSession) return;
     // "swiping", "active": normal deck resume.
@@ -1187,7 +1207,7 @@ export default function Home() {
         </div>
       ) : (
         /* ── PRE-DECISION STATE ──────────────────────────────── */
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto flex flex-col">
             {/* ── Hero greeting ─────────────────────────────── */}
             {(() => {
               // First name only — "Fred" not "Fred Paul" or a full username
@@ -1336,19 +1356,21 @@ export default function Home() {
               />
             )}
             {/* ── Start CTA ─────────────────────────────────── */}
-            <V3PrimaryDecisionCTA
-              isSolo={selectedPeopleIds.length === 0}
-              hasGuests={selectedPeopleIds.length > 0}
-              onClick={() => {
-                if (selectedPeopleIds.length === 0) {
-                  router.push("/deck");
-                } else {
-                  trackEvent("decide_with_someone_clicked");
-                  void handleDecideWithSomeone();
-                }
-              }}
-              onDecideTogether={() => setShowInviteDrawer(true)}
-            />
+            <div ref={ctaRef}>
+              <V3PrimaryDecisionCTA
+                isSolo={selectedPeopleIds.length === 0}
+                hasGuests={selectedPeopleIds.length > 0}
+                onClick={() => {
+                  if (selectedPeopleIds.length === 0) {
+                    router.push("/deck");
+                  } else {
+                    trackEvent("decide_with_someone_clicked");
+                    void handleDecideWithSomeone();
+                  }
+                }}
+                onDecideTogether={() => setShowInviteDrawer(true)}
+              />
+            </div>
             {sessionError && (
               <p className="text-center text-sm text-red-400 px-4 pb-2">
                 {sessionError}
@@ -1402,6 +1424,52 @@ export default function Home() {
             })()}
             <div style={{ height: "max(env(safe-area-inset-bottom), 16px)" }} />
         </div>
+      )}
+
+      {/* ── Scroll-discoverability chevron ───────────────────
+           Shown only when a partner is selected and the Start CTA is
+           below the visible fold (e.g. iOS Safari URL bar active).
+           Tapping scrolls the CTA into view. ──────────────────── */}
+      {!decidedMeal && selectedPeopleIds.length > 0 && ctaBelowFold && (
+        <button
+          aria-label="Scroll down to see the start button"
+          onClick={() =>
+            ctaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+          }
+          style={{
+            position: "absolute",
+            bottom: 28,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 20,
+            background: "rgba(232,98,26,0.18)",
+            border: "1px solid rgba(232,98,26,0.38)",
+            borderRadius: "50%",
+            width: 36,
+            height: 36,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            cursor: "pointer",
+            animation: "chevron-bounce 1.6s ease-in-out infinite",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#E8621A"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
       )}
 
       {/* ── Code entry bottom sheet ────────────────────────── */}

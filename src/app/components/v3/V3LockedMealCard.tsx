@@ -299,29 +299,53 @@ export default function V3LockedMealCard({
         ))}
       </div>
 
-      {/* Let's Eat bidirectional swipe — interactive */}
+      {/* Let's Eat bidirectional swipe + tap — interactive */}
       <div>
         <div className="flex justify-between px-1 mb-[6px]">
-          <span
-            className="text-[11px]"
+          <button
+            className="text-[11px] select-none"
             style={{
               fontFamily: "var(--font-manrope)",
               color: cookLabelColor,
               transition: isMoving ? "none" : "color 0.22s ease",
+              background: "none",
+              border: "none",
+              padding: "11px 6px",
+              minHeight: 44,
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              didTrigger.current = true;
+              onCook?.();
             }}
           >
             ← Cook
-          </span>
-          <span
-            className="text-[11px]"
+          </button>
+          <button
+            className="text-[11px] select-none"
             style={{
               fontFamily: "var(--font-manrope)",
               color: orderLabelColor,
               transition: isMoving ? "none" : "color 0.22s ease",
+              background: "none",
+              border: "none",
+              padding: "11px 6px",
+              minHeight: 44,
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              didTrigger.current = true;
+              onOrder?.();
             }}
           >
             Order →
-          </span>
+          </button>
         </div>
 
         <div

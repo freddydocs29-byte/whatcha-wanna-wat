@@ -29,6 +29,7 @@ export default function V3PrimaryDecisionCTA({
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const startClientX = useRef(0);
+  const pointerDownClientX = useRef(0);
   const triggered = useRef(false);
   const thumbXRef = useRef(0);
   const [thumbX, setThumbX] = useState(0);
@@ -50,6 +51,7 @@ export default function V3PrimaryDecisionCTA({
     if (triggered.current) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragging.current = true;
+    pointerDownClientX.current = e.clientX;
     startClientX.current = e.clientX - thumbXRef.current;
     setSnap(false);
   }
@@ -63,15 +65,23 @@ export default function V3PrimaryDecisionCTA({
     setThumbX(x);
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current) return;
     dragging.current = false;
     const maxX = getMaxX();
     if (thumbXRef.current >= maxX * THRESHOLD && !triggered.current) {
+      // Swipe completed — fire via existing timed path
       triggered.current = true;
       thumbXRef.current = maxX;
       setThumbX(maxX);
       setTimeout(() => onClick?.(), 150);
+    } else if (
+      Math.abs(e.clientX - pointerDownClientX.current) < 10 &&
+      !triggered.current
+    ) {
+      // Tap detected (pointer moved < 10px) — fire immediately
+      triggered.current = true;
+      onClick?.();
     } else {
       snapBack();
     }
@@ -107,7 +117,7 @@ export default function V3PrimaryDecisionCTA({
             "0 18px 38px rgba(232,98,26,0.4), " +
             "0 0 0 1px rgba(232,98,26,0.34), " +
             "0 0 60px rgba(232,98,26,0.18)",
-          cursor: dragging.current ? "grabbing" : "grab",
+          cursor: dragging.current ? "grabbing" : "pointer",
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -141,7 +151,7 @@ export default function V3PrimaryDecisionCTA({
             border: "1px solid rgba(255,255,255,0.3)",
             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)",
             transition: snap ? "left 0.3s ease" : "none",
-            cursor: dragging.current ? "grabbing" : "grab",
+            cursor: dragging.current ? "grabbing" : "pointer",
           }}
         >
           {/* Fork-and-knife icon */}
