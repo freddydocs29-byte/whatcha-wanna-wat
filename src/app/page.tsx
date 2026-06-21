@@ -909,10 +909,14 @@ export default function Home() {
 
       trackEvent("shared_session_created", { sessionId: data.id, sessionCode: data.session_code });
 
-      // Fire-and-forget invite rows for any explicitly selected partners.
-      // Does not block session creation — failure is logged and swallowed.
+      // Await invite creation so the session page can read the row on first load.
+      // Navigation proceeds even if the write fails — the session is still shareable by link.
       if (selectedPeopleIds.length > 0) {
-        void createInviteRows(data.id, data.session_code, expiresAt, selectedPeopleIds, selectedVibe);
+        try {
+          await createInviteRows(data.id, data.session_code, expiresAt, selectedPeopleIds, selectedVibe);
+        } catch (e) {
+          console.error("[invites] Failed to create invite rows before navigation:", e);
+        }
       }
 
       router.push(`/session/${data.id}`);
@@ -967,8 +971,7 @@ export default function Home() {
     return null;
   }
 
-  // Inserts session_invites rows for each selected partner.
-  // Fire-and-forget — callers should not await this.
+  // Inserts a session_invites row for the first selected partner.
   async function createInviteRows(
     sessionId: string,
     sessionCode: string,

@@ -17,6 +17,7 @@ import {
 } from "../../lib/storage";
 import { trackEvent } from "../../lib/analytics";
 import { SessionTerminalScreen } from "../../../components/SessionTerminalScreen";
+import Avatar from "../../components/Avatar";
 
 // ── Lightweight guest setup data ──────────────────────────────────────────────
 
@@ -159,6 +160,13 @@ export default function SessionPage() {
 
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
 
+  // Targeted invite recipient — set when the host has an outbound pending invite for this session.
+  // null = no pending targeted invite (generic waiting-room copy shown instead).
+  const [targetedInviteUser, setTargetedInviteUser] = useState<{
+    displayName: string | null;
+    avatarUrl: string | null;
+  } | null>(null);
+
   // Guest quick-setup state (null = not yet checked)
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [setupStep, setSetupStep] = useState<"intro" | "cuisines" | "dietary" | "hardNos">("intro");
@@ -240,6 +248,45 @@ export default function SessionPage() {
         if (firstSessionLoadRef.current) {
           setShowStartSwiping(true);
         }
+      }
+
+      // Fetch the host's outbound pending invite so the waiting room can display
+      // the targeted recipient's name/avatar instead of generic copy.
+      // Only query when session is waiting — once a guest joins, this is irrelevant.
+      if (s.status === "waiting") {
+        const { data: invite } = await supabase
+          .from("session_invites")
+          .select("to_user_id")
+          .eq("session_id", sessionId)
+          .eq("from_user_id", myId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (invite?.to_user_id) {
+          try {
+            const { data: profileData } = await supabase
+              .from("profiles")
+              .select("display_name, avatar_url")
+              .eq("user_id", invite.to_user_id)
+              .single();
+            setTargetedInviteUser(
+              profileData
+                ? { displayName: profileData.display_name ?? null, avatarUrl: profileData.avatar_url ?? null }
+                : null,
+            );
+          } catch {
+            // Profile lookup failed — fall back to generic waiting-room copy
+            setTargetedInviteUser(null);
+          }
+        } else {
+          // No pending invite (Path A / link share, or invite was dismissed/expired)
+          setTargetedInviteUser(null);
+        }
+      } else {
+        // Guest joined or session advanced — clear targeted invite state
+        setTargetedInviteUser(null);
       }
     } else if (myId === s.guest_user_id) {
       setRole("guest");
@@ -2046,16 +2093,31 @@ export default function SessionPage() {
 
             <div className="flex flex-col items-center gap-[10px]">
               <div
-                className="w-24 h-24 rounded-full flex items-center justify-center"
-                style={{
-                  border: "2px dashed rgba(245,237,224,0.16)",
-                  fontFamily: "var(--font-quicksand)",
-                  fontWeight: 700,
-                  fontSize: 34,
-                  color: "#897E73",
-                }}
+                className="w-24 h-24 rounded-full flex items-center justify-center relative overflow-hidden"
+                style={
+                  targetedInviteUser
+                    ? { background: "rgba(245,237,224,0.06)", border: "2px solid rgba(245,237,224,0.16)" }
+                    : {
+                        border: "2px dashed rgba(245,237,224,0.16)",
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 34,
+                        color: "#897E73",
+                      }
+                }
               >
-                ?
+                {targetedInviteUser ? (
+                  <Avatar
+                    avatarUrl={targetedInviteUser.avatarUrl}
+                    name={targetedInviteUser.displayName}
+                    initialsSize={28}
+                    initialsColor="white"
+                    silhouetteColor="#897E73"
+                    silhouetteSize={32}
+                  />
+                ) : (
+                  "?"
+                )}
               </div>
               <span
                 style={{
@@ -2065,7 +2127,7 @@ export default function SessionPage() {
                   color: "#897E73",
                 }}
               >
-                Waiting…
+                {targetedInviteUser?.displayName ?? "Waiting…"}
               </span>
             </div>
           </div>
@@ -2159,7 +2221,9 @@ export default function SessionPage() {
                 color: "#C7BDAC",
               }}
             >
-              Waiting for someone to join
+              {targetedInviteUser?.displayName
+                ? `Waiting for ${targetedInviteUser.displayName} to join…`
+                : "Waiting for someone to join"}
             </span>
           </div>
         </div>
