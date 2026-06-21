@@ -25,6 +25,8 @@ export default function V3InviteDrawer({
   const [createError, setCreateError] = useState<string | null>(null);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [copyError, setCopyError] = useState(false);
 
   // Prefer the active session passed in from parent, fall back to one created in this drawer
   const sessionCode = activeSessionCode ?? createdCode;
@@ -51,9 +53,11 @@ export default function V3InviteDrawer({
     try {
       await navigator.clipboard.writeText(joinUrl);
       setCopied(true);
+      setCopyError(false);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API not available — silently ignore
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 3000);
     }
   }
 
@@ -66,9 +70,14 @@ export default function V3InviteDrawer({
           text: "Join me to swipe on what we're eating tonight!",
           url: joinUrl,
         });
+        setShared(true);
+        setTimeout(() => setShared(false), 3000);
         return;
-      } catch {
-        // User cancelled share — fall through to copy
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return; // user cancelled — do nothing
+        }
+        // Genuine failure — fall through to copy as fallback
       }
     }
     await handleCopy();
@@ -258,7 +267,7 @@ export default function V3InviteDrawer({
                       boxShadow: "inset 0 1px 0 rgba(255,224,188,0.45), inset 0 -2px 0 rgba(120,52,0,0.35), 0 14px 30px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.3)",
                     }}
                   >
-                    Share →
+                    {shared ? "Shared ✓" : "Share →"}
                   </button>
 
                   {/* Copy — glass ghost */}
@@ -273,7 +282,7 @@ export default function V3InviteDrawer({
                       border: "1px solid rgba(245,237,224,0.16)",
                     }}
                   >
-                    {copied ? "Copied!" : "Copy link"}
+                    {copyError ? "Couldn't copy — try again" : copied ? "Copied!" : "Copy link"}
                   </button>
                 </div>
               </>

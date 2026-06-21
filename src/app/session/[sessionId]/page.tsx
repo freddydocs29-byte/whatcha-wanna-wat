@@ -131,6 +131,8 @@ export default function SessionPage() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [sessionMatched, setSessionMatched] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [justShared, setJustShared] = useState(false);
+  const [inviteDispatched, setInviteDispatched] = useState(false);
   const [joining, setJoining] = useState(false);
   const [buildingDeck, setBuildingDeck] = useState(false);
   const [buildPhrase, setBuildPhrase] = useState(0);
@@ -455,7 +457,10 @@ export default function SessionPage() {
   function handleCopy() {
     navigator.clipboard.writeText(sessionUrl).then(() => {
       setCopied(true);
+      setInviteDispatched(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      setCopied(false);
     });
   }
 
@@ -484,13 +489,23 @@ export default function SessionPage() {
     setNeedsSetup(false);
   }
 
-  function handleShare() {
+  async function handleShare() {
     if (navigator.share) {
-      navigator.share({
-        title: "Join my Watcha session",
-        text: "Help me pick what we're eating tonight",
-        url: sessionUrl,
-      });
+      try {
+        await navigator.share({
+          title: "Join my Watcha session",
+          text: "Help me pick what we're eating tonight",
+          url: sessionUrl,
+        });
+        setJustShared(true);
+        setInviteDispatched(true);
+        setTimeout(() => setJustShared(false), 3000);
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return; // user cancelled — no action
+        }
+        handleCopy(); // genuine failure — fall back to copy
+      }
     } else {
       handleCopy();
     }
@@ -1668,7 +1683,7 @@ export default function SessionPage() {
               className="w-full text-white font-bold text-[15px] py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
               style={gradientPrimary}
             >
-              Share link
+              {justShared ? "Shared ✓" : "Share link"}
             </button>
             <button
               onClick={handleCopy}
@@ -1702,6 +1717,21 @@ export default function SessionPage() {
               Waiting for someone to join…
             </span>
           </div>
+
+          {/* Persistent post-invite confirmation */}
+          {inviteDispatched && (
+            <p
+              className="mt-4 text-center leading-snug"
+              style={{
+                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                fontWeight: 400,
+                fontSize: 13,
+                color: "#897E73",
+              }}
+            >
+              You&apos;re all set.<br />Waiting for them to join.
+            </p>
+          )}
 
           {/* Transition to waiting room */}
           <button
