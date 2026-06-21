@@ -204,6 +204,7 @@ export default function Home() {
   const [showInviteDrawer, setShowInviteDrawer] = useState(false);
   const [selectedRecentMeal, setSelectedRecentMeal] = useState<Meal | null>(null);
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("comfort-food");
+  const [selectedVibeDeckLabel, setSelectedVibeDeckLabel] = useState<string>("Comfort food");
   const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [codeInput, setCodeInput] = useState("");
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
@@ -1353,6 +1354,7 @@ export default function Home() {
               <V3VibeCard
                 onSeeTop5={() => router.push("/top5")}
                 onVibeChange={(vibe) => setSelectedVibe(vibe)}
+                onVibeDeckLabelChange={(label) => setSelectedVibeDeckLabel(label)}
               />
             )}
             {/* ── Start CTA ─────────────────────────────────── */}
@@ -1369,6 +1371,12 @@ export default function Home() {
                   }
                 }}
                 onDecideTogether={() => setShowInviteDrawer(true)}
+                vibeLabel={selectedPeopleIds.length > 0 ? selectedVibeDeckLabel : undefined}
+                partnerName={
+                  selectedPeopleIds.length > 0
+                    ? (partners.find((p) => selectedPeopleIds.includes(p.partnerId))?.displayName ?? null)
+                    : null
+                }
               />
             </div>
             {sessionError && (

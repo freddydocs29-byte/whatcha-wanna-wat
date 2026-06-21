@@ -9,6 +9,10 @@ interface V3PrimaryDecisionCTAProps {
   /** Optional: called when the "ring the house" / "decide together" secondary link is tapped.
    *  Wires to the existing invite drawer (setShowInviteDrawer). */
   onDecideTogether?: () => void;
+  /** Deck label from the active vibe (e.g. "Comfort food"). When provided, used in subtitle. */
+  vibeLabel?: string;
+  /** Display name of the first selected partner. Used in CTA subtitle when available. */
+  partnerName?: string | null;
 }
 
 const THUMB_W = 54;
@@ -20,11 +24,24 @@ export default function V3PrimaryDecisionCTA({
   hasGuests = false,
   onClick,
   onDecideTogether,
+  vibeLabel,
+  partnerName,
 }: V3PrimaryDecisionCTAProps) {
   const title =
     isSolo ? "Start my deck" : hasGuests ? "Start our decision" : "Start my deck";
-  const sub =
-    isSolo ? "Solo, just for you" : hasGuests ? "Everyone's in. Let's go!" : "Add someone or go solo";
+
+  let sub: string;
+  if (hasGuests && vibeLabel) {
+    sub = partnerName
+      ? `${vibeLabel} · you & ${partnerName}. Let's go!`
+      : `${vibeLabel} · Everyone's in. Let's go!`;
+  } else if (isSolo) {
+    sub = "Solo, just for you";
+  } else if (hasGuests) {
+    sub = "Everyone's in. Let's go!";
+  } else {
+    sub = "Add someone or go solo";
+  }
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);

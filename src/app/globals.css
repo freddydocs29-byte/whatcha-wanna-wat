@@ -244,6 +244,42 @@ body {
 .wce-play .wce-s3 { animation: wce-rise 0.62s cubic-bezier(0.2,0.75,0.25,1) 0.24s backwards; }
 .wce-play .wce-s4 { animation: wce-rise 0.62s cubic-bezier(0.2,0.75,0.25,1) 0.36s backwards; }
 
+/* ── Vibe Dial — idle icon animations (§06) ──────────────────────────────── */
+@keyframes vibe-comfort-flicker {
+  0%, 100% { transform: scale(1);    filter: brightness(1); }
+  50%       { transform: scale(1.10); filter: brightness(1.18); }
+}
+@keyframes vibe-easy-zap {
+  0%, 82%   { transform: scale(1) rotate(0deg); }
+  88%        { transform: scale(1.18) rotate(-10deg); }
+  94%        { transform: scale(1.18) rotate(10deg); }
+  100%       { transform: scale(1) rotate(0deg); }
+}
+@keyframes vibe-surprise-wiggle {
+  0%, 100%  { transform: rotate(0deg); }
+  20%        { transform: rotate(-7deg); }
+  60%        { transform: rotate(7deg); }
+}
+@keyframes vibe-reset-sway {
+  0%, 100%  { transform: translateY(0)    rotate(0deg); }
+  35%        { transform: translateY(-2px) rotate(-4deg); }
+  70%        { transform: translateY(2px)  rotate(4deg); }
+}
+@keyframes vibe-celebrate-bob {
+  0%   { transform: scale(1)    rotate(0deg); }
+  30%  { transform: scale(1.14) rotate(9deg); }
+  65%  { transform: scale(0.95) rotate(-7deg); }
+  100% { transform: scale(1)    rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vibe-icon-comfort-food  { animation: vibe-comfort-flicker  2.6s ease-in-out infinite; }
+  .vibe-icon-quick-easy    { animation: vibe-easy-zap          2.8s ease-in-out infinite; }
+  .vibe-icon-mix-it-up     { animation: vibe-surprise-wiggle   2.2s ease-in-out infinite; }
+  .vibe-icon-healthy       { animation: vibe-reset-sway        3.0s ease-in-out infinite; }
+  .vibe-icon-something-new { animation: vibe-celebrate-bob     2.4s ease-in-out infinite; }
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .candlelight-animate,
