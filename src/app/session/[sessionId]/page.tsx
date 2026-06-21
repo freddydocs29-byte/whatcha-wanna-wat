@@ -325,6 +325,15 @@ export default function SessionPage() {
     setRole("guest");
     setJoining(false);
 
+    // Expire any other pending invites for this session so other recipients'
+    // banners stop showing as joinable now that the slot is filled.
+    void supabase
+      .from("session_invites")
+      .update({ status: "expired" })
+      .eq("session_id", sessionId)
+      .eq("status", "pending")
+      .neq("to_user_id", myId);
+
     // Write wwe_active_session now so the home banner can surface a resume option
     // if the guest goes back before tapping Start Swiping.
     // Overwrite only if missing, expired, malformed, or pointing to a different session.
@@ -1077,7 +1086,7 @@ export default function SessionPage() {
               color: "#897E73",
             }}
           >
-            This session already has two people. Ask the host to start a new one.
+            Looks like someone else grabbed that spot first. Ask your friend to send a new invite.
           </p>
         </div>
         <Link

@@ -45,9 +45,8 @@ export default function V3PeopleSelector({
   }, [people]);
 
   const toggle = (id: string) => {
-    const next = selected.includes(id)
-      ? selected.filter((s) => s !== id)
-      : [...selected, id];
+    // Sessions support exactly 1 guest — swap selection rather than accumulate
+    const next = selected.includes(id) ? [] : [id];
     setSelected(next);
     onChange?.(next);
   };

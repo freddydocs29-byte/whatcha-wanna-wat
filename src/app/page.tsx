@@ -645,6 +645,35 @@ export default function Home() {
 
   async function handleJoinInvite() {
     if (!pendingInvite) return;
+    const myId = getUserId();
+
+    // Atomically claim the guest slot before accepting the invite.
+    // The WHERE guest_user_id IS NULL guard ensures only one joiner wins.
+    const { data: sessionData } = await supabase
+      .from("sessions")
+      .update({
+        guest_user_id: myId,
+        status: "ready",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", pendingInvite.session_id)
+      .is("guest_user_id", null)
+      .select("id")
+      .single();
+
+    if (!sessionData) {
+      // Slot already taken — expire this invite so the banner clears
+      await supabase
+        .from("session_invites")
+        .update({ status: "expired" })
+        .eq("id", pendingInvite.id);
+      setPendingInvite(null);
+      // Navigate to the session page which will show the "Session is full" screen
+      router.push(`/session/${pendingInvite.session_id}`);
+      return;
+    }
+
+    // Slot claimed — now mark invite accepted and go straight to the session
     const { error } = await supabase
       .from("session_invites")
       .update({ status: "accepted", accepted_at: new Date().toISOString() })
@@ -652,7 +681,8 @@ export default function Home() {
     if (error) {
       console.warn("[invites] Failed to mark invite accepted:", error.message);
     }
-    router.push(`/join/${pendingInvite.session_code}`);
+
+    router.push(`/session/${pendingInvite.session_id}`);
   }
 
   async function handleDismissInvite() {
@@ -947,7 +977,10 @@ export default function Home() {
     vibe: string,
   ): Promise<void> {
     const fromUserId = getUserId();
-    const rows = partnerIds.map((toUserId) => ({
+    // Defensive: sessions support exactly 1 guest — only ever invite the first person
+    const toUserId = partnerIds[0];
+    if (!toUserId) return;
+    const row = {
       session_id: sessionId,
       session_code: sessionCode,
       from_user_id: fromUserId,
@@ -955,8 +988,8 @@ export default function Home() {
       status: "pending",
       vibe,
       expires_at: expiresAt,
-    }));
-    const { error } = await supabase.from("session_invites").insert(rows);
+    };
+    const { error } = await supabase.from("session_invites").insert(row);
     if (error) {
       console.warn("[invites] Failed to create invite rows:", error.message);
     }
