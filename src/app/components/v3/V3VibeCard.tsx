@@ -263,7 +263,7 @@ export default function V3VibeCard({
               padding: "3px 9px",
             }}
           >
-            {isRecommended ? "★ Recommended" : "✓ Your pick"}
+            {isRecommended ? "★ Our pick" : "✓ Your pick"}
           </span>
         </div>
 
@@ -432,7 +432,7 @@ export default function V3VibeCard({
 
         {/* ── Caption ───────────────────────────────────────────────── */}
         <div
-          className="px-[18px] mt-[8px] mb-[10px]"
+          className="px-[18px] mt-[8px] mb-[10px] text-center"
           style={{
             fontFamily: "var(--font-sans, Inter, system-ui)",
             fontSize: 12.5,
