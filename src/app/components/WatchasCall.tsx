@@ -5,6 +5,8 @@ import { supabase } from "../lib/supabase";
 import { meals, type Meal } from "../data/meals";
 import { inferSessionContext } from "../lib/session-tracking";
 import { addToHistory, saveDecidedMeal } from "../lib/storage";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED } from "../lib/analytics-events";
 import type { SessionVibeMode } from "../lib/scoring";
 import Avatar from "./Avatar";
 import { WatchaCallDetailsDrawer } from "./WatchaCallDetailsDrawer";
@@ -198,6 +200,12 @@ export default function WatchasCall({
       const computed = computeWCE(swipes, userId, partnerUserId, orderedMeals);
       setResult(computed);
 
+      const wcDedupKey = `wwe_analytics_watchas_call_${sessionId}`;
+      if (!sessionStorage.getItem(wcDedupKey)) {
+        trackEvent(EVENT_WATCHAS_CALL_TRIGGERED, { sessionMode: "shared", tier: computed?.tier ?? undefined, sessionId });
+        sessionStorage.setItem(wcDedupKey, "1");
+      }
+
       if (prefersReduced) {
         setView("main");
       } else {
@@ -339,6 +347,12 @@ export default function WatchasCall({
       mode: "shared",
       sessionId,
     });
+
+    const _dlKey = `wwe_analytics_decision_locked_${sessionId}_${meal.id}`;
+    if (!sessionStorage.getItem(_dlKey)) {
+      trackEvent(EVENT_DECISION_LOCKED, { mealId: meal.id, sessionMode: "shared", resolutionPath: "watchas_call", sessionId });
+      sessionStorage.setItem(_dlKey, "1");
+    }
 
     onResolve?.();
     setView("locked");

@@ -14,6 +14,7 @@ import { getAvoidSignals, getPreferSignals, checkTriggers, checkCrossSessionNudg
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
+import { EVENT_SESSION_STARTED, EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED } from "../lib/analytics-events";
 import { createTrackingSession, closeTrackingSession, recordDecision, recordAcceptedDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
 import SoloLockOverlay from "../components/SoloLockOverlay";
@@ -504,6 +505,11 @@ function DeckContent() {
     // Pick a fresh variant for this reveal instance (stable for the rest of the reveal).
     soloWCRevealCopyRef.current = SOLO_NO_MATCH_COPY[Math.floor(Math.random() * SOLO_NO_MATCH_COPY.length)];
     setSoloWatchaCallView("reveal");
+    const wcDedupKey = "wwe_analytics_watchas_call_solo";
+    if (!sessionStorage.getItem(wcDedupKey)) {
+      trackEvent(EVENT_WATCHAS_CALL_TRIGGERED, { sessionMode: "solo", tier: result.tier ?? undefined });
+      sessionStorage.setItem(wcDedupKey, "1");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, soloResetCount, soloWatchaCallView, currentIndex, bypassToExhausted, rankedMeals.length]);
 
@@ -730,6 +736,9 @@ function DeckContent() {
           groupSessionId: sessionId ?? undefined,
           sessionType: "shared",
           vibe: sessionVibeMode,
+        });
+        void trackingSessionPromiseRef.current.then((tsId) => {
+          if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "shared", isGuest, vibe: sessionVibeMode ?? undefined });
         });
       }
     };
@@ -1166,6 +1175,9 @@ function DeckContent() {
         if (!trackingSessionPromiseRef.current) {
           trackingOpenedAtRef.current = new Date();
           trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false, sessionType: "solo", vibe: sessionVibeMode });
+          void trackingSessionPromiseRef.current.then((tsId) => {
+            if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "solo", isGuest, vibe: sessionVibeMode ?? undefined });
+          });
         }
         return;
       }
@@ -1209,6 +1221,9 @@ function DeckContent() {
     if (!trackingSessionPromiseRef.current) {
       trackingOpenedAtRef.current = new Date();
       trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false, sessionType: "solo", vibe: sessionVibeMode });
+      void trackingSessionPromiseRef.current.then((tsId) => {
+        if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "solo", isGuest, vibe: sessionVibeMode ?? undefined });
+      });
     }
 
     // ── Deterministic AI freshness trigger ──────────────────────────────────
@@ -1568,6 +1583,12 @@ function DeckContent() {
     }
 
     console.log("[match] shared match decision recorded:", sessionId, matchedMeal.id);
+
+    const _dlKey = `wwe_analytics_decision_locked_${sessionId}_${matchedMeal.id}`;
+    if (!sessionStorage.getItem(_dlKey)) {
+      trackEvent(EVENT_DECISION_LOCKED, { mealId: matchedMeal.id, sessionMode: "shared", resolutionPath: "swipe_match", sessionId: sessionId ?? undefined });
+      sessionStorage.setItem(_dlKey, "1");
+    }
 
     // Guard: prevent the home-screen polling loop from writing a duplicate
     // decision row for the current user (the RPC already wrote both rows).
@@ -2148,6 +2169,11 @@ function DeckContent() {
           }
         }
 
+        const _soloDlKey = `wwe_analytics_decision_locked_solo_${chosenMeal.id}`;
+        if (!sessionStorage.getItem(_soloDlKey)) {
+          trackEvent(EVENT_DECISION_LOCKED, { mealId: chosenMeal.id, sessionMode: "solo", resolutionPath: "swipe_match" });
+          sessionStorage.setItem(_soloDlKey, "1");
+        }
         // Celebration overlay — navigates home after 2.5s
         if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([80, 40, 80]);
         setSoloLockMeal(chosenMeal);
@@ -2978,6 +3004,11 @@ function DeckContent() {
               });
             }
           });
+        }
+        const _wcDlKey = `wwe_analytics_decision_locked_solo_${wc.id}`;
+        if (!sessionStorage.getItem(_wcDlKey)) {
+          trackEvent(EVENT_DECISION_LOCKED, { mealId: wc.id, sessionMode: "solo", resolutionPath: "watchas_call" });
+          sessionStorage.setItem(_wcDlKey, "1");
         }
         setSoloWatchaCallView("locked");
       }

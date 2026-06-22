@@ -3,6 +3,7 @@
 import { type Meal } from "../data/meals";
 import { addToHistory, getHistory } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
+import { EVENT_POST_DECISION_ACTION } from "../lib/analytics-events";
 
 function recordIfNew(meal: Meal) {
   const today = new Date().toLocaleDateString();
@@ -26,7 +27,7 @@ export default function CookOrderButtons({ meal, recipeQuery }: Props) {
         href={`https://www.google.com/search?q=${recipeQuery}`}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={() => { recordIfNew(meal); trackEvent("cook_clicked", { mealId: meal.id }); }}
+        onClick={() => { recordIfNew(meal); trackEvent("cook_clicked", { mealId: meal.id }); trackEvent(EVENT_POST_DECISION_ACTION, { mealId: meal.id, action_type: "cook" }); }}
         className="w-full bg-[#4A7C59] text-white font-display font-black text-base py-4 rounded-full mt-8 shadow-glow-match"
       >
         Cook it
@@ -36,7 +37,7 @@ export default function CookOrderButtons({ meal, recipeQuery }: Props) {
         href={`https://www.google.com/search?q=${encodeURIComponent(meal.name + " near me")}`}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={() => { recordIfNew(meal); trackEvent("order_clicked", { mealId: meal.id }); }}
+        onClick={() => { recordIfNew(meal); trackEvent("order_clicked", { mealId: meal.id }); trackEvent(EVENT_POST_DECISION_ACTION, { mealId: meal.id, action_type: "order" }); }}
         className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-4 text-center text-base font-medium text-white"
       >
         Order it

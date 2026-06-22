@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Meal } from "../data/meals";
 import {
@@ -11,6 +11,7 @@ import {
   getDecidedMeal,
 } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
+import { EVENT_LOCKED_RESULT_VIEWED, EVENT_POST_DECISION_ACTION } from "../lib/analytics-events";
 import BottomNav from "../components/BottomNav";
 import { getAuthUserId } from "../lib/identity";
 import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget } from "../lib/guestLimit";
@@ -43,6 +44,17 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
     const decided = getDecidedMeal();
     if (decided?.sessionId) setSessionId(decided.sessionId);
   }, [meal.id]);
+
+  const lockedViewedRef = useRef(false);
+  useEffect(() => {
+    if (lockedViewedRef.current) return;
+    lockedViewedRef.current = true;
+    const decided = getDecidedMeal();
+    trackEvent(EVENT_LOCKED_RESULT_VIEWED, {
+      mealId: meal.id,
+      sessionMode: decided?.mode === "shared" ? "shared" : "solo",
+    });
+  }, []);
 
   function toggleSave() {
     if (saved) {
@@ -78,11 +90,13 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
 
   function handleCook() {
     trackEvent("cook_clicked", { mealId: meal.id });
+    trackEvent(EVENT_POST_DECISION_ACTION, { mealId: meal.id, action_type: "cook" });
     setMealActionMode("cook");
   }
 
   function handleOrder() {
     trackEvent("order_clicked", { mealId: meal.id });
+    trackEvent(EVENT_POST_DECISION_ACTION, { mealId: meal.id, action_type: "order" });
     setMealActionMode("order");
   }
 
