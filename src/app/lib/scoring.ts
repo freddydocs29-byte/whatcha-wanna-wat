@@ -59,24 +59,52 @@ const HARD_NO_KEYWORDS: Record<string, string[]> = {
     "bolognese", "ribeye", "rendang", "bourguignon", "veal",
     "osso buco", "birria", "pot roast", "cheesesteak", "sloppy joe",
     "brisket", "ground beef",
+    // Named cuts and preparations not in the original list
+    "sirloin", "filet mignon", "t-bone", "prime rib", "flank", "skirt steak",
+    "chuck", "carpaccio", "tartare", "corned beef", "pastrami", "wagyu",
+    "oxtail", "carne asada", "carne guisada",
+    // Skipped: "short rib" — "ribs" already in Pork catches it (cross-category overlap)
+    // Skipped: bare "carne" — false-positive risk on non-beef dishes
+    // Skipped: "suya" — not confirmed in catalog
   ],
   Pork: [
     "pork", "bacon", "ham", "sausage", "pepperoni", "ribs",
     "hot dog", "prosciutto", "pancetta", "chorizo", "pig",
     "salami", "mortadella",
+    // Regional and specialty pork products not in the original list
+    "guanciale", "lard", "jamon", "tocino", "chicharron", "chicharrón",
+    "morcilla", "longaniza", "lechon", "lechón", "boudin", "andouille",
   ],
   Seafood: [
     "seafood", "fish", "shrimp", "salmon", "tuna", "crab", "lobster",
     "scallop", "cod", "tilapia", "halibut", "sardine", "anchovy",
     "sushi", "poke", "prawn", "clam", "oyster", "mussel", "squid",
     "octopus", "lox", "sea bass", "ceviche", "nicoise",
+    // Fish species and seafood types not in the original list
+    "mahi", "haddock", "flounder", "branzino", "catfish", "pollock",
+    "snapper", "grouper", "monkfish", "swordfish", "mackerel", "calamari",
+    "crawfish", "crawdad", "crayfish", "caviar", "herring", "trout",
+    // Skipped: bare "bass" — false-positive on "tomato-based", "plant-based" (confirmed in catalog)
+    // Skipped: "eel" — false-positive on "feel"/"peel"/"peeled" (confirmed in whyItFits fields)
+    // Skipped: "perch" — false-positive on "perched" (confirmed: "perched atop a waffle" line 3994)
+    // Skipped: "smelt" — false-positive risk on past tense of "smell" in descriptions
   ],
   Chicken: [
     "chicken", "poultry", "coq",
+    // Additional poultry terms
+    "fowl", "capon",
+    // Skipped: "hen" — false-positive on "when" (appears constantly in whyItFits strings)
+    // Skipped: "cornish" — not confirmed in catalog
   ],
   Dairy: [
     "cheese", "butter", "cream", "milk", "yogurt",
     "ricotta", "mozzarella", "parmesan", "alfredo", "cheddar",
+    // Specialty cheeses and dairy products not in the original list
+    "feta", "gouda", "brie", "gruyere", "gruyère", "pecorino", "halloumi",
+    "mascarpone", "paneer", "labneh", "ghee", "quark", "crème", "crema",
+    "béchamel", "bechamel", "creme fraiche", "crème fraîche",
+    "whey", "casein", "lactose", "burrata", "cotija", "queso", "fromage",
+    // Skipped: "stracciatella" — false-positive on Roman egg drop soup (no dairy)
   ],
   "Gluten / Pasta": [
     "pasta", "noodle", "spaghetti", "linguine", "penne", "fettuccine",
@@ -86,6 +114,14 @@ const HARD_NO_KEYWORDS: Record<string, string[]> = {
     "tortilla", "burrito", "taco", "waffle", "pancake",
     "flatbread", "bun", "roll", "biscuit", "pita", "wrap",
     "flour", "wheat",
+    // Gluten-bearing grains and wheat-based preparations not in the original list
+    "seitan", "barley", "spelt", "rye", "farro", "bulgur", "kamut",
+    "semolina", "orzo", "crepe", "crêpe", "quiche", "tempura",
+    "croissant", "brioche", "crumpet", "matzo", "pierogi", "empanada",
+    "stromboli", "calzone", "pretzel", "crouton", "stuffing",
+    // Skipped: "breading"/"breaded" — already caught by "bread" (substring match)
+    // Skipped: "battered" — false-positive risk on rice-flour-battered items
+    // Skipped: "gravy" — not always wheat-based in catalog (confirmed: chicken, pork, beef gravies)
   ],
 };
 
