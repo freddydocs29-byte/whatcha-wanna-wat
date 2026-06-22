@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase, Session } from "../../lib/supabase";
 import { getUserId } from "../../lib/identity";
@@ -125,6 +125,7 @@ const darkBtn: React.CSSProperties = {
 export default function SessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<ViewerRole>("unknown");
@@ -276,6 +277,9 @@ export default function SessionPage() {
                 ? { displayName: profileData.display_name ?? null, avatarUrl: profileData.avatar_url ?? null }
                 : null,
             );
+            // Mechanism 2: outbound pending invite exists → this is Path B.
+            // Skip the sharing screen even if the query param is gone (refresh/back).
+            setHostStep("waiting");
           } catch {
             // Profile lookup failed — fall back to generic waiting-room copy
             setTargetedInviteUser(null);
@@ -412,6 +416,16 @@ export default function SessionPage() {
     );
     trackEvent("shared_session_joined", { sessionId });
   }, [sessionId, loadSession]);
+
+  // Mechanism 1: Path B immediate skip — if ?invited=true is present, the host
+  // already dispatched a targeted invite before navigating here, so jump straight
+  // to the waiting room without showing the generic sharing screen.
+  // Runs once on mount only; Mechanism 2 (DB read) handles refresh safety.
+  useEffect(() => {
+    if (searchParams?.get("invited") === "true") {
+      setHostStep("waiting");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial load
   useEffect(() => {

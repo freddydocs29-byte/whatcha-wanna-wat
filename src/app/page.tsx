@@ -919,7 +919,12 @@ export default function Home() {
         }
       }
 
-      router.push(`/session/${data.id}`);
+      // Pass ?invited=true when a specific person was selected (Path B) so the
+      // session page can skip the generic sharing screen immediately on first load.
+      const dest = selectedPeopleIds.length > 0
+        ? `/session/${data.id}?invited=true`
+        : `/session/${data.id}`;
+      router.push(dest);
     } catch (e) {
       console.error("[session] Unexpected error:", e);
       setSessionError("Something went wrong. Please try again.");
