@@ -142,12 +142,16 @@ export default function SessionPage() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
 
   // Host flow state
-  // hostStep starts as "sharing" on both server and client (SSR-safe).
+  // hostStepState.step starts as "sharing" on both server and client (SSR-safe).
   // A one-time useEffect below corrects it to "waiting" when ?invited=true is
-  // present (Path B). hostStepReady gates the host sub-state render until that
-  // correction has been applied, preventing any hydration-mismatch flash.
-  const [hostStep, setHostStep] = useState<"sharing" | "waiting">("sharing");
-  const [hostStepReady, setHostStepReady] = useState(false);
+  // present (Path B). hostStepState.ready gates the host sub-state render until
+  // that correction has been applied, preventing any hydration-mismatch flash.
+  // Both fields update atomically in a single setState call to eliminate the
+  // one-frame flash that occurred when ready became true before step was applied.
+  const [hostStepState, setHostStepState] = useState<{
+    step: "sharing" | "waiting";
+    ready: boolean;
+  }>({ step: "sharing", ready: false });
   // false = re-entry (skip intro steps); true = first-time host flow
   const [hostNeedsOnboarding, setHostNeedsOnboarding] = useState(true);
   const [showStartSwiping, setShowStartSwiping] = useState(false);
@@ -250,7 +254,7 @@ export default function SessionPage() {
       // and show the CTA immediately. On live waiting→ready transitions, leave
       // prevBothConnectedRef alone so the bothConnected effect runs the 2s timer.
       if (s.status === "ready" || s.status === "active") {
-        setHostStep("waiting");
+        setHostStepState((prev) => ({ ...prev, step: "waiting" }));
         if (firstSessionLoadRef.current) {
           setShowStartSwiping(true);
         }
@@ -284,12 +288,12 @@ export default function SessionPage() {
             );
             // Mechanism 2: outbound pending invite exists → this is Path B.
             // Skip the sharing screen even if the query param is gone (refresh/back).
-            setHostStep("waiting");
+            setHostStepState((prev) => ({ ...prev, step: "waiting" }));
           } catch {
             // Profile lookup failed — fall back to generic waiting-room copy.
             // The invite row still exists, so still skip the sharing screen.
             setTargetedInviteUser(null);
-            setHostStep("waiting");
+            setHostStepState((prev) => ({ ...prev, step: "waiting" }));
           }
         } else {
           // No pending invite (Path A / link share, or invite was dismissed/expired)
@@ -424,17 +428,17 @@ export default function SessionPage() {
     trackEvent("shared_session_joined", { sessionId });
   }, [sessionId, loadSession]);
 
-  // Hydration-safe hostStep correction: runs once after mount (client only).
+  // Hydration-safe hostStepState correction: runs once after mount (client only).
   // Reads window.location.search to set "waiting" when ?invited=true is present.
-  // Sets hostStepReady to true so the host sub-state renders only after the
-  // correct initial value is in place.
-  // Path A (no ?invited=true): hostStep stays "sharing", hostStepReady becomes true.
+  // Sets both step and ready atomically in a single setState call so there is no
+  // intermediate render where ready is true but step is still "sharing".
+  // Path A (no ?invited=true): step stays "sharing", ready becomes true.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("invited") === "true") {
-      setHostStep("waiting");
-    }
-    setHostStepReady(true);
+    setHostStepState({
+      step: params.get("invited") === "true" ? "waiting" : "sharing",
+      ready: true,
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial load
@@ -520,19 +524,19 @@ export default function SessionPage() {
     if (!bothConnected || prevBothConnectedRef.current) return;
     if (role !== "host") return;
     prevBothConnectedRef.current = true;
-    setHostStep("waiting");
+    setHostStepState((prev) => ({ ...prev, step: "waiting" }));
     const timer = setTimeout(() => setShowStartSwiping(true), 2000);
     return () => clearTimeout(timer);
   }, [bothConnected, role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rotate waiting headlines every 2.5s
   useEffect(() => {
-    if (role !== "host" || hostStep !== "waiting" || bothConnected) return;
+    if (role !== "host" || hostStepState.step !== "waiting" || bothConnected) return;
     const interval = setInterval(() => {
       setWaitingHeadlineIdx((i) => (i + 1) % WAITING_HEADLINES.length);
     }, 2500);
     return () => clearInterval(interval);
-  }, [role, hostStep, bothConnected]);
+  }, [role, hostStepState.step, bothConnected]);
 
   function handleCopy() {
     navigator.clipboard.writeText(sessionUrl).then(() => {
@@ -603,7 +607,7 @@ export default function SessionPage() {
       setSession((prev) => prev ? { ...prev, vibe } : prev);
       setSavingVibe(false);
     }
-    setHostStep("sharing");
+    setHostStepState((prev) => ({ ...prev, step: "sharing" }));
   }
 
   async function handleCancelSession() {
@@ -1494,7 +1498,7 @@ export default function SessionPage() {
   // ── Building deck loading screen (host + guest) ───────────────────────────
   const shouldShowBuildingDeck =
     buildingDeck &&
-    (role === "guest" || (role === "host" && (!hostNeedsOnboarding || hostStep === "waiting")));
+    (role === "guest" || (role === "host" && (!hostNeedsOnboarding || hostStepState.step === "waiting")));
 
   if (shouldShowBuildingDeck) {
     const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
@@ -1605,7 +1609,7 @@ export default function SessionPage() {
   }
 
   // ── Host: sharing screen (vibe already set from home) ───────────────────
-  if (role === "host" && hostNeedsOnboarding && hostStep === "sharing" && hostStepReady) {
+  if (role === "host" && hostNeedsOnboarding && hostStepState.step === "sharing" && hostStepState.ready) {
     const codeDisplay = session?.session_code ?? "…";
 
     return (
@@ -1815,7 +1819,7 @@ export default function SessionPage() {
 
           {/* Transition to waiting room */}
           <button
-            onClick={() => setHostStep("waiting")}
+            onClick={() => setHostStepState((prev) => ({ ...prev, step: "waiting" }))}
             className="mt-8 transition hover:opacity-60 underline underline-offset-2"
             style={{
               fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
@@ -1832,7 +1836,7 @@ export default function SessionPage() {
   }
 
   // ── Host: waiting room ─────────────────────────────────────────────────────
-  if (role === "host" && (hostStep === "waiting" || !hostNeedsOnboarding) && hostStepReady) {
+  if (role === "host" && (hostStepState.step === "waiting" || !hostNeedsOnboarding) && hostStepState.ready) {
     const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
     const codeDisplay = session?.session_code ?? "…";
     const deckReady = !!(session?.deck_meal_ids?.length);
@@ -2067,7 +2071,7 @@ export default function SessionPage() {
         {/* Back */}
         {hostNeedsOnboarding && (
           <button
-            onClick={() => setHostStep("sharing")}
+            onClick={() => setHostStepState((prev) => ({ ...prev, step: "sharing" }))}
             className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg mb-8 self-start"
             style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
           >
