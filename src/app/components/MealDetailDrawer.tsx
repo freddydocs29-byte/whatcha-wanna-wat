@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_MEAL_DETAIL_VIEWED } from "../lib/analytics-events";
 import { type Meal } from "../data/meals";
 import { MealImageFallback } from "./MealImageFallback";
 
@@ -102,6 +104,20 @@ export function MealDetailDrawer({
   const [atScrollTop, setAtScrollTop] = useState(true);
   // Track which meal ID had an image load failure — auto-resets when meal changes
   const [imgFailedId, setImgFailedId] = useState<string | null>(null);
+
+  const trackedMealIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isOpen || !meal) {
+      trackedMealIdRef.current = null;
+      return;
+    }
+    if (trackedMealIdRef.current === meal.id) return;
+    trackedMealIdRef.current = meal.id;
+    trackEvent(EVENT_MEAL_DETAIL_VIEWED, {
+      mealId: meal.id,
+      source_screen: context,
+    });
+  }, [isOpen, meal?.id, context]);
 
   if (!meal) return null;
 

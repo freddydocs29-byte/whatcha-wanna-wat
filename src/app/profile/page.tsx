@@ -42,6 +42,8 @@ import {
   type BaseFlavorType,
 } from "../lib/flavor-type";
 import { getCompatibilityPairing } from "../lib/compatibility";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_PROFILE_VIEWED } from "../lib/analytics-events";
 
 // ── Candlelight film grain ─────────────────────────────────────────────────────
 
@@ -168,6 +170,13 @@ export default function ProfilePage() {
   // ── Dietary / Hard NOs add mode ───────────────────────────────────────────
   const [showAddDietary, setShowAddDietary] = useState(false);
   const [showAddHardNo, setShowAddHardNo] = useState(false);
+
+  const profileViewedRef = useRef(false);
+  useEffect(() => {
+    if (profileViewedRef.current) return;
+    profileViewedRef.current = true;
+    trackEvent(EVENT_PROFILE_VIEWED, {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Sync reads — all available immediately from localStorage.

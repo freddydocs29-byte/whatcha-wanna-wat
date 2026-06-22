@@ -14,7 +14,7 @@ import { getAvoidSignals, getPreferSignals, checkTriggers, checkCrossSessionNudg
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
-import { EVENT_SESSION_STARTED, EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED } from "../lib/analytics-events";
+import { EVENT_SESSION_STARTED, EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED, EVENT_SHARED_SESSION_ABANDONED, EVENT_GUEST_LIMIT_REACHED, EVENT_MEAL_SAVED } from "../lib/analytics-events";
 import { createTrackingSession, closeTrackingSession, recordDecision, recordAcceptedDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
 import SoloLockOverlay from "../components/SoloLockOverlay";
@@ -25,7 +25,7 @@ import { detectRituals, getRitualLabel, isRitualSuppressed, recordRitualRejectio
 import { SessionTerminalScreen } from "../../components/SessionTerminalScreen";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
-import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, tryConsumeGuestDeckBudgetNoGrant, consumeGuestDeckEntryGrant } from "../lib/guestLimit";
+import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, tryConsumeGuestDeckBudgetNoGrant, consumeGuestDeckEntryGrant, getGuestAttempts } from "../lib/guestLimit";
 import WatchasCall from "../components/WatchasCall";
 import { WatchaCallDetailsDrawer } from "../components/WatchaCallDetailsDrawer";
 import { MealImageFallback } from "../components/MealImageFallback";
@@ -473,6 +473,10 @@ function DeckContent() {
       const hasEntryGrant = consumeGuestDeckEntryGrant();
       if (!hasEntryGrant) {
         setShowGuestLimit(true);
+        trackEvent(EVENT_GUEST_LIMIT_REACHED, {
+          attempts_used: getGuestAttempts(),
+          trigger_source: "splash",
+        });
       }
     }
   }, [isGuest]);
@@ -1860,6 +1864,10 @@ function DeckContent() {
     if (!isGuest) return true;
     if (!tryConsumeGuestDeckBudgetNoGrant()) {
       setShowGuestLimit(true);
+      trackEvent(EVENT_GUEST_LIMIT_REACHED, {
+        attempts_used: getGuestAttempts(),
+        trigger_source: "fresh_ideas",
+      });
       return false;
     }
     return true;
@@ -2047,6 +2055,7 @@ function DeckContent() {
         return;
       }
       saveMeal(meal);
+      trackEvent(EVENT_MEAL_SAVED, { mealId: meal.id, source_screen: "deck" });
       updateTasteProfile(meal, "save");
       setSavedFeedback(prev => { const s = new Set(prev); s.add(meal.id); return s; });
       setToastMessage("Saved ★");
@@ -2531,10 +2540,17 @@ function DeckContent() {
                     if (isExhausted && sessionId) {
                       // Write leave signal so the waiting partner advances to Watcha's Call
                       try {
-                        await supabase
+                        const { error: abandonErr } = await supabase
                           .from("sessions")
                           .update({ status: "abandoned", updated_at: new Date().toISOString() })
                           .eq("id", sessionId);
+                        if (!abandonErr) {
+                          trackEvent(EVENT_SHARED_SESSION_ABANDONED, {
+                            sessionId,
+                            abandoned_at_step: "swiping",
+                            swipe_count_at_abandon: currentIndex ?? 0,
+                          });
+                        }
                       } catch {
                         // best-effort; navigate home regardless
                       }

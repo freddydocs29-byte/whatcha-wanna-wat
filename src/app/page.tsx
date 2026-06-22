@@ -37,6 +37,12 @@ import { MealDetailDrawer } from "./components/MealDetailDrawer";
 import { fetchProfileByAuthUserId } from "./lib/supabase-profile";
 import type { Profile } from "./lib/supabase";
 import { trackEvent } from "./lib/analytics";
+import {
+  EVENT_SHARED_INVITE_CREATED,
+  EVENT_GUEST_SIGNUP_PROMPTED,
+  EVENT_ERROR_SHOWN,
+  EVENT_MEAL_SAVED,
+} from "./lib/analytics-events";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
 import FlavorTypeReveal from "./components/FlavorTypeReveal";
@@ -165,6 +171,13 @@ export default function Home() {
   );
   const [creatingSession, setCreatingSession] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sessionError) return;
+    trackEvent(EVENT_ERROR_SHOWN, {
+      error_context: "session_create_failed",
+      session_mode: "shared",
+    });
+  }, [sessionError]);
   const [saved, setSaved] = useState(false);
   const [showEatModal, setShowEatModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
@@ -926,8 +939,10 @@ export default function Home() {
       // "Who's deciding with you?" sharing screen. Without ?share=true the session
       // page defaults to the waiting room, preventing any sharing-screen flash.
       if (selectedPeopleIds.length > 0) {
+        trackEvent(EVENT_SHARED_INVITE_CREATED, { invite_method: "targeted", sessionId: data.id });
         router.replace(`/session/${data.id}?invited=true`);
       } else {
+        trackEvent(EVENT_SHARED_INVITE_CREATED, { invite_method: "link", sessionId: data.id });
         router.push(`/session/${data.id}?share=true`);
       }
     } catch (e) {
@@ -971,6 +986,7 @@ export default function Home() {
             );
           }
           trackEvent("shared_session_created", { sessionId: result.data.id, sessionCode: result.data.session_code });
+          trackEvent(EVENT_SHARED_INVITE_CREATED, { invite_method: "link", sessionId: result.data.id });
           return { sessionId: result.data.id, sessionCode: result.data.session_code };
         }
         if (result.error.code !== "23505") break;
@@ -1058,6 +1074,7 @@ export default function Home() {
       setDecidedSaved(false);
     } else {
       saveMeal(decidedMeal);
+      trackEvent(EVENT_MEAL_SAVED, { mealId: decidedMeal.id, source_screen: "locked" });
       setDecidedSaved(true);
       setSavedJustNow(true);
       setTimeout(() => setSavedJustNow(false), 2000);
@@ -1076,6 +1093,7 @@ export default function Home() {
         onSignIn={() => router.push("/auth?mode=signin")}
         onContinueAsGuest={() => {
           if (guestDeckBudgetExhausted()) {
+            trackEvent(EVENT_GUEST_SIGNUP_PROMPTED, { from_reason: "guest_limit" });
             router.push("/auth?mode=signup&from=guest-limit");
             return;
           }
@@ -1401,6 +1419,7 @@ export default function Home() {
                 onSeeTop5={() => router.push("/top5")}
                 onVibeChange={(vibe) => setSelectedVibe(vibe)}
                 onVibeDeckLabelChange={(label) => setSelectedVibeDeckLabel(label)}
+                sessionMode="shared"
               />
             )}
             {/* ── Start CTA ─────────────────────────────────── */}
@@ -1462,6 +1481,7 @@ export default function Home() {
                       const meal = recentHistory.find((e) => e.meal.id === mealId)?.meal;
                       if (meal) {
                         saveMeal(meal);
+                        trackEvent(EVENT_MEAL_SAVED, { mealId: mealId, source_screen: "home" });
                         setWinSavedIds((prev) => new Set(prev).add(mealId));
                       }
                     }

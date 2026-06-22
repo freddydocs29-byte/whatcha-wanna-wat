@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { SessionVibeMode } from "../../lib/scoring";
+import { trackEvent } from "../../lib/analytics";
+import { EVENT_VIBE_SELECTED } from "../../lib/analytics-events";
 
 // ── Vibe config (spec §03) — display content mapped to production SessionVibeMode keys ──
 const VIBES = [
@@ -68,12 +70,14 @@ interface V3VibeCardProps {
   onVibeChange?: (vibe: SessionVibeMode) => void;
   /** Fires whenever the selected vibe's deck label changes (e.g. "Comfort food") */
   onVibeDeckLabelChange?: (label: string) => void;
+  sessionMode?: "solo" | "shared";
 }
 
 export default function V3VibeCard({
   onSeeTop5,
   onVibeChange,
   onVibeDeckLabelChange,
+  sessionMode = "solo",
 }: V3VibeCardProps) {
   // Compute recommendation once on mount (lazy useState initializer)
   const [{ recommendedIndex, recommendedReason }] = useState(() => {
@@ -90,6 +94,7 @@ export default function V3VibeCard({
   const trackRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const drag = useRef({ active: false, startX: 0, baseX: 0 });
+  const isInitializedRef = useRef(false);
 
   const vibe = VIBES[selectedIndex];
   const isRecommended = selectedIndex === recommendedIndex;
@@ -115,6 +120,13 @@ export default function V3VibeCard({
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         try { navigator.vibrate(8); } catch { /* ignore */ }
       }
+      if (isInitializedRef.current) {
+        trackEvent(EVENT_VIBE_SELECTED, {
+          vibe: VIBES[clamped].key,
+          session_mode: sessionMode,
+          is_default: false,
+        });
+      }
     } else {
       // Already on this index — just snap back (rubber-band release to same item)
       snapTo(clamped, true);
@@ -134,6 +146,7 @@ export default function V3VibeCard({
     // Center initial item — retry after 300ms so serif font metrics are loaded
     snapTo(recommendedIndex, false);
     const t = setTimeout(() => snapTo(recommendedIndex, false), 300);
+    isInitializedRef.current = true;
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

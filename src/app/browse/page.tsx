@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_BROWSE_VIEWED } from "../lib/analytics-events";
 import { AnimatePresence, motion } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { addToHistory, updateTasteProfile } from "../lib/storage";
@@ -22,6 +24,13 @@ export default function BrowsePage() {
   const router = useRouter();
   const [selected, setSelected] = useState<Meal | null>(null);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
+
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (viewedRef.current) return;
+    viewedRef.current = true;
+    trackEvent(EVENT_BROWSE_VIEWED, {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleImgError(id: string) {
     setImgErrors((prev) => new Set(prev).add(id));

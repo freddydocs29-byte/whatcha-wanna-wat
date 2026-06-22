@@ -9,6 +9,8 @@ import { getSoloInsights } from "../../lib/dna-insights";
 import { getUserId } from "../../lib/identity";
 import { fetchOrCreateProfile } from "../../lib/supabase-profile";
 import { getPreferences } from "../../lib/storage";
+import { trackEvent } from "../../lib/analytics";
+import { EVENT_FLAVOR_CARD_SHARED } from "../../lib/analytics-events";
 
 // TODO: Add couples mode toggle when getCouplesDNA is wired to a partner lookup.
 // Steps needed:
@@ -118,6 +120,7 @@ export default function FlavorProfileCardPage() {
               files: [file],
               title: "My Watcha? Flavor Profile",
             });
+            trackEvent(EVENT_FLAVOR_CARD_SHARED, { share_destination: "native_share" });
           } catch (err) {
             // User cancelled — not an error
             if (err instanceof Error && err.name !== "AbortError") {
@@ -131,6 +134,7 @@ export default function FlavorProfileCardPage() {
           a.href = url;
           a.download = "watcha-flavor-profile.png";
           a.click();
+          trackEvent(EVENT_FLAVOR_CARD_SHARED, { share_destination: "copy" });
           URL.revokeObjectURL(url);
         }
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_GUEST_SIGNUP_PROMPTED } from "../lib/analytics-events";
 
 interface GuestLimitPromptProps {
   /** Called when the guest dismisses the prompt without acting. */
@@ -16,6 +18,7 @@ export default function GuestLimitPrompt({ onClose }: GuestLimitPromptProps) {
   const router = useRouter();
 
   function handleCreateAccount() {
+    trackEvent(EVENT_GUEST_SIGNUP_PROMPTED, { from_reason: "guest_limit" });
     router.push("/auth?mode=signup&from=guest-limit");
   }
 

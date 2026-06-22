@@ -4,6 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { savePreferences, markOnboardingDone, hasCompletedOnboarding, saveNoveltyBias } from "../lib/storage";
+import { trackEvent } from "../lib/analytics";
+import {
+  EVENT_ONBOARDING_STEP_VIEWED,
+  EVENT_ONBOARDING_STEP_COMPLETED,
+  EVENT_ONBOARDING_ABANDONED,
+} from "../lib/analytics-events";
 
 const TOTAL_STEPS = 5;
 
@@ -81,6 +87,11 @@ const gradientPrimaryStyle = {
     "0 1px 0 rgba(255,210,170,0.45) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 16px 34px rgba(232,98,26,0.42), 0 0 0 1px rgba(232,98,26,0.32)",
 };
 
+const STEP_NAMES = ["intro", "dietary_restrictions", "hard_nos", "cuisines", "novelty", "brand_poster"];
+function getOnboardingStepName(s: number): string {
+  return STEP_NAMES[s] ?? "unknown";
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -96,6 +107,12 @@ export default function OnboardingPage() {
   // Always-current ref — safe to read from inside setTimeout callbacks.
   const latestRef = useRef({ dietaryRestrictions, hardNoFoods, cuisines, noveltyBias });
   latestRef.current = { dietaryRestrictions, hardNoFoods, cuisines, noveltyBias };
+  const viewedStepsRef = useRef<Set<number>>(new Set());
+  const stepEnteredAtRef = useRef<number>(Date.now());
+  const onboardingStartedAtRef = useRef<number>(Date.now());
+  const completedRef = useRef(false);
+  const latestStepRef = useRef(step);
+  useEffect(() => { latestStepRef.current = step; }, [step]);
 
   // Pending auto-advance timer for step 3 — cancelled on goBack so it can't
   // fire after the user has navigated away from step 3.
@@ -106,7 +123,44 @@ export default function OnboardingPage() {
     if (!isEditMode && hasCompletedOnboarding()) router.replace("/");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fire onboarding_step_viewed once per step — deduplicated via viewedStepsRef
+  useEffect(() => {
+    if (viewedStepsRef.current.has(step)) return;
+    viewedStepsRef.current.add(step);
+    stepEnteredAtRef.current = Date.now();
+    trackEvent(EVENT_ONBOARDING_STEP_VIEWED, {
+      step_number: step,
+      step_name: getOnboardingStepName(step),
+    });
+  }, [step]);
+
+  // Fire onboarding_abandoned on beforeunload only if not yet completed
+  useEffect(() => {
+    const handler = () => {
+      if (completedRef.current) return;
+      trackEvent(EVENT_ONBOARDING_ABANDONED, {
+        last_step_number: latestStepRef.current,
+        last_step_name: getOnboardingStepName(latestStepRef.current),
+        time_in_onboarding_ms: Date.now() - onboardingStartedAtRef.current,
+      });
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function advance() {
+    // Fire step_completed for the current step before advancing
+    const selectionCount =
+      step === 1 ? latestRef.current.dietaryRestrictions.length :
+      step === 2 ? latestRef.current.hardNoFoods.length :
+      step === 3 ? latestRef.current.cuisines.length :
+      step === 4 ? (latestRef.current.noveltyBias !== null ? 1 : 0) : 0;
+    trackEvent(EVENT_ONBOARDING_STEP_COMPLETED, {
+      step_number: step,
+      step_name: getOnboardingStepName(step),
+      time_on_step_ms: Date.now() - stepEnteredAtRef.current,
+      selections_made: selectionCount,
+    });
     if (step < TOTAL_STEPS) {
       setDirection(1);
       setStep((s) => s + 1);
@@ -122,6 +176,7 @@ export default function OnboardingPage() {
         kidFriendly: null,
       });
       saveNoveltyBias(vals.noveltyBias ?? 0.5);
+      completedRef.current = true;
       markOnboardingDone();
       router.replace(isEditMode ? '/profile/edit' : '/');
     }
@@ -163,6 +218,12 @@ export default function OnboardingPage() {
 
   /** "None of these" on the dietary step — clears dietary and advances. */
   function handleNoDietary() {
+    trackEvent(EVENT_ONBOARDING_STEP_COMPLETED, {
+      step_number: step,
+      step_name: getOnboardingStepName(step),
+      time_on_step_ms: Date.now() - stepEnteredAtRef.current,
+      selections_made: 0,
+    });
     setDietaryRestrictions([]);
     setDirection(1);
     setStep((s) => s + 1);
@@ -170,6 +231,12 @@ export default function OnboardingPage() {
 
   /** "None of these" on the hard NO step — clears hard NOs and advances. */
   function handleNoHardNos() {
+    trackEvent(EVENT_ONBOARDING_STEP_COMPLETED, {
+      step_number: step,
+      step_name: getOnboardingStepName(step),
+      time_on_step_ms: Date.now() - stepEnteredAtRef.current,
+      selections_made: 0,
+    });
     setHardNoFoods([]);
     setDirection(1);
     setStep((s) => s + 1);

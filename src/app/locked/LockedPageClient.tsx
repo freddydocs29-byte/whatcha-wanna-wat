@@ -11,10 +11,10 @@ import {
   getDecidedMeal,
 } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
-import { EVENT_LOCKED_RESULT_VIEWED, EVENT_POST_DECISION_ACTION } from "../lib/analytics-events";
+import { EVENT_LOCKED_RESULT_VIEWED, EVENT_POST_DECISION_ACTION, EVENT_GUEST_LIMIT_REACHED, EVENT_MEAL_SAVED } from "../lib/analytics-events";
 import BottomNav from "../components/BottomNav";
 import { getAuthUserId } from "../lib/identity";
-import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget } from "../lib/guestLimit";
+import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, getGuestAttempts } from "../lib/guestLimit";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
 import V3LockedMealCard from "../components/v3/V3LockedMealCard";
@@ -63,6 +63,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
       setSavedJustNow(false);
     } else {
       saveMeal(meal);
+      trackEvent(EVENT_MEAL_SAVED, { mealId: meal.id, source_screen: "locked" });
       setSaved(true);
       setSavedJustNow(true);
       setTimeout(() => setSavedJustNow(false), 2000);
@@ -74,6 +75,10 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
     if (isGuest) {
       if (guestDeckBudgetExhausted()) {
         setShowGuestLimit(true);
+        trackEvent(EVENT_GUEST_LIMIT_REACHED, {
+          attempts_used: getGuestAttempts(),
+          trigger_source: "locked",
+        });
         return;
       }
       // Consume budget and start a fresh deck.

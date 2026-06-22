@@ -16,6 +16,10 @@ import {
   type UserPreferences,
 } from "../../lib/storage";
 import { trackEvent } from "../../lib/analytics";
+import {
+  EVENT_SHARED_INVITE_JOINED,
+  EVENT_ERROR_SHOWN,
+} from "../../lib/analytics-events";
 import { SessionTerminalScreen } from "../../../components/SessionTerminalScreen";
 import Avatar from "../../components/Avatar";
 
@@ -161,6 +165,7 @@ export default function SessionPage() {
   const firstSessionLoadRef = useRef(true);
   // Tracks the previous session status so we can detect live transitions
   const previousSessionStatusRef = useRef<string | null>(null);
+  const wasGuestSetupRef = useRef(false);
 
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
 
@@ -419,6 +424,10 @@ export default function SessionPage() {
     syncBehavioralSignalsToSupabase(myId).catch((err) =>
       console.warn("[sync] behavioral signals failed:", err),
     );
+    trackEvent(EVENT_SHARED_INVITE_JOINED, {
+      sessionId,
+      is_guest: wasGuestSetupRef.current,
+    });
     trackEvent("shared_session_joined", { sessionId });
   }, [sessionId, loadSession]);
 
@@ -515,6 +524,14 @@ export default function SessionPage() {
     return () => clearTimeout(timer);
   }, [bothConnected, role]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!error) return;
+    trackEvent(EVENT_ERROR_SHOWN, {
+      error_context: "session_load_failed",
+      session_mode: "shared",
+    });
+  }, [error]);
+
   // Rotate waiting headlines every 2.5s
   useEffect(() => {
     if (role !== "host" || hostStepState.step !== "waiting" || bothConnected) return;
@@ -556,6 +573,7 @@ export default function SessionPage() {
       hardNoFoods: prefs.hardNoFoods,
     });
     setCompletingSetup(false);
+    wasGuestSetupRef.current = true;
     setNeedsSetup(false);
   }
 
