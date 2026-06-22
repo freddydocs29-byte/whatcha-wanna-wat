@@ -142,14 +142,12 @@ export default function SessionPage() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
 
   // Host flow state
-  // Lazy initializer: read the URL synchronously before first render so the
-  // sharing screen is never shown — not even for a single frame — when
-  // ?invited=true is present (Path B / targeted-invite flow).
-  const [hostStep, setHostStep] = useState<"sharing" | "waiting">(() => {
-    if (typeof window === "undefined") return "sharing";
-    const params = new URLSearchParams(window.location.search);
-    return params.get("invited") === "true" ? "waiting" : "sharing";
-  });
+  // hostStep starts as "sharing" on both server and client (SSR-safe).
+  // A one-time useEffect below corrects it to "waiting" when ?invited=true is
+  // present (Path B). hostStepReady gates the host sub-state render until that
+  // correction has been applied, preventing any hydration-mismatch flash.
+  const [hostStep, setHostStep] = useState<"sharing" | "waiting">("sharing");
+  const [hostStepReady, setHostStepReady] = useState(false);
   // false = re-entry (skip intro steps); true = first-time host flow
   const [hostNeedsOnboarding, setHostNeedsOnboarding] = useState(true);
   const [showStartSwiping, setShowStartSwiping] = useState(false);
@@ -288,8 +286,10 @@ export default function SessionPage() {
             // Skip the sharing screen even if the query param is gone (refresh/back).
             setHostStep("waiting");
           } catch {
-            // Profile lookup failed — fall back to generic waiting-room copy
+            // Profile lookup failed — fall back to generic waiting-room copy.
+            // The invite row still exists, so still skip the sharing screen.
             setTargetedInviteUser(null);
+            setHostStep("waiting");
           }
         } else {
           // No pending invite (Path A / link share, or invite was dismissed/expired)
@@ -423,6 +423,19 @@ export default function SessionPage() {
     );
     trackEvent("shared_session_joined", { sessionId });
   }, [sessionId, loadSession]);
+
+  // Hydration-safe hostStep correction: runs once after mount (client only).
+  // Reads window.location.search to set "waiting" when ?invited=true is present.
+  // Sets hostStepReady to true so the host sub-state renders only after the
+  // correct initial value is in place.
+  // Path A (no ?invited=true): hostStep stays "sharing", hostStepReady becomes true.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("invited") === "true") {
+      setHostStep("waiting");
+    }
+    setHostStepReady(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial load
   useEffect(() => {
@@ -1592,7 +1605,7 @@ export default function SessionPage() {
   }
 
   // ── Host: sharing screen (vibe already set from home) ───────────────────
-  if (role === "host" && hostNeedsOnboarding && hostStep === "sharing") {
+  if (role === "host" && hostNeedsOnboarding && hostStep === "sharing" && hostStepReady) {
     const codeDisplay = session?.session_code ?? "…";
 
     return (
@@ -1819,7 +1832,7 @@ export default function SessionPage() {
   }
 
   // ── Host: waiting room ─────────────────────────────────────────────────────
-  if (role === "host" && (hostStep === "waiting" || !hostNeedsOnboarding)) {
+  if (role === "host" && (hostStep === "waiting" || !hostNeedsOnboarding) && hostStepReady) {
     const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
     const codeDisplay = session?.session_code ?? "…";
     const deckReady = !!(session?.deck_meal_ids?.length);
