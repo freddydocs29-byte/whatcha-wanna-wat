@@ -82,9 +82,17 @@ export default function V3RecentWins({ wins, savedMealIds, onToggleSave, onSeeAl
         } as React.CSSProperties}
       >
         {wins.map((win, i) => (
-          <button
+          <div
             key={i}
+            role="button"
+            tabIndex={0}
             onClick={() => onMealClick?.(i)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                onMealClick?.(i)
+              }
+            }}
             className="flex-shrink-0 text-left p-0 bg-transparent border-0 cursor-pointer group"
             style={{ scrollSnapAlign: "start", width: 142 }}
           >
@@ -228,7 +236,7 @@ export default function V3RecentWins({ wins, savedMealIds, onToggleSave, onSeeAl
             >
               {win.day}
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>

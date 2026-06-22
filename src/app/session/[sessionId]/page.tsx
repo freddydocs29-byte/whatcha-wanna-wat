@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase, Session } from "../../lib/supabase";
 import { getUserId } from "../../lib/identity";
@@ -125,8 +125,6 @@ const darkBtn: React.CSSProperties = {
 export default function SessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<ViewerRole>("unknown");
   const [error, setError] = useState<string | null>(null);
@@ -142,16 +140,12 @@ export default function SessionPage() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
 
   // Host flow state
-  // hostStepState.step starts as "sharing" on both server and client (SSR-safe).
-  // A one-time useEffect below corrects it to "waiting" when ?invited=true is
-  // present (Path B). hostStepState.ready gates the host sub-state render until
-  // that correction has been applied, preventing any hydration-mismatch flash.
-  // Both fields update atomically in a single setState call to eliminate the
-  // one-frame flash that occurred when ready became true before step was applied.
+  // hostStepState.ready gates the waiting-room render until the initial loadSession
+  // has resolved, preventing a flash of the unloaded waiting room on mount.
   const [hostStepState, setHostStepState] = useState<{
-    step: "sharing" | "waiting";
+    step: "waiting";
     ready: boolean;
-  }>({ step: "sharing", ready: false });
+  }>({ step: "waiting", ready: false });
   // false = re-entry (skip intro steps); true = first-time host flow
   const [hostNeedsOnboarding, setHostNeedsOnboarding] = useState(true);
   const [showStartSwiping, setShowStartSwiping] = useState(false);
@@ -428,17 +422,10 @@ export default function SessionPage() {
     trackEvent("shared_session_joined", { sessionId });
   }, [sessionId, loadSession]);
 
-  // Hydration-safe hostStepState correction: runs once after mount (client only).
-  // Reads window.location.search to set "waiting" when ?invited=true is present.
-  // Sets both step and ready atomically in a single setState call so there is no
-  // intermediate render where ready is true but step is still "sharing".
-  // Path A (no ?invited=true): step stays "sharing", ready becomes true.
+  // Hydration-safe ready flag: runs once after mount. Sets ready=true so the
+  // waiting room renders only after client hydration is complete.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setHostStepState({
-      step: params.get("invited") === "true" ? "waiting" : "sharing",
-      ready: true,
-    });
+    setHostStepState({ step: "waiting", ready: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial load
@@ -510,9 +497,8 @@ export default function SessionPage() {
     };
   }, [role, session?.status, session?.deck_meal_ids, loadSession]);
 
-  // Detect guest join from any host step (vibe, sharing, or waiting).
-  // Auto-advances hostStep to "waiting" so the celebration UI renders,
-  // then shows "Start swiping →" after 2s.
+  // Detect guest join while host is on the waiting room.
+  // Auto-advances to the celebration sub-state and shows "Start swiping →" after 2s.
   const bothConnected =
     session?.status === "ready" ||
     session?.status === "active" ||
@@ -607,7 +593,6 @@ export default function SessionPage() {
       setSession((prev) => prev ? { ...prev, vibe } : prev);
       setSavingVibe(false);
     }
-    setHostStepState((prev) => ({ ...prev, step: "sharing" }));
   }
 
   async function handleCancelSession() {
@@ -1608,233 +1593,6 @@ export default function SessionPage() {
     );
   }
 
-  // ── Host: sharing screen (vibe already set from home) ───────────────────
-  if (role === "host" && hostNeedsOnboarding && hostStepState.step === "sharing" && hostStepState.ready) {
-    const codeDisplay = session?.session_code ?? "…";
-
-    return (
-      <main className="relative min-h-screen overflow-hidden bg-[#0B0805] text-white">
-        <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
-          }}
-        />
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-5 pb-10 text-center">
-
-          {/* Back */}
-          <Link
-            href="/"
-            className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center text-white text-lg"
-            style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
-          >
-            ←
-          </Link>
-
-          <p
-            className="uppercase mb-8"
-            style={{
-              fontFamily: "var(--font-jetbrains-mono)",
-              fontSize: 11,
-              letterSpacing: "2px",
-              color: "#897E73",
-            }}
-          >
-            Share your session
-          </p>
-
-          <h1
-            className="text-white leading-tight"
-            style={{
-              fontFamily: "var(--font-quicksand)",
-              fontWeight: 700,
-              fontSize: 38,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Who&apos;s deciding<br />with you?
-          </h1>
-          <p
-            className="mt-3 max-w-xs"
-            style={{
-              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
-              fontWeight: 300,
-              fontSize: 14,
-              lineHeight: 1.5,
-              color: "#C7BDAC",
-            }}
-          >
-            Send this code or link. They join, you both swipe, and a match picks your dinner.
-          </p>
-
-          {/* Read-only vibe pill */}
-          {session?.vibe && vibeEmoji[session.vibe] && (
-            <div
-              className="flex items-center gap-2 mt-4 rounded-full px-4 py-2"
-              style={{
-                background: "rgba(255,231,202,0.045)",
-                border: "1px solid rgba(245,237,224,0.085)",
-              }}
-            >
-              <span className="text-base">{vibeEmoji[session.vibe]}</span>
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
-                  fontSize: 13,
-                  color: "#C7BDAC",
-                }}
-              >
-                Vibe:{" "}
-                <span className="text-white font-semibold">{vibeName[session.vibe]}</span>
-              </span>
-            </div>
-          )}
-
-          {/* Glass session code card */}
-          <div
-            className="mt-8 w-full rounded-[24px] p-6 text-center relative"
-            style={glassSurface}
-          >
-            {/* Ember top glow line */}
-            <div
-              className="absolute inset-x-5 top-0 h-[1.5px] rounded-full"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent, #FF8A3D 30%, #E8621A 50%, #FF8A3D 70%, transparent)",
-                boxShadow: "0 0 14px rgba(232,98,26,0.5)",
-              }}
-            />
-            <p
-              className="uppercase"
-              style={{
-                fontFamily: "var(--font-jetbrains-mono)",
-                fontSize: 10,
-                letterSpacing: "3px",
-                color: "#897E73",
-              }}
-            >
-              Session code
-            </p>
-            <p
-              className="mt-3 text-white"
-              style={{
-                fontFamily: "var(--font-quicksand)",
-                fontWeight: 700,
-                fontSize: 52,
-                letterSpacing: "-0.01em",
-                lineHeight: 0.9,
-                textShadow: "0 0 30px rgba(232,98,26,0.25)",
-              }}
-            >
-              {codeDisplay}
-            </p>
-            <p
-              className="mt-3"
-              style={{
-                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
-                fontWeight: 300,
-                fontSize: 12.5,
-                color: "#897E73",
-              }}
-            >
-              or share the link below
-            </p>
-            <div
-              className="mt-3 rounded-[14px] px-4 py-3 text-left overflow-hidden"
-              style={{
-                background: "rgba(255,231,202,0.03)",
-                border: "1px solid rgba(245,237,224,0.085)",
-              }}
-            >
-              <p
-                className="truncate"
-                style={{
-                  fontFamily: "var(--font-jetbrains-mono)",
-                  fontSize: 12,
-                  color: "#C7BDAC",
-                }}
-              >
-                {sessionUrl}
-              </p>
-            </div>
-          </div>
-
-          {/* Share actions */}
-          <div className="grid grid-cols-2 gap-3 mt-4 w-full">
-            <button
-              onClick={handleShare}
-              className="w-full text-white font-bold text-[15px] py-4 rounded-full transition hover:opacity-95 active:scale-[0.99]"
-              style={gradientPrimary}
-            >
-              {justShared ? "Shared ✓" : "Share link"}
-            </button>
-            <button
-              onClick={handleCopy}
-              className="w-full text-white font-bold text-[15px] py-4 rounded-full transition hover:opacity-80 active:scale-[0.99]"
-              style={ghostBtn}
-            >
-              {copied ? "Copied ✓" : "Copy link"}
-            </button>
-          </div>
-
-          {/* Premium waiting pill */}
-          <div
-            className="flex items-center gap-[9px] rounded-full px-[18px] py-[10px] mt-6"
-            style={{
-              background: "rgba(255,231,202,0.045)",
-              border: "1px solid rgba(245,237,224,0.085)",
-            }}
-          >
-            <span
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ background: "#E8621A", boxShadow: "0 0 8px rgba(232,98,26,0.5)" }}
-            />
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
-                fontWeight: 400,
-                fontSize: 13,
-                color: "#C7BDAC",
-              }}
-            >
-              Waiting for someone to join…
-            </span>
-          </div>
-
-          {/* Persistent post-invite confirmation */}
-          {inviteDispatched && (
-            <p
-              className="mt-4 text-center leading-snug"
-              style={{
-                fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
-                fontWeight: 400,
-                fontSize: 13,
-                color: "#897E73",
-              }}
-            >
-              You&apos;re all set.<br />Waiting for them to join.
-            </p>
-          )}
-
-          {/* Transition to waiting room */}
-          <button
-            onClick={() => setHostStepState((prev) => ({ ...prev, step: "waiting" }))}
-            className="mt-8 transition hover:opacity-60 underline underline-offset-2"
-            style={{
-              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
-              fontWeight: 500,
-              fontSize: 13,
-              color: "#C7BDAC",
-            }}
-          >
-            I shared it, now what? →
-          </button>
-        </div>
-      </main>
-    );
-  }
-
   // ── Host: waiting room ─────────────────────────────────────────────────────
   if (role === "host" && (hostStepState.step === "waiting" || !hostNeedsOnboarding) && hostStepState.ready) {
     const myInitial = myProfile?.display_name?.[0]?.toUpperCase() ?? '?';
@@ -2068,16 +1826,14 @@ export default function SessionPage() {
           }}
         />
 
-        {/* Back */}
-        {hostNeedsOnboarding && (
-          <button
-            onClick={() => setHostStepState((prev) => ({ ...prev, step: "sharing" }))}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg mb-8 self-start"
-            style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
-          >
-            ←
-          </button>
-        )}
+        {/* Back to home */}
+        <Link
+          href="/"
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg mb-8 self-start"
+          style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
+        >
+          ←
+        </Link>
 
         {/* Main content — centered */}
         <div className="flex-1 flex flex-col items-center justify-center text-center">

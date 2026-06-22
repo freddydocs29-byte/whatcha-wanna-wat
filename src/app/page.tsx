@@ -919,14 +919,16 @@ export default function Home() {
         }
       }
 
-      // Pass ?invited=true when a specific person was selected (Path B) so the
-      // session page can skip the generic sharing screen immediately on first load.
-      // Path B uses replace so Back from the waiting room returns to Home instead
-      // of a stale ?invited=true entry that could re-trigger the mount effect.
+      // Path B (specific person selected): replace so Back returns to Home instead of
+      // a stale ?invited=true entry. ?invited=true signals the session page to skip
+      // the generic sharing screen on first load.
+      // Path A (generic invite): push with ?share=true so the session page shows the
+      // "Who's deciding with you?" sharing screen. Without ?share=true the session
+      // page defaults to the waiting room, preventing any sharing-screen flash.
       if (selectedPeopleIds.length > 0) {
         router.replace(`/session/${data.id}?invited=true`);
       } else {
-        router.push(`/session/${data.id}`);
+        router.push(`/session/${data.id}?share=true`);
       }
     } catch (e) {
       console.error("[session] Unexpected error:", e);
