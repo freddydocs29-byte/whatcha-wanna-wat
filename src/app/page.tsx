@@ -921,10 +921,13 @@ export default function Home() {
 
       // Pass ?invited=true when a specific person was selected (Path B) so the
       // session page can skip the generic sharing screen immediately on first load.
-      const dest = selectedPeopleIds.length > 0
-        ? `/session/${data.id}?invited=true`
-        : `/session/${data.id}`;
-      router.push(dest);
+      // Path B uses replace so Back from the waiting room returns to Home instead
+      // of a stale ?invited=true entry that could re-trigger the mount effect.
+      if (selectedPeopleIds.length > 0) {
+        router.replace(`/session/${data.id}?invited=true`);
+      } else {
+        router.push(`/session/${data.id}`);
+      }
     } catch (e) {
       console.error("[session] Unexpected error:", e);
       setSessionError("Something went wrong. Please try again.");
