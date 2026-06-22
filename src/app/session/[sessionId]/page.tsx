@@ -142,7 +142,14 @@ export default function SessionPage() {
   const [selectedVibe, setSelectedVibe] = useState<SessionVibeMode>("mix-it-up");
 
   // Host flow state
-  const [hostStep, setHostStep] = useState<"sharing" | "waiting">("sharing");
+  // Lazy initializer: read the URL synchronously before first render so the
+  // sharing screen is never shown — not even for a single frame — when
+  // ?invited=true is present (Path B / targeted-invite flow).
+  const [hostStep, setHostStep] = useState<"sharing" | "waiting">(() => {
+    if (typeof window === "undefined") return "sharing";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("invited") === "true" ? "waiting" : "sharing";
+  });
   // false = re-entry (skip intro steps); true = first-time host flow
   const [hostNeedsOnboarding, setHostNeedsOnboarding] = useState(true);
   const [showStartSwiping, setShowStartSwiping] = useState(false);
@@ -416,16 +423,6 @@ export default function SessionPage() {
     );
     trackEvent("shared_session_joined", { sessionId });
   }, [sessionId, loadSession]);
-
-  // Mechanism 1: Path B immediate skip — if ?invited=true is present, the host
-  // already dispatched a targeted invite before navigating here, so jump straight
-  // to the waiting room without showing the generic sharing screen.
-  // Runs once on mount only; Mechanism 2 (DB read) handles refresh safety.
-  useEffect(() => {
-    if (searchParams?.get("invited") === "true") {
-      setHostStep("waiting");
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial load
   useEffect(() => {
