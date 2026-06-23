@@ -194,11 +194,7 @@ export function MealDetailDrawer({
               if (info.offset.y > 80 || info.velocity.y > 500) onClose();
             }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] max-h-[90vh]"
-            style={
-              isTop5
-                ? { background: "#F5F0E8" }
-                : darkSurface.sheet
-            }
+            style={darkSurface.sheet}
           >
             <div
               ref={scrollRef}
@@ -209,7 +205,7 @@ export function MealDetailDrawer({
               <div
                 className="w-10 h-1 rounded-full mx-auto mt-3 mb-5"
                 style={{
-                  background: isTop5 ? "rgba(107,99,96,0.25)" : darkSurface.handle,
+                  background: darkSurface.handle,
                 }}
               />
 
@@ -229,21 +225,17 @@ export function MealDetailDrawer({
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: isTop5
-                      ? "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.10) 50%, transparent 100%)"
-                      : "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.25) 50%, transparent 100%)",
+                    background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.25) 50%, transparent 100%)",
                   }}
                 />
                 {/* Subtle spotlight at center-top */}
-                {!isTop5 && (
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background:
-                        "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(232,98,26,0.10) 0%, transparent 70%)",
-                    }}
-                  />
-                )}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(232,98,26,0.10) 0%, transparent 70%)",
+                  }}
+                />
                 {/* AI badge */}
                 {meal.aiGenerated && (
                   <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white/70 text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full border border-white/15">
@@ -266,18 +258,14 @@ export function MealDetailDrawer({
                 {hasQuickStats && (
                   <div
                     className="rounded-[14px] p-3 flex items-center"
-                    style={
-                      isTop5
-                        ? { background: "#EDE8E0" }
-                        : darkSurface.card
-                    }
+                    style={darkSurface.card}
                   >
                     {cookTime && (
                       <div className="flex-1 text-center">
                         <p className="font-display font-bold text-sm text-[#E8621A]">{cookTime}</p>
                         <p
                           className="font-body text-[10px] uppercase tracking-wider mt-0.5"
-                          style={{ color: isTop5 ? "#6B6360" : darkSurface.label }}
+                          style={{ color: darkSurface.label }}
                         >
                           Cook time
                         </p>
@@ -286,7 +274,7 @@ export function MealDetailDrawer({
                     {cookTime && effort && (
                       <div
                         className="w-px h-8"
-                        style={{ background: isTop5 ? "rgba(107,99,96,0.20)" : darkSurface.divider }}
+                        style={{ background: darkSurface.divider }}
                       />
                     )}
                     {effort && (
@@ -294,7 +282,7 @@ export function MealDetailDrawer({
                         <p className="font-display font-bold text-sm text-[#E8621A]">{effort}</p>
                         <p
                           className="font-body text-[10px] uppercase tracking-wider mt-0.5"
-                          style={{ color: isTop5 ? "#6B6360" : darkSurface.label }}
+                          style={{ color: darkSurface.label }}
                         >
                           Effort
                         </p>
@@ -303,7 +291,7 @@ export function MealDetailDrawer({
                     {(cookTime || effort) && feel && (
                       <div
                         className="w-px h-8"
-                        style={{ background: isTop5 ? "rgba(107,99,96,0.20)" : darkSurface.divider }}
+                        style={{ background: darkSurface.divider }}
                       />
                     )}
                     {feel && (
@@ -311,7 +299,7 @@ export function MealDetailDrawer({
                         <p className="font-display font-bold text-sm text-[#E8621A]">{feel}</p>
                         <p
                           className="font-body text-[10px] uppercase tracking-wider mt-0.5"
-                          style={{ color: isTop5 ? "#6B6360" : darkSurface.label }}
+                          style={{ color: darkSurface.label }}
                         >
                           Feel
                         </p>
@@ -324,17 +312,17 @@ export function MealDetailDrawer({
                 {meal.description && (
                   <div
                     className="rounded-[14px] p-4"
-                    style={isTop5 ? { background: "#EDE8E0" } : darkSurface.card}
+                    style={darkSurface.card}
                   >
                     <p
                       className="font-body text-[10px] uppercase tracking-widest mb-2"
-                      style={{ color: isTop5 ? "#6B6360" : darkSurface.label }}
+                      style={{ color: darkSurface.label }}
                     >
                       ABOUT THIS MEAL
                     </p>
                     <p
                       className="font-body text-sm leading-relaxed"
-                      style={{ color: isTop5 ? "#2C2825" : darkSurface.value }}
+                      style={{ color: darkSurface.value }}
                     >
                       {meal.description}
                     </p>
@@ -345,11 +333,11 @@ export function MealDetailDrawer({
                 {hasIngredients && (
                   <div
                     className="rounded-[14px] p-4"
-                    style={isTop5 ? { background: "#EDE8E0" } : darkSurface.card}
+                    style={darkSurface.card}
                   >
                     <p
                       className="font-body text-[10px] uppercase tracking-widest mb-3"
-                      style={{ color: isTop5 ? "#6B6360" : darkSurface.label }}
+                      style={{ color: darkSurface.label }}
                     >
                       MAIN INGREDIENTS
                     </p>
@@ -358,11 +346,7 @@ export function MealDetailDrawer({
                         <span
                           key={ing}
                           className="text-sm px-3 py-1.5 rounded-full"
-                          style={
-                            isTop5
-                              ? { background: "#F5F0E8", color: "#2C2825", border: "1px solid rgba(107,99,96,0.20)" }
-                              : darkSurface.pill
-                          }
+                          style={darkSurface.pill}
                         >
                           {ing}
                         </span>
@@ -370,11 +354,7 @@ export function MealDetailDrawer({
                       {extraIngredientCount > 0 && (
                         <span
                           className="text-sm px-3 py-1.5 rounded-full"
-                          style={
-                            isTop5
-                              ? { background: "#F5F0E8", color: "#6B6360", border: "1px solid rgba(107,99,96,0.20)" }
-                              : { ...darkSurface.pill, color: "rgba(199,189,172,0.55)" }
-                          }
+                          style={{ ...darkSurface.pill, color: "rgba(199,189,172,0.55)" }}
                         >
                           +{extraIngredientCount} more
                         </span>
@@ -387,11 +367,11 @@ export function MealDetailDrawer({
                 {hasWhyItFits && (
                   <div
                     className="rounded-[14px] p-4"
-                    style={isTop5 ? { background: "#EDE8E0" } : darkSurface.card}
+                    style={darkSurface.card}
                   >
                     <p
                       className="font-body text-[10px] uppercase tracking-widest mb-2"
-                      style={{ color: isTop5 ? "#6B6360" : darkSurface.label }}
+                      style={{ color: darkSurface.label }}
                     >
                       WHY THIS WORKS TONIGHT
                     </p>
@@ -399,7 +379,7 @@ export function MealDetailDrawer({
                       <span className="text-[#E8621A] text-base leading-tight mt-0.5">✦</span>
                       <p
                         className="font-body text-sm leading-relaxed"
-                        style={{ color: isTop5 ? "#2C2825" : darkSurface.value }}
+                        style={{ color: darkSurface.value }}
                       >
                         {meal.whyItFits}
                       </p>
@@ -411,11 +391,11 @@ export function MealDetailDrawer({
                 {hasDietary && (
                   <div
                     className="rounded-[14px] p-4"
-                    style={isTop5 ? { background: "#EDE8E0" } : darkSurface.card}
+                    style={darkSurface.card}
                   >
                     <p
                       className="font-body text-[10px] uppercase tracking-widest mb-3"
-                      style={{ color: isTop5 ? "#6B6360" : darkSurface.label }}
+                      style={{ color: darkSurface.label }}
                     >
                       DIETARY
                     </p>
@@ -424,11 +404,7 @@ export function MealDetailDrawer({
                         <span
                           key={tag}
                           className="text-xs font-semibold px-3 py-1 rounded-full"
-                          style={
-                            isTop5
-                              ? { background: "#F5F0E8", color: "#6B6360", border: "1px solid rgba(107,99,96,0.20)" }
-                              : darkSurface.pill
-                          }
+                          style={darkSurface.pill}
                         >
                           {tag}
                         </span>
@@ -552,7 +528,12 @@ export function MealDetailDrawer({
                 {isTop5 && !onLockIn && (
                   <button
                     onClick={onClose}
-                    className="w-full bg-[#DDD8D0] text-[#6B6360] font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
+                    className="w-full font-body font-semibold text-sm rounded-full py-4 transition active:scale-[0.97]"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(245,237,224,0.09)",
+                      color: "#8A7F78",
+                    }}
                   >
                     Close
                   </button>

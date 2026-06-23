@@ -34,6 +34,7 @@ const GUEST_CUISINES = [
   { label: "Japanese", emoji: "🍱" },
   { label: "Indian", emoji: "🍛" },
   { label: "Middle Eastern", emoji: "🧆" },
+  { label: "Global Flavors", emoji: "🌍" },
 ];
 
 const GUEST_DIETARY_RESTRICTIONS = [
