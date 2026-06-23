@@ -37,11 +37,14 @@ const VALID_VIBE_MODES: SessionVibeMode[] = ["mix-it-up", "comfort-food", "quick
 
 function getDeckProgressCopy(currentIndex: number, totalCount: number): string {
   const position = currentIndex + 1;
-  if (position >= totalCount) return "Last one";
+
+  if (position >= totalCount) return "Last pick";
+
   const progress = position / Math.max(totalCount, 1);
-  if (progress < 0.35) return "Just getting started";
-  if (progress < 0.7) return "Getting warmer";
-  return "Almost there";
+
+  if (progress < 0.35) return "Top pick for tonight";
+  if (progress < 0.7) return "Still a great match";
+  return "Another solid option";
 }
 
 const SOLO_EXHAUSTED_HEADLINES = [
