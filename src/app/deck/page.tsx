@@ -35,6 +35,15 @@ const MIN_DECK_SIZE = 8;
 const DECK_SIZE = 12;
 const VALID_VIBE_MODES: SessionVibeMode[] = ["mix-it-up", "comfort-food", "quick-easy", "healthy", "something-new"];
 
+function getDeckProgressCopy(currentIndex: number, totalCount: number): string {
+  const position = currentIndex + 1;
+  if (position >= totalCount) return "Last one";
+  const progress = position / Math.max(totalCount, 1);
+  if (progress < 0.35) return "Just getting started";
+  if (progress < 0.7) return "Getting warmer";
+  return "Almost there";
+}
+
 const SOLO_EXHAUSTED_HEADLINES = [
   "You swiped left on everything. Bold.",
   "Nothing landed. Let's fix that.",
@@ -3606,7 +3615,7 @@ function DeckContent() {
               {sessionId ? "Deciding Together" : "Decision Deck"}
             </p>
             <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#897E73", letterSpacing: "1px", marginTop: 2 }}>
-              {Math.max(0, totalCount - currentIndex)} cards left
+              {getDeckProgressCopy(currentIndex, totalCount)}
             </p>
           </div>
           <button
