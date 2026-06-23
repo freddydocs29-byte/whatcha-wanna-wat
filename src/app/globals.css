@@ -220,6 +220,34 @@ body {
   50% { opacity: .5; }
 }
 
+/* ── Recommendation Card keyframes ─────────────────────────────────────────── */
+@keyframes rec-foil {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 280% 50%; }
+}
+@keyframes rec-seal-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes rec-seal-counter {
+  to { transform: rotate(-360deg); }
+}
+@keyframes rec-cone-flick {
+  0%, 100% { opacity: 0.9; }
+  45%       { opacity: 1; }
+  62%       { opacity: 0.82; }
+}
+@keyframes rec-drift {
+  0%   { transform: translateY(0);    opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: translateY(46px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-foil-anim,
+  .rec-seal-anim,
+  .rec-seal-inner-anim,
+  .rec-cone-anim { animation: none !important; }
+}
+
 /* ── Watcha's Call (Tiebreaker) keyframes ─────────────────────────────────── */
 @keyframes wce-breathe {
   0%, 100% { opacity: 1; transform: scale(1); }

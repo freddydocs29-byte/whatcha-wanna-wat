@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useMotionValue, useTransform, AnimatePresence, useReducedMotion } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getNoveltyBias, saveDecidedMeal, type UserPreferences, type HistoryEntry } from "../lib/storage";
 import { rankMeals, hardGate, getAllHardNos, getSharedReason, getTimeBucket, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
@@ -1409,6 +1409,7 @@ function DeckContent() {
   const rotate = useTransform(x, [-300, 0, 300], [-15, 0, 15]);
   const passOpacity = useTransform(x, [-SWIPE_THRESHOLD, -30], [1, 0]);
   const chooseOpacity = useTransform(x, [30, SWIPE_THRESHOLD], [0, 1]);
+  const prefersReducedMotion = useReducedMotion() ?? false;
 
   const current = rankedMeals[currentIndex];
   const meal = current?.meal;
@@ -1416,6 +1417,13 @@ function DeckContent() {
   const pantryMatchCount = current?.pantryMatchCount ?? 0;
   const nextMeal = rankedMeals[currentIndex + 1]?.meal;
   const isExiting = exitX !== null;
+  // Recommendation Card: only the original deck index 0 gets this treatment.
+  // currentIndex IS the original deck position (it only increments, never resets mid-deck).
+  const isRecommendationCard = currentIndex === 0;
+  const recVoiceLine = sessionId ? "You'll both want this" : "Tonight, we recommend";
+  const recCuisineTime = meal
+    ? [meal.cuisine, meal.tags.find((t) => t.toLowerCase().includes("min"))].filter(Boolean).join(" · ")
+    : "";
 
   const totalCount = Math.min(rankedMeals.length, DECK_SIZE);
   const isExhausted = bypassToExhausted || currentIndex >= totalCount;
@@ -3753,11 +3761,28 @@ function DeckContent() {
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.8}
             onDragEnd={handleDragEnd}
-            className="relative rounded-[28px] overflow-hidden w-full bg-[#2A2420] cursor-grab select-none touch-none z-10 shadow-[0_10px_40px_rgba(0,0,0,0.35)] active:cursor-grabbing"
+            className={`relative rounded-[28px] overflow-hidden w-full ${isRecommendationCard ? "bg-[#070504]" : "bg-[#2A2420]"} cursor-grab select-none touch-none z-10 shadow-[0_10px_40px_rgba(0,0,0,0.35)] active:cursor-grabbing`}
           >
             {/* Layer 1 — Food image */}
             {imgErrors.has(meal.id) || !meal.image ? (
               <MealImageFallback mealName={meal.name} />
+            ) : isRecommendationCard ? (
+              /* Recommendation card: spotlight-masked image with entrance brightness ramp */
+              <motion.img
+                key={`rec-img-${meal.id}`}
+                src={meal.image}
+                alt={`Recommended: ${meal.name}`}
+                draggable={false}
+                onError={() => setImgErrors((prev) => new Set(prev).add(meal.id))}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{
+                  WebkitMaskImage: "radial-gradient(ellipse 60% 52% at 50% 43%, #000 26%, rgba(0,0,0,0.5) 52%, transparent 74%)",
+                  maskImage: "radial-gradient(ellipse 60% 52% at 50% 43%, #000 26%, rgba(0,0,0,0.5) 52%, transparent 74%)",
+                }}
+                initial={prefersReducedMotion ? { filter: "brightness(1.14) saturate(1.14)" } : { filter: "brightness(0) saturate(1.14)" }}
+                animate={{ filter: "brightness(1.14) saturate(1.14)" }}
+                transition={{ duration: 1.1, delay: 0.15, ease: "easeOut" }}
+              />
             ) : (
               <img
                 src={meal.image}
@@ -3768,14 +3793,16 @@ function DeckContent() {
               />
             )}
 
-            {/* Layer 2 — Top spotlight (studio food photography treatment) */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.70) 0%, rgba(255,228,190,0.16) 30%, transparent 58%)",
-                mixBlendMode: "screen",
-              }}
-            />
+            {/* Layer 2 — Top spotlight (plain cards only; rec card uses light cone instead) */}
+            {!isRecommendationCard && (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: "radial-gradient(ellipse 58% 46% at 50% 2%, rgba(255,248,235,0.70) 0%, rgba(255,228,190,0.16) 30%, transparent 58%)",
+                  mixBlendMode: "screen",
+                }}
+              />
+            )}
 
             {/* Layer 3 — Bottom scrim + vignette */}
             <div
@@ -3787,6 +3814,91 @@ function DeckContent() {
 
             {/* Layer 4 — Warm edge vignette */}
             <div className="absolute inset-0 pointer-events-none rounded-[28px]" style={{ boxShadow: "inset 0 0 60px 10px rgba(0,0,0,0.28)" }} />
+
+            {/* ── Recommendation Card exclusive layers (deck index 0 only) ── */}
+            {isRecommendationCard && (
+              <>
+                {/* Volumetric light cone from top-center */}
+                <motion.div
+                  key={`rec-cone-${meal.id}`}
+                  className="absolute pointer-events-none rec-cone-anim"
+                  style={{
+                    left: "50%", top: "-8%", transform: "translateX(-50%)",
+                    width: 250, height: 330, zIndex: 4,
+                    background: "linear-gradient(180deg, rgba(255,236,200,0.32) 0%, rgba(255,224,180,0.11) 40%, transparent 76%)",
+                    clipPath: "polygon(42% 0, 58% 0, 90% 100%, 10% 100%)",
+                    filter: "blur(3px)",
+                    animation: prefersReducedMotion ? undefined : "rec-cone-flick 4.4s ease-in-out infinite",
+                  }}
+                  initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.9, delay: 0.1 }}
+                />
+                {/* Lamp source */}
+                <motion.div
+                  key={`rec-lamp-${meal.id}`}
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: "50%", top: -4, transform: "translateX(-50%)",
+                    width: 34, height: 8, borderRadius: "50%", zIndex: 5,
+                    background: "radial-gradient(ellipse, #FFF0D2, #E8A23A 78%)",
+                    boxShadow: "0 0 18px 5px rgba(255,210,150,0.55)",
+                  }}
+                  initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.9, delay: 0.1 }}
+                />
+                {/* Dust motes drifting through the beam */}
+                {!prefersReducedMotion && (
+                  <motion.div
+                    key={`rec-motes-${meal.id}`}
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ zIndex: 5 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                  >
+                    {[
+                      { left: "44%", top: "32%", delay: "0s" },
+                      { left: "56%", top: "44%", delay: "1.6s" },
+                      { left: "50%", top: "24%", delay: "3.1s" },
+                      { left: "60%", top: "36%", delay: "4.4s" },
+                      { left: "40%", top: "40%", delay: "5.6s" },
+                    ].map((m, i) => (
+                      <span
+                        key={i}
+                        className="absolute rounded-full"
+                        style={{
+                          width: 3, height: 3,
+                          background: "rgba(255,235,200,0.7)",
+                          filter: "blur(0.5px)",
+                          left: m.left, top: m.top,
+                          animation: `rec-drift 7s linear ${m.delay} infinite`,
+                        }}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+                {/* Gold foil frame */}
+                <motion.div
+                  key={`rec-frame-${meal.id}`}
+                  className="absolute inset-0 pointer-events-none rec-foil-anim"
+                  style={{
+                    borderRadius: 28, padding: 2, zIndex: 7,
+                    background: "linear-gradient(135deg, #8A642A 0%, #F4D98A 22%, #D8B45E 40%, #FBE6AE 55%, #9A6E2A 75%, #F4D98A 100%)",
+                    backgroundSize: "280% 280%",
+                    WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                    animation: prefersReducedMotion ? undefined : "rec-foil 5.5s linear infinite",
+                    boxShadow: "0 0 18px rgba(216,180,94,0.3), inset 0 0 14px rgba(216,180,94,0.12)",
+                  }}
+                  initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.8, delay: 0.75 }}
+                />
+              </>
+            )}
 
             {/* YES stamp (shows when dragging right) */}
             <motion.div
@@ -3820,78 +3932,181 @@ function DeckContent() {
 
             {/* Category + AI badge row (top of card) */}
             <div className="absolute top-0 left-0 right-0 p-4 z-10 flex items-start justify-between gap-2">
-              <div className="inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm" style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#C7BDAC", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
-                {meal.category}
-              </div>
-              <div className="flex flex-col items-end gap-1.5">
-                {aiMealIds.has(meal.id) && (
-                  <div
-                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm"
-                    style={meal.aiLabel === "Made from your pantry"
-                      ? { border: "1px solid rgba(232,98,26,0.26)", background: "rgba(8,5,3,0.40)", color: "#FF8A3D" }
-                      : { border: "1px solid rgba(245,237,224,0.16)", background: "rgba(8,5,3,0.40)", color: "#C7BDAC" }}
-                  >
-                    <span style={meal.aiLabel === "Made from your pantry"
-                      ? { filter: "drop-shadow(0 0 4px rgba(232,98,26,0.5))", color: "#E8621A" }
-                      : { color: "rgba(255,255,255,0.4)" }}>✦</span>
-                    {meal.aiLabel ?? "Fresh pick"}
-                  </div>
-                )}
-                {/* More trigger */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDrawerMeal(meal);
-                    setDrawerOpen(true);
-                    dismissDrawerHint();
+              {/* Category badge — hidden on rec card (gold frame provides the container feel) */}
+              {!isRecommendationCard && (
+                <div className="inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm" style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#C7BDAC", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
+                  {meal.category}
+                </div>
+              )}
+              {isRecommendationCard ? (
+                /* Gold spinning seal — replaces AI badge + more details for rec card */
+                <motion.div
+                  key={`rec-seal-${meal.id}`}
+                  className="ml-auto rec-seal-anim"
+                  style={{
+                    width: 48, height: 48, borderRadius: "50%", padding: 2, zIndex: 8,
+                    background: "conic-gradient(from 0deg, #9A6E2A, #F4D98A, #D8B45E, #FBE6AE, #9A6E2A)",
+                    boxShadow: "0 5px 14px rgba(0,0,0,0.5)",
+                    animation: prefersReducedMotion ? undefined : "rec-seal-spin 11s linear infinite",
+                    flexShrink: 0,
                   }}
-                  className={`inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm ${
-                    !drawerHintSeen && currentIndex === 0 && !showSwipeHint ? "animate-pulse" : ""
-                  }`}
-                  style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#C7BDAC", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
+                  initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, delay: 0.95 }}
                 >
-                  more details
-                </button>
-              </div>
+                  <div
+                    className="w-full h-full rounded-full flex items-center justify-center rec-seal-inner-anim"
+                    style={{
+                      background: "radial-gradient(circle at 38% 32%, #2A2118, #16110B)",
+                      animation: prefersReducedMotion ? undefined : "rec-seal-counter 11s linear infinite",
+                    }}
+                  >
+                    <span style={{
+                      fontFamily: "'Instrument Serif', Georgia, serif",
+                      fontStyle: "italic",
+                      fontSize: 20,
+                      background: "linear-gradient(180deg, #FBE6AE, #D8B45E)",
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}>
+                      W
+                    </span>
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="flex flex-col items-end gap-1.5">
+                  {aiMealIds.has(meal.id) && (
+                    <div
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium backdrop-blur-sm"
+                      style={meal.aiLabel === "Made from your pantry"
+                        ? { border: "1px solid rgba(232,98,26,0.26)", background: "rgba(8,5,3,0.40)", color: "#FF8A3D" }
+                        : { border: "1px solid rgba(245,237,224,0.16)", background: "rgba(8,5,3,0.40)", color: "#C7BDAC" }}
+                    >
+                      <span style={meal.aiLabel === "Made from your pantry"
+                        ? { filter: "drop-shadow(0 0 4px rgba(232,98,26,0.5))", color: "#E8621A" }
+                        : { color: "rgba(255,255,255,0.4)" }}>✦</span>
+                      {meal.aiLabel ?? "Fresh pick"}
+                    </div>
+                  )}
+                  {/* More trigger */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDrawerMeal(meal);
+                      setDrawerOpen(true);
+                      dismissDrawerHint();
+                    }}
+                    className={`inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm ${
+                      !drawerHintSeen && currentIndex === 0 && !showSwipeHint ? "animate-pulse" : ""
+                    }`}
+                    style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#C7BDAC", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
+                  >
+                    more details
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Card content (bottom of card) */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
-              <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 30, color: "#F6EEE2", lineHeight: 1.05, letterSpacing: "-0.01em", textShadow: "0 2px 14px rgba(0,0,0,0.6)" }}>
-                {meal.name}
-              </h2>
-              <p className="mt-2 leading-relaxed line-clamp-2" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#C7BDAC" }}>
-                {meal.description}
-              </p>
-              <div className="flex gap-2 mt-3 flex-wrap">
-                {meal.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="backdrop-blur-sm"
+            {isRecommendationCard ? (
+              /* ── Recommendation Card: centered voice line + meal name + cuisine ── */
+              <div className="absolute bottom-0 left-0 right-0 px-5 pb-6 z-[8] flex flex-col items-center text-center">
+                {/* Voice line */}
+                <motion.div
+                  key={`rec-voice-${meal.id}`}
+                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 1.05, ease: [0.2, 0.7, 0.2, 1] }}
+                  className="flex items-center gap-2"
+                  style={{ marginBottom: 8 }}
+                >
+                  <span style={{ display: "block", width: 18, height: 1, background: "linear-gradient(90deg, transparent, #D8B45E)" }} />
+                  <span style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontStyle: "italic",
+                    fontSize: 17,
+                    lineHeight: 1,
+                    color: "#FBE6AE",
+                    textShadow: "0 2px 12px rgba(0,0,0,0.8)",
+                  }}>
+                    {recVoiceLine}
+                  </span>
+                  <span style={{ display: "block", width: 18, height: 1, background: "linear-gradient(90deg, #D8B45E, transparent)" }} />
+                </motion.div>
+                {/* Meal name */}
+                <motion.h2
+                  key={`rec-name-${meal.id}`}
+                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 1.18, ease: [0.2, 0.7, 0.2, 1] }}
+                  style={{
+                    fontFamily: "'Quicksand', sans-serif",
+                    fontWeight: 700, fontSize: 30,
+                    color: "#F6EEE2", lineHeight: 1.05,
+                    letterSpacing: "-0.01em",
+                    textShadow: "0 2px 14px rgba(0,0,0,0.7)",
+                  }}
+                >
+                  {meal.name}
+                </motion.h2>
+                {/* Cuisine · time */}
+                {recCuisineTime && (
+                  <motion.p
+                    key={`rec-cz-${meal.id}`}
+                    initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 1.3, ease: [0.2, 0.7, 0.2, 1] }}
                     style={{
-                      fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11.5,
-                      color: "#F6EEE2",
-                      background: "rgba(255,231,202,0.045)",
-                      border: "1px solid rgba(245,237,224,0.085)",
-                      borderRadius: 100, padding: "5px 12px",
+                      marginTop: 6,
+                      fontFamily: "'Inter', sans-serif",
+                      fontWeight: 300, fontSize: 12,
+                      color: "#C7BDAC",
                     }}
                   >
-                    {tag}
-                  </span>
-                ))}
+                    {recCuisineTime}
+                  </motion.p>
+                )}
               </div>
-              {pantryMode && pantryMatchCount >= 2 && (
-                <p className="text-xs mt-2" style={{ color: "#FF8A3D" }}>
-                  ✦ {pantryMatchCount >= 3 ? "You've got this" : "You've got most of this"}
+            ) : (
+              /* ── Plain cards: existing left-aligned layout ── */
+              <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 30, color: "#F6EEE2", lineHeight: 1.05, letterSpacing: "-0.01em", textShadow: "0 2px 14px rgba(0,0,0,0.6)" }}>
+                  {meal.name}
+                </h2>
+                <p className="mt-2 leading-relaxed line-clamp-2" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300, fontSize: 13, color: "#C7BDAC" }}>
+                  {meal.description}
                 </p>
-              )}
-              {reason && (
-                <p className="mt-1.5 flex items-center gap-1.5" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 11.5, color: "#FF8A3D" }}>
-                  <span style={{ filter: "drop-shadow(0 0 4px rgba(232,98,26,0.5))" }}>✦</span>
-                  {reason}
-                </p>
-              )}
-            </div>
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  {meal.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="backdrop-blur-sm"
+                      style={{
+                        fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11.5,
+                        color: "#F6EEE2",
+                        background: "rgba(255,231,202,0.045)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                        borderRadius: 100, padding: "5px 12px",
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                {pantryMode && pantryMatchCount >= 2 && (
+                  <p className="text-xs mt-2" style={{ color: "#FF8A3D" }}>
+                    ✦ {pantryMatchCount >= 3 ? "You've got this" : "You've got most of this"}
+                  </p>
+                )}
+                {reason && (
+                  <p className="mt-1.5 flex items-center gap-1.5" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: 11.5, color: "#FF8A3D" }}>
+                    <span style={{ filter: "drop-shadow(0 0 4px rgba(232,98,26,0.5))" }}>✦</span>
+                    {reason}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Swipe hint — first card only, dismissed on first swipe interaction */}
             <AnimatePresence>
