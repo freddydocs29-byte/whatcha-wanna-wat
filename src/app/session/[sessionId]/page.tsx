@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase, Session } from "../../lib/supabase";
-import { getUserId } from "../../lib/identity";
+import { getUserId, getAuthUserId } from "../../lib/identity";
 import { buildSharedDeckForSession } from "../../lib/deck";
 import { upsertProfilePreferences, syncBehavioralSignalsToSupabase, fetchOrCreateProfile } from "../../lib/supabase-profile";
 import type { Profile } from "../../lib/supabase";
@@ -177,6 +177,12 @@ export default function SessionPage() {
     avatarUrl: string | null;
   } | null>(null);
 
+  // Identity resolution — resolved before loadSession fires to prevent guest
+  // UUID generation for authenticated users on new devices.
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
+  const [identityResolved, setIdentityResolved] = useState(false);
+  const [isAuthenticatedJoiner, setIsAuthenticatedJoiner] = useState(false);
+
   // Guest quick-setup state (null = not yet checked)
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [setupStep, setSetupStep] = useState<"intro" | "cuisines" | "dietary" | "hardNos">("intro");
@@ -196,6 +202,10 @@ export default function SessionPage() {
 
   // Load session and determine role
   const loadSession = useCallback(async () => {
+    // Wait for identity to be resolved before querying — prevents role
+    // misidentification when resolvedUserId is still null on first render.
+    if (!resolvedUserId) return;
+
     const { data, error: fetchError } = await supabase
       .from("sessions")
       .select("*")
@@ -235,7 +245,7 @@ export default function SessionPage() {
 
     setSession(s);
 
-    const myId = getUserId();
+    const myId = resolvedUserId;
 
     if (myId === s.host_user_id) {
       setRole("host");
@@ -319,7 +329,7 @@ export default function SessionPage() {
     // Track status across polls for transition detection; mark first load done
     previousSessionStatusRef.current = s.status;
     firstSessionLoadRef.current = false;
-  }, [sessionId]);
+  }, [sessionId, resolvedUserId]);
 
   // Generates the shared deck from both users' profiles and stores it on the
   // session row. Safe to call from either participant — the DB guard
@@ -360,8 +370,9 @@ export default function SessionPage() {
 
   // Guest joins the session
   const joinSession = useCallback(async () => {
+    if (!resolvedUserId) return;
     setJoining(true);
-    const myId = getUserId();
+    const myId = resolvedUserId;
 
     const { data, error: joinError } = await supabase
       .from("sessions")
@@ -430,7 +441,7 @@ export default function SessionPage() {
       is_guest: wasGuestSetupRef.current,
     });
     trackEvent("shared_session_joined", { sessionId });
-  }, [sessionId, loadSession]);
+  }, [sessionId, loadSession, resolvedUserId]);
 
   // Hydration-safe ready flag: runs once after mount. Sets ready=true so the
   // waiting room renders only after client hydration is complete.
@@ -438,18 +449,51 @@ export default function SessionPage() {
     setHostStepState({ step: "waiting", ready: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Initial load
+  // Resolve identity before loading the session. Checks Supabase auth first so
+  // authenticated users on a new device are never treated as fresh guests.
+  // Falls back to the existing localStorage UUID + guest flow on any failure.
   useEffect(() => {
+    let cancelled = false;
+    const resolveIdentity = async () => {
+      try {
+        const authId = await getAuthUserId();
+        if (cancelled) return;
+        if (authId) {
+          // Authenticated user — skip onboarding, use their auth identity.
+          setResolvedUserId(authId);
+          setIsAuthenticatedJoiner(true);
+          setNeedsSetup(false);
+        } else {
+          // Not authenticated — use existing localStorage UUID (may be new UUID
+          // on a fresh device; hasCompletedOnboarding check runs later in loadSession).
+          setResolvedUserId(getUserId());
+        }
+      } catch {
+        // Auth check failed — fall back to guest flow, never crash.
+        if (!cancelled) setResolvedUserId(getUserId());
+      } finally {
+        if (!cancelled) setIdentityResolved(true);
+      }
+    };
+    void resolveIdentity();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initial load — deferred until identity is resolved so resolvedUserId is
+  // available when loadSession runs (loadSession depends on resolvedUserId).
+  useEffect(() => {
+    if (!resolvedUserId) return;
     loadSession();
-    fetchOrCreateProfile(getUserId()).then(setMyProfile).catch(() => {});
-  }, [loadSession]);
+    fetchOrCreateProfile(resolvedUserId).then(setMyProfile).catch(() => {});
+  }, [loadSession, resolvedUserId]);
 
   // Auto-join if guest slot is open — only after setup is confirmed not needed
+  // and identity has been resolved (prevents a spurious join with a null userId).
   useEffect(() => {
-    if (role === "unknown" && session && !joining && needsSetup === false) {
+    if (role === "unknown" && session && !joining && needsSetup === false && identityResolved) {
       joinSession();
     }
-  }, [role, session, joining, needsSetup, joinSession]);
+  }, [role, session, joining, needsSetup, identityResolved, joinSession]);
 
   // Cycle through build phrases while deck is generating
   useEffect(() => {
@@ -470,7 +514,7 @@ export default function SessionPage() {
     if (deckTriggeredRef.current) return;
     if (!session) return;
 
-    syncBehavioralSignalsToSupabase(getUserId()).catch((err) =>
+    syncBehavioralSignalsToSupabase(resolvedUserId ?? getUserId()).catch((err) =>
       console.warn("[sync] behavioral signals failed:", err),
     );
 
@@ -656,7 +700,9 @@ export default function SessionPage() {
   }
 
   // ── Guest quick setup ─────────────────────────────────────────────────────
-  if (role === "unknown" && needsSetup === true) {
+  // identityResolved guard prevents a flash of onboarding for authenticated
+  // users before the Supabase auth check has completed.
+  if (role === "unknown" && needsSetup === true && identityResolved) {
     const toggleMulti = (value: string, current: string[], set: (v: string[]) => void) => {
       if (value === "None of these") {
         set(current.includes("None of these") ? [] : ["None of these"]);
