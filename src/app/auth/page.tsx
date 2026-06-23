@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { clearAllLocalState, getUserId } from "../lib/identity";
 import { linkAuthToProfile } from "../lib/supabase-profile";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot";
 
 const GRAIN_SVG =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
@@ -117,10 +117,37 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotStatus, setForgotStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   function switchMode(next: Mode) {
     setMode(next);
     setError(null);
+  }
+
+  async function handleResend() {
+    setResendStatus("sending");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    setResendStatus(error ? "error" : "sent");
+    if (!error) {
+      window.setTimeout(() => setResendStatus("idle"), 3000);
+    }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotStatus("sending");
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
+    });
+    setForgotStatus(error ? "error" : "sent");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -164,7 +191,10 @@ export default function AuthPage() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { display_name: name.trim() || null } },
+          options: {
+            data: { display_name: name.trim() || null },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
 
         if (signUpError) {
@@ -274,6 +304,27 @@ export default function AuthPage() {
             Sign in
           </button>
           <button
+            onClick={handleResend}
+            disabled={resendStatus === "sending" || resendStatus === "sent"}
+            className="mt-4 w-full max-w-xs rounded-full py-3.5 disabled:opacity-50 transition-opacity active:opacity-90"
+            style={{
+              border: "1px solid rgba(232,98,26,0.3)",
+              background: "rgba(232,98,26,0.08)",
+              color: resendStatus === "sent" ? "#E8621A" : "#F6EEE2",
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 600,
+              fontSize: 14,
+            }}
+          >
+            {resendStatus === "sending"
+              ? "Sending…"
+              : resendStatus === "sent"
+              ? "Email sent"
+              : resendStatus === "error"
+              ? "Failed — try again"
+              : "Resend confirmation email"}
+          </button>
+          <button
             onClick={() => router.replace("/")}
             className="mt-4"
             style={{ fontFamily: "var(--font-sans, system-ui)", fontSize: 13, color: "#897E73" }}
@@ -315,7 +366,7 @@ export default function AuthPage() {
             letterSpacing: "-0.01em",
           }}
         >
-          {mode === "signup" ? "Create your account" : "Welcome back"}
+          {mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset password" : "Welcome back"}
         </h1>
         <p
           className="mt-2"
@@ -325,45 +376,49 @@ export default function AuthPage() {
             ? isGuestUpgrade
               ? "Your existing preferences stay — we're just adding a login."
               : "Create your Watcha account and we'll start learning your taste."
+            : mode === "forgot"
+            ? "Enter your email and we'll send you a reset link."
             : "Sign in to sync your profile across devices."}
         </p>
 
-        {/* Mode toggle */}
-        <div
-          className="flex gap-1 mt-8 rounded-full p-1"
-          style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
-        >
-          {(["signup", "signin"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => switchMode(m)}
-              className="flex-1 rounded-full py-2.5 transition-all"
-              style={
-                mode === m
-                  ? {
-                      background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
-                      boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -1px 0 rgba(120,52,0,0.3) inset, 0 4px 12px rgba(232,98,26,0.3)",
-                      color: "#1c0c03",
-                      fontFamily: "var(--font-quicksand)",
-                      fontWeight: 700,
-                      fontSize: 14,
-                    }
-                  : {
-                      color: "#897E73",
-                      fontFamily: "var(--font-quicksand)",
-                      fontWeight: 600,
-                      fontSize: 14,
-                    }
-              }
-            >
-              {m === "signup" ? "Sign up" : "Sign in"}
-            </button>
-          ))}
-        </div>
+        {/* Mode toggle — only signup / signin; forgot is an inline sub-view */}
+        {mode !== "forgot" && (
+          <div
+            className="flex gap-1 mt-8 rounded-full p-1"
+            style={{ background: "rgba(255,231,202,0.045)", border: "1px solid rgba(245,237,224,0.085)" }}
+          >
+            {(["signup", "signin"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => switchMode(m)}
+                className="flex-1 rounded-full py-2.5 transition-all"
+                style={
+                  mode === m
+                    ? {
+                        background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                        boxShadow: "0 1px 0 rgba(255,224,188,0.5) inset, 0 -1px 0 rgba(120,52,0,0.3) inset, 0 4px 12px rgba(232,98,26,0.3)",
+                        color: "#1c0c03",
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        fontSize: 14,
+                      }
+                    : {
+                        color: "#897E73",
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 600,
+                        fontSize: 14,
+                      }
+                }
+              >
+                {m === "signup" ? "Sign up" : "Sign in"}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* Form — all handlers, state, and validation untouched */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-8">
-          {mode === "signup" && (
+        {/* ── Forgot password inline form ──────────────────────────────── */}
+        {mode === "forgot" && (
+          <form onSubmit={handleForgotPassword} className="flex flex-col gap-4 mt-8">
             <div>
               <label
                 className="block mb-2"
@@ -375,88 +430,159 @@ export default function AuthPage() {
                   color: "#897E73",
                 }}
               >
-                Name
+                Email
               </label>
               <AuthInput
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-                autoComplete="name"
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
               />
             </div>
-          )}
 
-          <div>
-            <label
-              className="block mb-2"
-              style={{
-                fontFamily: "var(--font-mono, monospace)",
-                fontSize: 10,
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-                color: "#897E73",
-              }}
+            {forgotStatus === "error" && (
+              <p className="font-body text-sm text-red-400 text-center">Something went wrong. Please try again.</p>
+            )}
+            {forgotStatus === "sent" && (
+              <p className="font-body text-sm text-center" style={{ color: "#E8621A" }}>
+                Check your email for a password reset link.
+              </p>
+            )}
+
+            {forgotStatus !== "sent" && (
+              <button
+                type="submit"
+                disabled={forgotStatus === "sending"}
+                className="mt-2 w-full rounded-full py-4 disabled:opacity-50 transition-opacity active:opacity-90"
+                style={primaryBtnStyle}
+              >
+                {forgotStatus === "sending" ? "Sending…" : "Send reset link"}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => switchMode("signin")}
+              className="text-center"
+              style={{ fontFamily: "var(--font-sans, system-ui)", fontSize: 13, color: "#897E73" }}
             >
-              Email
-            </label>
-            <AuthInput
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-            />
-          </div>
+              ← Back to sign in
+            </button>
+          </form>
+        )}
 
-          <div>
-            <label
-              className="block mb-2"
-              style={{
-                fontFamily: "var(--font-mono, monospace)",
-                fontSize: 10,
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-                color: "#897E73",
-              }}
+        {/* ── Sign up / Sign in form ───────────────────────────────────── */}
+        {mode !== "forgot" && (
+          <>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-8">
+              {mode === "signup" && (
+                <div>
+                  <label
+                    className="block mb-2"
+                    style={{
+                      fontFamily: "var(--font-mono, monospace)",
+                      fontSize: 10,
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      color: "#897E73",
+                    }}
+                  >
+                    Name
+                  </label>
+                  <AuthInput
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    autoComplete="name"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label
+                  className="block mb-2"
+                  style={{
+                    fontFamily: "var(--font-mono, monospace)",
+                    fontSize: 10,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "#897E73",
+                  }}
+                >
+                  Email
+                </label>
+                <AuthInput
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    style={{
+                      fontFamily: "var(--font-mono, monospace)",
+                      fontSize: 10,
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      color: "#897E73",
+                    }}
+                  >
+                    Password
+                  </label>
+                  {mode === "signin" && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode("forgot")}
+                      style={{ fontFamily: "var(--font-sans, system-ui)", fontSize: 11, color: "#897E73" }}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <AuthInput
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
+                  required
+                  minLength={mode === "signup" ? 8 : undefined}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                />
+              </div>
+
+              {error && (
+                <p className="font-body text-sm text-red-400 text-center">{error}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-full py-4 disabled:opacity-50 transition-opacity active:opacity-90"
+                style={primaryBtnStyle}
+              >
+                {loading
+                  ? mode === "signup" ? "Creating…" : "Signing in…"
+                  : mode === "signup" ? "Create account" : "Sign in"}
+              </button>
+            </form>
+
+            <p
+              className="text-center mt-8 leading-relaxed"
+              style={{ fontFamily: "var(--font-sans, system-ui)", fontWeight: 300, fontSize: 12, color: "rgba(137,126,115,0.5)" }}
             >
-              Password
-            </label>
-            <AuthInput
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
-              required
-              minLength={mode === "signup" ? 8 : undefined}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-            />
-          </div>
-
-          {error && (
-            <p className="font-body text-sm text-red-400 text-center">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-2 w-full rounded-full py-4 disabled:opacity-50 transition-opacity active:opacity-90"
-            style={primaryBtnStyle}
-          >
-            {loading
-              ? mode === "signup" ? "Creating…" : "Signing in…"
-              : mode === "signup" ? "Create account" : "Sign in"}
-          </button>
-        </form>
-
-        <p
-          className="text-center mt-8 leading-relaxed"
-          style={{ fontFamily: "var(--font-sans, system-ui)", fontWeight: 300, fontSize: 12, color: "rgba(137,126,115,0.5)" }}
-        >
-          Your existing swipe history and preferences are always saved locally
-          and will not be lost.
-        </p>
+              Your existing swipe history and preferences are always saved locally
+              and will not be lost.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Detroit footer */}
