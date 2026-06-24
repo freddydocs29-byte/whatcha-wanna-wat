@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { clearAllLocalState, getUserId } from "../lib/identity";
 import { linkAuthToProfile } from "../lib/supabase-profile";
+import { hasCompletedOnboarding } from "../lib/storage";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -110,6 +111,8 @@ export default function AuthPage() {
   // submit time before the auth state change fires.
   const pendingMealId = searchParams.get("mealId");
   const [mode, setMode] = useState<Mode>(initialMode);
+  // true once we know there is no active session and the form should render.
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -120,6 +123,35 @@ export default function AuthPage() {
   const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotStatus, setForgotStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  // Route an already-authenticated user away from the login screen.
+  // Called on mount (INITIAL_SESSION) and whenever SIGNED_IN fires (e.g. after
+  // Google OAuth callback). Uses the same localStorage flag the home page uses.
+  useEffect(() => {
+    function routeAuthed() {
+      router.replace(hasCompletedOnboarding() ? "/" : "/onboarding");
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION") {
+        if (session) {
+          routeAuthed();
+        } else {
+          // No active session — safe to show the login form.
+          setSessionChecked(true);
+        }
+      } else if (event === "SIGNED_IN") {
+        // Fires after exchangeCodeForSession succeeds (Google OAuth / email confirm).
+        routeAuthed();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  // router is stable; intentionally omitting from deps to run once on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -254,6 +286,18 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // ── Session check loading state ───────────────────────────────────────────────
+  // Hold the render until INITIAL_SESSION fires so authenticated users never
+  // see a flash of the login form before being routed away.
+  if (!sessionChecked && !done) {
+    return (
+      <main
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "#0B0805" }}
+      />
+    );
   }
 
   // ── Post-signup confirmation screen ───────────────────────────────────────────
