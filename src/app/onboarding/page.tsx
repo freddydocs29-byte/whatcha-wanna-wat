@@ -435,8 +435,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Animated step content — steps 1–4 only */}
-        {step >= 1 && step < 5 && (
+        {/* Animated step content — steps 1–5 only */}
+        {step >= 1 && step < 6 && (
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={step}
@@ -458,7 +458,7 @@ export default function OnboardingPage() {
                   color: "#897E73",
                 }}
               >
-                {step < 4 ? `${step} of 4` : "Last one"}
+                {step < 5 ? `${step} of 5` : "Last one"}
               </p>
 
               {/* 3. QUESTION HEADLINE */}
