@@ -14,6 +14,7 @@ import {
   savePreferences,
   markOnboardingDone,
   type UserPreferences,
+  type Allergen,
 } from "../../lib/storage";
 import { trackEvent } from "../../lib/analytics";
 import {
@@ -55,6 +56,19 @@ const GUEST_HARD_NOS = [
   { label: "Pork", emoji: "🐷" },
   { label: "Chicken", emoji: "🍗" },
   { label: "None of these", emoji: "✓" },
+];
+
+const GUEST_ALLERGENS = [
+  { label: "Peanuts",                                         value: "peanuts",   emoji: "🥜" },
+  { label: "Tree nuts (almonds, cashews, walnuts, etc.)",     value: "tree nuts", emoji: "🌰" },
+  { label: "Dairy (milk, cheese, butter, cream)",             value: "dairy",     emoji: "🥛" },
+  { label: "Eggs",                                            value: "eggs",      emoji: "🥚" },
+  { label: "Wheat / Gluten",                                  value: "wheat",     emoji: "🌾" },
+  { label: "Soy",                                             value: "soy",       emoji: "🫘" },
+  { label: "Fish",                                            value: "fish",      emoji: "🐟" },
+  { label: "Shellfish (shrimp, crab, lobster, etc.)",         value: "shellfish", emoji: "🦐" },
+  { label: "Sesame",                                          value: "sesame",    emoji: "🌿" },
+  { label: "None of these",                                   value: "None of these", emoji: "✓" },
 ];
 
 // ── Host flow constants ───────────────────────────────────────────────────────
@@ -185,10 +199,11 @@ export default function SessionPage() {
 
   // Guest quick-setup state (null = not yet checked)
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-  const [setupStep, setSetupStep] = useState<"intro" | "cuisines" | "dietary" | "hardNos">("intro");
+  const [setupStep, setSetupStep] = useState<"intro" | "cuisines" | "dietary" | "hardNos" | "allergens">("intro");
   const [guestCuisines, setGuestCuisines] = useState<string[]>([]);
   const [guestDietaryRestrictions, setGuestDietaryRestrictions] = useState<string[]>([]);
   const [guestHardNos, setGuestHardNos] = useState<string[]>([]);
+  const [guestAllergens, setGuestAllergens] = useState<string[]>([]);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -605,6 +620,7 @@ export default function SessionPage() {
       cuisines: guestCuisines,
       dietaryRestrictions: guestDietaryRestrictions.filter((f) => f !== "None of these"),
       hardNoFoods: guestHardNos.filter((f) => f !== "None of these"),
+      allergens: guestAllergens.filter((v) => v !== "None of these") as Allergen[],
       spiceLevel: "any",
       cookOrOrder: "either",
       kidFriendly: null,
@@ -719,16 +735,19 @@ export default function SessionPage() {
         ? guestCuisines.length > 0
         : setupStep === "dietary"
         ? guestDietaryRestrictions.length > 0
-        : guestHardNos.length > 0;
+        : setupStep === "hardNos"
+        ? guestHardNos.length > 0
+        : guestAllergens.length > 0;
 
     async function advanceSetup() {
       if (setupStep === "intro") setSetupStep("cuisines");
       else if (setupStep === "cuisines") setSetupStep("dietary");
       else if (setupStep === "dietary") setSetupStep("hardNos");
+      else if (setupStep === "hardNos") setSetupStep("allergens");
       else await completeGuestSetup();
     }
 
-    const stepNum = setupStep === "intro" ? 0 : setupStep === "cuisines" ? 1 : setupStep === "dietary" ? 2 : 3;
+    const stepNum = setupStep === "intro" ? 0 : setupStep === "cuisines" ? 1 : setupStep === "dietary" ? 2 : setupStep === "hardNos" ? 3 : 4;
 
     // ── Intro screen ────────────────────────────────────────────────────────
     if (setupStep === "intro") {
@@ -853,21 +872,27 @@ export default function SessionPage() {
         ? GUEST_CUISINES
         : setupStep === "dietary"
         ? GUEST_DIETARY_RESTRICTIONS
-        : GUEST_HARD_NOS;
+        : setupStep === "hardNos"
+        ? GUEST_HARD_NOS
+        : GUEST_ALLERGENS;
 
     const selectedValues =
       setupStep === "cuisines"
         ? guestCuisines
         : setupStep === "dietary"
         ? guestDietaryRestrictions
-        : guestHardNos;
+        : setupStep === "hardNos"
+        ? guestHardNos
+        : guestAllergens;
 
     const setSelected =
       setupStep === "cuisines"
         ? setGuestCuisines
         : setupStep === "dietary"
         ? setGuestDietaryRestrictions
-        : setGuestHardNos;
+        : setupStep === "hardNos"
+        ? setGuestHardNos
+        : setGuestAllergens;
 
     return (
       <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] text-white">
@@ -889,7 +914,8 @@ export default function SessionPage() {
               {setupStep !== "cuisines" ? (
                 <button
                   onClick={() => {
-                    if (setupStep === "hardNos") setSetupStep("dietary");
+                    if (setupStep === "allergens") setSetupStep("hardNos");
+                    else if (setupStep === "hardNos") setSetupStep("dietary");
                     else setSetupStep("cuisines");
                   }}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/60 transition active:scale-[0.98]"
@@ -915,7 +941,7 @@ export default function SessionPage() {
 
             {/* Progress bar */}
             <div className="flex gap-2">
-              {[1, 2, 3].map((n) => (
+              {[1, 2, 3, 4].map((n) => (
                 <div
                   key={n}
                   className="h-[4px] flex-1 overflow-hidden rounded-full"
@@ -945,7 +971,7 @@ export default function SessionPage() {
                   color: "#897E73",
                 }}
               >
-                {stepNum} of 3
+                {stepNum} of 4
               </p>
               <h1
                 className="mt-3 text-white leading-tight"
@@ -959,6 +985,7 @@ export default function SessionPage() {
                 {setupStep === "cuisines" && "What are you down for?"}
                 {setupStep === "dietary" && "Any dietary restrictions?"}
                 {setupStep === "hardNos" && "Anything you absolutely won't eat?"}
+                {setupStep === "allergens" && "Any allergens to avoid?"}
               </h1>
               <p
                 className="mt-2"
@@ -973,6 +1000,7 @@ export default function SessionPage() {
                 {setupStep === "cuisines" && "Pick everything that sounds good to you."}
                 {setupStep === "dietary" && "We'll never show you meals that don't work for you."}
                 {setupStep === "hardNos" && "Hard NOs are never shown. Ever."}
+                {setupStep === "allergens" && "Helps filter meals that may contain your selected allergens."}
               </p>
             </div>
 
@@ -1000,11 +1028,13 @@ export default function SessionPage() {
             {/* Options */}
             <div className="flex flex-col gap-3">
               {choiceData.map((item) => {
-                const selected = selectedValues.includes(item.label);
+                // Allergen items use `value` as the toggle key; other steps use `label`.
+                const itemKey = ("value" in item ? (item as { value: string }).value : null) ?? item.label;
+                const selected = selectedValues.includes(itemKey);
                 return (
                   <button
-                    key={item.label}
-                    onClick={() => toggleMulti(item.label, selectedValues, setSelected)}
+                    key={itemKey}
+                    onClick={() => toggleMulti(itemKey, selectedValues, setSelected)}
                     className="flex items-center gap-4 rounded-[18px] p-4 transition-all duration-150 active:scale-[0.99]"
                     style={
                       selected
@@ -1060,6 +1090,22 @@ export default function SessionPage() {
               })}
             </div>
 
+            {/* Allergen disclaimer — always visible on allergen step */}
+            {setupStep === "allergens" && (
+              <p
+                className="text-center mt-2 px-1"
+                style={{
+                  fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                  fontWeight: 400,
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  color: "rgba(199,189,172,0.6)",
+                }}
+              >
+                Always verify ingredients for your dietary needs.
+              </p>
+            )}
+
           </div>
         </div>
 
@@ -1073,7 +1119,7 @@ export default function SessionPage() {
               className="w-full rounded-full py-[18px] text-center text-[15px] font-bold text-white transition active:scale-[0.99] disabled:opacity-30"
               style={canAdvance && !completingSetup ? gradientPrimary : { background: "#E8621A" }}
             >
-              {completingSetup ? "Joining…" : setupStep === "hardNos" ? "Join session" : "Continue"}
+              {completingSetup ? "Joining…" : setupStep === "allergens" ? "Join session" : "Continue"}
             </button>
           </div>
         </div>

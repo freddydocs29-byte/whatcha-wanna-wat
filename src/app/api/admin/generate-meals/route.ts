@@ -125,6 +125,7 @@ Each meal: {
         ingredients: Array.isArray(m.ingredients)
           ? (m.ingredients as unknown[]).filter((i): i is string => typeof i === "string")
           : [],
+        allergens: [],
         whyItFits: m.whyItFits.trim(),
         image: "",
       }));

@@ -16,7 +16,7 @@ import {
   addToHistory,
   type UserPreferences,
 } from "../lib/storage";
-import { rankMeals, hardGate, getAllHardNos, type RankedMeal } from "../lib/scoring";
+import { rankMeals, hardGate, allergenGate, getAllHardNos, type RankedMeal } from "../lib/scoring";
 import {
   inferSessionContext,
   createTrackingSession,
@@ -68,7 +68,7 @@ function composeDeck(softAvoids: SoftAvoid[]): RankedMeal[] {
   const favorites = getFavorites();
   const noveltyBias = getNoveltyBias();
   const sessionContext = inferSessionContext(new Date());
-  const eligibleMeals = hardGate(meals, getAllHardNos(prefs));
+  const eligibleMeals = allergenGate(hardGate(meals, getAllHardNos(prefs)), prefs?.allergens ?? []);
 
   function rank(pool: Meal[]): RankedMeal[] {
     return rankMeals(
@@ -156,7 +156,7 @@ export default function RecommendPage() {
         // Hard gate safety: re-check current restrictions before surfacing
         const currentPrefs = getPreferences();
         const ritualMeal = meals.find((m) => m.id === matching.mealId);
-        if (ritualMeal && hardGate([ritualMeal], getAllHardNos(currentPrefs)).length > 0) {
+        if (ritualMeal && allergenGate(hardGate([ritualMeal], getAllHardNos(currentPrefs)), currentPrefs?.allergens ?? []).length > 0) {
           // Store so handlePass can call recordRitualRejection synchronously
           ritualRef.current = { context: matching.context, mealId: matching.mealId };
           const label = getRitualLabel(matching.context);

@@ -11,14 +11,14 @@
  * Never import OpenAI here.
  */
 
-import type { Meal } from "../data/meals";
+import type { Meal, Allergen } from "../data/meals";
 import type { UserPreferences } from "./storage";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface AIMealRequest {
-  preferences: { cuisines: string[]; hardNos: string[]; spiceLevel: UserPreferences["spiceLevel"]; cookOrOrder: UserPreferences["cookOrOrder"] };
-  partnerPreferences: { cuisines: string[]; hardNos: string[] } | null;
+  preferences: { cuisines: string[]; hardNos: string[]; spiceLevel: UserPreferences["spiceLevel"]; cookOrOrder: UserPreferences["cookOrOrder"]; allergens: Allergen[] };
+  partnerPreferences: { cuisines: string[]; hardNos: string[]; allergens: Allergen[] } | null;
   pantryIngredients: string[];
   timeBucket: "morning" | "dinner";
   cookMode: "cook" | "order" | "either";
@@ -41,11 +41,12 @@ function getCacheKey(req: AIMealRequest): string {
   const pantry = [...req.pantryIngredients].sort().join(",");
   const nos = [...req.preferences.hardNos].sort().join(",");
   const cuisines = [...req.preferences.cuisines].sort().join(",");
+  const allergens = [...req.preferences.allergens].sort().join(",");
   const partner = req.partnerPreferences
     ? [...(req.partnerPreferences.hardNos)].sort().join(",")
     : "";
-  // Include vibeMode + timeBucket so context shifts get fresh results
-  return `${CACHE_PREFIX}${pantry}|${nos}|${cuisines}|${partner}|${req.timeBucket}|${req.vibeMode}`;
+  // Include vibeMode + timeBucket + allergens so context shifts get fresh results
+  return `${CACHE_PREFIX}${pantry}|${nos}|${cuisines}|${allergens}|${partner}|${req.timeBucket}|${req.vibeMode}`;
 }
 
 function readCache(key: string): Meal[] | null {

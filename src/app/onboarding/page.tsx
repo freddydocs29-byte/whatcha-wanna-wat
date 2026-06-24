@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { savePreferences, markOnboardingDone, hasCompletedOnboarding, saveNoveltyBias } from "../lib/storage";
+import { savePreferences, markOnboardingDone, hasCompletedOnboarding, saveNoveltyBias, type Allergen } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
 import {
   EVENT_ONBOARDING_STEP_VIEWED,
@@ -11,7 +11,7 @@ import {
   EVENT_ONBOARDING_ABANDONED,
 } from "../lib/analytics-events";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 // ── Option data ───────────────────────────────────────────────────────────────
 
@@ -33,6 +33,19 @@ const HARD_NO_OPTIONS: { label: string; emoji: string }[] = [
   { label: "Chicken",      emoji: "🍗" },
   { label: "Dairy",        emoji: "🧀" },
   { label: "Gluten / Pasta", emoji: "🌾" },
+];
+
+/** Step 3: Big 9 allergens to avoid (stored in hard_no_foods alongside hard NOs) */
+const ALLERGEN_OPTIONS: { label: string; value: Allergen; emoji: string }[] = [
+  { label: "Peanuts",                                          value: "peanuts",   emoji: "🥜" },
+  { label: "Tree nuts (almonds, cashews, walnuts, etc.)",      value: "tree nuts", emoji: "🌰" },
+  { label: "Dairy (milk, cheese, butter, cream)",              value: "dairy",     emoji: "🥛" },
+  { label: "Eggs",                                             value: "eggs",      emoji: "🥚" },
+  { label: "Wheat / Gluten",                                   value: "wheat",     emoji: "🌾" },
+  { label: "Soy",                                              value: "soy",       emoji: "🫘" },
+  { label: "Fish",                                             value: "fish",      emoji: "🐟" },
+  { label: "Shellfish (shrimp, crab, lobster, etc.)",          value: "shellfish", emoji: "🦐" },
+  { label: "Sesame",                                           value: "sesame",    emoji: "🌿" },
 ];
 
 const CUISINES = [
@@ -64,6 +77,10 @@ const STEPS = [
     subtitle: "Hard NOs are never shown. Ever.",
   },
   {
+    title: "Any allergens\nto avoid?",
+    subtitle: "Helps filter meals that may contain your selected allergens.",
+  },
+  {
     title: "What are you usually\ndown for?",
     subtitle: "Pick everything that genuinely excites you.",
   },
@@ -87,7 +104,7 @@ const gradientPrimaryStyle = {
     "0 1px 0 rgba(255,210,170,0.45) inset, 0 -2px 0 rgba(120,52,0,0.35) inset, 0 16px 34px rgba(232,98,26,0.42), 0 0 0 1px rgba(232,98,26,0.32)",
 };
 
-const STEP_NAMES = ["intro", "dietary_restrictions", "hard_nos", "cuisines", "novelty", "brand_poster"];
+const STEP_NAMES = ["intro", "dietary_restrictions", "hard_nos", "allergens", "cuisines", "novelty", "brand_poster"];
 function getOnboardingStepName(s: number): string {
   return STEP_NAMES[s] ?? "unknown";
 }
@@ -101,12 +118,13 @@ export default function OnboardingPage() {
 
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
   const [hardNoFoods, setHardNoFoods] = useState<string[]>([]);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [cuisines, setCuisines] = useState<string[]>([]);
   const [noveltyBias, setNoveltyBias] = useState<number | null>(null);
 
   // Always-current ref — safe to read from inside setTimeout callbacks.
-  const latestRef = useRef({ dietaryRestrictions, hardNoFoods, cuisines, noveltyBias });
-  latestRef.current = { dietaryRestrictions, hardNoFoods, cuisines, noveltyBias };
+  const latestRef = useRef({ dietaryRestrictions, hardNoFoods, allergens, cuisines, noveltyBias });
+  latestRef.current = { dietaryRestrictions, hardNoFoods, allergens, cuisines, noveltyBias };
   const viewedStepsRef = useRef<Set<number>>(new Set());
   const stepEnteredAtRef = useRef<number>(Date.now());
   const onboardingStartedAtRef = useRef<number>(Date.now());
@@ -153,8 +171,9 @@ export default function OnboardingPage() {
     const selectionCount =
       step === 1 ? latestRef.current.dietaryRestrictions.length :
       step === 2 ? latestRef.current.hardNoFoods.length :
-      step === 3 ? latestRef.current.cuisines.length :
-      step === 4 ? (latestRef.current.noveltyBias !== null ? 1 : 0) : 0;
+      step === 3 ? latestRef.current.allergens.length :
+      step === 4 ? latestRef.current.cuisines.length :
+      step === 5 ? (latestRef.current.noveltyBias !== null ? 1 : 0) : 0;
     trackEvent(EVENT_ONBOARDING_STEP_COMPLETED, {
       step_number: step,
       step_name: getOnboardingStepName(step),
@@ -165,12 +184,13 @@ export default function OnboardingPage() {
       setDirection(1);
       setStep((s) => s + 1);
     } else {
-      // Step 3 complete — save all data and navigate directly to home.
+      // Final step complete — save all data and navigate directly to home.
       const vals = latestRef.current;
       savePreferences({
         cuisines: vals.cuisines,
         dietaryRestrictions: vals.dietaryRestrictions,
         hardNoFoods: vals.hardNoFoods,
+        allergens: vals.allergens,
         spiceLevel: "any",
         cookOrOrder: "either",
         kidFriendly: null,
@@ -193,7 +213,7 @@ export default function OnboardingPage() {
     setStep((s) => s - 1);
   }
 
-  /** Schedules auto-advance for step 3 (280ms so the selection highlight is visible). */
+  /** Schedules auto-advance for step 5 (280ms so the selection highlight is visible). */
   function scheduleNoveltyAdvance() {
     if (pendingRef.current) clearTimeout(pendingRef.current);
     pendingRef.current = setTimeout(() => {
@@ -242,6 +262,25 @@ export default function OnboardingPage() {
     setStep((s) => s + 1);
   }
 
+  function toggleAllergen(value: Allergen) {
+    setAllergens((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  }
+
+  /** "None of these" on the allergen step — clears selections and advances. */
+  function handleNoAllergens() {
+    trackEvent(EVENT_ONBOARDING_STEP_COMPLETED, {
+      step_number: step,
+      step_name: getOnboardingStepName(step),
+      time_on_step_ms: Date.now() - stepEnteredAtRef.current,
+      selections_made: 0,
+    });
+    setAllergens([]);
+    setDirection(1);
+    setStep((s) => s + 1);
+  }
+
   function toggleCuisine(label: string) {
     setCuisines((prev) =>
       prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]
@@ -251,8 +290,9 @@ export default function OnboardingPage() {
   function canContinue(): boolean {
     if (step === 1) return dietaryRestrictions.length > 0;
     if (step === 2) return hardNoFoods.length > 0;
-    if (step === 3) return cuisines.length > 0;
-    // Step 4 auto-advances on selection; no Continue needed unless navigated back.
+    if (step === 3) return allergens.length > 0;
+    if (step === 4) return cuisines.length > 0;
+    // Step 5 auto-advances on selection; no Continue needed unless navigated back.
     return noveltyBias !== null;
   }
 
@@ -647,8 +687,119 @@ export default function OnboardingPage() {
                   </>
                 )}
 
-                {/* ── Step 3: cuisine preferences ────────────────────────── */}
+                {/* ── Step 3: allergens to avoid ─────────────────────────── */}
                 {step === 3 && (
+                  <>
+                    {ALLERGEN_OPTIONS.map((opt) => {
+                      const selected = allergens.includes(opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => toggleAllergen(opt.value)}
+                          className="w-full flex items-center gap-4 rounded-[18px] p-4 cursor-pointer transition-all duration-150"
+                          style={
+                            selected
+                              ? {
+                                  background: "rgba(232,98,26,0.07)",
+                                  border: "1.5px solid #E8621A",
+                                  boxShadow: "0 0 26px rgba(232,98,26,0.12)",
+                                }
+                              : {
+                                  background: "rgba(255,231,202,0.045)",
+                                  border: "1px solid rgba(245,237,224,0.085)",
+                                }
+                          }
+                        >
+                          <div
+                            className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                            style={{
+                              background: "rgba(255,231,202,0.08)",
+                              border: "1px solid rgba(245,237,224,0.085)",
+                            }}
+                          >
+                            {opt.emoji}
+                          </div>
+                          <span
+                            className="flex-1 text-white text-left"
+                            style={{
+                              fontFamily: "var(--font-quicksand)",
+                              fontWeight: 700,
+                              fontSize: 16,
+                            }}
+                          >
+                            {opt.label}
+                          </span>
+                          <div
+                            className="w-[26px] h-[26px] rounded-full flex-shrink-0 flex items-center justify-center"
+                            style={
+                              selected
+                                ? {
+                                    background: "#E8621A",
+                                    boxShadow: "0 0 14px rgba(232,98,26,0.5)",
+                                  }
+                                : {
+                                    border: "2px solid rgba(245,237,224,0.16)",
+                                  }
+                            }
+                          >
+                            {selected && (
+                              <span className="text-[13px] font-bold text-white">✓</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {/* "None of these" — clears allergens and advances immediately */}
+                    <button
+                      onClick={handleNoAllergens}
+                      className="w-full flex items-center gap-4 rounded-[18px] p-4 cursor-pointer transition-all duration-150"
+                      style={{
+                        background: "rgba(255,231,202,0.045)",
+                        border: "1px solid rgba(245,237,224,0.085)",
+                      }}
+                    >
+                      <div
+                        className="w-[50px] h-[50px] rounded-[14px] flex items-center justify-center text-2xl flex-shrink-0"
+                        style={{
+                          background: "rgba(255,231,202,0.08)",
+                          border: "1px solid rgba(245,237,224,0.085)",
+                        }}
+                      >
+                        🚫
+                      </div>
+                      <span
+                        className="flex-1 text-white text-left"
+                        style={{
+                          fontFamily: "var(--font-quicksand)",
+                          fontWeight: 700,
+                          fontSize: 18,
+                        }}
+                      >
+                        None of these
+                      </span>
+                      <div
+                        className="w-[26px] h-[26px] rounded-full flex-shrink-0"
+                        style={{ border: "2px solid rgba(245,237,224,0.16)" }}
+                      />
+                    </button>
+                    {/* Always-visible disclaimer */}
+                    <p
+                      className="text-center mt-2 px-1"
+                      style={{
+                        fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+                        fontWeight: 400,
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        color: "rgba(199,189,172,0.6)",
+                      }}
+                    >
+                      Always verify ingredients for your dietary needs.
+                    </p>
+                  </>
+                )}
+
+                {/* ── Step 4: cuisine preferences ────────────────────────── */}
+                {step === 4 && (
                   <>
                     {/* Select all / Deselect all */}
                     <div className="flex justify-end">
@@ -730,8 +881,8 @@ export default function OnboardingPage() {
                   </>
                 )}
 
-                {/* ── Step 4: familiarity vs novelty (auto-advances on pick) ─ */}
-                {step === 4 && (
+                {/* ── Step 5: familiarity vs novelty (auto-advances on pick) ─ */}
+                {step === 5 && (
                   <>
                     {NOVELTY_OPTIONS.map((opt, i) => {
                       const selected = noveltyBias === opt.value;
@@ -803,8 +954,8 @@ export default function OnboardingPage() {
           </AnimatePresence>
         )}
 
-        {/* ── Step 5: brand poster ─────────────────────────────────────────── */}
-        {step === 5 && (
+        {/* ── Step 6: brand poster ─────────────────────────────────────────── */}
+        {step === 6 && (
           <div className="relative flex flex-col items-center justify-center px-5 pt-16 pb-40 min-h-[calc(100vh-56px)]">
             {/* Radial orange glow behind the ? */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-[#E8621A] blur-3xl opacity-[0.12] pointer-events-none" />
@@ -865,10 +1016,10 @@ export default function OnboardingPage() {
       </div>
 
       {/* 5. CONTINUE BUTTON — fixed at bottom
-           Steps 1-3 (multi-select): always shown.
-           Step 4 (auto-advance): shown only if the user navigated back and already
+           Steps 1-4 (multi-select): always shown.
+           Step 5 (auto-advance): shown only if the user navigated back and already
            has a noveltyBias set so they can proceed without re-selecting. */}
-      {step >= 1 && step < 5 && (step <= 3 || (step === 4 && noveltyBias !== null)) && (
+      {step >= 1 && step < 6 && (step <= 4 || (step === 5 && noveltyBias !== null)) && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
           <div className="mx-auto w-full max-w-md px-5 pt-10 relative" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}>
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
@@ -904,8 +1055,8 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Step 5 CTA */}
-      {step === 5 && (
+      {/* Step 6 CTA */}
+      {step === 6 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
           <div className="mx-auto w-full max-w-md px-5 pt-10 relative" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}>
             <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />

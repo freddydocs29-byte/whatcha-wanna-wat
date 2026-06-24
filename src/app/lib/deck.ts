@@ -13,8 +13,13 @@
  *   Legacy fallback — kept for safety but no longer called in normal flow.
  */
 import { meals, type Meal } from "../data/meals";
-import { rankMeals, rankMealsForSharedSession, hardGate, getAllHardNos } from "./scoring";
+import { rankMeals, rankMealsForSharedSession, hardGate, allergenGate, getAllHardNos } from "./scoring";
 import type { UserProfileForScoring, CookingIntent } from "./scoring";
+import type { Allergen } from "../data/meals";
+
+const ALLERGEN_VALUES = new Set<string>([
+  "peanuts", "tree nuts", "dairy", "eggs", "wheat", "soy", "fish", "shellfish", "sesame",
+]);
 import { supabase } from "./supabase";
 import type { UserPreferences, TasteProfile, HistoryEntry } from "./storage";
 import {
@@ -132,6 +137,13 @@ export async function buildSharedDeckForSession(
   } as UserPreferences);
   const combinedHardNos: string[] = [...new Set([...hostHardNos, ...guestHardNos])];
 
+  // Extract allergen values stored in hard_no_foods (lowercase, non-conflicting with HARD_NO_KEYWORDS)
+  const hostAllergens = ((hostProfile?.hard_no_foods as string[] | null) ?? [])
+    .filter((v) => ALLERGEN_VALUES.has(v)) as Allergen[];
+  const guestAllergens = ((guestProfile?.hard_no_foods as string[] | null) ?? [])
+    .filter((v) => ALLERGEN_VALUES.has(v)) as Allergen[];
+  const combinedAllergens: Allergen[] = [...new Set([...hostAllergens, ...guestAllergens])] as Allergen[];
+
   // 4. Build per-user scoring profiles (kept separate for mutual scoring)
   const hostScoringProfile: UserProfileForScoring = {
     cuisines: hostProfile?.favorite_cuisines ?? [],
@@ -181,8 +193,8 @@ export async function buildSharedDeckForSession(
     // Non-critical — fall back to equal weights
   }
 
-  // 5b. Hard gate — remove any meal that violates EITHER user's hard NOs
-  const eligibleMeals = hardGate(meals, combinedHardNos);
+  // 5b. Hard gate then allergen gate — both run additively (allergen gate never replaces hard gate)
+  const eligibleMeals = allergenGate(hardGate(meals, combinedHardNos), combinedAllergens);
 
   // 6. Rank using mutual-fit scoring: each user scored independently,
   //    combined via weighted average + overlap bonuses + cooking intent boosts
@@ -233,7 +245,7 @@ export function buildSharedDeck(): string[] {
   const flavorProfile = getFlavorProfile() ?? undefined;
   const favorites = getFavorites();
 
-  const eligibleMeals = hardGate(meals, getAllHardNos(prefs));
+  const eligibleMeals = allergenGate(hardGate(meals, getAllHardNos(prefs)), prefs?.allergens ?? []);
 
   const ranked = rankMeals(
     eligibleMeals,

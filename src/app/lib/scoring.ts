@@ -1,4 +1,4 @@
-import { type Meal } from "../data/meals";
+import { type Meal, type Allergen } from "../data/meals";
 import { type UserPreferences, type HistoryEntry, type TasteProfile, type FlavorProfile, getRecentlyShownIds } from "./storage";
 import { type SoftAvoid } from "./supabase";
 import { type SessionContext } from "./session-tracking";
@@ -283,6 +283,40 @@ export function hardGate(meals: Meal[], dislikedFoods: string[], hourOverride?: 
       console.log(
         `[hardGate] removed ${removed} of ${meals.length} meals` +
         ` · hard NOs: [${dislikedFoods.join(", ")}] · time bucket: ${timeBucket}`
+      );
+    }
+  }
+  return filtered;
+}
+
+
+/**
+ * Allergen gate — removes every meal whose allergens array intersects with the
+ * user's selected allergens to avoid.
+ *
+ * Reads meal.allergens directly (exact set membership — no keyword matching).
+ * This is ADDITIVE to hardGate(): call AFTER hardGate(), never instead of it.
+ * Allergen gates are never averaged, scored, or softened — binary exclude.
+ *
+ * Shared-mode: pass the UNION of both users' allergen selections so a meal is
+ * excluded if EITHER participant wants to avoid that allergen.
+ *
+ * Returns the input array unchanged when allergens is empty (zero overhead).
+ */
+export function allergenGate(meals: Meal[], allergens: Allergen[]): Meal[] {
+  if (allergens.length === 0) return meals;
+  const avoidSet = new Set<Allergen>(allergens);
+  const filtered = meals.filter((m) => {
+    const mealAllergens = m.allergens ?? [];
+    return !mealAllergens.some((a) => avoidSet.has(a));
+  });
+
+  if (process.env.NODE_ENV === "development") {
+    const removed = meals.length - filtered.length;
+    if (removed > 0) {
+      console.log(
+        `[allergenGate] removed ${removed} of ${meals.length} meals` +
+        ` · allergens: [${allergens.join(", ")}]`
       );
     }
   }
@@ -1441,6 +1475,7 @@ function scoreForUser(meal: Meal, profile: UserProfileForScoring): number {
     cuisines: profile.cuisines,
     dietaryRestrictions: [], // already hard-gated before this is called
     hardNoFoods: [],
+    allergens: [],           // already allergen-gated before this is called
     spiceLevel: "any",
     cookOrOrder: "either",
     kidFriendly: null,

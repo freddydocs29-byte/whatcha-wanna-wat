@@ -184,6 +184,7 @@ export default function ProfilePage() {
       cuisines: [],
       dietaryRestrictions: [],
       hardNoFoods: [],
+      allergens: [],
       spiceLevel: "any",
       cookOrOrder: "either",
       kidFriendly: null,

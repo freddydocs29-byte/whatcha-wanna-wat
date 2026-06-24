@@ -14,7 +14,7 @@ import {
   addToHistory,
 } from "../lib/storage";
 import { meals } from "../data/meals";
-import { rankMeals, hardGate, getAllHardNos } from "../lib/scoring";
+import { rankMeals, hardGate, allergenGate, getAllHardNos } from "../lib/scoring";
 
 type Props = { currentMealId: string };
 
@@ -38,8 +38,8 @@ export default function PickAnotherButton({ currentMealId }: Props) {
     const flavorProfile = getFlavorProfile();
     const recentlySeen = getRecentlySeenIds();
 
-    // Hard gate — exclude meals that violate hard NOs before ranking
-    const eligibleMeals = hardGate(meals, getAllHardNos(prefs));
+    // Hard gate + allergen gate — exclude meals that violate hard NOs or allergens before ranking
+    const eligibleMeals = allergenGate(hardGate(meals, getAllHardNos(prefs)), prefs?.allergens ?? []);
     const ranked = rankMeals(
       eligibleMeals,
       prefs,

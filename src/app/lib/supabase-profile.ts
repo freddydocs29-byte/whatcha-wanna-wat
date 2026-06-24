@@ -20,7 +20,10 @@ type PreferenceFields = {
   cuisines: string[];
   /** Dietary constraints (Vegetarian, Vegan, Gluten-free, etc.) — stored separately from hard NOs. */
   dietaryRestrictions: string[];
-  /** Protein / ingredient hard NOs (No pork, No seafood, No beef, etc.) */
+  /**
+   * Protein / ingredient hard NOs (No pork, No seafood, No beef, etc.) already merged
+   * with allergen values by storage.savePreferences() before calling this function.
+   */
   hardNoFoods: string[];
 };
 

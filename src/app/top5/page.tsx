@@ -22,6 +22,7 @@ import {
 import {
   rankMeals,
   hardGate,
+  allergenGate,
   getAllHardNos,
   type RankedMeal,
 } from "../lib/scoring";
@@ -62,7 +63,7 @@ function buildTop5(): RankedMeal[] {
   const sessionContext = inferSessionContext(new Date());
   const noveltyBias = getNoveltyBias();
 
-  const eligibleMeals = hardGate(meals, getAllHardNos(prefs));
+  const eligibleMeals = allergenGate(hardGate(meals, getAllHardNos(prefs)), prefs?.allergens ?? []);
   const prefFiltered = eligibleMeals.filter((m) => matchesPreferences(m, prefs));
   // Fall back to full eligible pool if preference filters leave fewer than 5
   const pool = prefFiltered.length >= 5 ? prefFiltered : eligibleMeals;

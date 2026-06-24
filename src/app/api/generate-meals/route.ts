@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import type { Meal } from "../../data/meals";
+import type { Meal, Allergen } from "../../data/meals";
 import { FALLBACK_IMAGE, CATEGORY_FALLBACK_IMAGES } from "../../lib/images";
 import { expandCuisines } from "../../lib/scoring";
 
@@ -29,6 +29,10 @@ const VALID_TIME_TAGS = new Set([
   "15 min", "20 min", "25 min", "30 min", "35 min", "40 min", "45 min",
 ]);
 
+const VALID_ALLERGENS = new Set<Allergen>([
+  "peanuts", "tree nuts", "dairy", "eggs", "wheat", "soy", "fish", "shellfish", "sesame",
+]);
+
 // Hard-NO keyword map mirrors scoring.ts — used as a server-side safety check.
 const HARD_NO_KEYWORDS: Record<string, string[]> = {
   Beef: ["beef", "steak", "burger", "meatloaf", "meatball", "bolognese", "ribeye", "rendang", "brisket", "ground beef", "veal"],
@@ -49,6 +53,7 @@ function violatesHardNo(meal: Meal, hardNos: string[]): boolean {
 
 interface PromptContext {
   hardNos: string[];
+  allergens: Allergen[];
   cuisines: string[];
   spiceLevel: string;
   cookOrOrder: string;
@@ -82,6 +87,15 @@ This is absolute. If "Seafood" is listed: no fish, shrimp, sushi, poke, ceviche,
 If "Beef" is listed: no burgers, steaks, ground beef, or beef-based dishes.`
       : "";
 
+  const allergenSection =
+    ctx.allergens.length > 0
+      ? `ALLERGENS TO AVOID — NEVER suggest meals containing: ${ctx.allergens.join(", ")}.
+Set the "allergens" field to [] or exclude any of these allergens from the list.
+For each meal, you MUST include an "allergens" array listing ALL Big 9 allergens present
+(peanuts, tree nuts, dairy, eggs, wheat, soy, fish, shellfish, sesame).`
+      : `For each meal, you MUST include an "allergens" array listing ALL Big 9 allergens present
+(peanuts, tree nuts, dairy, eggs, wheat, soy, fish, shellfish, sesame). Use [] if none apply.`;
+
   const timeSection = ctx.isEveningTime
     ? "TIME: It is dinner/evening. Do NOT suggest breakfast-only meals (pancakes, waffles, french toast, cereal, breakfast burritos)."
     : "TIME: It is morning or lunchtime. Breakfast, brunch, and lunch ideas are welcome.";
@@ -114,7 +128,7 @@ CONTEXT:
 
 ${pantrySection}
 
-${hardNoSection ? hardNoSection + "\n\n" : ""}${recentSection ? recentSection + "\n\n" : ""}QUALITY RULES:
+${hardNoSection ? hardNoSection + "\n\n" : ""}${allergenSection}\n\n${recentSection ? recentSection + "\n\n" : ""}QUALITY RULES:
 1. Be specific, not generic. "Garlic Butter Chicken Thighs" not just "Chicken". "Banana Pancakes" not "Pancakes".
 2. When pantry items are available, name the combination in the meal name.
 3. Make descriptions sensory and appealing (2 sentences max).
@@ -138,6 +152,7 @@ REQUIRED JSON STRUCTURE — return exactly this shape:
       "ingredients": ["Chicken", "Rice"],
       "estimatedTimeMinutes": 25,
       "cuisine": "one of: Italian | Mexican | Japanese | Chinese | Thai | Indian | Korean | Vietnamese | Mediterranean | Middle Eastern | American | French | Greek | Breakfast | Indonesian | Spanish | Caribbean | Moroccan | Filipino | Malaysian | Brazilian | Colombian | Peruvian | Venezuelan | Argentine",
+      "allergens": ["wheat", "dairy"],
       "aiLabel": "Made from your pantry"
     }
   ]
@@ -158,10 +173,11 @@ type RawAIMeal = {
   ingredients?: unknown;
   estimatedTimeMinutes?: unknown;
   cuisine?: unknown;
+  allergens?: unknown;
   aiLabel?: unknown;
 };
 
-function transformMeal(raw: RawAIMeal, hardNos: string[], fallbackCuisine = "American"): Meal | null {
+function transformMeal(raw: RawAIMeal, hardNos: string[], allergens: Allergen[], fallbackCuisine = "American"): Meal | null {
   if (typeof raw.name !== "string" || !raw.name.trim()) return null;
   if (typeof raw.description !== "string" || !raw.description.trim()) return null;
 
@@ -192,6 +208,12 @@ function transformMeal(raw: RawAIMeal, hardNos: string[], fallbackCuisine = "Ame
       ? raw.cuisine
       : fallbackCuisine;
 
+  // Validate allergens — only accept recognised Big 9 values; unknown strings are dropped.
+  const rawAllergens = Array.isArray(raw.allergens) ? raw.allergens : [];
+  const mealAllergens: Allergen[] = rawAllergens.filter(
+    (a): a is Allergen => typeof a === "string" && VALID_ALLERGENS.has(a as Allergen)
+  );
+
   const meal: Meal = {
     id,
     name: raw.name.trim(),
@@ -200,6 +222,7 @@ function transformMeal(raw: RawAIMeal, hardNos: string[], fallbackCuisine = "Ame
     cuisine,
     tags,
     ingredients,
+    allergens: mealAllergens,
     whyItFits: `${cuisine} inspired`,
     image: CATEGORY_FALLBACK_IMAGES[category] ?? FALLBACK_IMAGE,
     aiGenerated: true,
@@ -208,6 +231,17 @@ function transformMeal(raw: RawAIMeal, hardNos: string[], fallbackCuisine = "Ame
 
   // Server-side hard-NO safety pass
   if (violatesHardNo(meal, hardNos)) return null;
+
+  // Defensive allergen fallback: if the user has allergen selections and the AI meal's
+  // allergen field intersects with any of them → exclude entirely. This prevents an
+  // unvalidated AI meal from reaching a user who has selected allergens to avoid.
+  if (allergens.length > 0) {
+    const avoidSet = new Set<Allergen>(allergens);
+    if (mealAllergens.some((a) => avoidSet.has(a))) return null;
+    // Extra safety: if the AI returned NO allergens and user has allergen selections,
+    // exclude the meal since we cannot confirm it is free of the user's selected allergens.
+    if (mealAllergens.length === 0 && rawAllergens.length === 0) return null;
+  }
 
   return meal;
 }
@@ -237,8 +271,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       recentlySeenNames = [],
       count = 10,
     } = body as {
-      preferences?: { cuisines?: string[]; hardNos?: string[]; spiceLevel?: string; cookOrOrder?: string };
-      partnerPreferences?: { cuisines?: string[]; hardNos?: string[] } | null;
+      preferences?: { cuisines?: string[]; hardNos?: string[]; spiceLevel?: string; cookOrOrder?: string; allergens?: string[] };
+      partnerPreferences?: { cuisines?: string[]; hardNos?: string[]; allergens?: string[] } | null;
       pantryIngredients?: string[];
       timeBucket?: "morning" | "dinner";
       cookMode?: string;
@@ -252,6 +286,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ...new Set([
         ...(preferences.hardNos ?? []),
         ...(partnerPreferences?.hardNos ?? []),
+      ]),
+    ];
+
+    // Union both users' allergens — additive, never softened
+    const allergens: Allergen[] = [
+      ...new Set([
+        ...((preferences.allergens ?? []).filter((a): a is Allergen => VALID_ALLERGENS.has(a as Allergen))),
+        ...((partnerPreferences?.allergens ?? []).filter((a): a is Allergen => VALID_ALLERGENS.has(a as Allergen))),
       ]),
     ];
 
@@ -270,6 +312,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const promptContext: PromptContext = {
       hardNos,
+      allergens,
       cuisines: expandedCuisinesForPrompt,
       spiceLevel: preferences.spiceLevel ?? "any",
       cookOrOrder: preferences.cookOrOrder ?? cookMode ?? "either",
@@ -313,7 +356,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const rawMeals = Array.isArray(parsed.meals) ? parsed.meals : [];
     const fallback = cuisines[0] ?? "American";
     const meals: Meal[] = rawMeals
-      .map((m) => transformMeal(m as RawAIMeal, hardNos, fallback))
+      .map((m) => transformMeal(m as RawAIMeal, hardNos, allergens, fallback))
       .filter((m): m is Meal => m !== null);
 
     if (process.env.NODE_ENV === "development") {

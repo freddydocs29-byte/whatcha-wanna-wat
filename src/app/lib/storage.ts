@@ -1,4 +1,5 @@
-import { Meal } from "../data/meals";
+import { Meal, type Allergen } from "../data/meals";
+export type { Allergen };
 import { getUserId } from "./identity";
 import { upsertProfilePreferences, upsertLearnedWeights, upsertRecentlySeen, upsertRecentlyShown, upsertBehavioralSignals, upsertNoveltyBias, upsertLastDecidedMeal, type RecentlyShownEntry } from "./supabase-profile";
 import { supabase } from "./supabase";
@@ -25,6 +26,13 @@ export type UserPreferences = {
   spiceLevel: "mild" | "medium" | "hot" | "any";
   cookOrOrder: "cook" | "order" | "either";
   kidFriendly: boolean | null;
+  /**
+   * Big 9 allergens the user wants to avoid. Stored in localStorage and synced to
+   * profiles.hard_no_foods (appended alongside protein hard-NOs — values are
+   * lowercase allergen names that don't conflict with HARD_NO_KEYWORDS keys).
+   * Filtered by allergenGate() — never softened or averaged.
+   */
+  allergens: Allergen[];
 };
 
 export type TasteProfile = {
@@ -384,6 +392,7 @@ export function getPreferences(): UserPreferences | null {
       spiceLevel: (raw.spiceLevel as UserPreferences["spiceLevel"]) ?? "any",
       cookOrOrder: (raw.cookOrOrder as UserPreferences["cookOrOrder"]) ?? "either",
       kidFriendly: (raw.kidFriendly as boolean | null) ?? null,
+      allergens: [],
     };
     if (typeof window !== "undefined") {
       localStorage.setItem(PREFS_KEY, JSON.stringify(migrated));
@@ -391,6 +400,10 @@ export function getPreferences(): UserPreferences | null {
     return migrated;
   }
 
+  // Backfill allergens for users who saved prefs before this field existed.
+  if (!Array.isArray((raw as Record<string, unknown>).allergens)) {
+    (raw as Record<string, unknown>).allergens = [];
+  }
   return raw as UserPreferences;
 }
 
@@ -403,7 +416,10 @@ export function savePreferences(prefs: UserPreferences): void {
   const prefPayload = {
     cuisines: prefs.cuisines,
     dietaryRestrictions: prefs.dietaryRestrictions,
-    hardNoFoods: prefs.hardNoFoods,
+    // Merge allergen values into hardNoFoods for Supabase storage. Allergen
+    // values ("peanuts", "tree nuts", etc.) are lowercase and don't conflict
+    // with HARD_NO_KEYWORDS keys ("Beef", "Pork", etc.).
+    hardNoFoods: [...new Set([...prefs.hardNoFoods, ...(prefs.allergens ?? [])])],
   };
   upsertProfilePreferences(userId, prefPayload).catch(() => {
     console.warn("[prefs] Supabase write failed, retrying in 2s...");

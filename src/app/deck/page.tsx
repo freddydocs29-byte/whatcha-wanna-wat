@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useMotionValue, useTransform, AnimatePresence, useReducedMotion } from "framer-motion";
 import { meals, type Meal } from "../data/meals";
 import { saveMeal, addToHistory, getPreferences, savePreferences, getSavedMeals, getHistory, getTasteProfile, updateTasteProfile, getRecentlySeenIds, recordSeenSession, getFlavorProfile, getFavorites, getTodaysPick, getNoveltyBias, saveDecidedMeal, type UserPreferences, type HistoryEntry } from "../lib/storage";
-import { rankMeals, hardGate, getAllHardNos, getSharedReason, getTimeBucket, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
+import { rankMeals, hardGate, allergenGate, getAllHardNos, getSharedReason, getTimeBucket, type RejectionEntry, type RankedMeal, type SessionCookMode, type SessionVibeMode } from "../lib/scoring";
 import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
@@ -212,7 +212,7 @@ function buildDeck(
   const favorites = getFavorites();
   const sessionContext = inferSessionContext(new Date());
 
-  const eligibleMeals = hardGate(meals, getAllHardNos(prefs));
+  const eligibleMeals = allergenGate(hardGate(meals, getAllHardNos(prefs)), prefs?.allergens ?? []);
   const noveltyBias = getNoveltyBias();
 
   function rank(pool: Meal[]): RankedMeal[] {
@@ -1101,10 +1101,10 @@ function DeckContent() {
       const currentPrefs = getPreferences();
       const ritualMealObj = meals.find((m) => m.id === matching.mealId);
       if (!ritualMealObj) return;
-      const gated = hardGate([ritualMealObj], getAllHardNos(currentPrefs));
+      const gated = allergenGate(hardGate([ritualMealObj], getAllHardNos(currentPrefs)), currentPrefs?.allergens ?? []);
       if (gated.length === 0) {
         if (process.env.NODE_ENV === "development") {
-          console.log(`[rituals] skipped ${matching.mealId} — fails current hard gate`);
+          console.log(`[rituals] skipped ${matching.mealId} — fails current hard gate or allergen gate`);
         }
         return;
       }
@@ -1687,6 +1687,7 @@ function DeckContent() {
           hardNos: getAllHardNos(prefs),
           spiceLevel: prefs?.spiceLevel ?? "any",
           cookOrOrder: prefs?.cookOrOrder ?? "either",
+          allergens: prefs?.allergens ?? [],
         },
         partnerPreferences: null,
         pantryIngredients: activePantryIngredients,
@@ -1699,10 +1700,11 @@ function DeckContent() {
 
       if (aiRaw.length === 0) return; // Nothing came back — silent fallback
 
-      // ── Double hardGate: server already filtered, client confirms ──────────
-      const gated = hardGate(aiRaw, getAllHardNos(prefs));
+      // ── Double hardGate + allergenGate: server already filtered, client confirms ──
+      const hardGated = hardGate(aiRaw, getAllHardNos(prefs));
+      const gated = allergenGate(hardGated, prefs?.allergens ?? []);
       if (process.env.NODE_ENV === "development" && gated.length < aiRaw.length) {
-        console.log(`[ai] filtered by hardgate — before: ${aiRaw.length}, after: ${gated.length} (${aiRaw.length - gated.length} dropped)`);
+        console.log(`[ai] filtered by hardGate/allergenGate — before: ${aiRaw.length}, after: ${gated.length} (${aiRaw.length - gated.length} dropped)`);
       }
       if (gated.length === 0) return;
 
@@ -1800,6 +1802,7 @@ function DeckContent() {
           hardNos: getAllHardNos(prefs),
           spiceLevel: prefs?.spiceLevel ?? "any",
           cookOrOrder: prefs?.cookOrOrder ?? "either",
+          allergens: prefs?.allergens ?? [],
         },
         partnerPreferences: null,
         pantryIngredients: selectedIngredients,
@@ -1812,7 +1815,7 @@ function DeckContent() {
 
       if (aiRaw.length === 0) return;
 
-      const gated = hardGate(aiRaw, getAllHardNos(prefs));
+      const gated = allergenGate(hardGate(aiRaw, getAllHardNos(prefs)), prefs?.allergens ?? []);
       if (gated.length === 0) return;
 
       setAiMealIds((prev) => {

@@ -406,7 +406,7 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
     // Remote had items local didn't (or local was empty and remote wasn't).
     // savePreferences writes to localStorage AND fires the Supabase sync.
     savePreferences({
-      ...(localPrefs ?? { spiceLevel: "any", cookOrOrder: "either", kidFriendly: null }),
+      ...(localPrefs ?? { spiceLevel: "any", cookOrOrder: "either", kidFriendly: null, allergens: [] }),
       cuisines:            mergedCuisines,
       dietaryRestrictions: mergedDietary,
       hardNoFoods:         mergedHardNos,
