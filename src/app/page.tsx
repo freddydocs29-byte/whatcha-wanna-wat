@@ -253,9 +253,13 @@ export default function Home() {
         // A profile is considered complete when display_name and at least one
         // cuisine preference are present.
         const profile = await fetchProfileByAuthUserId(session.user.id);
+        // A profile is considered complete when at least one cuisine preference
+        // exists. display_name is intentionally excluded — it is optional at
+        // signup and is not set by the onboarding flow, so using it here would
+        // incorrectly route users who skipped the name field to onboarding even
+        // after they already finished it.
         const profileComplete =
           !!profile &&
-          !!(profile.display_name) &&
           (profile.favorite_cuisines?.length ?? 0) > 0;
 
         if (!profileComplete) {
