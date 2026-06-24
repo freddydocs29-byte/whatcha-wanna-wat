@@ -128,6 +128,12 @@ export default function ProfilePage() {
   const [signingOut, setSigningOut] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Change email state ─────────────────────────────────────────────────────
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
   // ── Async state (Supabase) ─────────────────────────────────────────────────
   const [asyncLoading, setAsyncLoading] = useState(true);
   const [softAvoids, setSoftAvoids] = useState<SoftAvoid[]>([]);
@@ -218,6 +224,11 @@ export default function ProfilePage() {
     ])
       .then(([authUid, profile, avoids, _rituals]) => {
         setAuthUserId(authUid);
+        if (authUid) {
+          supabase.auth.getUser().then(({ data }) => {
+            setUserEmail(data.user?.email ?? null);
+          });
+        }
         if (profile?.display_name) {
           setDisplayName(profile.display_name);
           setNameInput(profile.display_name);
@@ -449,6 +460,17 @@ export default function ProfilePage() {
     clearAllLocalState();
     resetAnonymousId();
     router.push("/");
+  }
+
+  async function handleChangeEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailStatus("sending");
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    if (error) {
+      setEmailStatus("error");
+    } else {
+      setEmailStatus("sent");
+    }
   }
 
   // ── Share handler (html2canvas) ────────────────────────────────────────────
@@ -863,26 +885,116 @@ export default function ProfilePage() {
         {!asyncLoading && (
           <div className="mx-5 mt-4">
             {authUserId ? (
-              <div
-                className="flex items-center justify-between rounded-[14px] px-4 py-3"
-                style={{
-                  background: "rgba(255,231,202,0.05)",
-                  border: "1px solid rgba(245,237,224,0.08)",
-                  boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-[#E8621A] text-sm">✓</span>
-                  <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.7)" }}>Account connected</p>
-                </div>
-                <button
-                  onClick={() => void handleSignOut()}
-                  disabled={signingOut}
-                  className="font-body text-xs disabled:opacity-50"
-                  style={{ color: "#897E73" }}
+              <div className="flex flex-col gap-2">
+                {/* Connected row */}
+                <div
+                  className="flex items-center justify-between rounded-[14px] px-4 py-3"
+                  style={{
+                    background: "rgba(255,231,202,0.05)",
+                    border: "1px solid rgba(245,237,224,0.08)",
+                    boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
+                  }}
                 >
-                  {signingOut ? "Signing out…" : "Sign out"}
-                </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#E8621A] text-sm">✓</span>
+                    <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.7)" }}>Account connected</p>
+                  </div>
+                  <button
+                    onClick={() => void handleSignOut()}
+                    disabled={signingOut}
+                    className="font-body text-xs disabled:opacity-50"
+                    style={{ color: "#897E73" }}
+                  >
+                    {signingOut ? "Signing out…" : "Sign out"}
+                  </button>
+                </div>
+
+                {/* Account section — email */}
+                <div
+                  className="rounded-[14px] px-4 py-3"
+                  style={{
+                    background: "rgba(255,231,202,0.03)",
+                    border: "1px solid rgba(245,237,224,0.07)",
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p
+                        className="font-body text-[10px] uppercase tracking-widest mb-0.5"
+                        style={{ color: "#897E73", letterSpacing: "0.18em" }}
+                      >
+                        Email
+                      </p>
+                      <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.65)" }}>
+                        {userEmail ?? "—"}
+                      </p>
+                    </div>
+                    {!showEmailForm && emailStatus !== "sent" && (
+                      <button
+                        onClick={() => { setShowEmailForm(true); setEmailStatus("idle"); setNewEmail(""); }}
+                        className="font-body text-xs"
+                        style={{ color: "#897E73" }}
+                      >
+                        Change email
+                      </button>
+                    )}
+                  </div>
+
+                  {showEmailForm && emailStatus !== "sent" && (
+                    <form onSubmit={(e) => void handleChangeEmail(e)} className="mt-3 flex flex-col gap-2">
+                      <input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder="New email address"
+                        required
+                        autoComplete="email"
+                        className="w-full rounded-[10px] px-3 py-2.5 font-body text-sm text-white placeholder:text-[#897E73]/60 focus:outline-none"
+                        style={{
+                          background: "rgba(255,231,202,0.045)",
+                          border: "1px solid rgba(245,237,224,0.12)",
+                        }}
+                      />
+                      {emailStatus === "error" && (
+                        <p className="font-body text-xs text-red-400">Something went wrong. Please try again.</p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={emailStatus === "sending"}
+                          className="flex-1 rounded-full py-2.5 font-body text-sm font-semibold disabled:opacity-50 transition-opacity"
+                          style={{
+                            background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                            color: "#1c0c03",
+                            fontFamily: "var(--font-quicksand)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {emailStatus === "sending" ? "Sending…" : "Update email"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowEmailForm(false); setEmailStatus("idle"); }}
+                          className="px-4 rounded-full font-body text-sm"
+                          style={{ color: "#897E73" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {emailStatus === "sent" && (
+                    <div className="mt-3">
+                      <p className="font-body text-sm" style={{ color: "#E8621A" }}>
+                        Check your inbox to confirm the email change.
+                      </p>
+                      <p className="font-body text-xs mt-1" style={{ color: "rgba(137,126,115,0.7)" }}>
+                        You may need to confirm from both your old and new email addresses.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <button

@@ -28,6 +28,14 @@ const primaryBtnStyle = {
   letterSpacing: "-0.01em",
 };
 
+const labelStyle = {
+  fontFamily: "var(--font-mono, monospace)",
+  fontSize: 10,
+  letterSpacing: "0.2em",
+  textTransform: "uppercase" as const,
+  color: "#897E73",
+};
+
 function PasswordInput({
   value,
   onChange,
@@ -58,6 +66,7 @@ function PasswordInput({
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -65,6 +74,12 @@ export default function ResetPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (password !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -120,36 +135,38 @@ export default function ResetPasswordPage() {
             letterSpacing: "-0.01em",
           }}
         >
-          {done ? "Password updated" : "Set new password"}
+          {done ? "Password updated" : "Set a new password"}
         </h1>
         <p
           className="mt-2"
           style={{ fontFamily: "var(--font-sans, system-ui)", fontWeight: 300, fontSize: 13, color: "#897E73" }}
         >
           {done
-            ? "You're all set. Taking you home…"
+            ? "You're all set. Taking you home\u2026"
             : "Choose a new password for your account."}
         </p>
 
         {!done && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-8">
             <div>
-              <label
-                className="block mb-2"
-                style={{
-                  fontFamily: "var(--font-mono, monospace)",
-                  fontSize: 10,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  color: "#897E73",
-                }}
-              >
+              <label className="block mb-2" style={labelStyle}>
                 New password
               </label>
               <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-2" style={labelStyle}>
+                Confirm password
+              </label>
+              <PasswordInput
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Repeat your new password"
               />
             </div>
 
@@ -163,7 +180,7 @@ export default function ResetPasswordPage() {
               className="mt-2 w-full rounded-full py-4 disabled:opacity-50 transition-opacity active:opacity-90"
               style={primaryBtnStyle}
             >
-              {loading ? "Updating…" : "Update password"}
+              {loading ? "Updating\u2026" : "Update password"}
             </button>
           </form>
         )}
