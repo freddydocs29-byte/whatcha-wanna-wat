@@ -32,6 +32,21 @@ export async function checkAndTriggerTypeReveal(): Promise<void> {
 
   if (!count || count < 7) return;
 
+  // Re-trigger gap guard: after the first reveal, only re-trigger when the
+  // user has made ≥10 more accepted decisions since the last reveal.
+  // wwe_type_last_revealed_at being absent means this is the first reveal —
+  // in that case we fall through and show it.
+  const lastRevealedAt = localStorage.getItem("wwe_type_last_revealed_at");
+  if (lastRevealedAt) {
+    const lastRevealedCount = Number.parseInt(
+      localStorage.getItem("wwe_type_last_revealed_count") ?? "0",
+      10
+    );
+    const decisionsSinceReveal =
+      count - (Number.isFinite(lastRevealedCount) ? lastRevealedCount : 0);
+    if (decisionsSinceReveal < 10) return;
+  }
+
   // Threshold crossed — compute solo DNA and derive the flavor type.
   // Dynamic import avoids any circular-dependency risk at module load time.
   const { getSoloDNA } = await import("./dna");
@@ -40,4 +55,25 @@ export async function checkAndTriggerTypeReveal(): Promise<void> {
 
   // getFlavorType handles the pending-flag write and caching internally.
   await getFlavorType(dna, "solo", undefined, userId);
+
+  // Stamp the exact Supabase decision count into the pending payload so that
+  // page.tsx can persist it as wwe_type_last_revealed_count when the reveal
+  // is actually displayed. This keeps the re-trigger guard using the same
+  // count value that crossed the threshold here.
+  const pending = localStorage.getItem("wwe_type_reveal_pending");
+  if (pending) {
+    try {
+      const payload = JSON.parse(pending) as {
+        typeName: string;
+        tagline: string;
+        baseType?: string;
+      };
+      localStorage.setItem(
+        "wwe_type_reveal_pending",
+        JSON.stringify({ ...payload, decisionCount: count })
+      );
+    } catch {
+      // Malformed payload — leave as-is; reveal still shows, count just won't persist.
+    }
+  }
 }

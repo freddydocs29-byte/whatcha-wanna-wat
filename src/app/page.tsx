@@ -733,7 +733,7 @@ export default function Home() {
     if (!revealPending) return;
 
     try {
-      const { typeName, tagline, baseType } = JSON.parse(revealPending) as { typeName: string; tagline: string; baseType?: string };
+      const { typeName, tagline, baseType, decisionCount } = JSON.parse(revealPending) as { typeName: string; tagline: string; baseType?: string; decisionCount?: number };
       // Store the stable baseType (e.g. "night_owl") so the guard in
       // getFlavorType compares stable key → stable key. typeName is the
       // AI-generated display name and can vary across cache misses for the
@@ -742,6 +742,14 @@ export default function Home() {
       // that produced a slightly different personalizedName.
       // Fall back to typeName for payloads written before this change.
       localStorage.setItem("wwe_type_last_revealed", baseType ?? typeName);
+      // Persist the accepted-decision count and timestamp at reveal time so the
+      // re-trigger gap guard in checkAndTriggerTypeReveal can measure progress
+      // since the last reveal. decisionCount comes from the same Supabase count
+      // query that crossed the ≥7 threshold in type-reveal-trigger.ts.
+      if (decisionCount !== undefined) {
+        localStorage.setItem("wwe_type_last_revealed_count", String(decisionCount));
+      }
+      localStorage.setItem("wwe_type_last_revealed_at", new Date().toISOString());
       localStorage.removeItem("wwe_type_reveal_pending");
       setTypeRevealData({ typeName, tagline });
     } catch {
