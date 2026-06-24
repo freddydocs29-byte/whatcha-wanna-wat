@@ -443,9 +443,36 @@ export function saveNoveltyBias(value: number): void {
   upsertNoveltyBias(getUserId(), value).catch(() => {});
 }
 
-export function markOnboardingDone(): void {
+/** Writes the onboarding-done flag to localStorage only. */
+export function setOnboardingDoneLocal(): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(ONBOARDING_KEY, "true");
+}
+
+/**
+ * Marks onboarding as complete.
+ * - Always writes the localStorage fast-path flag immediately.
+ * - For authenticated users, fire-and-forgets a Supabase write so the flag
+ *   survives logout, new devices, and Google OAuth sessions where localStorage
+ *   is absent.
+ */
+export function markOnboardingDone(): void {
+  setOnboardingDoneLocal();
+
+  void supabase.auth.getUser()
+    .then(({ data }) => {
+      const authUserId = data.user?.id;
+      if (!authUserId) return;
+
+      return supabase
+        .from("profiles")
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq("auth_user_id", authUserId);
+    })
+    .catch(() => {
+      // Non-fatal — localStorage flag already set above. Supabase write is
+      // best-effort; the home-page slow-path also sets the flag on next load.
+    });
 }
 
 export function hasCompletedOnboarding(): boolean {

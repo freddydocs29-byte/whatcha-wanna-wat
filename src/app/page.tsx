@@ -260,7 +260,12 @@ export default function Home() {
         // after they already finished it.
         const profileComplete =
           !!profile &&
-          (profile.favorite_cuisines?.length ?? 0) > 0;
+          (
+            // Primary: Supabase flag written by markOnboardingDone() after this fix.
+            profile.onboarding_completed_at != null ||
+            // Fallback: pre-fix users have cuisines set but no onboarding_completed_at.
+            (profile.favorite_cuisines?.length ?? 0) > 0
+          );
 
         if (!profileComplete) {
           router.replace("/onboarding");

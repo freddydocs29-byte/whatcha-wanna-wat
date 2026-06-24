@@ -149,6 +149,8 @@ export type Profile = {
     sessionId?: string;
     partner?: string;
   } | null;
+  /** Set by markOnboardingDone() for authenticated users. NULL for pre-fix rows or anon users. */
+  onboarding_completed_at?: string | null;
   created_at: string;
   updated_at: string;
 };

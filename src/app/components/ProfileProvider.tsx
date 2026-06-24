@@ -35,7 +35,7 @@ import {
   upsertRecentlySeen,
   linkAuthToProfile,
 } from "../lib/supabase-profile";
-import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter, saveDecidedMeal, saveMeal, addToHistory, getHistory, type DecidedMeal } from "../lib/storage";
+import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter, saveDecidedMeal, saveMeal, addToHistory, getHistory, setOnboardingDoneLocal, type DecidedMeal } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import type { Profile } from "../lib/supabase";
 
@@ -219,6 +219,13 @@ function applyPendingGuestMeal(): boolean {
  * always empty, so the unconditional write is safe.
  */
 function restoreProfileLocalState(profile: Profile): void {
+  // Hydrate the onboarding-done flag from Supabase so that post-OAuth sessions
+  // (where localStorage was absent) correctly skip the slow-path check.
+  // Read-only — does NOT trigger a Supabase write back.
+  if (profile.onboarding_completed_at) {
+    setOnboardingDoneLocal();
+  }
+
   if (profile.saved_meals?.length) {
     localStorage.setItem('wwe_saved_meals', JSON.stringify(profile.saved_meals));
     console.log('[restore] saved meals restored:', profile.saved_meals.length);
