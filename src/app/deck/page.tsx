@@ -1662,11 +1662,11 @@ function DeckContent() {
     }
   }
 
-  // ── AI Fresh Ideas ───────────────────────────────────────────────────────────
+  // ── AI enrichment ────────────────────────────────────────────────────────────
   //
   // Fetches AI-generated meals and merges them into the deck.
-  // Called explicitly via the "Fresh ideas" button, or automatically when
-  // pantry mode is active and the ingredient context key has changed.
+  // Called automatically when pantry mode is active and the ingredient context
+  // key has changed, or when swipe fatigue is detected.
   // Always falls back silently — the static deck is never disrupted on error.
 
   async function enrichDeckWithAI(
@@ -1879,10 +1879,6 @@ function DeckContent() {
     void injectAIForSwipeFatigue();
   }, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /**
-   * "Fresh Ideas" button handler — explicit user-triggered AI enrichment.
-   * Rebuilds the static deck first to get a clean base, then enriches with AI.
-   */
   function canGuestRequestNewDeck(): boolean {
     if (!isGuest) return true;
     if (!tryConsumeGuestDeckBudgetNoGrant()) {
@@ -1894,25 +1890,6 @@ function DeckContent() {
       return false;
     }
     return true;
-  }
-
-  async function handleFreshIdeas(): Promise<void> {
-    if (aiMealsLoading || sessionId) return;
-    if (!canGuestRequestNewDeck()) return;
-    trackEvent("fresh_ideas_tapped", { pantryMode, ingredientCount: selectedIngredients.length, vibeMode: sessionVibeMode });
-    deckFinishedFiredRef.current = false;
-    swipeFatigueFiredRef.current = false;
-    sessionShownRef.current = new Set();
-    deckRecordedRef.current = false;
-    lastAiContextKeyRef.current = null; // allow re-trigger after explicit Fresh Ideas
-    const staticDeck = buildDeck(pantryMode, selectedIngredients, sessionShownRef.current, cookMode, sessionVibeMode, rejectionReasonsRef.current, softAvoidsRef.current);
-    recordSeenSession(staticDeck.slice(0, DECK_SIZE).map((r) => r.meal.id));
-    deckRecordedRef.current = true;
-    setRankedMeals(staticDeck.slice(0, DECK_SIZE));
-    setCurrentIndex(0);
-    x.set(0);
-    setExitX(null);
-    await enrichDeckWithAI(staticDeck.slice(0, DECK_SIZE), selectedIngredients);
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -3649,7 +3626,7 @@ function DeckContent() {
           </button>
         </header>
 
-        {/* Pantry bar + Fresh Ideas — solo authenticated only */}
+        {/* Pantry bar — solo authenticated only */}
         {!sessionId && !isGuest && (
           <div className="px-5 mt-1 flex items-stretch gap-2">
             <motion.button
@@ -3698,29 +3675,6 @@ function DeckContent() {
               </svg>
             </motion.button>
 
-            {/* Fresh Ideas button — calls AI generation */}
-            <motion.button
-              onClick={() => void handleFreshIdeas()}
-              disabled={aiMealsLoading}
-              animate={aiMealsLoading ? { opacity: 0.5 } : { opacity: 1 }}
-              transition={{ duration: 0.2 }}
-              className="flex shrink-0 items-center gap-1.5 rounded-[13px] px-3 py-2.5 text-xs transition-all duration-200 active:scale-[0.97] disabled:pointer-events-none"
-              style={{
-                border: "1px solid rgba(245,237,224,0.085)",
-                background: "rgba(255,231,202,0.045)",
-                color: "rgba(255,255,255,0.35)",
-              }}
-              title="Generate fresh meal ideas"
-            >
-              {aiMealsLoading ? (
-                <span className="h-2.5 w-2.5 animate-spin rounded-full border border-white/30 border-t-white/70" />
-              ) : (
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-                  <path d="M6.5 1v2M6.5 10v2M1 6.5h2M10 6.5h2M2.93 2.93l1.41 1.41M8.66 8.66l1.41 1.41M2.93 10.07l1.41-1.41M8.66 4.34l1.41-1.41" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                </svg>
-              )}
-              <span className="whitespace-nowrap">Fresh ideas</span>
-            </motion.button>
           </div>
         )}
 
