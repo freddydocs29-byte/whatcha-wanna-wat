@@ -1,6 +1,7 @@
 import { getUserId } from "./identity";
 import { supabase } from "./supabase";
 import { getFlavorType } from "./flavor-type";
+import type { CouplesFlavor } from "./couples-flavor-types";
 
 /**
  * Fire-and-forget background check: after every accepted decision, see if the
@@ -76,4 +77,104 @@ export async function checkAndTriggerTypeReveal(): Promise<void> {
       // Malformed payload — leave as-is; reveal still shows, count just won't persist.
     }
   }
+}
+
+/**
+ * Fire-and-forget background check for couples flavor type reveal.
+ * Called after every shared session match completes.
+ *
+ * Idempotency guards (all exit early with no network):
+ *   1. wwe_couples_type_reveal_pending already set
+ *   2. Same type already revealed for this partner (wwe_couples_type_last_revealed_{partnerId})
+ *   3. Match count unchanged since last check for this partner
+ *
+ * Accepts only userId + partnerId; fetches display names/avatars internally
+ * since the call site (home page match detection) doesn't have that data in scope.
+ */
+export async function checkAndTriggerCouplesTypeReveal(
+  userId: string,
+  partnerId: string
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  // Guard 1 — reveal already queued
+  if (localStorage.getItem("wwe_couples_type_reveal_pending")) return;
+
+  // Guard 3 — count unchanged since last check for this partner
+  // (checked before any network calls for fast exit)
+  const matchCountKey = `wwe_couples_type_last_match_count_${partnerId}`;
+
+  // Dynamic imports to avoid circular-dependency risk at module load time
+  const { getCouplesDNA } = await import("./dna");
+  const couplesDNA = await getCouplesDNA(userId, partnerId);
+
+  if (couplesDNA.totalMatchesTogether < 7) {
+    // Store whatever count we have so we skip the DNA fetch next time until it changes
+    localStorage.setItem(matchCountKey, String(couplesDNA.totalMatchesTogether));
+    return;
+  }
+
+  const lastMatchCount = Number.parseInt(
+    localStorage.getItem(matchCountKey) ?? "-1",
+    10
+  );
+  if (
+    Number.isFinite(lastMatchCount) &&
+    lastMatchCount === couplesDNA.totalMatchesTogether
+  ) {
+    return; // No new matches since last check
+  }
+  // Update the stored count now (before the expensive type computation)
+  localStorage.setItem(matchCountKey, String(couplesDNA.totalMatchesTogether));
+
+  // Compute the couples flavor type
+  const result = await getFlavorType(couplesDNA, { partnerId }, undefined, userId);
+  if (!result) return;
+
+  // Guard 2 — same type already revealed for this partner
+  const lastRevealedKey = `wwe_couples_type_last_revealed_${partnerId}`;
+  if (localStorage.getItem(lastRevealedKey) === result.baseType) return;
+
+  // Guard 1 re-check — another async path may have set it while we were computing
+  if (localStorage.getItem("wwe_couples_type_reveal_pending")) return;
+
+  // Fetch display names and avatars for both users
+  const [{ data: userProfile }, { data: partnerProfile }] = await Promise.all([
+    supabase.from("profiles").select("display_name, avatar_url").eq("user_id", userId).maybeSingle(),
+    supabase.from("profiles").select("display_name, avatar_url").eq("user_id", partnerId).maybeSingle(),
+  ]);
+
+  const userName: string = (userProfile?.display_name as string | null) ?? "You";
+  const userAvatarUrl: string = (userProfile?.avatar_url as string | null) ?? "";
+  const partnerName: string = (partnerProfile?.display_name as string | null) ?? "Partner";
+  const partnerAvatarUrl: string = (partnerProfile?.avatar_url as string | null) ?? "";
+
+  // Format avgMatchTime from seconds
+  const avgSec = couplesDNA.avgMatchTimeTogether;
+  let avgMatchTime = "—";
+  if (avgSec !== null && avgSec > 0) {
+    if (avgSec < 60) {
+      avgMatchTime = `${Math.round(avgSec)} sec`;
+    } else if (avgSec < 300) {
+      avgMatchTime = `${Math.round(avgSec / 60)} min flat`;
+    } else {
+      avgMatchTime = `${Math.round(avgSec / 60)} min`;
+    }
+  }
+
+  const payload: CouplesFlavor & { baseType: string } = {
+    type: result.baseType as CouplesFlavor["type"],
+    people: [
+      { name: userName, avatarUrl: userAvatarUrl },
+      { name: partnerName, avatarUrl: partnerAvatarUrl },
+    ],
+    totalMatches: couplesDNA.totalMatchesTogether,
+    topMeal: couplesDNA.allTimeNumber1Together?.mealName ?? "",
+    topCuisine: couplesDNA.mutualCuisines[0]?.cuisine ?? "",
+    avgMatchTime,
+    partnerId,
+    baseType: result.baseType,
+  };
+
+  localStorage.setItem("wwe_couples_type_reveal_pending", JSON.stringify(payload));
 }

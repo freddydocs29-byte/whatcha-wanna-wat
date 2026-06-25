@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import BottomNav from "../components/BottomNav";
 import FlameCard from "../components/FlameCard";
 import type { FlameCardProps } from "../components/FlameCard";
+import CouplesFlavorCard from "../components/CouplesFlavorCard";
+import type { CouplesFlavor } from "../lib/couples-flavor-types";
 import FlavorTypeCard from "../components/FlavorTypeCard";
 import CardRevealOverlay from "../components/CardRevealOverlay";
 import {
@@ -159,6 +161,8 @@ export default function ProfilePage() {
 
   // ── FlameCard overlay (couples only) ──────────────────────────────────────
   const [flameOverlay, setFlameOverlay] = useState<"couples" | null>(null);
+  // ── CouplesFlavorCard overlay ─────────────────────────────────────────────
+  const [showProfileCouplesCard, setShowProfileCouplesCard] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const flameCardRef = useRef<HTMLDivElement>(null);
@@ -1596,20 +1600,22 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  {/* See full couples card */}
-                  <button
-                    onClick={() => setFlameOverlay("couples")}
-                    className="w-full text-sm py-3.5 rounded-full transition hover:opacity-80"
-                    style={{
-                      fontFamily: "var(--font-quicksand)",
-                      fontWeight: 700,
-                      background: "rgba(255,231,202,0.05)",
-                      border: "1px solid rgba(245,237,224,0.12)",
-                      color: "rgba(245,237,224,0.6)",
-                    }}
-                  >
-                    See full couples card →
-                  </button>
+                  {/* See full couples card — only shown when type data is ready */}
+                  {couplesFlavorType && couplesDNA && couplesDNA.totalMatchesTogether >= 7 && (
+                    <button
+                      onClick={() => setShowProfileCouplesCard(true)}
+                      className="w-full text-sm py-3.5 rounded-full transition hover:opacity-80"
+                      style={{
+                        fontFamily: "var(--font-quicksand)",
+                        fontWeight: 700,
+                        background: "rgba(255,231,202,0.05)",
+                        border: "1px solid rgba(245,237,224,0.12)",
+                        color: "rgba(245,237,224,0.6)",
+                      }}
+                    >
+                      See our flavor card →
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="flex justify-center py-6">
@@ -1934,6 +1940,36 @@ export default function ProfilePage() {
             hardNos={hardNosList.length ? hardNosList : undefined}
           />
         </CardRevealOverlay>
+      )}
+
+      {/* ── Couples Flavor Card overlay ───────────────────────────────────── */}
+      {showProfileCouplesCard && couplesFlavorType && couplesDNA && (
+        <CouplesFlavorCard
+          flavor={(() => {
+            const avgSec = couplesDNA.avgMatchTimeTogether;
+            let avgMatchTime = "—";
+            if (avgSec !== null && avgSec > 0) {
+              if (avgSec < 60) avgMatchTime = `${Math.round(avgSec)} sec`;
+              else if (avgSec < 300) avgMatchTime = `${Math.round(avgSec / 60)} min flat`;
+              else avgMatchTime = `${Math.round(avgSec / 60)} min`;
+            }
+            return {
+              type: couplesFlavorType.baseType as CouplesFlavor["type"],
+              people: [
+                { name: displayName || "You", avatarUrl: avatarUrl ?? "" },
+                { name: partnerName ?? "Partner", avatarUrl: partnerAvatarUrl ?? "" },
+              ] as [{ name: string; avatarUrl: string }, { name: string; avatarUrl: string }],
+              totalMatches: couplesDNA.totalMatchesTogether,
+              topMeal: couplesDNA.allTimeNumber1Together?.mealName ?? "",
+              topCuisine: couplesDNA.mutualCuisines[0]?.cuisine ?? "",
+              avgMatchTime,
+              partnerId: selectedPartnerId ?? undefined,
+            } satisfies CouplesFlavor;
+          })()}
+          onShare={() => {/* handled internally by CouplesFlavorCard */}}
+          onSave={() => {/* handled internally by CouplesFlavorCard */}}
+          onClose={() => setShowProfileCouplesCard(false)}
+        />
       )}
 
       {/* ── Hidden off-screen export surface for html2canvas ─────────────────

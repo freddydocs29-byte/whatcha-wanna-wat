@@ -46,7 +46,10 @@ import {
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
 import FlavorTypeReveal from "./components/FlavorTypeReveal";
-import { checkAndTriggerTypeReveal } from "./lib/type-reveal-trigger";
+import CouplesTypeReveal from "./components/CouplesTypeReveal";
+import CouplesFlavorCard from "./components/CouplesFlavorCard";
+import { checkAndTriggerTypeReveal, checkAndTriggerCouplesTypeReveal } from "./lib/type-reveal-trigger";
+import type { CouplesFlavor } from "./lib/couples-flavor-types";
 import V3AppShell from "./components/v3/V3AppShell";
 import V3WatchaHeader from "./components/v3/V3WatchaHeader";
 import V3PeopleSelector from "./components/v3/V3PeopleSelector";
@@ -185,6 +188,9 @@ export default function Home() {
   const [resolvedAvatarUrl, setResolvedAvatarUrl] = useState<string | null>(null);
   const [lockedHeadline, setLockedHeadline] = useState<LockedMealHeadlineResult | null>(null);
   const [typeRevealData, setTypeRevealData] = useState<{ typeName: string; tagline: string } | null>(null);
+  const [couplesTypeRevealData, setCouplesTypeRevealData] = useState<CouplesFlavor | null>(null);
+  const couplesTypeRevealDataRef = useRef<CouplesFlavor | null>(null);
+  const [showCouplesCard, setShowCouplesCard] = useState(false);
   const [activeSession, setActiveSession] = useState<{
     sessionId: string;
     sessionCode: string | null;
@@ -516,6 +522,18 @@ export default function Home() {
               setTodaysPick({ meal, chosenAt: decidedAt });
               // Fire and forget — never blocks the match flow.
               void checkAndTriggerTypeReveal();
+              // Also check whether this match crossed the couples flavor type threshold.
+              // Only fires when both user IDs are available from the session.
+              const currentUserId = getUserId();
+              if (currentUserId && data.host_user_id && data.guest_user_id) {
+                const matchPartnerId =
+                  data.host_user_id === currentUserId
+                    ? data.guest_user_id
+                    : data.host_user_id;
+                if (matchPartnerId) {
+                  void checkAndTriggerCouplesTypeReveal(currentUserId, matchPartnerId);
+                }
+              }
             } else {
               console.warn("[home] matched session has locked_meal_id not found in catalog:", data.locked_meal_id);
             }
@@ -719,9 +737,10 @@ export default function Home() {
     setPendingInvite(null);
   }
 
-  // Keep the ref in sync so event handlers wired with [] deps always see the
-  // latest typeRevealData without needing a stale closure.
+  // Keep the refs in sync so event handlers wired with [] deps always see the
+  // latest reveal data without needing a stale closure.
   useEffect(() => { typeRevealDataRef.current = typeRevealData; }, [typeRevealData]);
+  useEffect(() => { couplesTypeRevealDataRef.current = couplesTypeRevealData; }, [couplesTypeRevealData]);
 
   // Consumes wwe_type_reveal_pending and fires the overlay exactly once.
   // Guarded against SSR and double-show.
@@ -757,17 +776,45 @@ export default function Home() {
     }
   }
 
+  // Consumes wwe_couples_type_reveal_pending and fires the couples overlay exactly once.
+  function checkPendingCouplesTypeReveal() {
+    if (typeof window === "undefined") return;
+    if (couplesTypeRevealDataRef.current) return; // already showing — don't double-fire
+
+    const raw = localStorage.getItem("wwe_couples_type_reveal_pending");
+    if (!raw) return;
+
+    try {
+      const payload = JSON.parse(raw) as CouplesFlavor & { baseType?: string; partnerId?: string };
+      const { baseType, partnerId } = payload;
+      if (baseType && partnerId) {
+        localStorage.setItem(`wwe_couples_type_last_revealed_${partnerId}`, baseType);
+      }
+      localStorage.removeItem("wwe_couples_type_reveal_pending");
+      // Strip the internal fields before passing to the component
+      const { baseType: _bt, ...flavorData } = payload;
+      void _bt; // satisfy linter
+      setCouplesTypeRevealData(flavorData as CouplesFlavor);
+    } catch {
+      localStorage.removeItem("wwe_couples_type_reveal_pending");
+    }
+  }
+
   // 1. Check on home mount.
   useEffect(() => {
     checkPendingTypeReveal();
+    checkPendingCouplesTypeReveal();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 2. Check on window focus (tab switch / app return) and visibilitychange.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onFocus = () => checkPendingTypeReveal();
+    const onFocus = () => { checkPendingTypeReveal(); checkPendingCouplesTypeReveal(); };
     const onVisibility = () => {
-      if (document.visibilityState === "visible") checkPendingTypeReveal();
+      if (document.visibilityState === "visible") {
+        checkPendingTypeReveal();
+        checkPendingCouplesTypeReveal();
+      }
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
@@ -779,7 +826,7 @@ export default function Home() {
 
   // 3. Check whenever the client-side pathname becomes "/" (bottom-nav navigation).
   useEffect(() => {
-    if (pathname === "/") checkPendingTypeReveal();
+    if (pathname === "/") { checkPendingTypeReveal(); checkPendingCouplesTypeReveal(); }
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 4. After a decision locks in, give the background type-reveal check ~3 s to
@@ -787,7 +834,10 @@ export default function Home() {
   //    focus/visibility event or a Profile visit.
   useEffect(() => {
     if (!decidedMeal) return;
-    const timer = setTimeout(() => checkPendingTypeReveal(), 3000);
+    const timer = setTimeout(() => {
+      checkPendingTypeReveal();
+      checkPendingCouplesTypeReveal();
+    }, 3000);
     return () => clearTimeout(timer);
   }, [decidedMealId, decidedMealDecidedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -2015,6 +2065,28 @@ export default function Home() {
           tagline={typeRevealData.tagline}
           onDismiss={handleRevealDismiss}
           onViewProfile={handleRevealViewProfile}
+        />
+      )}
+
+      {/* Couples flavor type reveal — shown once when couple crosses the 7-match threshold */}
+      {couplesTypeRevealData && !typeRevealData && (
+        <CouplesTypeReveal
+          flavor={couplesTypeRevealData}
+          onDismiss={() => setCouplesTypeRevealData(null)}
+          onViewCard={() => {
+            setCouplesTypeRevealData(null);
+            setShowCouplesCard(true);
+          }}
+        />
+      )}
+
+      {/* Couples flavor card — opened from reveal CTA or profile page button */}
+      {showCouplesCard && couplesTypeRevealData && (
+        <CouplesFlavorCard
+          flavor={couplesTypeRevealData}
+          onShare={() => {/* handled internally */}}
+          onSave={() => {/* handled internally */}}
+          onClose={() => setShowCouplesCard(false)}
         />
       )}
 
