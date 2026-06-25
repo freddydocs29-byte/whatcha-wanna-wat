@@ -835,9 +835,7 @@ export default function Home() {
     if (pathname === "/") {
       checkPendingTypeReveal();
       checkPendingCouplesTypeReveal();
-      if (!pollRunningRef.current && typeof window !== "undefined" && localStorage.getItem("wwe_active_session")) {
-        setSessionPollKey((k) => k + 1);
-      }
+      setSessionPollKey((k) => k + 1);
     }
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
