@@ -107,7 +107,19 @@ export async function buildSharedDeckForSession(
 
   const profiles = profilesResult.data;
   const hostProfile = profiles?.find((p) => p.user_id === hostUserId) ?? null;
-  const guestProfile = profiles?.find((p) => p.user_id === guestUserId) ?? null;
+  let guestProfile = profiles?.find((p) => p.user_id === guestUserId) ?? null;
+
+  // If guest joined as an authenticated user (guest_user_id = Supabase auth UUID),
+  // their profile row is keyed by a different localStorage UUID. Fall back to
+  // looking up by auth_user_id so we get their real preferences.
+  if (!guestProfile) {
+    const { data: authLookup } = await supabase
+      .from("profiles")
+      .select("user_id, dietary_restrictions, hard_no_foods, favorite_cuisines, learned_weights, recently_seen_meal_ids")
+      .eq("auth_user_id", guestUserId)
+      .maybeSingle();
+    guestProfile = authLookup ?? null;
+  }
 
   // Convert recently_chosen [{meal_id, chosen_at}] → HistoryEntry[] for time-based penalties
   const toHistory = (

@@ -29,7 +29,7 @@ import {
   uploadAvatar,
 } from "../lib/supabase-profile";
 import { detectRituals, type RitualDetection } from "../lib/rituals";
-import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
+import { getUserId, getAuthUserId, getCanonicalUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import { supabase, type SoftAvoid } from "../lib/supabase";
 import {
   type SoloDNA,
@@ -249,9 +249,12 @@ export default function ProfilePage() {
     // ── DNA load (single endpoint, runs in parallel with identity) ────────
     (async () => {
       try {
+        // Use canonical UUID (auth UUID when signed in) so Supabase queries
+        // return data written under the participant's session identity.
+        const canonicalUserId = await getCanonicalUserId();
         const [fetchRes, selfProfile] = await Promise.all([
-          fetch(`/api/profile/dna?userId=${encodeURIComponent(userId)}`),
-          fetchOrCreateProfile(userId),
+          fetch(`/api/profile/dna?userId=${encodeURIComponent(canonicalUserId)}`),
+          fetchOrCreateProfile(canonicalUserId),
         ]);
 
         if (!fetchRes.ok) throw new Error(`DNA API ${fetchRes.status}`);
@@ -285,7 +288,7 @@ export default function ProfilePage() {
         //   2. Supabase flavor_types (fallback if cache was cleared)
         //   3. getFlavorType (compute fresh — never overwrites a valid cached value with null)
         if (data.solo) {
-          getFlavorType(data.solo, "solo", selfProfile?.display_name ?? undefined, userId)
+          getFlavorType(data.solo, "solo", selfProfile?.display_name ?? undefined, canonicalUserId)
             .then((result) => {
               if (result !== null) {
                 // Fresh or cache-hit result — always use it.
@@ -299,7 +302,7 @@ export default function ProfilePage() {
                     const { data: ftRow } = await supabase
                       .from("flavor_types")
                       .select("base_type, personalized_name, tagline, confidence, session_count, updated_at")
-                      .eq("user_id", userId)
+                      .eq("user_id", canonicalUserId)
                       .eq("context", "solo")
                       .single();
                     if (ftRow?.personalized_name && ftRow.base_type) {
@@ -347,7 +350,7 @@ export default function ProfilePage() {
           // Make a second call with the first partner's ID to get couplesDNA.
           try {
             const couplesRes = await fetch(
-              `/api/profile/dna?userId=${encodeURIComponent(userId)}&partnerId=${encodeURIComponent(firstPartner.partnerId)}`
+              `/api/profile/dna?userId=${encodeURIComponent(canonicalUserId)}&partnerId=${encodeURIComponent(firstPartner.partnerId)}`
             );
             if (couplesRes.ok) {
               const couplesData = (await couplesRes.json()) as { couples: CouplesDNA | null };
@@ -357,7 +360,7 @@ export default function ProfilePage() {
                   couplesData.couples,
                   selfProfile?.display_name ?? undefined,
                   firstPartner.displayName ?? undefined,
-                  userId,
+                  canonicalUserId,
                   firstPartner.partnerId
                 ).catch(() => []);
                 setCouplesInsights(ci);
@@ -368,7 +371,7 @@ export default function ProfilePage() {
                     couplesData.couples,
                     { partnerId: firstPartner.partnerId },
                     selfProfile?.display_name ?? undefined,
-                    userId
+                    canonicalUserId
                   )
                     .then(setCouplesFlavorType)
                     .catch(() => { /* non-fatal */ });

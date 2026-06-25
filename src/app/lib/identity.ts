@@ -29,6 +29,19 @@ export async function getAuthUserId(): Promise<string | null> {
 }
 
 /**
+ * Returns the canonical user ID for this device:
+ *   - Supabase auth UUID when the user is signed in with Google
+ *   - localStorage anonymous UUID otherwise
+ *
+ * Use this anywhere an ID must match what was written to the DB by
+ * authenticated operations (e.g. session participant lookup, partner queries).
+ */
+export async function getCanonicalUserId(): Promise<string> {
+  const authId = await getAuthUserId();
+  return authId ?? getUserId();
+}
+
+/**
  * All localStorage keys owned by this app.
  * Update this list whenever a new key is added to storage.ts or elsewhere.
  */

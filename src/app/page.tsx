@@ -9,7 +9,7 @@ import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
 import SplashScreen from "./components/SplashScreen";
 import SessionResumeBanner, { computeBannerText } from "./components/SessionResumeBanner";
 import { supabase } from "./lib/supabase";
-import { getUserId } from "./lib/identity";
+import { getUserId, getCanonicalUserId } from "./lib/identity";
 import { guestDeckBudgetExhausted, incrementGuestAttempts } from "./lib/guestLimit";
 import {
   getSavedMeals,
@@ -524,16 +524,18 @@ export default function Home() {
               void checkAndTriggerTypeReveal();
               // Also check whether this match crossed the couples flavor type threshold.
               // Only fires when both user IDs are available from the session.
-              const currentUserId = getUserId();
-              if (currentUserId && data.host_user_id && data.guest_user_id) {
-                const matchPartnerId =
-                  data.host_user_id === currentUserId
-                    ? data.guest_user_id
-                    : data.host_user_id;
-                if (matchPartnerId) {
-                  void checkAndTriggerCouplesTypeReveal(currentUserId, matchPartnerId);
+              void (async () => {
+                const currentUserId = await getCanonicalUserId();
+                if (currentUserId && data.host_user_id && data.guest_user_id) {
+                  const matchPartnerId =
+                    data.host_user_id === currentUserId
+                      ? data.guest_user_id
+                      : data.host_user_id;
+                  if (matchPartnerId) {
+                    void checkAndTriggerCouplesTypeReveal(currentUserId, matchPartnerId);
+                  }
                 }
-              }
+              })();
             } else {
               console.warn("[home] matched session has locked_meal_id not found in catalog:", data.locked_meal_id);
             }
@@ -921,7 +923,7 @@ export default function Home() {
     setSessionError(null);
 
     try {
-      const hostId = getUserId();
+      const hostId = await getCanonicalUserId();
       // 12-hour window — matches the DB column default
       const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
 
@@ -1023,7 +1025,7 @@ export default function Home() {
   // Separate from handleDecideWithSomeone so that function remains unchanged.
   async function createSessionForInvite(): Promise<{ sessionId: string; sessionCode: string } | null> {
     try {
-      const hostId = getUserId();
+      const hostId = await getCanonicalUserId();
       const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
       for (let attempt = 0; attempt < 3; attempt++) {
         const sessionCode = generateSessionCode();
