@@ -277,11 +277,29 @@ function toDayTypeBucket(
 
 // ── Public functions ──────────────────────────────────────────────────────────
 
-export async function getSoloDNA(userId: string): Promise<SoloDNA> {
+/**
+ * Normalises a userId param to an array of one or more IDs.
+ * Filters out blanks so callers can pass getKnownUserIds() results directly.
+ */
+function toIds(userId: string | string[]): string[] {
+  const ids = Array.isArray(userId) ? userId : [userId];
+  return ids.filter(Boolean);
+}
+
+/**
+ * Builds a Supabase OR-filter string that matches any of the given IDs
+ * against two columns (e.g. "user_id_a" and "user_id_b").
+ */
+function buildPairOrFilter(ids: string[], colA: string, colB: string): string {
+  return ids.flatMap((id) => [`${colA}.eq.${id}`, `${colB}.eq.${id}`]).join(",");
+}
+
+export async function getSoloDNA(userId: string | string[]): Promise<SoloDNA> {
+  const ids = toIds(userId);
   const { data: decisions } = await supabase
     .from("decisions")
     .select("*")
-    .eq("user_id", userId)
+    .in("user_id", ids)
     .eq("outcome", "accepted")
     .order("decided_at", { ascending: false });
 
@@ -505,20 +523,35 @@ export type PartnerInfo = {
   avatarUrl: string | null;
 };
 
-export async function getAllPartners(userId: string): Promise<PartnerInfo[]> {
+export async function getAllPartners(userId: string | string[]): Promise<PartnerInfo[]> {
+  const myIds = toIds(userId);
+  const myIdSet = new Set(myIds);
+
   const { data: relationships } = await supabase
     .from("partner_relationships")
     .select("user_id_a, user_id_b, session_count, match_count")
-    .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`)
+    .or(buildPairOrFilter(myIds, "user_id_a", "user_id_b"))
     .order("session_count", { ascending: false });
 
   if (!relationships?.length) return [];
 
-  const partnerIds = relationships.map((r) =>
-    (r.user_id_a as string) === userId
+  // Deduplicate partners: a partner may appear under multiple of our IDs.
+  // Keep the row with the highest session_count.
+  const partnerMap = new Map<string, { sessionCount: number; matchCount: number }>();
+  for (const r of relationships) {
+    const pid = myIdSet.has(r.user_id_a as string)
       ? (r.user_id_b as string)
-      : (r.user_id_a as string)
-  );
+      : (r.user_id_a as string);
+    if (myIdSet.has(pid)) continue; // skip rows where both sides are "us"
+    const existing = partnerMap.get(pid);
+    const sc = (r.session_count as number) ?? 0;
+    if (!existing || sc > existing.sessionCount) {
+      partnerMap.set(pid, { sessionCount: sc, matchCount: (r.match_count as number) ?? 0 });
+    }
+  }
+
+  const partnerIds = Array.from(partnerMap.keys());
+  if (!partnerIds.length) return [];
 
   const { data: profiles } = await supabase
     .from("profiles")
@@ -529,16 +562,13 @@ export async function getAllPartners(userId: string): Promise<PartnerInfo[]> {
     (profiles ?? []).map((p) => [p.user_id as string, p])
   );
 
-  return relationships.map((r) => {
-    const partnerId =
-      (r.user_id_a as string) === userId
-        ? (r.user_id_b as string)
-        : (r.user_id_a as string);
+  return partnerIds.map((partnerId) => {
+    const rel = partnerMap.get(partnerId)!;
     const profile = profileMap.get(partnerId);
     return {
       partnerId,
-      sessionCount: (r.session_count as number) ?? 0,
-      matchCount: (r.match_count as number) ?? 0,
+      sessionCount: rel.sessionCount,
+      matchCount: rel.matchCount,
       lastSessionAt: null,
       displayName: (profile?.display_name as string | null) ?? null,
       avatarUrl: (profile?.avatar_url as string | null) ?? null,
@@ -550,19 +580,25 @@ export async function getAllPartners(userId: string): Promise<PartnerInfo[]> {
  * Returns partners sorted by most-recently-shared session, with deduplication.
  * Falls back to getAllPartners (session-count order) if no sessions exist yet.
  * Used for homepage display — does not affect scoring or DNA computation.
+ *
+ * Accepts one or more user IDs so historical rows written under either the
+ * localStorage UUID or the Supabase auth UUID are both found.
  */
-export async function getRecentPartners(userId: string): Promise<PartnerInfo[]> {
+export async function getRecentPartners(userId: string | string[]): Promise<PartnerInfo[]> {
+  const myIds = toIds(userId);
+  const myIdSet = new Set(myIds);
+
   // Query sessions with a real partner, most recent first
   const { data: sessions } = await supabase
     .from("sessions")
     .select("host_user_id, guest_user_id, created_at")
-    .or(`host_user_id.eq.${userId},guest_user_id.eq.${userId}`)
+    .or(buildPairOrFilter(myIds, "host_user_id", "guest_user_id"))
     .not("guest_user_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(50);
 
   if (!sessions?.length) {
-    return getAllPartners(userId);
+    return getAllPartners(myIds);
   }
 
   // Deduplicate: first occurrence of each partner = most recent session
@@ -570,18 +606,17 @@ export async function getRecentPartners(userId: string): Promise<PartnerInfo[]> 
   const recentPartnerIds: string[] = [];
   const latestSessionAt = new Map<string, string>();
   for (const s of sessions) {
-    const partnerId =
-      (s.host_user_id as string) === userId
-        ? (s.guest_user_id as string)
-        : (s.host_user_id as string);
-    if (partnerId && !seen.has(partnerId)) {
+    const partnerId = myIdSet.has(s.host_user_id as string)
+      ? (s.guest_user_id as string)
+      : (s.host_user_id as string);
+    if (partnerId && !myIdSet.has(partnerId) && !seen.has(partnerId)) {
       seen.add(partnerId);
       recentPartnerIds.push(partnerId);
       latestSessionAt.set(partnerId, s.created_at as string);
     }
   }
 
-  if (!recentPartnerIds.length) return getAllPartners(userId);
+  if (!recentPartnerIds.length) return getAllPartners(myIds);
 
   // Fetch profiles for recent partners
   const { data: profiles } = await supabase
@@ -597,18 +632,19 @@ export async function getRecentPartners(userId: string): Promise<PartnerInfo[]> 
   const { data: relationships } = await supabase
     .from("partner_relationships")
     .select("user_id_a, user_id_b, session_count, match_count")
-    .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`);
+    .or(buildPairOrFilter(myIds, "user_id_a", "user_id_b"));
 
   const relMap = new Map<string, { sessionCount: number; matchCount: number }>();
   for (const r of relationships ?? []) {
-    const pid =
-      (r.user_id_a as string) === userId
-        ? (r.user_id_b as string)
-        : (r.user_id_a as string);
-    relMap.set(pid, {
-      sessionCount: (r.session_count as number) ?? 0,
-      matchCount: (r.match_count as number) ?? 0,
-    });
+    const pid = myIdSet.has(r.user_id_a as string)
+      ? (r.user_id_b as string)
+      : (r.user_id_a as string);
+    if (myIdSet.has(pid)) continue;
+    const sc = (r.session_count as number) ?? 0;
+    const existing = relMap.get(pid);
+    if (!existing || sc > existing.sessionCount) {
+      relMap.set(pid, { sessionCount: sc, matchCount: (r.match_count as number) ?? 0 });
+    }
   }
 
   return recentPartnerIds.map((partnerId) => {
@@ -766,11 +802,12 @@ export async function getCouplesDNA(
 // Returns the number of matched sessions the user has participated in across
 // ALL partners — not filtered by a specific partner. One count per session
 // (no double-counting when both users have rows in the decisions table).
-export async function getTotalSharedDecisions(userId: string): Promise<number> {
+export async function getTotalSharedDecisions(userId: string | string[]): Promise<number> {
+  const ids = toIds(userId);
   const { data, error } = await supabase
     .from("sessions")
     .select("id")
-    .or(`host_user_id.eq.${userId},guest_user_id.eq.${userId}`)
+    .or(buildPairOrFilter(ids, "host_user_id", "guest_user_id"))
     .eq("status", "matched");
 
   if (error) {

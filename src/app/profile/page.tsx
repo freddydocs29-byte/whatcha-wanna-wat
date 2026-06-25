@@ -29,7 +29,7 @@ import {
   uploadAvatar,
 } from "../lib/supabase-profile";
 import { detectRituals, type RitualDetection } from "../lib/rituals";
-import { getUserId, getAuthUserId, getCanonicalUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
+import { getUserId, getAuthUserId, getKnownUserIds, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import { supabase, type SoftAvoid } from "../lib/supabase";
 import {
   type SoloDNA,
@@ -249,12 +249,15 @@ export default function ProfilePage() {
     // ── DNA load (single endpoint, runs in parallel with identity) ────────
     (async () => {
       try {
-        // Use canonical UUID (auth UUID when signed in) so Supabase queries
-        // return data written under the participant's session identity.
-        const canonicalUserId = await getCanonicalUserId();
+        // Use all known IDs (localStorage UUID + auth UUID when signed in) so
+        // rows written under either identity are found. localStorage UUID is
+        // always first — it is the canonical write identity.
+        const knownIds = await getKnownUserIds();
+        const primaryId = getUserId(); // always localStorage UUID
+        const allUserIds = knownIds.join(",");
         const [fetchRes, selfProfile] = await Promise.all([
-          fetch(`/api/profile/dna?userId=${encodeURIComponent(canonicalUserId)}`),
-          fetchOrCreateProfile(canonicalUserId),
+          fetch(`/api/profile/dna?userId=${encodeURIComponent(primaryId)}&allUserIds=${encodeURIComponent(allUserIds)}`),
+          fetchOrCreateProfile(primaryId),
         ]);
 
         if (!fetchRes.ok) throw new Error(`DNA API ${fetchRes.status}`);
@@ -288,7 +291,7 @@ export default function ProfilePage() {
         //   2. Supabase flavor_types (fallback if cache was cleared)
         //   3. getFlavorType (compute fresh — never overwrites a valid cached value with null)
         if (data.solo) {
-          getFlavorType(data.solo, "solo", selfProfile?.display_name ?? undefined, canonicalUserId)
+          getFlavorType(data.solo, "solo", selfProfile?.display_name ?? undefined, primaryId)
             .then((result) => {
               if (result !== null) {
                 // Fresh or cache-hit result — always use it.
@@ -302,7 +305,7 @@ export default function ProfilePage() {
                     const { data: ftRow } = await supabase
                       .from("flavor_types")
                       .select("base_type, personalized_name, tagline, confidence, session_count, updated_at")
-                      .eq("user_id", canonicalUserId)
+                      .eq("user_id", primaryId)
                       .eq("context", "solo")
                       .single();
                     if (ftRow?.personalized_name && ftRow.base_type) {
@@ -350,7 +353,7 @@ export default function ProfilePage() {
           // Make a second call with the first partner's ID to get couplesDNA.
           try {
             const couplesRes = await fetch(
-              `/api/profile/dna?userId=${encodeURIComponent(canonicalUserId)}&partnerId=${encodeURIComponent(firstPartner.partnerId)}`
+              `/api/profile/dna?userId=${encodeURIComponent(primaryId)}&allUserIds=${encodeURIComponent(allUserIds)}&partnerId=${encodeURIComponent(firstPartner.partnerId)}`
             );
             if (couplesRes.ok) {
               const couplesData = (await couplesRes.json()) as { couples: CouplesDNA | null };
@@ -360,7 +363,7 @@ export default function ProfilePage() {
                   couplesData.couples,
                   selfProfile?.display_name ?? undefined,
                   firstPartner.displayName ?? undefined,
-                  canonicalUserId,
+                  primaryId,
                   firstPartner.partnerId
                 ).catch(() => []);
                 setCouplesInsights(ci);
@@ -371,7 +374,7 @@ export default function ProfilePage() {
                     couplesData.couples,
                     { partnerId: firstPartner.partnerId },
                     selfProfile?.display_name ?? undefined,
-                    canonicalUserId
+                    primaryId
                   )
                     .then(setCouplesFlavorType)
                     .catch(() => { /* non-fatal */ });
@@ -624,8 +627,10 @@ export default function ProfilePage() {
     })();
     try {
       const uid = getUserId();
+      const knownIds = await getKnownUserIds();
+      const allUserIds = knownIds.join(",");
       const res = await fetch(
-        `/api/profile/dna?userId=${encodeURIComponent(uid)}&partnerId=${encodeURIComponent(partnerId)}`
+        `/api/profile/dna?userId=${encodeURIComponent(uid)}&allUserIds=${encodeURIComponent(allUserIds)}&partnerId=${encodeURIComponent(partnerId)}`
       );
       if (!res.ok) throw new Error(`DNA API ${res.status}`);
       const data = (await res.json()) as { couples: CouplesDNA | null };

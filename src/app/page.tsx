@@ -9,7 +9,7 @@ import { AnimatedHeadlineWord } from "./components/AnimatedHeadlineWord";
 import SplashScreen from "./components/SplashScreen";
 import SessionResumeBanner, { computeBannerText } from "./components/SessionResumeBanner";
 import { supabase } from "./lib/supabase";
-import { getUserId, getCanonicalUserId } from "./lib/identity";
+import { getUserId, getCanonicalUserId, getKnownUserIds } from "./lib/identity";
 import { guestDeckBudgetExhausted, incrementGuestAttempts } from "./lib/guestLimit";
 import {
   getSavedMeals,
@@ -307,14 +307,15 @@ export default function Home() {
       setReady(true);
 
       // Fire-and-forget — never blocks Home from showing
-      const userId = getUserId();
-      getRecentPartners(userId).then((list) => {
+      // Use all known IDs so sessions written under either localStorage or auth UUID are found.
+      const localUserId = getUserId();
+      getKnownUserIds().then((knownIds) => getRecentPartners(knownIds)).then((list) => {
         // ── Hidden-partners: stable device key ─────────────────────────────
         // New canonical key — not userId-suffixed so it survives UUID rotation.
         const HIDDEN_KEY = "wwe_hidden_partner_ids";
 
         // One-time migration: merge any IDs from the old userId-suffixed key.
-        const oldKey = `wwe_hidden_home_partners_${userId}`;
+        const oldKey = `wwe_hidden_home_partners_${localUserId}`;
         const oldRaw = typeof window !== "undefined" ? localStorage.getItem(oldKey) : null;
         if (oldRaw) {
           try {
@@ -626,16 +627,17 @@ export default function Home() {
   // Poll for pending in-app invites addressed to this user.
   // Checks once on mount then every 12 seconds while Home is visible.
   useEffect(() => {
-    const myId = getUserId();
     let mounted = true;
 
     async function fetchPendingInvite() {
       try {
+        // Use all known IDs so invites written against either localStorage or auth UUID are found.
+        const myIds = await getKnownUserIds();
         const now = new Date().toISOString();
         const { data, error } = await supabase
           .from("session_invites")
           .select("id, session_id, session_code, from_user_id, vibe, created_at")
-          .eq("to_user_id", myId)
+          .in("to_user_id", myIds)
           .eq("status", "pending")
           .or(`expires_at.is.null,expires_at.gt.${now}`)
           .order("created_at", { ascending: false })
@@ -923,7 +925,7 @@ export default function Home() {
     setSessionError(null);
 
     try {
-      const hostId = await getCanonicalUserId();
+      const hostId = getUserId();
       // 12-hour window — matches the DB column default
       const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
 
@@ -1025,7 +1027,7 @@ export default function Home() {
   // Separate from handleDecideWithSomeone so that function remains unchanged.
   async function createSessionForInvite(): Promise<{ sessionId: string; sessionCode: string } | null> {
     try {
-      const hostId = await getCanonicalUserId();
+      const hostId = getUserId();
       const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
       for (let attempt = 0; attempt < 3; attempt++) {
         const sessionCode = generateSessionCode();

@@ -27,13 +27,23 @@ interface DNAResponse {
 
 // ── GET /api/profile/dna ───────────────────────────────────────────────────────
 // Query params:
-//   userId    (required) — the user whose DNA to load
-//   partnerId (optional) — when provided, also loads couples DNA for this pair
+//   userId      (required) — primary user ID (localStorage UUID)
+//   allUserIds  (optional) — comma-separated list of all known IDs for this user
+//                            (localStorage UUID + auth UUID); used for read queries
+//                            so rows written under either identity are found
+//   partnerId   (optional) — when provided, also loads couples DNA for this pair
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = req.nextUrl;
   const userId = searchParams.get("userId");
   const partnerId = searchParams.get("partnerId") ?? undefined;
+  // Parse allUserIds — falls back to [userId] if not provided
+  const allUserIdsParam = searchParams.get("allUserIds");
+  const queryIds: string[] = allUserIdsParam
+    ? allUserIdsParam.split(",").map((s) => s.trim()).filter(Boolean)
+    : userId
+    ? [userId]
+    : [];
 
   if (!userId) {
     return NextResponse.json(
@@ -53,21 +63,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   // ── Solo DNA ──────────────────────────────────────────────────────────────
   try {
-    result.solo = await getSoloDNA(userId);
+    result.solo = await getSoloDNA(queryIds);
   } catch (err) {
     console.error("[api/profile/dna] getSoloDNA failed:", err);
   }
 
   // ── Partners ──────────────────────────────────────────────────────────────
   try {
-    result.partners = await getAllPartners(userId);
+    result.partners = await getAllPartners(queryIds);
   } catch (err) {
     console.error("[api/profile/dna] getAllPartners failed:", err);
   }
 
   // ── Global shared decision count (all partners) ──────────────────────────
   try {
-    result.totalSharedDecisions = await getTotalSharedDecisions(userId);
+    result.totalSharedDecisions = await getTotalSharedDecisions(queryIds);
   } catch (err) {
     console.error("[api/profile/dna] getTotalSharedDecisions failed:", err);
   }

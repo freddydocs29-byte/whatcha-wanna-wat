@@ -42,6 +42,19 @@ export async function getCanonicalUserId(): Promise<string> {
 }
 
 /**
+ * Returns all known user IDs for this device: the localStorage UUID and,
+ * when signed in with Google, the Supabase auth UUID.
+ *
+ * Use this for READ queries only — so rows written under either UUID are found.
+ * All WRITE operations must continue using getUserId() (localStorage UUID).
+ */
+export async function getKnownUserIds(): Promise<string[]> {
+  const localId = getUserId();
+  const authId = await getAuthUserId();
+  return Array.from(new Set([localId, authId].filter(Boolean) as string[]));
+}
+
+/**
  * All localStorage keys owned by this app.
  * Update this list whenever a new key is added to storage.ts or elsewhere.
  */
