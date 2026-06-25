@@ -829,8 +829,16 @@ export default function Home() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 3. Check whenever the client-side pathname becomes "/" (bottom-nav navigation).
+  //    Also re-bootstrap the session poll so guests who joined and clicked back see
+  //    the resume banner — visibilitychange/focus don't fire on same-tab back nav.
   useEffect(() => {
-    if (pathname === "/") { checkPendingTypeReveal(); checkPendingCouplesTypeReveal(); }
+    if (pathname === "/") {
+      checkPendingTypeReveal();
+      checkPendingCouplesTypeReveal();
+      if (!pollRunningRef.current && typeof window !== "undefined" && localStorage.getItem("wwe_active_session")) {
+        setSessionPollKey((k) => k + 1);
+      }
+    }
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 4. After a decision locks in, give the background type-reveal check ~3 s to

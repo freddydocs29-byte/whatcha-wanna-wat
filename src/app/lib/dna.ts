@@ -663,17 +663,47 @@ export async function getRecentPartners(userId: string | string[]): Promise<Part
 
 export async function getCouplesDNA(
   userIdA: string,
-  userIdB: string
+  userIdB: string,
+  knownUserIdsA?: string[]
 ): Promise<CouplesDNA> {
-  const [sortedA, sortedB] = [userIdA, userIdB].sort();
+  // Build the list of IDs to try for user A. When the caller supplies
+  // knownUserIdsA (localStorage UUID + auth UUID), rows written under either
+  // identity are found even when the UUIDs differ across sessions.
+  const idsA = knownUserIdsA?.length ? knownUserIdsA : [userIdA];
 
-  // Look up the canonical relationship row for this pair
-  const { data: relationship } = await supabase
+  // Build an OR filter across all combinations of idsA × [userIdB], with each
+  // pair normalised through alphabetic sort to match the storage convention
+  // (user_id_a ≤ user_id_b).
+  const pairs = idsA.flatMap((a) => {
+    const [sa, sb] = [a, userIdB].sort();
+    return `and(user_id_a.eq.${sa},user_id_b.eq.${sb})`;
+  });
+
+  // Look up the best canonical relationship row — prefer the row with the
+  // highest counts so fragmented duplicates don't hide real history.
+  const { data: relData } = await supabase
     .from("partner_relationships")
     .select("last_session_id, session_count, match_count")
-    .eq("user_id_a", sortedA)
-    .eq("user_id_b", sortedB)
+    .or(pairs.join(","))
+    .order("session_count", { ascending: false })
+    .order("match_count", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  // Fallback: original exact-pair lookup in case the OR query yields nothing
+  // (e.g. idsA is empty or the row predates knownUserIds support).
+  let relationship = relData ?? null;
+  if (!relationship) {
+    const [sortedA, sortedB] = [userIdA, userIdB].sort();
+    const { data: fallbackData } = await supabase
+      .from("partner_relationships")
+      .select("last_session_id, session_count, match_count")
+      .eq("user_id_a", sortedA)
+      .eq("user_id_b", sortedB)
+      .maybeSingle();
+    relationship = fallbackData ?? null;
+  }
 
   if (!relationship) return emptyCouplesDNA();
 

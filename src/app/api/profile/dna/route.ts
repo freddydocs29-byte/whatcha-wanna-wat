@@ -85,7 +85,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // ── Couples DNA (only when partnerId provided) ────────────────────────────
   if (partnerId) {
     try {
-      result.couples = await getCouplesDNA(userId, partnerId);
+      // Pass queryIds so getCouplesDNA can find rows written under either the
+      // localStorage UUID or the auth UUID for the current user.
+      result.couples = await getCouplesDNA(userId, partnerId, queryIds);
     } catch (err) {
       console.error("[api/profile/dna] getCouplesDNA failed:", err);
     }
