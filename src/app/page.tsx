@@ -702,7 +702,7 @@ export default function Home() {
       })
       .eq("id", pendingInvite.session_id)
       .is("guest_user_id", null)
-      .select("id")
+      .select("id, session_code, expires_at, status, vibe")
       .single();
 
     if (!sessionData) {
@@ -724,6 +724,18 @@ export default function Home() {
       .eq("id", pendingInvite.id);
     if (error) {
       console.warn("[invites] Failed to mark invite accepted:", error.message);
+    }
+
+    // Write wwe_active_session so the home banner can surface a resume option
+    // if the guest navigates back before joinSession() on the session page runs.
+    if (typeof window !== "undefined") {
+      localStorage.setItem("wwe_active_session", JSON.stringify({
+        sessionId: sessionData.id,
+        sessionCode: sessionData.session_code ?? pendingInvite.session_code ?? null,
+        expiresAt: sessionData.expires_at,
+        status: sessionData.status,
+        vibe: sessionData.vibe ?? pendingInvite.vibe ?? "mix-it-up",
+      }));
     }
 
     router.push(`/session/${pendingInvite.session_id}`);
