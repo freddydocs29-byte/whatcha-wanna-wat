@@ -48,6 +48,12 @@ export async function fetchOrCreateProfile(userId: string): Promise<Profile | nu
 
     if (data) return data as Profile;
 
+    // Not found by user_id — caller may have passed an auth UUID.
+    // Check whether a profile already exists with this value as auth_user_id
+    // before creating a ghost row keyed by the auth UUID.
+    const authLinked = await fetchProfileByAuthUserId(userId);
+    if (authLinked) return authLinked;
+
     // Profile doesn't exist yet — create an empty row.
     const { data: created, error: insertError } = await supabase
       .from("profiles")
