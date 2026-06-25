@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase, Session } from "../../lib/supabase";
-import { getUserId, getAuthUserId } from "../../lib/identity";
+import { getUserId, getAuthUserId, getKnownUserIds } from "../../lib/identity";
 import { buildSharedDeckForSession } from "../../lib/deck";
 import { upsertProfilePreferences, syncBehavioralSignalsToSupabase, fetchOrCreateProfile } from "../../lib/supabase-profile";
 import type { Profile } from "../../lib/supabase";
@@ -261,8 +261,14 @@ export default function SessionPage() {
     setSession(s);
 
     const myId = resolvedUserId;
+    // Use all known IDs (localStorage UUID + auth UUID) so the host is always
+    // recognised even when getAuthUserId() returns a different UUID than the
+    // one that was written to host_user_id at session-creation time.
+    const knownIds = await getKnownUserIds();
+    const isHost = knownIds.includes(s.host_user_id);
+    const isGuest = s.guest_user_id ? knownIds.includes(s.guest_user_id) : false;
 
-    if (myId === s.host_user_id) {
+    if (isHost) {
       setRole("host");
       // Only initialize selectedVibe once — don't let polls reset what the user picked
       if (s.vibe && !vibeInitializedRef.current) {
@@ -293,7 +299,7 @@ export default function SessionPage() {
           .from("session_invites")
           .select("to_user_id")
           .eq("session_id", sessionId)
-          .eq("from_user_id", myId)
+          .in("from_user_id", knownIds)
           .eq("status", "pending")
           .order("created_at", { ascending: false })
           .limit(1)
@@ -328,7 +334,7 @@ export default function SessionPage() {
         // Guest joined or session advanced — clear targeted invite state
         setTargetedInviteUser(null);
       }
-    } else if (myId === s.guest_user_id) {
+    } else if (isGuest) {
       setRole("guest");
     } else if (s.guest_user_id !== null) {
       setRole("full");
@@ -387,7 +393,10 @@ export default function SessionPage() {
   const joinSession = useCallback(async () => {
     if (!resolvedUserId) return;
     setJoining(true);
-    const myId = resolvedUserId;
+    // Always write the localStorage UUID for guest_user_id — never the auth UUID.
+    // session_invites.to_user_id is always a localStorage UUID (written by getUserId()
+    // on the host side), so guest_user_id must stay consistent with that convention.
+    const myId = getUserId();
 
     const { data, error: joinError } = await supabase
       .from("sessions")
@@ -504,11 +513,40 @@ export default function SessionPage() {
 
   // Auto-join if guest slot is open — only after setup is confirmed not needed
   // and identity has been resolved (prevents a spurious join with a null userId).
+  // Guards:
+  //   1. Never auto-join if this device owns the session (host).
+  //   2. If a pending avatar invite exists, only the invited user may claim the slot.
   useEffect(() => {
-    if (role === "unknown" && session && !joining && needsSetup === false && identityResolved) {
+    if (role !== "unknown" || !session || joining || needsSetup !== false || !identityResolved) return;
+
+    const checkAndJoin = async () => {
+      const knownIds = await getKnownUserIds();
+
+      // Safety net: never auto-join if this device is the host.
+      // Catches auth-UUID / local-UUID mismatches that slip past loadSession's
+      // role detection on the very first render before knownIds are available.
+      if (knownIds.includes(session.host_user_id)) return;
+
+      // If a pending avatar invite exists for this session, only the invited
+      // user may claim the guest slot.  Unrelated visitors are silently blocked.
+      const { data: invite } = await supabase
+        .from("session_invites")
+        .select("to_user_id")
+        .eq("session_id", sessionId)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (invite?.to_user_id && !knownIds.includes(invite.to_user_id)) {
+        // Invite exists but is addressed to someone else — do not steal the slot.
+        return;
+      }
+
+      // No invite (link / code share) or this device IS the invited guest — proceed.
       joinSession();
-    }
-  }, [role, session, joining, needsSetup, identityResolved, joinSession]);
+    };
+
+    void checkAndJoin();
+  }, [role, session, joining, needsSetup, identityResolved, joinSession, sessionId]);
 
   // Cycle through build phrases while deck is generating
   useEffect(() => {
