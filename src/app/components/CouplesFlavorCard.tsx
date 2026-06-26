@@ -421,6 +421,8 @@ export function CouplesFlavorCardSurface({
             alignItems: "center",
             textAlign: "center",
             marginBottom: 20,
+            width: "100%",
+            overflow: "hidden",
           }}
         >
           {/* Glyph */}
@@ -455,7 +457,7 @@ export function CouplesFlavorCardSurface({
             style={{
               fontFamily: "var(--font-instrument-serif), Georgia, serif",
               fontStyle: "italic",
-              fontSize: 46,
+              fontSize: 40,
               fontWeight: 400,
               lineHeight: 1.0,
               letterSpacing: "-0.01em",
@@ -464,6 +466,10 @@ export function CouplesFlavorCardSurface({
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
               marginBottom: 8,
+              width: "100%",
+              maxWidth: "100%",
+              overflow: "hidden",
+              wordBreak: "break-word",
             }}
           >
             {typeData.name}
