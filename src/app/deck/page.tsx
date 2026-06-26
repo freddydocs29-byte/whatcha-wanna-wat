@@ -9,7 +9,8 @@ import { rankMeals, hardGate, allergenGate, getAllHardNos, getSharedReason, getT
 import { fetchAIMeals } from "../lib/ai-meals";
 import { shouldGenerateAI, type AIMealTriggerReason } from "../lib/ai-freshness";
 import { supabase } from "../lib/supabase";
-import { getUserId } from "../lib/identity";
+import { getUserId, getKnownUserIds } from "../lib/identity";
+import { checkAndTriggerCouplesTypeReveal } from "../lib/type-reveal-trigger";
 import { getAvoidSignals, getPreferSignals, checkTriggers, checkCrossSessionNudge, type NudgeTrigger, type NudgeCandidate } from "../lib/session-signals";
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
@@ -1569,10 +1570,11 @@ function DeckContent() {
     setMatchConfirmError(null);
     trackEvent("match_confirmed", { mealId: matchedMeal.id, sessionId });
 
-    // Fetch session created_at for time-to-match calculation
+    // Fetch session created_at for time-to-match calculation, and host/guest IDs
+    // for the couples-reveal trigger that fires immediately after RPC success.
     const { data: matchedSessionData } = await supabase
       .from("sessions")
-      .select("created_at")
+      .select("created_at, host_user_id, guest_user_id")
       .eq("id", sessionId)
       .single();
 
@@ -1632,6 +1634,38 @@ function DeckContent() {
         });
       }
     });
+
+    // Fire couples-reveal trigger before clearing session storage so
+    // checkAndTriggerCouplesTypeReveal can still access localStorage state.
+    try {
+      const currentUserId = getUserId();
+      const knownIds = await getKnownUserIds();
+
+      const isHost = knownIds.includes(matchedSessionData?.host_user_id ?? "");
+      const isGuest = matchedSessionData?.guest_user_id
+        ? knownIds.includes(matchedSessionData.guest_user_id)
+        : false;
+
+      const partnerId = isHost
+        ? matchedSessionData?.guest_user_id
+        : isGuest
+          ? matchedSessionData?.host_user_id
+          : null;
+
+      console.log("[couples-reveal]", "deck trigger ids", {
+        currentUserId,
+        knownIds,
+        partnerId,
+        sessionHost: matchedSessionData?.host_user_id,
+        sessionGuest: matchedSessionData?.guest_user_id,
+      });
+
+      if (currentUserId && partnerId) {
+        await checkAndTriggerCouplesTypeReveal(currentUserId, partnerId);
+      }
+    } catch (e) {
+      console.warn("[couples-reveal] deck trigger failed silently:", e);
+    }
 
     addToHistory(matchedMeal);
     saveDecidedMeal({ ...matchedMeal, decidedAt: new Date().toISOString(), mode: "shared", sessionId: sessionId ?? undefined });

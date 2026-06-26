@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { meals, type Meal } from "../data/meals";
 import { inferSessionContext } from "../lib/session-tracking";
+import { checkAndTriggerCouplesTypeReveal } from "../lib/type-reveal-trigger";
 import { addToHistory, saveDecidedMeal } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
 import { EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED } from "../lib/analytics-events";
@@ -352,6 +353,14 @@ export default function WatchasCall({
     if (!sessionStorage.getItem(_dlKey)) {
       trackEvent(EVENT_DECISION_LOCKED, { mealId: meal.id, sessionMode: "shared", resolutionPath: "watchas_call", sessionId });
       sessionStorage.setItem(_dlKey, "1");
+    }
+
+    // Fire couples-reveal trigger while localStorage is still intact.
+    // userId and partnerUserId are already in scope from props.
+    try {
+      await checkAndTriggerCouplesTypeReveal(userId, partnerUserId);
+    } catch (e) {
+      console.warn("[couples-reveal] watcha-call trigger failed silently:", e);
     }
 
     onResolve?.();
