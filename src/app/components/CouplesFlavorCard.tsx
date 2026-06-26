@@ -568,6 +568,7 @@ export default function CouplesFlavorCard({
     if (!el) return null;
 
     try {
+      await document.fonts.ready;
       // Dynamic import — never runs server-side, never imported at module level
       const { default: html2canvas } = await import("html2canvas");
       const scale = 1080 / 390; // ≈2.769 → 1080×~1921
@@ -579,6 +580,12 @@ export default function CouplesFlavorCard({
         logging: false,
         width: 390,
         height: 693,
+        windowWidth: 390,
+        windowHeight: 693,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
       });
       return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
     } catch (err) {

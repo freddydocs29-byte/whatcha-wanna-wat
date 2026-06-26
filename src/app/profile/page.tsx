@@ -533,12 +533,22 @@ export default function ProfilePage() {
     setSharing(true);
     setShareError(null);
     try {
+      await document.fonts.ready;
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(target, {
         backgroundColor: null,
-        scale: isExport ? 1 : 2,
+        scale: isExport ? 1080 / 390 : 2,
         useCORS: true,
+        allowTaint: false,
         logging: false,
+        width: target.offsetWidth,
+        height: target.offsetHeight,
+        windowWidth: target.offsetWidth,
+        windowHeight: target.offsetHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
       });
       canvas.toBlob(async (blob) => {
         if (!blob) { setShareError("Couldn't share. Try saving the image."); setSharing(false); return; }
@@ -574,12 +584,22 @@ export default function ProfilePage() {
     setSharing(true);
     setShareError(null);
     try {
+      await document.fonts.ready;
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(target, {
         backgroundColor: null,
-        scale: isExport ? 1 : 2,
+        scale: isExport ? 1080 / 390 : 2,
         useCORS: true,
+        allowTaint: false,
         logging: false,
+        width: target.offsetWidth,
+        height: target.offsetHeight,
+        windowWidth: target.offsetWidth,
+        windowHeight: target.offsetHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
       });
       canvas.toBlob((blob) => {
         if (!blob) { setSharing(false); return; }
@@ -1981,14 +2001,14 @@ export default function ProfilePage() {
       )}
 
       {/* ── Hidden off-screen export surface for html2canvas ─────────────────
-          Rendered at fixed 1080×1920 so the saved image matches the card
-          design exactly, independent of the overlay's responsive layout.
+          Rendered at natural 390×694 (no CSS scaling). html2canvas upscales
+          to 1080×1920 via its scale option at capture time.
       ──────────────────────────────────────────────────────────────────── */}
       {soloDNA && flavorType && revealOpen && (
         <div
           ref={exportCardRef}
           className="fixed overflow-hidden bg-black"
-          style={{ left: -9999, top: 0, width: 1080, height: 1920 }}
+          style={{ left: -9999, top: 0, width: 390, height: 694 }}
           aria-hidden="true"
         >
           <FlavorTypeCard

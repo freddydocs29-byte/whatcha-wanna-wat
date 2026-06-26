@@ -41,22 +41,16 @@ const FlavorTypeCard = forwardRef<HTMLDivElement, FlavorTypeCardProps>(
       }
     }
 
-    // In exportMode the card is rendered at its natural ~390px width inside a
-    // scale wrapper so that it fills the 1080×1920 off-screen export container.
-    // html2canvas captures the outer container (exportCardRef), not this element.
+    // In exportMode the card is rendered at its natural 390×694 size.
+    // html2canvas captures the outer exportCardRef container (also 390×694)
+    // and upscales to 1080×1920 via its scale option — no CSS transform needed.
     if (exportMode) {
       return (
         <div
           style={{
             width: NATURAL_CARD_WIDTH,
-            height: EXPORT_NATURAL_HEIGHT,   // exact — guarantees scale fills 1080×1920
-            display: "grid",                 // stretches card child to fill full 694px height
-            transformOrigin: "top left",
-            transform: `scale(${EXPORT_SCALE})`,
-            // NOTE: do NOT add overflow:hidden here — html2canvas clips scaled elements to
-            // their layout box when overflow:hidden is present, causing the card to appear
-            // at 390px (natural) width with empty black space filling the right side.
-            // The outer 1080×1920 container already has overflow:hidden for safe clamping.
+            height: EXPORT_NATURAL_HEIGHT,   // 694px — fills the 390×694 container
+            display: "grid",                 // stretches card child to fill full height
           }}
         >
           {renderCard()}
