@@ -2736,7 +2736,15 @@ function DeckContent() {
                       {/* Mid ring */}
                       <div className="absolute rounded-full animate-pulse-soft" style={{ width: 164, height: 164, background: "rgba(94,158,110,0.08)" }} />
                       {/* Green orb */}
-                      <div
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{
+                          type: "spring",
+                          damping: 12,
+                          stiffness: 260,
+                          delay: 0.2,
+                        }}
                         className="relative flex items-center justify-center"
                         style={{
                           width: 112, height: 112, borderRadius: "50%",
@@ -2744,8 +2752,18 @@ function DeckContent() {
                           boxShadow: "0 0 60px rgba(94,158,110,0.50), 0 0 0 14px rgba(94,158,110,0.08), 0 0 0 30px rgba(94,158,110,0.04)",
                         }}
                       >
-                        <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: "#fff" }}>✓</span>
-                      </div>
+                        <motion.span
+                          initial={{ scale: 0.4, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{
+                            type: "spring",
+                            damping: 14,
+                            stiffness: 300,
+                            delay: 0.35,
+                          }}
+                          style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: "#fff", display: "inline-block" }}
+                        >✓</motion.span>
+                      </motion.div>
                     </div>
 
                     {/* 2. Eyebrow label */}
@@ -4247,15 +4265,33 @@ function DeckContent() {
                   {/* Mid ring */}
                   <div className="absolute w-44 h-44 rounded-full animate-pulse-soft" style={{ background: "rgba(94,158,110,0.08)" }} />
                   {/* Orb */}
-                  <div
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{
+                      type: "spring",
+                      damping: 12,
+                      stiffness: 260,
+                      delay: 0.2,
+                    }}
                     className="w-32 h-32 rounded-full flex items-center justify-center relative z-10"
                     style={{
                       background: "radial-gradient(circle at 42% 36%, #86C796, #5E9E6E 55%, #3F744F)",
                       boxShadow: "0 0 70px rgba(94,158,110,0.5), 0 0 0 18px rgba(94,158,110,0.08), 0 0 0 38px rgba(94,158,110,0.04)",
                     }}
                   >
-                    <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 52, color: "#fff" }}>✓</span>
-                  </div>
+                    <motion.span
+                      initial={{ scale: 0.4, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{
+                        type: "spring",
+                        damping: 14,
+                        stiffness: 300,
+                        delay: 0.35,
+                      }}
+                      style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 52, color: "#fff", display: "inline-block" }}
+                    >✓</motion.span>
+                  </motion.div>
                 </div>
 
                 {/* 2. Eyebrow label */}
