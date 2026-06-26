@@ -794,9 +794,15 @@ export default function Home() {
 
   // Consumes wwe_couples_type_reveal_pending and fires the couples overlay exactly once.
   function checkPendingCouplesTypeReveal() {
+    // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
+    console.log("[couples-reveal]", "checkPending ran");
     if (typeof window === "undefined") return;
     if (couplesTypeRevealDataRef.current) return; // already showing — don't double-fire
 
+    // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
+    console.log("[couples-reveal]", "pending found", {
+      raw: localStorage.getItem("wwe_couples_type_reveal_pending"),
+    });
     const raw = localStorage.getItem("wwe_couples_type_reveal_pending");
     if (!raw) return;
 
