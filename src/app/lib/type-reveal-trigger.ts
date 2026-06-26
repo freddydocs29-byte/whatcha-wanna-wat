@@ -99,14 +99,9 @@ export async function checkAndTriggerCouplesTypeReveal(
   if (typeof window === "undefined") return;
 
   // Guard 1 — reveal already queued
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
   if (localStorage.getItem("wwe_couples_type_reveal_pending")) {
-    console.log("[couples-reveal]", "pending check", { hasPending: true });
-    console.log("[couples-reveal]", "early return: pending already queued");
     return;
   }
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-  console.log("[couples-reveal]", "pending check", { hasPending: false });
 
   // Guard 3 — count unchanged since last check for this partner
   // (checked before any network calls for fast exit)
@@ -115,24 +110,9 @@ export async function checkAndTriggerCouplesTypeReveal(
   // Dynamic imports to avoid circular-dependency risk at module load time
   const { getCouplesDNA } = await import("./dna");
   const knownIds = await getKnownUserIds();
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-  console.log("[couples-reveal]", "ids", { userId, partnerId, knownIds });
   const couplesDNA = await getCouplesDNA(userId, partnerId, knownIds);
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-  console.log("[couples-reveal]", "couplesDNA", {
-    totalMatchesTogether: couplesDNA.totalMatchesTogether,
-    mutualCuisines: couplesDNA.mutualCuisines,
-    allTimeNumber1Together: couplesDNA.allTimeNumber1Together,
-  });
 
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-  console.log("[couples-reveal]", "threshold check", {
-    totalMatchesTogether: couplesDNA.totalMatchesTogether,
-    meetsThreshold: couplesDNA.totalMatchesTogether >= 7,
-  });
   if (couplesDNA.totalMatchesTogether < 7) {
-    // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-    console.log("[couples-reveal]", "early return: below threshold");
     // Store whatever count we have so we skip the DNA fetch next time until it changes
     localStorage.setItem(matchCountKey, String(couplesDNA.totalMatchesTogether));
     return;
@@ -153,23 +133,13 @@ export async function checkAndTriggerCouplesTypeReveal(
 
   // Compute the couples flavor type
   const result = await getFlavorType(couplesDNA, { partnerId }, undefined, userId);
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-  console.log("[couples-reveal]", "flavor result", result);
   if (!result) {
-    // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-    console.log("[couples-reveal]", "early return: getFlavorType returned null");
     return;
   }
 
   // Guard 2 — same type already revealed for this partner
   const lastRevealedKey = `wwe_couples_type_last_revealed_${partnerId}`;
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-  console.log("[couples-reveal]", "last revealed check", {
-    lastRevealed: localStorage.getItem("wwe_couples_type_last_revealed_" + partnerId),
-  });
   if (localStorage.getItem(lastRevealedKey) === result.baseType) {
-    // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-    console.log("[couples-reveal]", "early return: same type already revealed");
     return;
   }
 
@@ -222,7 +192,5 @@ export async function checkAndTriggerCouplesTypeReveal(
     baseType: result.baseType,
   };
 
-  // TODO(debug): Remove couples-reveal logs after reveal trigger is verified.
-  console.log("[couples-reveal]", "pending written", { type: result.baseType });
   localStorage.setItem("wwe_couples_type_reveal_pending", JSON.stringify(payload));
 }

@@ -1652,14 +1652,6 @@ function DeckContent() {
           ? matchedSessionData?.host_user_id
           : null;
 
-      console.log("[couples-reveal]", "deck trigger ids", {
-        currentUserId,
-        knownIds,
-        partnerId,
-        sessionHost: matchedSessionData?.host_user_id,
-        sessionGuest: matchedSessionData?.guest_user_id,
-      });
-
       if (currentUserId && partnerId) {
         await checkAndTriggerCouplesTypeReveal(currentUserId, partnerId);
       }
