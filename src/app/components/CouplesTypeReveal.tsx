@@ -78,6 +78,11 @@ export default function CouplesTypeReveal({
   const { type, people, totalMatches } = flavor;
   const typeData = COUPLES_TYPES[type];
 
+  if (!typeData) {
+    console.error("[couples-reveal] unknown type:", type);
+    return null;
+  }
+
   // Last-resort guards — source and parser should already normalize these,
   // but defend against any future call path that passes bad data.
   const person0Name = people?.[0]?.name ?? "You";

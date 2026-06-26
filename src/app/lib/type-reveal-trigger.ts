@@ -2,6 +2,7 @@ import { getUserId, getKnownUserIds } from "./identity";
 import { supabase } from "./supabase";
 import { getFlavorType } from "./flavor-type";
 import type { CouplesFlavor, Person } from "./couples-flavor-types";
+import { baseTypeToCoupleType } from "./couples-flavor-types";
 
 /**
  * Fire-and-forget background check: after every accepted decision, see if the
@@ -211,7 +212,7 @@ export async function checkAndTriggerCouplesTypeReveal(
   ];
 
   const payload: CouplesFlavor & { baseType: string } = {
-    type: result.baseType as CouplesFlavor["type"],
+    type: baseTypeToCoupleType(result.baseType) ?? "wildcard",
     people: safePeople,
     totalMatches: couplesDNA.totalMatchesTogether,
     topMeal: couplesDNA.allTimeNumber1Together?.mealName ?? "",

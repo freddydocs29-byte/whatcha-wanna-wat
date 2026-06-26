@@ -128,3 +128,23 @@ export const COUPLES_TYPES: Record<CoupleType, CouplesTypeEntry> = {
 export function getCouplesTypeData(type: CoupleType): CouplesTypeEntry {
   return COUPLES_TYPES[type];
 }
+
+/**
+ * Converts a BaseFlavorType string (snake_case from getFlavorType()) to the
+ * camelCase CoupleType used by COUPLES_TYPES. Returns null for solo-only types
+ * (night_owl, diplomat) that have no couples equivalent.
+ */
+export function baseTypeToCoupleType(baseType: string): CoupleType | null {
+  const map: Record<string, CoupleType> = {
+    explorer: "explorer",
+    anchor: "anchor",
+    comfort_seeker: "comfortSeeker",
+    purist: "purist",
+    creature_of_habit: "creatureOfHabit",
+    wildcard: "wildcard",
+    // camelCase pass-through (safety net for any path that pre-converts)
+    comfortSeeker: "comfortSeeker",
+    creatureOfHabit: "creatureOfHabit",
+  };
+  return map[baseType] ?? null;
+}
