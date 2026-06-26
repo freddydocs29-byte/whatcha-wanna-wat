@@ -808,6 +808,27 @@ export default function Home() {
 
     try {
       const payload = JSON.parse(raw) as CouplesFlavor & { baseType?: string; partnerId?: string };
+
+      // Normalize the people array — guards against old malformed localStorage payloads
+      // written before this fix deployed, where people may be missing or have undefined slots.
+      if (
+        !Array.isArray(payload.people) ||
+        payload.people.length < 2 ||
+        typeof payload.people[0]?.name !== "string" ||
+        typeof payload.people[1]?.name !== "string"
+      ) {
+        payload.people = [
+          {
+            name: payload.people?.[0]?.name?.trim() || "You",
+            avatarUrl: payload.people?.[0]?.avatarUrl || "",
+          },
+          {
+            name: payload.people?.[1]?.name?.trim() || "Partner",
+            avatarUrl: payload.people?.[1]?.avatarUrl || "",
+          },
+        ];
+      }
+
       const { baseType, partnerId } = payload;
       if (baseType && partnerId) {
         localStorage.setItem(`wwe_couples_type_last_revealed_${partnerId}`, baseType);

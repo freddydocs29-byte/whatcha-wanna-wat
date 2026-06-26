@@ -78,6 +78,13 @@ export default function CouplesTypeReveal({
   const { type, people, totalMatches } = flavor;
   const typeData = COUPLES_TYPES[type];
 
+  // Last-resort guards — source and parser should already normalize these,
+  // but defend against any future call path that passes bad data.
+  const person0Name = people?.[0]?.name ?? "You";
+  const person0Avatar = people?.[0]?.avatarUrl ?? "";
+  const person1Name = people?.[1]?.name ?? "Partner";
+  const person1Avatar = people?.[1]?.avatarUrl ?? "";
+
   const modalRef = useRef<HTMLDivElement>(null);
   const announceRef = useRef<HTMLDivElement>(null);
 
@@ -349,7 +356,7 @@ export default function CouplesTypeReveal({
         >
           {/* Avatar A */}
           <div className="ctr-avatar-a">
-            <AvatarCircle name={people[0].name} avatarUrl={people[0].avatarUrl} />
+            <AvatarCircle name={person0Name} avatarUrl={person0Avatar} />
           </div>
 
           {/* Gold thread + node */}
@@ -391,7 +398,7 @@ export default function CouplesTypeReveal({
 
           {/* Avatar B */}
           <div className="ctr-avatar-b">
-            <AvatarCircle name={people[1].name} avatarUrl={people[1].avatarUrl} />
+            <AvatarCircle name={person1Name} avatarUrl={person1Avatar} />
           </div>
         </div>
 
@@ -407,7 +414,7 @@ export default function CouplesTypeReveal({
             marginBottom: 28,
           }}
         >
-          {people[0].name} &amp; {people[1].name}
+          {person0Name} &amp; {person1Name}
         </p>
 
         {/* Setup copy */}

@@ -1,7 +1,7 @@
 import { getUserId, getKnownUserIds } from "./identity";
 import { supabase } from "./supabase";
 import { getFlavorType } from "./flavor-type";
-import type { CouplesFlavor } from "./couples-flavor-types";
+import type { CouplesFlavor, Person } from "./couples-flavor-types";
 
 /**
  * Fire-and-forget background check: after every accepted decision, see if the
@@ -199,12 +199,20 @@ export async function checkAndTriggerCouplesTypeReveal(
     }
   }
 
+  const safePeople: [Person, Person] = [
+    {
+      name: userName?.trim() || "You",
+      avatarUrl: userAvatarUrl || "",
+    },
+    {
+      name: partnerName?.trim() || "Partner",
+      avatarUrl: partnerAvatarUrl || "",
+    },
+  ];
+
   const payload: CouplesFlavor & { baseType: string } = {
     type: result.baseType as CouplesFlavor["type"],
-    people: [
-      { name: userName, avatarUrl: userAvatarUrl },
-      { name: partnerName, avatarUrl: partnerAvatarUrl },
-    ],
+    people: safePeople,
     totalMatches: couplesDNA.totalMatchesTogether,
     topMeal: couplesDNA.allTimeNumber1Together?.mealName ?? "",
     topCuisine: couplesDNA.mutualCuisines[0]?.cuisine ?? "",
