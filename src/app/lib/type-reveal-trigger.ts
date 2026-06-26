@@ -1,4 +1,4 @@
-import { getUserId } from "./identity";
+import { getUserId, getKnownUserIds } from "./identity";
 import { supabase } from "./supabase";
 import { getFlavorType } from "./flavor-type";
 import type { CouplesFlavor } from "./couples-flavor-types";
@@ -106,7 +106,8 @@ export async function checkAndTriggerCouplesTypeReveal(
 
   // Dynamic imports to avoid circular-dependency risk at module load time
   const { getCouplesDNA } = await import("./dna");
-  const couplesDNA = await getCouplesDNA(userId, partnerId);
+  const knownIds = await getKnownUserIds();
+  const couplesDNA = await getCouplesDNA(userId, partnerId, knownIds);
 
   if (couplesDNA.totalMatchesTogether < 7) {
     // Store whatever count we have so we skip the DNA fetch next time until it changes
