@@ -189,9 +189,11 @@ export function MealDetailDrawer({
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             drag={atScrollTop ? "y" : false}
             dragConstraints={{ top: 0 }}
-            dragElastic={{ top: 0, bottom: 0.2 }}
+            dragElastic={{ top: 0, bottom: 0.35 }}
+            dragMomentum={false}
+            dragDirectionLock={true}
             onDragEnd={(_, info) => {
-              if (info.offset.y > 80 || info.velocity.y > 500) onClose();
+              if (info.offset.y > 50 || info.velocity.y > 300) onClose();
             }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] max-h-[90vh]"
             style={darkSurface.sheet}
@@ -199,7 +201,7 @@ export function MealDetailDrawer({
             <div
               ref={scrollRef}
               onScroll={(e) => setAtScrollTop(e.currentTarget.scrollTop === 0)}
-              className="overflow-y-auto max-h-[90vh]"
+              className="overflow-y-auto max-h-[90vh] overscroll-contain"
             >
               {/* Drag handle */}
               <div
