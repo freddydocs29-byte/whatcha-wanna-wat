@@ -453,27 +453,35 @@ export function CouplesFlavorCardSurface({
           </p>
 
           {/* Type name */}
-          <h2
-            style={{
-              fontFamily: "var(--font-instrument-serif), Georgia, serif",
-              fontStyle: "italic",
-              fontSize: 40,
-              fontWeight: 400,
-              lineHeight: 1.0,
-              letterSpacing: "-0.01em",
-              background: "linear-gradient(135deg, #FBE6AE 0%, #D8B45E 50%, #9A6E2A 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              marginBottom: 8,
-              width: "100%",
-              maxWidth: "100%",
-              overflow: "hidden",
-              wordBreak: "break-word",
-            }}
+          <svg
+            width="100%"
+            height="60"
+            viewBox="0 0 340 60"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ marginBottom: 8, overflow: "visible" }}
+            aria-label={typeData.name}
           >
-            {typeData.name}
-          </h2>
+            <defs>
+              <linearGradient id="cfc-name-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FBE6AE" />
+                <stop offset="50%" stopColor="#D8B45E" />
+                <stop offset="100%" stopColor="#9A6E2A" />
+              </linearGradient>
+            </defs>
+            <text
+              x="170"
+              y="48"
+              textAnchor="middle"
+              fill="url(#cfc-name-grad)"
+              fontFamily="'Instrument Serif', Georgia, serif"
+              fontStyle="italic"
+              fontWeight="400"
+              fontSize="40"
+              letterSpacing="-0.4"
+            >
+              {typeData.name}
+            </text>
+          </svg>
 
           {/* Tagline */}
           <p
