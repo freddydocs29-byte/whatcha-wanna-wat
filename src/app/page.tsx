@@ -191,6 +191,7 @@ export default function Home() {
   const [couplesTypeRevealData, setCouplesTypeRevealData] = useState<CouplesFlavor | null>(null);
   const couplesTypeRevealDataRef = useRef<CouplesFlavor | null>(null);
   const [showCouplesCard, setShowCouplesCard] = useState(false);
+  const [couplesCardFlavor, setCouplesCardFlavor] = useState<CouplesFlavor | null>(null);
   const [activeSession, setActiveSession] = useState<{
     sessionId: string;
     sessionCode: string | null;
@@ -2123,6 +2124,7 @@ export default function Home() {
           flavor={couplesTypeRevealData}
           onDismiss={() => setCouplesTypeRevealData(null)}
           onViewCard={() => {
+            setCouplesCardFlavor(couplesTypeRevealData);
             setCouplesTypeRevealData(null);
             setShowCouplesCard(true);
           }}
@@ -2130,12 +2132,15 @@ export default function Home() {
       )}
 
       {/* Couples flavor card — opened from reveal CTA or profile page button */}
-      {showCouplesCard && couplesTypeRevealData && (
+      {showCouplesCard && couplesCardFlavor && (
         <CouplesFlavorCard
-          flavor={couplesTypeRevealData}
+          flavor={couplesCardFlavor}
           onShare={() => {/* handled internally */}}
           onSave={() => {/* handled internally */}}
-          onClose={() => setShowCouplesCard(false)}
+          onClose={() => {
+            setShowCouplesCard(false);
+            setCouplesCardFlavor(null);
+          }}
         />
       )}
 
