@@ -1029,6 +1029,7 @@ function DeckContent() {
   // current values without a stale closure (effects with [] deps capture at mount).
   const pantryModeRef = useRef(pantryMode);
   const selectedIngredientsRef = useRef(selectedIngredients);
+  const preserveCurrentIndexRef = useRef(false);
 
   // Keep currentIndexRef in sync so async callbacks (ritual injection) read a
   // current value instead of the stale closure captured at effect creation.
@@ -1229,7 +1230,10 @@ function DeckContent() {
     }
 
     setRankedMeals(deckToSet);
-    setCurrentIndex(0);
+    if (!preserveCurrentIndexRef.current) {
+      setCurrentIndex(0);
+    }
+    preserveCurrentIndexRef.current = false;
     x.set(0);
     setExitX(null);
 
@@ -1452,6 +1456,7 @@ function DeckContent() {
   }
 
   function toggleIngredient(name: string) {
+    preserveCurrentIndexRef.current = true;
     setSelectedIngredients((prev) => {
       if (prev.includes(name)) return prev.filter((i) => i !== name);
       if (prev.length >= 5) return prev;
@@ -3657,7 +3662,6 @@ function DeckContent() {
           <div className="px-5 mt-1 flex items-stretch gap-2">
             <motion.button
               onClick={() => {
-                if (!pantryMode) togglePantry();
                 setShowIngredientSheet(true);
               }}
               animate={
@@ -4374,7 +4378,12 @@ function DeckContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={() => setShowIngredientSheet(false)}
+            onClick={() => {
+              setShowIngredientSheet(false);
+              if (selectedIngredients.length === 0) {
+                setPantryMode(false);
+              }
+            }}
             className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm"
           />
         )}
@@ -4497,7 +4506,15 @@ function DeckContent() {
 
             {/* Done */}
             <button
-              onClick={() => setShowIngredientSheet(false)}
+              onClick={() => {
+                preserveCurrentIndexRef.current = true;
+                setShowIngredientSheet(false);
+                if (selectedIngredients.length > 0) {
+                  setPantryMode(true);
+                } else {
+                  setPantryMode(false);
+                }
+              }}
               className="mt-5 w-full rounded-full border border-white/[0.07] bg-white/[0.05] py-3 text-sm font-medium text-white/55 transition hover:bg-white/[0.09] active:scale-[0.98]"
             >
               Done
@@ -4507,6 +4524,7 @@ function DeckContent() {
             {pantryMode && (
               <button
                 onClick={() => {
+                  preserveCurrentIndexRef.current = true;
                   togglePantry();
                   setShowIngredientSheet(false);
                 }}
