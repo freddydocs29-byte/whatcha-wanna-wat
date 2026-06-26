@@ -542,7 +542,7 @@ export default function Home() {
               console.warn("[home] matched session has locked_meal_id not found in catalog:", data.locked_meal_id);
             }
             setShowMatchCelebration(true);
-            setTimeout(() => { if (mounted) setShowMatchCelebration(false); }, 2000);
+            setTimeout(() => { if (mounted) setShowMatchCelebration(false); }, 5000);
           }
           localStorage.removeItem("wwe_active_session");
           localStorage.removeItem(`wwe_session_swiping_done_${sessionId}`);
@@ -2167,15 +2167,17 @@ export default function Home() {
         />
       )}
 
-      {/* Match celebration flash — shown once for 2 s when the partner completes a match */}
+      {/* Match celebration flash — shown once for 5 s when the partner completes a match; tap to dismiss early */}
       {showMatchCelebration && (
         <div className="fixed inset-x-0 top-0 z-[100] flex items-center justify-center px-5 pt-safe-top pt-4">
           <div
             className="w-full max-w-md rounded-[20px] px-6 py-4 text-center"
+            onClick={() => setShowMatchCelebration(false)}
             style={{
-              background: "linear-gradient(135deg, #1C1A18 0%, #0B0805 100%)",
-              border: "1px solid rgba(232,98,26,0.35)",
-              boxShadow: "0 0 40px rgba(232,98,26,0.25), 0 8px 32px rgba(0,0,0,0.6)",
+              background: "linear-gradient(135deg, #2A1E14 0%, #1C1208 100%)",
+              border: "1px solid rgba(232,98,26,0.6)",
+              boxShadow: "0 0 32px rgba(232,98,26,0.45), 0 0 0 1px rgba(232,98,26,0.15), 0 8px 24px rgba(0,0,0,0.7)",
+              cursor: "pointer",
             }}
           >
             <p
