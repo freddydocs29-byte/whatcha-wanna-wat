@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 
 interface V3InviteDrawerProps {
   open: boolean;
@@ -230,6 +231,63 @@ export default function V3InviteDrawer({
                       {sessionCode}
                     </span>
                   </div>
+                )}
+
+                {/* QR code */}
+                {joinUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1], delay: 0.1 }}
+                    className="mt-5 flex justify-center"
+                  >
+                    <button
+                      onClick={handleCopy}
+                      aria-label="Tap to copy join link"
+                      style={{
+                        padding: 14,
+                        borderRadius: 20,
+                        background: "rgba(11,8,5,0.9)",
+                        border: "1px solid rgba(232,98,26,0.35)",
+                        boxShadow:
+                          "0 0 28px rgba(232,98,26,0.18), 0 0 0 1px rgba(232,98,26,0.08)",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: "#F6EEE2",
+                          padding: 12,
+                          borderRadius: 14,
+                          boxShadow: "inset 0 0 0 1px rgba(11,8,5,0.12)",
+                        }}
+                      >
+                        <QRCodeSVG
+                          value={joinUrl}
+                          size={148}
+                          bgColor="#F6EEE2"
+                          fgColor="#0B0805"
+                          level="M"
+                          style={{ display: "block" }}
+                        />
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-jetbrains-mono), monospace",
+                          fontSize: 9,
+                          letterSpacing: "2px",
+                          textTransform: "uppercase",
+                          color: "rgba(199,189,172,0.5)",
+                        }}
+                      >
+                        Tap to copy link
+                      </span>
+                    </button>
+                  </motion.div>
                 )}
 
                 {/* Join URL display */}
