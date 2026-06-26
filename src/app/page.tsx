@@ -1289,37 +1289,66 @@ export default function Home() {
       {/* ── Pending invite banner ───────────────────────────── */}
       {pendingInvite && (
         <section
-          className="mx-[14px] mb-2 rounded-[20px] p-4 border border-[#4A7C59]/50 bg-[#1E2A22] shrink-0"
-          style={{ boxShadow: "0 0 24px rgba(74,124,89,0.15)" }}
+          className="mx-[14px] mb-2 rounded-[20px] p-4 shrink-0"
+          style={{
+            background: "linear-gradient(135deg, rgba(28,26,24,0.96) 0%, rgba(11,8,5,0.98) 100%)",
+            border: "1px solid rgba(232,98,26,0.22)",
+            boxShadow: "0 0 32px rgba(232,98,26,0.16), 0 12px 36px rgba(0,0,0,0.5)",
+            backdropFilter: "blur(18px)",
+          }}
         >
           <div className="flex items-start gap-3">
-            <div className="relative w-10 h-10 rounded-full bg-[#4A7C59]/20 flex-shrink-0 overflow-hidden">
+            <div
+              className="relative w-10 h-10 rounded-full flex-shrink-0 overflow-hidden"
+              style={{ background: "rgba(232,98,26,0.15)", border: "1px solid rgba(232,98,26,0.25)" }}
+            >
               <Avatar
                 avatarUrl={pendingInvite.inviterAvatar}
                 name={pendingInvite.inviterName}
                 initialsSize={16}
-                initialsColor="#4A7C59"
-                silhouetteColor="#4A7C59"
+                initialsColor="#E8621A"
+                silhouetteColor="#E8621A"
                 silhouetteSize={22}
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-display font-black text-sm text-white">
+              <p
+                className="font-display font-black text-sm"
+                style={{ color: "#F6EEE2", fontFamily: "var(--font-quicksand), system-ui", fontWeight: 700 }}
+              >
                 {pendingInvite.inviterName ?? "Someone"} wants to decide dinner.
               </p>
-              <p className="font-body text-xs text-[#8A7F78] mt-0.5">
+              <p
+                className="text-xs mt-0.5"
+                style={{ color: "#897E73", fontFamily: "var(--font-geist-sans), system-ui", fontWeight: 300 }}
+              >
                 Join their Watcha session.
               </p>
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={() => { void handleJoinInvite(); }}
-                  className="flex-1 rounded-full bg-[#4A7C59] py-2 font-display font-black text-xs text-white transition active:scale-[0.98]"
+                  className="flex-1 rounded-full py-2 font-display font-black text-xs transition active:scale-[0.98]"
+                  style={{
+                    background: "linear-gradient(135deg, #FF8A3D 0%, #E8621A 60%, #B84A12 100%)",
+                    color: "#0B0805",
+                    fontFamily: "var(--font-quicksand), system-ui",
+                    fontWeight: 700,
+                    boxShadow: "0 0 16px rgba(232,98,26,0.35)",
+                  }}
                 >
                   Join
                 </button>
                 <button
                   onClick={() => { void handleDismissInvite(); }}
-                  className="flex-1 rounded-full border border-[#3A3530] py-2 font-display font-black text-xs text-[#8A7F78] transition active:scale-[0.98]"
+                  className="flex-1 rounded-full py-2 transition active:scale-[0.98]"
+                  style={{
+                    border: "1px solid rgba(245,237,224,0.12)",
+                    background: "rgba(245,237,224,0.05)",
+                    color: "#897E73",
+                    fontFamily: "var(--font-quicksand), system-ui",
+                    fontWeight: 600,
+                    fontSize: 12,
+                  }}
                 >
                   Dismiss
                 </button>
@@ -2142,11 +2171,35 @@ export default function Home() {
       {showMatchCelebration && (
         <div className="fixed inset-x-0 top-0 z-[100] flex items-center justify-center px-5 pt-safe-top pt-4">
           <div
-            className="w-full max-w-md rounded-[20px] bg-[#4A7C59] px-6 py-4 text-center"
-            style={{ boxShadow: "0 0 40px rgba(74,124,89,0.5)" }}
+            className="w-full max-w-md rounded-[20px] px-6 py-4 text-center"
+            style={{
+              background: "linear-gradient(135deg, #1C1A18 0%, #0B0805 100%)",
+              border: "1px solid rgba(232,98,26,0.35)",
+              boxShadow: "0 0 40px rgba(232,98,26,0.25), 0 8px 32px rgba(0,0,0,0.6)",
+            }}
           >
-            <p className="font-display font-black text-xl text-white">You matched! 🎉</p>
-            <p className="font-body text-sm text-white/80 mt-1">Dinner is decided.</p>
+            <p
+              style={{
+                fontFamily: "var(--font-quicksand), system-ui",
+                fontWeight: 700,
+                fontSize: 18,
+                color: "#F6EEE2",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              You matched! 🎉
+            </p>
+            <p
+              style={{
+                fontFamily: "var(--font-geist-sans), system-ui",
+                fontWeight: 300,
+                fontSize: 13,
+                color: "#C7BDAC",
+                marginTop: 4,
+              }}
+            >
+              Dinner is decided.
+            </p>
           </div>
         </div>
       )}
