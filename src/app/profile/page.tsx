@@ -9,6 +9,7 @@ import FlameCard from "../components/FlameCard";
 import type { FlameCardProps } from "../components/FlameCard";
 import CouplesFlavorCard from "../components/CouplesFlavorCard";
 import type { CouplesFlavor } from "../lib/couples-flavor-types";
+import { baseTypeToCoupleType } from "../lib/couples-flavor-types";
 import FlavorTypeCard from "../components/FlavorTypeCard";
 import CardRevealOverlay from "../components/CardRevealOverlay";
 import {
@@ -1982,7 +1983,7 @@ export default function ProfilePage() {
               else avgMatchTime = `${Math.round(avgSec / 60)} min`;
             }
             return {
-              type: couplesFlavorType.baseType as CouplesFlavor["type"],
+              type: baseTypeToCoupleType(couplesFlavorType.baseType) ?? "wildcard",
               people: [
                 { name: displayName || "You", avatarUrl: avatarUrl ?? "" },
                 { name: partnerName ?? "Partner", avatarUrl: partnerAvatarUrl ?? "" },
