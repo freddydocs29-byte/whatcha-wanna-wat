@@ -202,6 +202,7 @@ export function MealDetailDrawer({
               ref={scrollRef}
               onScroll={(e) => setAtScrollTop(e.currentTarget.scrollTop === 0)}
               className="overflow-y-auto max-h-[90vh] overscroll-contain"
+              style={{ touchAction: atScrollTop ? "none" : "pan-y" }}
             >
               {/* Drag handle */}
               <div
