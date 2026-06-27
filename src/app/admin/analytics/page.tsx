@@ -16,7 +16,8 @@ type TabId =
   | "sessions"
   | "friction"
   | "meals"
-  | "users";
+  | "users"
+  | "feedback";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -26,6 +27,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "friction", label: "Friction" },
   { id: "meals", label: "Meals" },
   { id: "users", label: "Users" },
+  { id: "feedback", label: "Feedback" },
 ];
 
 type AEvent = {
@@ -35,6 +37,15 @@ type AEvent = {
   event_name: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: Record<string, any> | null;
+  created_at: string;
+};
+
+type FeedbackRow = {
+  id: string;
+  user_id: string | null;
+  message: string;
+  page_context: string | null;
+  user_agent: string | null;
   created_at: string;
 };
 
@@ -106,6 +117,17 @@ function prop(p: Record<string, any> | null | undefined, ...keys: string[]): any
 function avg(nums: number[]): number | null {
   if (!nums.length) return null;
   return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 function isRlsError(msg: string): boolean {
@@ -2200,6 +2222,11 @@ function UsersTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
   const [blockedUS, setBlockedUS] = useState(false);
   const [ssEvents, setSsEvents] = useState<AEvent[]>([]);
   const [userSessions, setUserSessions] = useState<UserSessionFreq[]>([]);
+  const [profilesLoading, setProfilesLoading] = useState(true);
+  const [blockedProfiles, setBlockedProfiles] = useState(false);
+  const [totalProfiles, setTotalProfiles] = useState<number | null>(null);
+  const [completedOnboarding, setCompletedOnboarding] = useState<number | null>(null);
+  const [googleUsers, setGoogleUsers] = useState<number | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -2221,6 +2248,35 @@ function UsersTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
       setLoading(false);
     });
   }, [cutoff, rk]);
+
+  useEffect(() => {
+    setProfilesLoading(true);
+    Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .not("onboarding_completed_at", "is", null),
+      supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .not("auth_user_id", "is", null),
+    ]).then(([totalRes, completedRes, authRes]) => {
+      const errMsg =
+        totalRes.error?.message ||
+        completedRes.error?.message ||
+        authRes.error?.message;
+      if (errMsg) {
+        if (isRlsError(errMsg)) setBlockedProfiles(true);
+        setProfilesLoading(false);
+        return;
+      }
+      setTotalProfiles(totalRes.count);
+      setCompletedOnboarding(completedRes.count);
+      setGoogleUsers(authRes.count);
+      setProfilesLoading(false);
+    });
+  }, [rk]);
 
   if (loading) {
     return (
@@ -2452,6 +2508,318 @@ function UsersTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
             </>
           )}
         </Card>
+      )}
+      {/* Profile Stats */}
+      {profilesLoading && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <MetricSkeleton key={i} />
+          ))}
+        </div>
+      )}
+      {!profilesLoading && blockedProfiles && <RlsWall table="profiles" />}
+      {!profilesLoading && !blockedProfiles && (
+        <>
+          <div
+            style={{
+              color: C.muted,
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: "var(--font-manrope)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginTop: 4,
+            }}
+          >
+            Profile Stats (from profiles table)
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
+              gap: 14,
+            }}
+          >
+            <MetricCard
+              label="Total Profiles Created"
+              value={totalProfiles != null ? fmt(totalProfiles) : "—"}
+              sub="rows in profiles table"
+            />
+            <MetricCard
+              label="Onboarding Completed"
+              value={completedOnboarding != null ? fmt(completedOnboarding) : "—"}
+              sub={
+                totalProfiles && completedOnboarding != null
+                  ? `${pct(completedOnboarding, totalProfiles)} of total`
+                  : "onboarding_completed_at not null"
+              }
+              accent
+            />
+            <MetricCard
+              label="Authenticated Accounts"
+              value={googleUsers != null ? fmt(googleUsers) : "—"}
+              sub={
+                totalProfiles && googleUsers != null
+                  ? `${pct(googleUsers, totalProfiles)} of total`
+                  : "auth_user_id not null"
+              }
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Tab 8 — Feedback
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function FeedbackTab({ rk }: { rk: number }) {
+  const [loading, setLoading] = useState(true);
+  const [blocked, setBlocked] = useState(false);
+  const [rows, setRows] = useState<FeedbackRow[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    supabase
+      .from("feedback")
+      .select("id, user_id, message, page_context, user_agent, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200)
+      .then(({ data, error }) => {
+        if (error) {
+          if (isRlsError(error.message)) setBlocked(true);
+          setLoading(false);
+          return;
+        }
+        setRows((data as FeedbackRow[]) ?? []);
+        setLoading(false);
+      });
+  }, [rk]);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(JSON.stringify(rows, null, 2)).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <MetricSkeleton key={i} />
+          ))}
+        </div>
+        <Card loading>
+          <></>
+        </Card>
+      </div>
+    );
+  }
+
+  if (blocked) return <RlsWall table="feedback" />;
+
+  const total = rows.length;
+  const fromHomepage = rows.filter((r) => r.page_context === "homepage").length;
+  const fromProfile = rows.filter((r) => r.page_context === "profile").length;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Summary cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <MetricCard
+          label="Total Submissions"
+          value={fmt(total)}
+          sub="feedback rows (latest 200)"
+          accent
+        />
+        <MetricCard
+          label="From Homepage"
+          value={fmt(fromHomepage)}
+          sub={`${pct(fromHomepage, total)} of total`}
+        />
+        <MetricCard
+          label="From Profile"
+          value={fmt(fromProfile)}
+          sub={`${pct(fromProfile, total)} of total`}
+        />
+      </div>
+
+      {/* Feedback table */}
+      <Card title="Feedback submissions — newest first">
+        {rows.length === 0 ? (
+          <Empty msg="No feedback submitted yet. Check back after launch." />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontFamily: "var(--font-manrope)",
+                fontSize: 13,
+              }}
+            >
+              <thead>
+                <tr>
+                  {(["Time", "Context", "Message", "User"] as const).map(
+                    (h, i) => (
+                      <th
+                        key={i}
+                        style={{
+                          textAlign: "left",
+                          color: C.muted,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          padding: "6px 12px 10px",
+                          borderBottom: `1px solid ${C.border}`,
+                          whiteSpace: "nowrap",
+                          width: i === 2 ? "100%" : undefined,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, ri) => (
+                  <tr
+                    key={row.id}
+                    style={{
+                      background:
+                        ri % 2 ? "rgba(255,255,255,0.015)" : "transparent",
+                    }}
+                  >
+                    {/* Time — relative, absolute on hover */}
+                    <td
+                      title={new Date(row.created_at).toLocaleString()}
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.border}`,
+                        color: C.muted,
+                        whiteSpace: "nowrap",
+                        verticalAlign: "top",
+                        cursor: "default",
+                      }}
+                    >
+                      {timeAgo(row.created_at)}
+                    </td>
+                    {/* Context pill */}
+                    <td
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.border}`,
+                        verticalAlign: "top",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {row.page_context ? (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: 100,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background:
+                              row.page_context === "homepage"
+                                ? C.accentDim
+                                : C.surface3,
+                            color:
+                              row.page_context === "homepage"
+                                ? C.accent
+                                : C.muted,
+                          }}
+                        >
+                          {row.page_context}
+                        </span>
+                      ) : (
+                        <span style={{ color: C.muted }}>—</span>
+                      )}
+                    </td>
+                    {/* Message — full text, no truncation */}
+                    <td
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.border}`,
+                        color: C.textMid,
+                        verticalAlign: "top",
+                        minWidth: 300,
+                        lineHeight: 1.55,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {row.message}
+                    </td>
+                    {/* User — truncated to 8 chars or "Guest" */}
+                    <td
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.border}`,
+                        color: C.muted,
+                        whiteSpace: "nowrap",
+                        verticalAlign: "top",
+                        fontFamily: "monospace",
+                        fontSize: 11,
+                      }}
+                    >
+                      {row.user_id ? row.user_id.slice(0, 8) + "…" : "Guest"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Copy all as JSON */}
+      {rows.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={handleCopy}
+            style={{
+              background: C.surface2,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              padding: "6px 14px",
+              color: copied ? C.accent : C.textMid,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "var(--font-manrope)",
+              transition: "color 0.15s",
+            }}
+          >
+            {copied ? "✓ Copied!" : "Copy all as JSON"}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -2752,6 +3120,7 @@ function Dashboard() {
         {activeTab === "users" && (
           <UsersTab cutoff={cutoff} rk={refreshKey} />
         )}
+        {activeTab === "feedback" && <FeedbackTab rk={refreshKey} />}
       </div>
     </div>
   );
