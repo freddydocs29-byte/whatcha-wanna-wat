@@ -31,6 +31,7 @@ import {
 } from "../lib/supabase-profile";
 import { detectRituals, type RitualDetection } from "../lib/rituals";
 import { getUserId, getAuthUserId, getKnownUserIds, clearAllLocalState, resetAnonymousId } from "../lib/identity";
+import FeedbackModal from "../components/FeedbackModal";
 import { supabase, type SoftAvoid } from "../lib/supabase";
 import {
   type SoloDNA,
@@ -129,6 +130,7 @@ export default function ProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // ── Change email state ─────────────────────────────────────────────────────
@@ -1048,6 +1050,35 @@ export default function ProfilePage() {
             )}
           </div>
         )}
+
+        {/* ── Send feedback row ──────────────────────────────────────────────── */}
+        <div className="mx-5 mt-4">
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="flex items-center justify-between w-full rounded-[14px] px-4 py-3 text-left"
+            style={{
+              background: "rgba(255,231,202,0.03)",
+              border: "1px solid rgba(245,237,224,0.07)",
+              boxShadow: "inset 0 1px 0 rgba(245,237,224,0.03)",
+            }}
+          >
+            <div>
+              <p
+                className="font-body text-sm"
+                style={{ color: "rgba(245,237,224,0.8)", fontWeight: 500 }}
+              >
+                Send feedback
+              </p>
+              <p
+                className="font-body text-xs mt-0.5"
+                style={{ color: "#897E73", fontWeight: 300 }}
+              >
+                Tell us what felt off, confusing, or great.
+              </p>
+            </div>
+            <span style={{ color: "rgba(232,98,26,0.75)" }}>→</span>
+          </button>
+        </div>
 
         {/* ── Stats row ────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-2.5 mx-5 mt-6">
@@ -2021,6 +2052,12 @@ export default function ProfilePage() {
           />
         </div>
       )}
+
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        pageContext="profile"
+      />
     </main>
   );
 }

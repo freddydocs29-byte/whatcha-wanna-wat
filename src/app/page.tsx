@@ -65,6 +65,7 @@ import V3RecentWins, { type WinItem } from "./components/v3/V3RecentWins";
 import V3InviteDrawer from "./components/v3/V3InviteDrawer";
 import V3MenuDrawer from "./components/v3/V3MenuDrawer";
 import V3NotificationsDrawer from "./components/v3/V3NotificationsDrawer";
+import FeedbackModal from "./components/FeedbackModal";
 import { getRecentPartners, type PartnerInfo } from "./lib/dna";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PersonV3 } from "./components/v3/V3PeopleSelector";
@@ -229,6 +230,7 @@ export default function Home() {
   const [codeInput, setCodeInput] = useState("");
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
   const [showNotificationsDrawer, setShowNotificationsDrawer] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   // Pending in-app invite from a selected partner
   const [pendingInvite, setPendingInvite] = useState<{
     id: string;
@@ -1636,6 +1638,39 @@ export default function Home() {
                 />
               );
             })()}
+            {/* ── Founding Tasters feedback ─────────────────── */}
+            <div
+              className="mx-4 mt-6 rounded-[20px] px-5 py-5"
+              style={{
+                background: "rgba(255,231,202,0.03)",
+                border: "1px solid rgba(245,237,224,0.07)",
+              }}
+            >
+              <p
+                className="font-display font-black text-[15px] mb-1.5"
+                style={{ color: "#E8621A" }}
+              >
+                Help shape Watcha
+              </p>
+              <p
+                className="font-body text-sm mb-4 leading-relaxed"
+                style={{ color: "rgba(199,189,172,0.65)" }}
+              >
+                Founding Tasters: tell us what felt off, what confused you, or what you loved. We&apos;re reading every note during soft launch.
+              </p>
+              <button
+                onClick={() => setFeedbackOpen(true)}
+                className="font-body text-sm font-semibold px-5 py-2 rounded-pill"
+                style={{
+                  border: "1px solid rgba(232,98,26,0.42)",
+                  color: "rgba(232,98,26,0.88)",
+                  background: "transparent",
+                }}
+              >
+                Send feedback →
+              </button>
+            </div>
+
             <div style={{ height: "max(env(safe-area-inset-bottom), 16px)" }} />
         </div>
       )}
@@ -2276,6 +2311,12 @@ export default function Home() {
           />
         );
       })()}
+
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        pageContext="homepage"
+      />
     </V3AppShell>
   );
 }
