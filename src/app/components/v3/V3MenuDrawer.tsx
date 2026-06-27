@@ -206,7 +206,7 @@ export default function V3MenuDrawer({ open, onClose }: V3MenuDrawerProps) {
                   color: "#574E45",
                 }}
               >
-                Watcha Wanna Eat · v3
+                Watcha Wanna Eat · v11.3.6
               </p>
             </div>
           </motion.div>
