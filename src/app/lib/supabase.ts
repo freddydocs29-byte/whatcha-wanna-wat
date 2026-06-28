@@ -153,6 +153,8 @@ export type Profile = {
   onboarding_completed_at?: string | null;
   /** True if the user checked the marketing email opt-in at signup. DEFAULT false. */
   marketing_opt_in?: boolean | null;
+  /** True if the user entered through the /founding gate. Set by applyFoundingTasterFlag(). DEFAULT false. */
+  is_founding_taster?: boolean | null;
   created_at: string;
   updated_at: string;
 };

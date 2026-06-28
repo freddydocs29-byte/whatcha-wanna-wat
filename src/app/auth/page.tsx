@@ -249,9 +249,15 @@ export default function AuthPage() {
           // Email confirmation is disabled — session is live immediately.
           // Guests signing up from the post-match screen already have preferences
           // from the session setup flow — send them straight to Home so the
-          // decided meal locked state is visible. All other signups go to onboarding.
+          // decided meal locked state is visible. Founding tasters see the welcome
+          // screen before onboarding. All other signups go to onboarding.
           document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
-          router.replace(fromGuestMatch ? "/" : "/onboarding");
+          const isFoundingTaster =
+            !fromGuestMatch &&
+            localStorage.getItem("founding_taster_access") === "true";
+          router.replace(
+            fromGuestMatch ? "/" : isFoundingTaster ? "/founding-welcome" : "/onboarding"
+          );
         } else {
           // Email confirmation is enabled — the session won't exist until the
           // user clicks the link in their inbox. Show a waiting screen.

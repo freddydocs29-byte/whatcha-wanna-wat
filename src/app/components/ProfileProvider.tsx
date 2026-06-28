@@ -24,7 +24,7 @@
  *   - Empty local defaults NEVER overwrite non-empty Supabase values.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getUserId, getAuthUserId, clearAllLocalState, resetAnonymousId } from "../lib/identity";
 import {
@@ -76,6 +76,19 @@ function writeLocalJSON(key: string, value: unknown): void {
   } catch {
     // Quota exceeded or storage unavailable — ignore.
   }
+}
+
+// ─── Profile ready context ────────────────────────────────────────────────────
+
+/**
+ * Exposes whether ProfileProvider has completed its current initialization
+ * cycle (including applyFoundingTasterFlag). Pages that need to read profile
+ * data from Supabase should wait until profileReady=true before querying.
+ */
+const ProfileReadyContext = createContext(false);
+
+export function useProfileReady(): boolean {
+  return useContext(ProfileReadyContext);
 }
 
 /**
@@ -619,5 +632,9 @@ export default function ProfileProvider({ children }: { children: React.ReactNod
     return <ProfileLoadingScreen />;
   }
 
-  return <>{children}</>;
+  return (
+    <ProfileReadyContext.Provider value={profileReady}>
+      {children}
+    </ProfileReadyContext.Provider>
+  );
 }
