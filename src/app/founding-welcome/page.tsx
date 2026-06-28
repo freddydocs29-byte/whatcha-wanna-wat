@@ -45,8 +45,17 @@ export default function FoundingWelcomePage() {
       if (authId) {
         const profile = await fetchProfileByAuthUserId(authId);
         if (!profile?.is_founding_taster) {
-          router.replace("/onboarding");
-          return;
+          // For new Google OAuth users the profile may not yet be linked to
+          // auth_user_id at this point (linkAuthToProfile runs async in
+          // ProfileProvider's SIGNED_IN handler and can still be in flight even
+          // when profileReady is already true from the initial pre-auth boot).
+          // One short retry is sufficient to let the link + stamp complete.
+          await new Promise((r) => setTimeout(r, 1500));
+          const retryProfile = await fetchProfileByAuthUserId(authId);
+          if (!retryProfile?.is_founding_taster) {
+            router.replace("/onboarding");
+            return;
+          }
         }
       } else {
         // No auth session — not a founding taster path.
