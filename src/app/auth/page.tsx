@@ -544,10 +544,13 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={async () => {
+                const foundingIntent =
+                  typeof window !== "undefined" &&
+                  localStorage.getItem("founding_taster_access") === "true";
                 await supabase.auth.signInWithOAuth({
                   provider: "google",
                   options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
+                    redirectTo: `${window.location.origin}/auth/callback${foundingIntent ? "?founding_taster=1" : ""}`,
                   },
                 });
               }}

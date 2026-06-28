@@ -43,7 +43,7 @@ export default function AuthCallbackPage() {
 
     supabase.auth
       .exchangeCodeForSession(code)
-      .then(({ error }) => {
+      .then(async ({ error }) => {
         subscription.unsubscribe();
         if (error) {
           console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
@@ -51,7 +51,62 @@ export default function AuthCallbackPage() {
           router.replace("/auth?error=confirmation_failed");
         } else {
           document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
-          router.replace(isRecovery ? "/auth/reset" : next);
+
+          if (isRecovery) {
+            router.replace("/auth/reset");
+            return;
+          }
+
+          // Detect Founding Taster OAuth return.
+          // Primary signal: ?founding_taster=1 injected into the OAuth redirectTo URL.
+          // Fallback: localStorage flag survives the same-origin OAuth round-trip.
+          const foundingParam = searchParams.get("founding_taster") === "1";
+          const foundingLocal =
+            typeof window !== "undefined" &&
+            localStorage.getItem("founding_taster_access") === "true";
+          const isFoundingTaster = foundingParam || foundingLocal;
+
+          if (isFoundingTaster) {
+            // Try to stamp is_founding_taster = true on the profile now if it is
+            // already linked to this auth user (returning users / same-device signups).
+            // For brand-new OAuth users whose profile has not been linked yet,
+            // we leave founding_taster_access in localStorage so ProfileProvider's
+            // applyFoundingTasterFlag() can consume it during its init cycle.
+            let appliedViaCallback = false;
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user?.id) {
+                const { data: profileRow } = await supabase
+                  .from("profiles")
+                  .select("user_id")
+                  .eq("auth_user_id", user.id)
+                  .maybeSingle();
+                if (profileRow?.user_id) {
+                  await supabase
+                    .from("profiles")
+                    .update({ is_founding_taster: true, updated_at: new Date().toISOString() })
+                    .eq("user_id", profileRow.user_id);
+                  if (typeof window !== "undefined") {
+                    localStorage.removeItem("founding_taster_access");
+                  }
+                  appliedViaCallback = true;
+                }
+              }
+            } catch (err) {
+              console.error("[auth/callback] founding taster apply error:", err);
+            }
+            if (!appliedViaCallback) {
+              // Profile not linked yet — founding_taster_access preserved for ProfileProvider.
+              console.log("[auth/callback] profile not yet linked; founding flag preserved for ProfileProvider");
+            }
+            router.replace("/founding-welcome");
+          } else {
+            // No founding intent — clear any stale flag and continue normally.
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("founding_taster_access");
+            }
+            router.replace(next);
+          }
         }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
