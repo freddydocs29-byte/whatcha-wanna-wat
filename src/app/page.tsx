@@ -250,8 +250,8 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
-        // No active session — show splash for logged-out users.
-        setShowSplash(true);
+        // No active Supabase session — send unauthenticated users to the gate.
+        router.replace("/founding");
         return;
       }
 
@@ -349,6 +349,15 @@ export default function Home() {
     }
 
     void checkAndRoute();
+
+    // Redirect to /founding if the user signs out while on this page.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.replace("/founding");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [router]);
 
   // Runs on every render — syncs React state with localStorage truth
@@ -1194,8 +1203,15 @@ export default function Home() {
     }
   }
 
-  // Auth check in flight — render nothing to avoid a flash of splash for signed-in users.
-  if (!showSplash && !ready) return null;
+  // Auth check in flight — show blank Candlelight background to avoid any flash.
+  if (!showSplash && !ready) {
+    return (
+      <div
+        className="relative overflow-hidden w-full max-w-[430px] mx-auto"
+        style={{ height: "100dvh", background: "#0B0805" }}
+      />
+    );
+  }
 
   // No session — logged-out user sees the splash.
   // Pass activeSession so guests with a live shared session see the resume banner.
