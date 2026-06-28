@@ -117,6 +117,7 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -242,13 +243,14 @@ export default function AuthPage() {
 
         // 2. Link the new auth user to the existing anon profile,
         //    writing display_name and email at the same time.
-        await linkAuthToProfile(authUid, anonUserId, name.trim() || undefined, email.trim() || undefined);
+        await linkAuthToProfile(authUid, anonUserId, name.trim() || undefined, email.trim() || undefined, marketingOptIn);
 
         if (data.session) {
           // Email confirmation is disabled — session is live immediately.
           // Guests signing up from the post-match screen already have preferences
           // from the session setup flow — send them straight to Home so the
           // decided meal locked state is visible. All other signups go to onboarding.
+          document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
           router.replace(fromGuestMatch ? "/" : "/onboarding");
         } else {
           // Email confirmation is enabled — the session won't exist until the
@@ -278,6 +280,7 @@ export default function AuthPage() {
         // initializeProfile, after all profile restores complete. This prevents
         // the returning user's Supabase last_decided_meal from overwriting the
         // guest match result.
+        document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
         router.replace("/");
       }
     } catch (err) {
@@ -645,6 +648,45 @@ export default function AuthPage() {
                 />
               </div>
 
+              {mode === "signup" && (
+                <label
+                  className="flex items-start gap-3 cursor-pointer select-none"
+                  style={{ marginTop: 4 }}
+                >
+                  <div className="relative flex-shrink-0 mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={marketingOptIn}
+                      onChange={(e) => setMarketingOptIn(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div
+                      className="w-4 h-4 rounded flex items-center justify-center transition-colors"
+                      style={{
+                        background: marketingOptIn ? "#E8621A" : "rgba(255,231,202,0.06)",
+                        border: marketingOptIn ? "1px solid #E8621A" : "1px solid rgba(245,237,224,0.18)",
+                      }}
+                    >
+                      {marketingOptIn && (
+                        <svg width="9" height="7" viewBox="0 0 9 7" fill="none" aria-hidden="true">
+                          <path d="M1 3.5L3.5 6L8 1" stroke="#1c0c03" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-sans, system-ui)",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: "#F6EEE2",
+                    }}
+                  >
+                    Send me product updates and tips from Watcha?
+                  </span>
+                </label>
+              )}
+
               {error && (
                 <p className="font-body text-sm text-red-400 text-center">{error}</p>
               )}
@@ -673,18 +715,41 @@ export default function AuthPage() {
       </div>
 
       {/* Detroit footer */}
-      <p
-        className="absolute bottom-8 w-full text-center pointer-events-none"
-        style={{
-          fontFamily: "var(--font-mono, monospace)",
-          fontSize: 11,
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
-          color: "rgba(137,126,115,0.3)",
-        }}
-      >
-        Detroit, MI
-      </p>
+      <div className="absolute bottom-6 w-full flex flex-col items-center gap-2 pointer-events-none z-20">
+        <p
+          style={{
+            fontFamily: "var(--font-mono, monospace)",
+            fontSize: 11,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "rgba(137,126,115,0.3)",
+          }}
+        >
+          Detroit, MI
+        </p>
+        <p
+          className="pointer-events-auto"
+          style={{
+            fontFamily: "var(--font-sans, system-ui)",
+            fontSize: 12,
+            color: "rgba(137,126,115,0.5)",
+          }}
+        >
+          <a
+            href="/terms"
+            style={{ color: "rgba(137,126,115,0.5)", textDecoration: "none" }}
+          >
+            Terms of Service
+          </a>
+          {" · "}
+          <a
+            href="/privacy"
+            style={{ color: "rgba(137,126,115,0.5)", textDecoration: "none" }}
+          >
+            Privacy Policy
+          </a>
+        </p>
+      </div>
     </main>
   );
 }

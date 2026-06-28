@@ -151,6 +151,8 @@ export type Profile = {
   } | null;
   /** Set by markOnboardingDone() for authenticated users. NULL for pre-fix rows or anon users. */
   onboarding_completed_at?: string | null;
+  /** True if the user checked the marketing email opt-in at signup. DEFAULT false. */
+  marketing_opt_in?: boolean | null;
   created_at: string;
   updated_at: string;
 };

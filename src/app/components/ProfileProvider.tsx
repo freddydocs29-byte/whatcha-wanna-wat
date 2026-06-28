@@ -34,6 +34,7 @@ import {
   upsertLearnedWeights,
   upsertRecentlySeen,
   linkAuthToProfile,
+  applyFoundingTasterFlag,
 } from "../lib/supabase-profile";
 import { getPreferences, savePreferences, getTasteProfile, restoreDecidedMealFromProfile, mealWasManuallyClearedAfter, saveDecidedMeal, saveMeal, addToHistory, getHistory, setOnboardingDoneLocal, type DecidedMeal } from "../lib/storage";
 import { supabase } from "../lib/supabase";
@@ -475,6 +476,9 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
       upsertRecentlySeen(resolvedUserId, merged).catch(() => {});
     }
   }
+
+  // ── Apply founding taster flag (fire-and-forget, clears localStorage) ───
+  await applyFoundingTasterFlag(resolvedUserId);
 
   // ── Apply pending guest meal (must run last, after all profile restores) ──
   //

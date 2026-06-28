@@ -121,6 +121,7 @@ export async function linkAuthToProfile(
   anonUserId: string,
   displayName?: string,
   email?: string,
+  marketingOptIn?: boolean,
 ): Promise<Profile | null> {
   try {
     // Step 1 — guard: a profile already exists for this auth account
@@ -137,6 +138,7 @@ export async function linkAuthToProfile(
     };
     if (displayName) updates.display_name = displayName;
     if (email) updates.email = email;
+    if (marketingOptIn !== undefined) updates.marketing_opt_in = marketingOptIn;
 
     const { data: linked, error: updateError } = await supabase
       .from("profiles")
@@ -167,6 +169,7 @@ export async function linkAuthToProfile(
         favorite_cuisines: [],
         dietary_restrictions: [],
         hard_no_foods: [],
+        marketing_opt_in: marketingOptIn ?? false,
         created_at: now,
         updated_at: now,
       })
@@ -474,6 +477,31 @@ export async function syncBehavioralSignalsToSupabase(userId: string): Promise<v
     if (error) console.warn("[sync] recently_chosen update failed:", error.message);
   } catch (err) {
     console.warn("[sync] recently_chosen update error:", err);
+  }
+}
+
+/**
+ * Checks localStorage for the founding_taster_access flag and, if present,
+ * sets is_founding_taster = true on the profile.
+ *
+ * Always clears the flag immediately — whether the write succeeds or fails —
+ * so it is never applied twice and never blocks account creation.
+ *
+ * Call this after the profile row is confirmed to exist.
+ */
+export async function applyFoundingTasterFlag(userId: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (localStorage.getItem("founding_taster_access") !== "true") return;
+  // Clear immediately so it is never replayed, even on error.
+  localStorage.removeItem("founding_taster_access");
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_founding_taster: true, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+    if (error) console.error("[profile] applyFoundingTasterFlag error:", error.message);
+  } catch (err) {
+    console.error("[profile] unexpected applyFoundingTasterFlag error:", err);
   }
 }
 

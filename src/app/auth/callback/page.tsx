@@ -39,6 +39,7 @@ export default function AuthCallbackPage() {
           setStatus("error");
           router.replace("/auth?error=confirmation_failed");
         } else {
+          document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
           router.replace(next);
         }
       });
