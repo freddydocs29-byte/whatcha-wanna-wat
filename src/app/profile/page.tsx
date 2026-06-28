@@ -814,153 +814,6 @@ export default function ProfilePage() {
           Saved
         </span>
 
-        {/* ── Founding Taster Guide Card ───────────────────────────────────────── */}
-        {isFoundingTaster && (
-          <div className="px-5 pt-6 pb-2">
-            <div
-              className="relative overflow-hidden rounded-[14px] cursor-pointer"
-              style={foundingGuideOpen ? {
-                background: "#1C1A18",
-                border: "1px solid rgba(245,158,11,0.3)",
-              } : {
-                background: "linear-gradient(180deg, #FBBF24 0%, #F59E0B 46%, #D97706 100%)",
-                boxShadow:
-                  "inset 0 1px 0 rgba(255,245,186,0.7), " +
-                  "inset 0 -2px 0 rgba(120,77,0,0.4), " +
-                  "0 18px 38px rgba(245,158,11,0.45), " +
-                  "0 0 0 1px rgba(245,158,11,0.35), " +
-                  "0 0 60px rgba(245,158,11,0.2)",
-              }}
-              onClick={() => setFoundingGuideOpen((v) => !v)}
-            >
-              {/* Shimmer — collapsed only */}
-              {!foundingGuideOpen && (
-                <div
-                  className="absolute top-0 bottom-0 pointer-events-none candlelight-animate"
-                  style={{
-                    left: "-40%",
-                    width: "32%",
-                    background: "linear-gradient(100deg, transparent, rgba(255,255,255,0.25), transparent)",
-                    transform: "skewX(-18deg)",
-                    animation: "candlelight-sheen 4.5s ease-in-out infinite",
-                  }}
-                />
-              )}
-
-              <div className="p-4">
-                {/* Gold header with flanking rules */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(11,8,5,0.3)" }} />
-                  <span
-                    className="font-body text-xs uppercase tracking-widest"
-                    style={{ color: foundingGuideOpen ? "#F59E0B" : "#0B0805" }}
-                  >
-                    Founding Taster
-                  </span>
-                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(11,8,5,0.3)" }} />
-                </div>
-
-                {/* Collapsed summary row */}
-                <div className="flex items-center justify-between">
-                  <p className="font-body text-sm" style={{ color: foundingGuideOpen ? "#897E73" : "#0B0805" }}>
-                    Your guide to the next 30 days
-                  </p>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={foundingGuideOpen ? "#897E73" : "#0B0805"}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{
-                      flexShrink: 0,
-                      transition: "transform 0.25s ease",
-                      transform: foundingGuideOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-
-                {/* Expanded content */}
-                {foundingGuideOpen && (
-                  <div className="mt-5 space-y-5" onClick={(e) => e.stopPropagation()}>
-                    {/* Section 1 — The Ask */}
-                    <div>
-                      <p
-                        className="font-body uppercase tracking-widest mb-2"
-                        style={{ color: "#E8621A", fontSize: "10px" }}
-                      >
-                        The Ask
-                      </p>
-                      <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.9)" }}>
-                        Use Watcha? with someone you actually eat with. Then eat the meal. That&apos;s the whole ask.
-                      </p>
-                    </div>
-
-                    {/* Section 2 — What to Notice */}
-                    <div>
-                      <p
-                        className="font-body uppercase tracking-widest mb-2"
-                        style={{ color: "#E8621A", fontSize: "10px" }}
-                      >
-                        What to Notice
-                      </p>
-                      <div className="space-y-1.5">
-                        {[
-                          "Did the decision work end to end?",
-                          "Did anything confuse you or get you stuck?",
-                          "Do the meals start to feel like they know your taste?",
-                        ].map((line) => (
-                          <p key={line} className="font-body" style={{ color: "#897E73", fontSize: "13px" }}>
-                            → {line}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Section 3 — Tell Us */}
-                    <div>
-                      <p
-                        className="font-body uppercase tracking-widest mb-2"
-                        style={{ color: "#E8621A", fontSize: "10px" }}
-                      >
-                        Tell Us
-                      </p>
-                      <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.9)" }}>
-                        Use the feedback button below — or DM us directly. No surveys. No check-ins. Just tell us when something&apos;s worth telling us.
-                      </p>
-                    </div>
-
-                    {/* Collapse chevron */}
-                    <div
-                      className="flex justify-center pt-1 cursor-pointer"
-                      onClick={(e) => { e.stopPropagation(); setFoundingGuideOpen(false); }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#897E73"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="18 15 12 9 6 15" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* ──────────────────────────────────────────────────────────────────────
             SECTION 1 — Identity
         ────────────────────────────────────────────────────────────────────── */}
@@ -1198,6 +1051,153 @@ export default function ProfilePage() {
                 <span className="text-[#E8621A] text-lg flex-shrink-0">→</span>
               </button>
             )}
+          </div>
+        )}
+
+        {/* ── Founding Taster Guide Card ───────────────────────────────────────── */}
+        {isFoundingTaster && (
+          <div className="px-5 pt-4 pb-2">
+            <div
+              className="relative overflow-hidden rounded-[14px] cursor-pointer"
+              style={foundingGuideOpen ? {
+                background: "#1C1A18",
+                border: "1px solid rgba(245,158,11,0.3)",
+              } : {
+                background: "linear-gradient(180deg, #FBBF24 0%, #F59E0B 46%, #D97706 100%)",
+                boxShadow:
+                  "inset 0 1px 0 rgba(255,245,186,0.7), " +
+                  "inset 0 -2px 0 rgba(120,77,0,0.4), " +
+                  "0 18px 38px rgba(245,158,11,0.45), " +
+                  "0 0 0 1px rgba(245,158,11,0.35), " +
+                  "0 0 60px rgba(245,158,11,0.2)",
+              }}
+              onClick={() => setFoundingGuideOpen((v) => !v)}
+            >
+              {/* Shimmer — collapsed only */}
+              {!foundingGuideOpen && (
+                <div
+                  className="absolute top-0 bottom-0 pointer-events-none candlelight-animate"
+                  style={{
+                    left: "-40%",
+                    width: "32%",
+                    background: "linear-gradient(100deg, transparent, rgba(255,255,255,0.25), transparent)",
+                    transform: "skewX(-18deg)",
+                    animation: "candlelight-sheen 4.5s ease-in-out infinite",
+                  }}
+                />
+              )}
+
+              <div className="p-4">
+                {/* Gold header with flanking rules */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(11,8,5,0.3)" }} />
+                  <span
+                    className="font-body text-xs uppercase tracking-widest"
+                    style={{ color: foundingGuideOpen ? "#F59E0B" : "#0B0805" }}
+                  >
+                    Founding Taster
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(11,8,5,0.3)" }} />
+                </div>
+
+                {/* Collapsed summary row */}
+                <div className="flex items-center justify-between">
+                  <p className="font-body text-sm" style={{ color: foundingGuideOpen ? "#897E73" : "#0B0805" }}>
+                    Your guide to the next 30 days
+                  </p>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={foundingGuideOpen ? "#897E73" : "#0B0805"}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      flexShrink: 0,
+                      transition: "transform 0.25s ease",
+                      transform: foundingGuideOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+
+                {/* Expanded content */}
+                {foundingGuideOpen && (
+                  <div className="mt-5 space-y-5" onClick={(e) => e.stopPropagation()}>
+                    {/* Section 1 — The Ask */}
+                    <div>
+                      <p
+                        className="font-body uppercase tracking-widest mb-2"
+                        style={{ color: "#E8621A", fontSize: "10px" }}
+                      >
+                        The Ask
+                      </p>
+                      <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.9)" }}>
+                        Use Watcha? with someone you actually eat with. Then eat the meal. That&apos;s the whole ask.
+                      </p>
+                    </div>
+
+                    {/* Section 2 — What to Notice */}
+                    <div>
+                      <p
+                        className="font-body uppercase tracking-widest mb-2"
+                        style={{ color: "#E8621A", fontSize: "10px" }}
+                      >
+                        What to Notice
+                      </p>
+                      <div className="space-y-1.5">
+                        {[
+                          "Did the decision work end to end?",
+                          "Did anything confuse you or get you stuck?",
+                          "Do the meals start to feel like they know your taste?",
+                        ].map((line) => (
+                          <p key={line} className="font-body" style={{ color: "#897E73", fontSize: "13px" }}>
+                            → {line}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 3 — Tell Us */}
+                    <div>
+                      <p
+                        className="font-body uppercase tracking-widest mb-2"
+                        style={{ color: "#E8621A", fontSize: "10px" }}
+                      >
+                        Tell Us
+                      </p>
+                      <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.9)" }}>
+                        Use the feedback button below — or DM us directly. No surveys. No check-ins. Just tell us when something&apos;s worth telling us.
+                      </p>
+                    </div>
+
+                    {/* Collapse chevron */}
+                    <div
+                      className="flex justify-center pt-1 cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); setFoundingGuideOpen(false); }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#897E73"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="18 15 12 9 6 15" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
