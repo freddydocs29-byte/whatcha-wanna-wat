@@ -355,7 +355,7 @@ function DeckContent() {
   const [isChoosing, setIsChoosing] = useState(false);
   const [soloLockMeal, setSoloLockMeal] = useState<Meal | null>(null);
   const [showSwipeHint, setShowSwipeHint] = useState(
-    () => typeof window !== "undefined" && !localStorage.getItem("wwe_swipe_tutorial_seen")
+    () => typeof window !== "undefined" && !localStorage.getItem("swipe_tutorial_seen")
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMeal, setDrawerMeal] = useState<Meal | null>(null);
@@ -455,17 +455,19 @@ function DeckContent() {
     setUserId(getUserId());
   }, []);
 
-  // Migrate legacy swipe hint keys to canonical wwe_swipe_tutorial_seen.
+  // Migrate legacy swipe hint keys to canonical swipe_tutorial_seen.
   // Runs once on deck mount — not in render. Existing users who already dismissed
-  // the old hints will never see the tutorial again.
+  // any prior hint will never see the tutorial again.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const oldHint = localStorage.getItem("wwe_swipe_hint_seen");
     const oldTip = localStorage.getItem("watcha_swipe_tip_seen");
-    if (oldHint || oldTip) {
-      localStorage.setItem("wwe_swipe_tutorial_seen", "true");
+    const oldCanonical = localStorage.getItem("wwe_swipe_tutorial_seen");
+    if (oldHint || oldTip || oldCanonical) {
+      localStorage.setItem("swipe_tutorial_seen", "true");
       localStorage.removeItem("wwe_swipe_hint_seen");
       localStorage.removeItem("watcha_swipe_tip_seen");
+      localStorage.removeItem("wwe_swipe_tutorial_seen");
       setShowSwipeHint(false);
     }
   }, []);
@@ -1400,7 +1402,7 @@ function DeckContent() {
 
   function dismissHint() {
     if (!showSwipeHint) return;
-    localStorage.setItem("wwe_swipe_tutorial_seen", "true");
+    localStorage.setItem("swipe_tutorial_seen", "true");
     setShowSwipeHint(false);
   }
 
