@@ -186,18 +186,6 @@ export default function ResetPasswordPage() {
         )}
       </div>
 
-      <p
-        className="absolute bottom-8 w-full text-center pointer-events-none"
-        style={{
-          fontFamily: "var(--font-mono, monospace)",
-          fontSize: 11,
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
-          color: "rgba(137,126,115,0.3)",
-        }}
-      >
-        Detroit, MI
-      </p>
     </main>
   );
 }

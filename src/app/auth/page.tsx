@@ -720,18 +720,16 @@ export default function AuthPage() {
         )}
       </div>
 
-      {/* Detroit footer */}
       <div className="absolute bottom-6 w-full flex flex-col items-center gap-2 pointer-events-none z-20">
         <p
           style={{
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: 11,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            color: "rgba(137,126,115,0.3)",
+            fontFamily: "var(--font-sans, system-ui)",
+            fontSize: 12,
+            textAlign: "center",
+            color: "rgba(137,126,115,0.5)",
           }}
         >
-          Detroit, MI
+          By creating an account you agree to our Terms of Service and Privacy Policy.
         </p>
         <p
           className="pointer-events-auto"
