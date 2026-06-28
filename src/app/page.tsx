@@ -231,6 +231,7 @@ export default function Home() {
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
   const [showNotificationsDrawer, setShowNotificationsDrawer] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [lockedFeedbackOpen, setLockedFeedbackOpen] = useState(false);
   // Pending in-app invite from a selected partner
   const [pendingInvite, setPendingInvite] = useState<{
     id: string;
@@ -1419,6 +1420,23 @@ export default function Home() {
             ]}
           />
 
+          {/* Feedback nudge */}
+          <div className="mx-6 mt-6 mb-2 rounded-[18px] px-5 py-4" style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.08)" }}>
+            <p className="font-display font-black text-sm mb-1" style={{ color: "rgba(245,237,224,0.75)" }}>
+              Help shape Watcha?
+            </p>
+            <p className="font-body text-xs mb-3 leading-relaxed" style={{ color: "rgba(199,189,172,0.5)" }}>
+              Was this pick helpful, off, confusing, or surprisingly right? Tell us while it&apos;s fresh.
+            </p>
+            <button
+              onClick={() => setLockedFeedbackOpen(true)}
+              className="font-body text-xs font-semibold"
+              style={{ color: "rgba(232,98,26,0.8)" }}
+            >
+              Send feedback →
+            </button>
+          </div>
+
           {/* Cook / Order action drawer */}
           {mealActionMode && (
             <V3MealActionDrawer
@@ -2332,6 +2350,12 @@ export default function Home() {
         isOpen={feedbackOpen}
         onClose={() => setFeedbackOpen(false)}
         pageContext="homepage"
+      />
+
+      <FeedbackModal
+        isOpen={lockedFeedbackOpen}
+        onClose={() => setLockedFeedbackOpen(false)}
+        pageContext="locked_result"
       />
     </V3AppShell>
   );

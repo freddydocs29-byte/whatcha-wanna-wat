@@ -8,7 +8,7 @@ import { getUserId } from "../lib/identity";
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pageContext: "homepage" | "profile";
+  pageContext: "homepage" | "profile" | "locked_result";
 }
 
 export default function FeedbackModal({ isOpen, onClose, pageContext }: FeedbackModalProps) {

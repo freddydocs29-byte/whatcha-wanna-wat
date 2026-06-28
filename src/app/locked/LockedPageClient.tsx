@@ -21,6 +21,7 @@ import V3LockedMealCard from "../components/v3/V3LockedMealCard";
 import V3MealActionRows from "../components/v3/V3MealActionRows";
 import V3MealActionDrawer from "../components/v3/V3MealActionDrawer";
 import { MealDetailDrawer } from "../components/MealDetailDrawer";
+import FeedbackModal from "../components/FeedbackModal";
 
 type Props = {
   meal: Meal;
@@ -37,6 +38,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [showGuestLimit, setShowGuestLimit] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
@@ -201,6 +203,23 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           ]}
         />
 
+        {/* Feedback nudge */}
+        <div className="mx-6 mt-6 mb-2 rounded-[18px] px-5 py-4" style={{ background: "rgba(255,231,202,0.04)", border: "1px solid rgba(245,237,224,0.08)" }}>
+          <p className="font-display font-black text-sm mb-1" style={{ color: "rgba(245,237,224,0.75)" }}>
+            Help shape Watcha?
+          </p>
+          <p className="font-body text-xs mb-3 leading-relaxed" style={{ color: "rgba(199,189,172,0.5)" }}>
+            Was this pick helpful, off, confusing, or surprisingly right? Tell us while it&apos;s fresh.
+          </p>
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className="font-body text-xs font-semibold"
+            style={{ color: "rgba(232,98,26,0.8)" }}
+          >
+            Send feedback →
+          </button>
+        </div>
+
         {isGuest && (
           <div className="px-6 mt-8 mb-4">
             <button
@@ -243,6 +262,12 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
       {showGuestLimit && (
         <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
       )}
+
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        pageContext="locked_result"
+      />
     </main>
   );
 }
