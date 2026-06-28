@@ -13,9 +13,7 @@ import {
 import { trackEvent } from "../lib/analytics";
 import { EVENT_LOCKED_RESULT_VIEWED, EVENT_POST_DECISION_ACTION, EVENT_GUEST_LIMIT_REACHED, EVENT_MEAL_SAVED } from "../lib/analytics-events";
 import BottomNav from "../components/BottomNav";
-import FeedbackModal from "../components/FeedbackModal";
 import { getAuthUserId } from "../lib/identity";
-import { fetchProfileByAuthUserId } from "../lib/supabase-profile";
 import { guestDeckBudgetExhausted, tryConsumeGuestDeckBudget, getGuestAttempts } from "../lib/guestLimit";
 import GuestLimitPrompt from "../components/GuestLimitPrompt";
 import V3PostMatchHome from "../components/v3/V3PostMatchHome";
@@ -39,8 +37,6 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   const [mealActionMode, setMealActionMode] = useState<"cook" | "order" | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [showGuestLimit, setShowGuestLimit] = useState(false);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [isFoundingTaster, setIsFoundingTaster] = useState(false);
 
   useEffect(() => {
     setSaved(getSavedMealsEnriched().some((s) => s.meal.id === meal.id));
@@ -48,14 +44,6 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
     const decided = getDecidedMeal();
     if (decided?.sessionId) setSessionId(decided.sessionId);
   }, [meal.id]);
-
-  useEffect(() => {
-    getAuthUserId().then(async (uid) => {
-      if (!uid) return;
-      const p = await fetchProfileByAuthUserId(uid);
-      if (p?.is_founding_taster) setIsFoundingTaster(true);
-    }).catch(() => {});
-  }, []);
 
   const lockedViewedRef = useRef(false);
   useEffect(() => {
@@ -213,45 +201,6 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
           ]}
         />
 
-        {/* Feedback */}
-        <div className="mx-5 mt-4">
-          <button
-            onClick={() => setFeedbackOpen(true)}
-            className="flex items-center justify-between w-full rounded-[14px] px-4 py-3 text-left"
-            style={{
-              background: "rgba(255,231,202,0.03)",
-              border: "1px solid rgba(245,237,224,0.07)",
-            }}
-          >
-            <div>
-              <p
-                className="font-body text-sm"
-                style={{ color: "rgba(245,237,224,0.8)", fontWeight: 500 }}
-              >
-                Send feedback
-              </p>
-              <p
-                className="font-body text-xs mt-0.5"
-                style={{ color: "rgba(199,189,172,0.45)" }}
-              >
-                Tell us what felt off or what you loved.
-              </p>
-            </div>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="rgba(245,237,224,0.3)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-
         {isGuest && (
           <div className="px-6 mt-8 mb-4">
             <button
@@ -294,13 +243,6 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
       {showGuestLimit && (
         <GuestLimitPrompt onClose={() => setShowGuestLimit(false)} />
       )}
-
-      <FeedbackModal
-        isOpen={feedbackOpen}
-        onClose={() => setFeedbackOpen(false)}
-        pageContext="locked_result"
-        isFoundingTaster={isFoundingTaster}
-      />
     </main>
   );
 }

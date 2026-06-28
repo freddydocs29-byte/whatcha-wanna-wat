@@ -8,11 +8,10 @@ import { getUserId } from "../lib/identity";
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pageContext: "homepage" | "profile" | "locked_result";
-  isFoundingTaster?: boolean;
+  pageContext: "homepage" | "profile";
 }
 
-export default function FeedbackModal({ isOpen, onClose, pageContext, isFoundingTaster }: FeedbackModalProps) {
+export default function FeedbackModal({ isOpen, onClose, pageContext }: FeedbackModalProps) {
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
@@ -75,24 +74,6 @@ export default function FeedbackModal({ isOpen, onClose, pageContext, isFounding
                   "0 32px 80px rgba(0,0,0,0.75), 0 0 40px rgba(232,98,26,0.07), inset 0 1px 0 rgba(245,237,224,0.05)",
               }}
             >
-              {/* Founding Taster label */}
-              {isFoundingTaster && (
-                <div className="mb-4 pb-4" style={{ borderBottom: "1px solid rgba(245,237,224,0.07)" }}>
-                  <p
-                    className="font-body text-xs font-semibold tracking-widest uppercase"
-                    style={{ color: "#F59E0B" }}
-                  >
-                    Founding Taster
-                  </p>
-                  <p
-                    className="font-body text-xs mt-0.5"
-                    style={{ color: "#897E73" }}
-                  >
-                    Help make Watcha? better.
-                  </p>
-                </div>
-              )}
-
               {/* Close */}
               <button
                 onClick={handleClose}
