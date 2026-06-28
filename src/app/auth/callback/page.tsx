@@ -31,16 +31,27 @@ export default function AuthCallbackPage() {
       return;
     }
 
+    // Subscribe before exchanging so PASSWORD_RECOVERY fires before .then() resolves.
+    // Supabase fires onAuthStateChange synchronously during session storage, so
+    // isRecovery is guaranteed to be set before the .then() callback runs.
+    let isRecovery = false;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        isRecovery = true;
+      }
+    });
+
     supabase.auth
       .exchangeCodeForSession(code)
       .then(({ error }) => {
+        subscription.unsubscribe();
         if (error) {
           console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
           setStatus("error");
           router.replace("/auth?error=confirmation_failed");
         } else {
           document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
-          router.replace(next);
+          router.replace(isRecovery ? "/auth/reset" : next);
         }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -178,7 +178,7 @@ export default function AuthPage() {
     e.preventDefault();
     setForgotStatus("sending");
     const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
+      redirectTo: `${window.location.origin}/auth/callback`,
     });
     setForgotStatus(error ? "error" : "sent");
   }
