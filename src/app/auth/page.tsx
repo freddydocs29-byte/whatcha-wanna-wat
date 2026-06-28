@@ -231,7 +231,18 @@ export default function AuthPage() {
         });
 
         if (signUpError) {
-          setError(signUpError.message);
+          const msg = signUpError.message ?? "";
+          if (
+            msg.toLowerCase().includes("already registered") ||
+            msg.toLowerCase().includes("user already exists") ||
+            (signUpError as { status?: number }).status === 422
+          ) {
+            setError(
+              "Looks like there's already an account with this email. Try signing in, using Continue with Google, or resetting your password."
+            );
+          } else {
+            setError(msg);
+          }
           return;
         }
 
