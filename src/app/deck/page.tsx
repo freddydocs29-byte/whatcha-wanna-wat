@@ -3946,41 +3946,21 @@ function DeckContent() {
                 </div>
               )}
               {isRecommendationCard ? (
-                /* Gold spinning seal — replaces AI badge + more details for rec card */
-                <motion.div
-                  key={`rec-seal-${meal.id}`}
-                  className="ml-auto rec-seal-anim"
-                  style={{
-                    width: 48, height: 48, borderRadius: "50%", padding: 2, zIndex: 8,
-                    background: "conic-gradient(from 0deg, #9A6E2A, #F4D98A, #D8B45E, #FBE6AE, #9A6E2A)",
-                    boxShadow: "0 5px 14px rgba(0,0,0,0.5)",
-                    animation: prefersReducedMotion ? undefined : "rec-seal-spin 11s linear infinite",
-                    flexShrink: 0,
+                /* Details button — replaces W seal on first card */
+                <button
+                  className="ml-auto inline-flex rounded-full px-3 py-1 text-xs backdrop-blur-sm"
+                  style={{ background: "rgba(8,5,3,0.50)", border: "1px solid rgba(245,237,224,0.16)", color: "#F6EEE2", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setDrawerMeal(meal);
+                    setDrawerOpen(true);
+                    dismissDrawerHint();
                   }}
-                  initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.95 }}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
-                  <div
-                    className="w-full h-full rounded-full flex items-center justify-center rec-seal-inner-anim"
-                    style={{
-                      background: "radial-gradient(circle at 38% 32%, #2A2118, #16110B)",
-                      animation: prefersReducedMotion ? undefined : "rec-seal-counter 11s linear infinite",
-                    }}
-                  >
-                    <span style={{
-                      fontFamily: "'Instrument Serif', Georgia, serif",
-                      fontStyle: "italic",
-                      fontSize: 20,
-                      background: "linear-gradient(180deg, #FBE6AE, #D8B45E)",
-                      WebkitBackgroundClip: "text",
-                      backgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}>
-                      W
-                    </span>
-                  </div>
-                </motion.div>
+                  Details
+                </button>
               ) : (
                 <div className="flex flex-col items-end gap-1.5">
                   {aiMealIds.has(meal.id) && (
