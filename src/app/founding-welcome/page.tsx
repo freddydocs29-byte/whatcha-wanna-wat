@@ -112,7 +112,7 @@ export default function FoundingWelcomePage() {
             marginBottom: 20,
           }}
         >
-          Founding Taster
+          First Taster
         </p>
 
         {/* Headline */}

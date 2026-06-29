@@ -1690,7 +1690,7 @@ export default function Home() {
                 className="font-body text-sm mb-4 leading-relaxed"
                 style={{ color: "rgba(199,189,172,0.65)" }}
               >
-                Founding Tasters: tell us what felt off, what confused you, or what you loved. We&apos;re reading every note during soft launch.
+                First Tasters: tell us what felt off, what confused you, or what you loved. We&apos;re reading every note during soft launch.
               </p>
               <button
                 onClick={() => setFeedbackOpen(true)}

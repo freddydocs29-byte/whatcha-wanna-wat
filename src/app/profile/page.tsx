@@ -1095,7 +1095,7 @@ export default function ProfilePage() {
                     className="font-body text-xs uppercase tracking-widest"
                     style={{ color: foundingGuideOpen ? "#F59E0B" : "#0B0805" }}
                   >
-                    Founding Taster
+                    First Taster
                   </span>
                   <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(11,8,5,0.3)" }} />
                 </div>
