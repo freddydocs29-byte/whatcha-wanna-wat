@@ -137,9 +137,15 @@ export default function ProfilePage() {
 
   // ── Change email state ─────────────────────────────────────────────────────
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isEmailPasswordUser, setIsEmailPasswordUser] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // ── Async state (Supabase) ─────────────────────────────────────────────────
   const [asyncLoading, setAsyncLoading] = useState(true);
@@ -236,6 +242,10 @@ export default function ProfilePage() {
         if (authUid) {
           supabase.auth.getUser().then(({ data }) => {
             setUserEmail(data.user?.email ?? null);
+            const hasEmailProvider = data.user?.identities?.some(
+              (id) => id.provider === "email"
+            ) ?? false;
+            setIsEmailPasswordUser(hasEmailProvider);
           });
         }
         if (profile?.display_name) {
@@ -486,6 +496,30 @@ export default function ProfilePage() {
       setEmailStatus("error");
     } else {
       setEmailStatus("sent");
+    }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordError(null);
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+    setPasswordStatus("saving");
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPasswordStatus("error");
+      setPasswordError(error.message ?? "Something went wrong. Please try again.");
+    } else {
+      setPasswordStatus("saved");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordForm(false);
     }
   }
 
@@ -1033,6 +1067,101 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Account section — change password (email/password users only) */}
+                {isEmailPasswordUser && (
+                  <div
+                    className="rounded-[14px] px-4 py-3"
+                    style={{
+                      background: "rgba(255,231,202,0.03)",
+                      border: "1px solid rgba(245,237,224,0.07)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p
+                          className="font-body text-[10px] uppercase tracking-widest mb-0.5"
+                          style={{ color: "#897E73", letterSpacing: "0.18em" }}
+                        >
+                          Change password
+                        </p>
+                        <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.65)" }}>
+                          Update your account password
+                        </p>
+                      </div>
+                      {!showPasswordForm && passwordStatus !== "saved" && (
+                        <button
+                          onClick={() => { setShowPasswordForm(true); setPasswordStatus("idle"); setPasswordError(null); setNewPassword(""); setConfirmPassword(""); }}
+                          className="font-body text-xs"
+                          style={{ color: "#897E73" }}
+                        >
+                          Change
+                        </button>
+                      )}
+                    </div>
+
+                    {showPasswordForm && (
+                      <form onSubmit={(e) => void handleChangePassword(e)} className="mt-3 flex flex-col gap-2">
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="New password"
+                          required
+                          autoComplete="new-password"
+                          className="w-full rounded-[10px] px-3 py-2.5 font-body text-sm text-white placeholder:text-[#897E73]/60 focus:outline-none"
+                          style={{
+                            background: "rgba(255,231,202,0.045)",
+                            border: "1px solid rgba(245,237,224,0.12)",
+                          }}
+                        />
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                          required
+                          autoComplete="new-password"
+                          className="w-full rounded-[10px] px-3 py-2.5 font-body text-sm text-white placeholder:text-[#897E73]/60 focus:outline-none"
+                          style={{
+                            background: "rgba(255,231,202,0.045)",
+                            border: "1px solid rgba(245,237,224,0.12)",
+                          }}
+                        />
+                        {passwordError && (
+                          <p className="font-body text-xs text-red-400">{passwordError}</p>
+                        )}
+                        <button
+                          type="submit"
+                          disabled={passwordStatus === "saving"}
+                          className="w-full rounded-full py-2.5 font-body text-sm font-semibold disabled:opacity-50 transition-opacity"
+                          style={{
+                            background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                            color: "#1c0c03",
+                            fontFamily: "var(--font-quicksand)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {passwordStatus === "saving" ? "Saving…" : "Update password"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowPasswordForm(false); setPasswordStatus("idle"); setPasswordError(null); setNewPassword(""); setConfirmPassword(""); }}
+                          className="font-body text-xs text-center"
+                          style={{ color: "#897E73" }}
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    )}
+
+                    {passwordStatus === "saved" && !showPasswordForm && (
+                      <p className="font-body text-sm mt-2" style={{ color: "#E8621A" }}>
+                        Password updated.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <button
