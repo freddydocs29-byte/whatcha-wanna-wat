@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { trackEvent } from "../lib/analytics";
 import { EVENT_MEAL_DETAIL_VIEWED } from "../lib/analytics-events";
 import { type Meal } from "../data/meals";
@@ -100,8 +100,7 @@ export function MealDetailDrawer({
   const showHint = isSwipeContext;
   const isTop5 = context === "top5";
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [atScrollTop, setAtScrollTop] = useState(true);
+  const dragControls = useDragControls();
   // Track which meal ID had an image load failure — auto-resets when meal changes
   const [imgFailedId, setImgFailedId] = useState<string | null>(null);
 
@@ -187,7 +186,9 @@ export function MealDetailDrawer({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-            drag={atScrollTop ? "y" : false}
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
             dragConstraints={{ top: 0 }}
             dragElastic={{ top: 0, bottom: 0.35 }}
             dragMomentum={false}
@@ -195,22 +196,25 @@ export function MealDetailDrawer({
             onDragEnd={(_, info) => {
               if (info.offset.y > 50 || info.velocity.y > 300) onClose();
             }}
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] max-h-[90vh]"
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] max-h-[90vh] overflow-hidden flex flex-col"
             style={darkSurface.sheet}
           >
+            {/* Drag handle — only this area initiates the close gesture */}
             <div
-              ref={scrollRef}
-              onScroll={(e) => setAtScrollTop(e.currentTarget.scrollTop === 0)}
-              className="overflow-y-auto max-h-[90vh] overscroll-contain"
-              style={{ touchAction: atScrollTop ? "none" : "pan-y" }}
+              className="flex justify-center py-3 flex-shrink-0 cursor-grab active:cursor-grabbing"
+              onPointerDown={(e) => dragControls.start(e)}
+              style={{ touchAction: "none" }}
             >
-              {/* Drag handle */}
               <div
-                className="w-10 h-1 rounded-full mx-auto mt-3 mb-5"
-                style={{
-                  background: darkSurface.handle,
-                }}
+                className="w-10 h-1 rounded-full"
+                style={{ background: darkSurface.handle }}
               />
+            </div>
+
+            <div
+              className="overflow-y-auto overscroll-contain flex-1 min-h-0"
+              style={{ touchAction: "pan-y", paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}
+            >
 
               {/* Meal image */}
               <div className="relative mx-4 rounded-[16px] overflow-hidden mb-4" style={{ height: 200 }}>
@@ -550,8 +554,6 @@ export function MealDetailDrawer({
                 </p>
               )}
 
-              {/* Safe area spacer */}
-              <div className="h-4" />
             </div>{/* end inner scroll container */}
           </motion.div>
         </>
