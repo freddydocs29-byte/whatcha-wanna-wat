@@ -25,6 +25,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const code = searchParams.get("code");
     const next = searchParams.get("next") ?? "/";
+    const typeParam = searchParams.get("type");
 
     if (!code) {
       router.replace("/auth?error=confirmation_failed");
@@ -52,7 +53,7 @@ export default function AuthCallbackPage() {
         } else {
           document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
 
-          if (isRecovery) {
+          if (typeParam === "recovery" || isRecovery) {
             router.replace("/auth/reset");
             return;
           }
