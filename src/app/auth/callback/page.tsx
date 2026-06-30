@@ -70,10 +70,12 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
-          setStatus("error");
-          router.replace(`/auth?error=${encodeURIComponent(error.message)}`);
-          return;
+          if (!isConfirmationFailed) {
+            console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
+            setStatus("error");
+            router.replace(`/auth?error=${encodeURIComponent(error.message)}`);
+            return;
+          }
         }
 
         document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
