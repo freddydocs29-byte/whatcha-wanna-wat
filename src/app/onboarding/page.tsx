@@ -322,77 +322,120 @@ export default function OnboardingPage() {
   // ── First Taster welcome backstop ────────────────────────────────────────────
   if (showFirstTasterWelcome) {
     return (
-      <main className="relative min-h-screen bg-[#0B0805] text-white flex flex-col">
-        {/* Ember background ambience */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
-          }}
-        />
+      <main
+        style={{
+          background: "#0B0805",
+          position: "relative",
+          overflow: "hidden",
+          minHeight: "100vh",
+        }}
+      >
+        {/* Grain */}
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          opacity: 0.05, mixBlendMode: "overlay",
+        }} />
+        {/* Ember glow */}
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none",
+          background: "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(232,98,26,0.14) 0%, transparent 70%), radial-gradient(ellipse 60% 30% at 50% 100%, rgba(232,98,26,0.07) 0%, transparent 70%)",
+        }} />
+        {/* Vignette */}
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none",
+          boxShadow: "inset 0 0 120px 120px rgba(0,0,0,0.55)",
+        }} />
 
-        <div className="mx-auto w-full max-w-md flex flex-col flex-1 px-5 pt-16 pb-40 relative z-10">
+        <div style={{ position: "relative", zIndex: 1, padding: "64px 28px 48px" }}>
           {/* Eyebrow */}
-          <p
-            className="text-[11px] tracking-[2.4px] uppercase mb-6"
-            style={{
-              fontFamily: "var(--font-jetbrains-mono)",
-              color: "#E8621A",
-            }}
-          >
-            Welcome, First Taster
-          </p>
+          <p style={{
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+            fontSize: 11,
+            letterSpacing: "2.4px",
+            textTransform: "uppercase",
+            color: "#E8621A",
+            marginBottom: 20,
+          }}>First Taster</p>
 
           {/* Headline */}
-          <h1
-            className="leading-tight text-white"
-            style={{
-              fontFamily: "var(--font-quicksand)",
-              fontWeight: 700,
-              fontSize: 52,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            You&apos;re in<span style={{ color: "#E8621A" }}>.</span>
-          </h1>
+          <h1 style={{
+            fontFamily: "var(--font-quicksand), system-ui",
+            fontWeight: 700,
+            fontSize: 44,
+            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+            color: "#F6EEE2",
+            marginBottom: 28,
+          }}>Welcome. You&apos;re in.</h1>
 
           {/* Body */}
-          <p
-            className="mt-5"
-            style={{
-              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+          <div style={{ marginBottom: 40 }}>
+            <p style={{
+              fontFamily: "var(--font-geist-sans), system-ui",
               fontWeight: 300,
-              fontSize: 16,
-              lineHeight: 1.6,
+              fontSize: 15,
+              lineHeight: 1.65,
               color: "#C7BDAC",
+              marginBottom: 16,
+            }}>
+              You&apos;re one of the first people invited into Watcha? — a better
+              way to decide what&apos;s for dinner without the back-and-forth.
+            </p>
+            <p style={{
+              fontFamily: "var(--font-geist-sans), system-ui",
+              fontWeight: 300,
+              fontSize: 15,
+              lineHeight: 1.65,
+              color: "#C7BDAC",
+              marginBottom: 16,
+            }}>
+              Your swipes, picks, and feedback will help shape what Watcha? becomes.
+            </p>
+            <p style={{
+              fontFamily: "var(--font-geist-sans), system-ui",
+              fontWeight: 300,
+              fontSize: 15,
+              lineHeight: 1.65,
+              color: "#C7BDAC",
+            }}>
+              First, let&apos;s learn your taste.
+            </p>
+          </div>
+
+          {/* CTA */}
+          <button
+            onClick={() => {
+              localStorage.setItem("founding_welcome_seen", "true");
+              sessionStorage.removeItem("founding_taster_intent");
+              setShowFirstTasterWelcome(false);
+            }}
+            style={{
+              width: "100%",
+              padding: "16px 0",
+              borderRadius: 9999,
+              border: "none",
+              background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #B84A12 100%)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2), 0 0 24px rgba(232,98,26,0.4), 0 0 0 1px rgba(232,98,26,0.2)",
+              fontFamily: "var(--font-quicksand), system-ui",
+              fontWeight: 700,
+              fontSize: 16,
+              color: "#1c0c03",
+              cursor: "pointer",
+              marginBottom: 32,
             }}
           >
-            You&apos;re one of the first people to use Watcha. That means you&apos;re
-            helping shape what this becomes. Tell us what felt off, what confused
-            you, or what you loved.
-          </p>
-        </div>
+            Build my flavor profile
+          </button>
 
-        {/* CTA — fixed at bottom */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
-          <div
-            className="mx-auto w-full max-w-md px-5 pt-10 relative"
-            style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}
-          >
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
-            <button
-              onClick={() => {
-                localStorage.setItem("founding_welcome_seen", "true");
-                sessionStorage.removeItem("founding_taster_intent");
-                setShowFirstTasterWelcome(false);
-              }}
-              className="w-full text-white font-bold text-base py-4 rounded-full transition active:scale-[0.99]"
-              style={gradientPrimaryStyle}
-            >
-              Let&apos;s go →
-            </button>
-          </div>
+          {/* Sign-off */}
+          <p style={{
+            fontFamily: "var(--font-geist-sans), system-ui",
+            fontWeight: 300,
+            fontSize: 12,
+            color: "#5A5248",
+            textAlign: "center",
+          }}>— Watcha?</p>
         </div>
       </main>
     );
