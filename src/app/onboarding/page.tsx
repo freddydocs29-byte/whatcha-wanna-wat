@@ -183,6 +183,7 @@ export default function OnboardingPage() {
     if (step < TOTAL_STEPS) {
       setDirection(1);
       setStep((s) => s + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       // Final step complete — save all data and navigate directly to home.
       const vals = latestRef.current;
@@ -247,6 +248,7 @@ export default function OnboardingPage() {
     setDietaryRestrictions([]);
     setDirection(1);
     setStep((s) => s + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   /** "None of these" on the hard NO step — clears hard NOs and advances. */
@@ -260,6 +262,7 @@ export default function OnboardingPage() {
     setHardNoFoods([]);
     setDirection(1);
     setStep((s) => s + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function toggleAllergen(value: Allergen) {
@@ -279,6 +282,7 @@ export default function OnboardingPage() {
     setAllergens([]);
     setDirection(1);
     setStep((s) => s + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function toggleCuisine(label: string) {
@@ -382,7 +386,7 @@ export default function OnboardingPage() {
             <div className="mt-7 flex flex-col">
               {[
                 { title: "Takes less than a minute.", subtitle: "A few answers now. A real answer every time you're hungry." },
-                { title: "Swipe solo or decide together.", subtitle: "Use it alone or share a session — both work." },
+                { title: "Swipe solo or decide together.", subtitle: "Use it alone or share a session with one other person — both work." },
                 { title: "We learn your taste over time.", subtitle: "Your swipes shape what shows up next." },
                 { title: "Save the good picks when you want.", subtitle: "Bookmark anything you'd actually order." },
               ].map((item, index) => (

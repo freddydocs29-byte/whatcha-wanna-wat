@@ -1575,7 +1575,7 @@ export default function Home() {
                       fontWeight: 500,
                     }}
                   >
-                    JOIN
+                    Join a session
                   </span>
                   Have a code?
                   <span style={{ color: "#E8621A" }}>›</span>

@@ -300,6 +300,16 @@ export default function V3LockedMealCard({
       </div>
 
       {/* Let's Eat bidirectional swipe + tap — interactive */}
+      <p style={{
+        textAlign: "center",
+        fontSize: 11,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: "#897E73",
+        marginBottom: 8,
+      }}>
+        ← swipe to cook or order
+      </p>
       <div>
         <div className="flex justify-between px-1 mb-[6px]">
           <button
@@ -315,6 +325,8 @@ export default function V3LockedMealCard({
               display: "flex",
               alignItems: "center",
               cursor: "pointer",
+              textDecoration: "underline",
+              textDecorationColor: "rgba(199,189,172,0.3)",
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -337,6 +349,8 @@ export default function V3LockedMealCard({
               display: "flex",
               alignItems: "center",
               cursor: "pointer",
+              textDecoration: "underline",
+              textDecorationColor: "rgba(199,189,172,0.3)",
             }}
             onClick={(e) => {
               e.stopPropagation();
