@@ -546,7 +546,17 @@ export default function AuthPage() {
               onClick={async () => {
                 const foundingIntent =
                   typeof window !== "undefined" &&
-                  localStorage.getItem("founding_taster_access") === "true";
+                  (localStorage.getItem("founding_taster_access") === "true" ||
+                    sessionStorage.getItem("founding_taster_intent") === "true");
+                console.log(
+                  "[founding-oauth] has localStorage intent:",
+                  localStorage.getItem("founding_taster_access") === "true"
+                );
+                console.log(
+                  "[founding-oauth] has sessionStorage intent:",
+                  sessionStorage.getItem("founding_taster_intent") === "true"
+                );
+                console.log("[founding-oauth] foundingIntent:", foundingIntent);
                 await supabase.auth.signInWithOAuth({
                   provider: "google",
                   options: {
