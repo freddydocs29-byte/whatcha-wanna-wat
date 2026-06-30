@@ -57,6 +57,17 @@ export default function AuthCallbackPage() {
           sessionStorage.getItem("founding_taster_intent") === "true";
         const isFoundingTaster = foundingParam || foundingLocal || foundingSession;
 
+        console.log("[founding-callback] signals before error branch:", {
+          foundingParam,
+          foundingLocal,
+          foundingSession,
+          isFoundingTaster,
+          hasError: !!error,
+          errorMessage: error?.message,
+          fullUrl: typeof window !== "undefined" ? window.location.href : null,
+          search: typeof window !== "undefined" ? window.location.search : null,
+        });
+
         if (error) {
           const isConfirmationFailed =
             error.message?.includes("confirmation_failed") ||
