@@ -47,70 +47,84 @@ export default function AuthCallbackPage() {
       .then(async ({ error }) => {
         subscription.unsubscribe();
         if (error) {
-          console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
-          setStatus("error");
-          router.replace("/auth?error=confirmation_failed");
-        } else {
-          document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
+          // confirmation_failed is a soft Supabase signal that can fire even
+          // when the OAuth round-trip succeeds and a valid session exists.
+          // Check for a live session before treating the error as fatal.
+          const { data: sessionData } = await supabase.auth.getSession();
+          const hasValidSession = !!sessionData.session;
+          const isConfirmationFailed =
+            error.message?.includes("confirmation_failed") ||
+            error.message?.toLowerCase().includes("confirmation failed");
 
-          if (typeParam === "recovery" || isRecovery) {
-            router.replace("/auth/reset");
+          if (!(isConfirmationFailed && hasValidSession)) {
+            console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
+            setStatus("error");
+            router.replace(`/auth?error=${encodeURIComponent(error.message)}`);
             return;
           }
 
-          // Detect Founding Taster OAuth return.
-          // Primary signal: ?founding_taster=1 injected into the OAuth redirectTo URL.
-          // Fallback: localStorage flag survives the same-origin OAuth round-trip.
-          const foundingParam = searchParams.get("founding_taster") === "1";
-          const foundingLocal =
-            typeof window !== "undefined" &&
-            localStorage.getItem("founding_taster_access") === "true";
-          const foundingSession =
-            typeof window !== "undefined" &&
-            sessionStorage.getItem("founding_taster_intent") === "true";
-          const isFoundingTaster = foundingParam || foundingLocal || foundingSession;
+          console.warn("[auth-callback] confirmation_failed but session exists; continuing OAuth routing");
+        }
 
-          if (isFoundingTaster) {
-            // Try to stamp is_founding_taster = true on the profile now if it is
-            // already linked to this auth user (returning users / same-device signups).
-            // For brand-new OAuth users whose profile has not been linked yet,
-            // we leave founding_taster_access in localStorage so ProfileProvider's
-            // applyFoundingTasterFlag() can consume it during its init cycle.
-            let appliedViaCallback = false;
-            try {
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user?.id) {
-                const { data: profileRow } = await supabase
+        document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
+
+        if (typeParam === "recovery" || isRecovery) {
+          router.replace("/auth/reset");
+          return;
+        }
+
+        // Detect Founding Taster OAuth return.
+        // Primary signal: ?founding_taster=1 injected into the OAuth redirectTo URL.
+        // Fallback: localStorage flag survives the same-origin OAuth round-trip.
+        const foundingParam = searchParams.get("founding_taster") === "1";
+        const foundingLocal =
+          typeof window !== "undefined" &&
+          localStorage.getItem("founding_taster_access") === "true";
+        const foundingSession =
+          typeof window !== "undefined" &&
+          sessionStorage.getItem("founding_taster_intent") === "true";
+        const isFoundingTaster = foundingParam || foundingLocal || foundingSession;
+
+        if (isFoundingTaster) {
+          // Try to stamp is_founding_taster = true on the profile now if it is
+          // already linked to this auth user (returning users / same-device signups).
+          // For brand-new OAuth users whose profile has not been linked yet,
+          // we leave founding_taster_access in localStorage so ProfileProvider's
+          // applyFoundingTasterFlag() can consume it during its init cycle.
+          let appliedViaCallback = false;
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.id) {
+              const { data: profileRow } = await supabase
+                .from("profiles")
+                .select("user_id")
+                .eq("auth_user_id", user.id)
+                .maybeSingle();
+              if (profileRow?.user_id) {
+                await supabase
                   .from("profiles")
-                  .select("user_id")
-                  .eq("auth_user_id", user.id)
-                  .maybeSingle();
-                if (profileRow?.user_id) {
-                  await supabase
-                    .from("profiles")
-                    .update({ is_founding_taster: true, updated_at: new Date().toISOString() })
-                    .eq("user_id", profileRow.user_id);
-                  if (typeof window !== "undefined") {
-                    localStorage.removeItem("founding_taster_access");
-                  }
-                  appliedViaCallback = true;
+                  .update({ is_founding_taster: true, updated_at: new Date().toISOString() })
+                  .eq("user_id", profileRow.user_id);
+                if (typeof window !== "undefined") {
+                  localStorage.removeItem("founding_taster_access");
                 }
+                appliedViaCallback = true;
               }
-            } catch (err) {
-              console.error("[auth/callback] founding taster apply error:", err);
             }
-            if (!appliedViaCallback) {
-              // Profile not linked yet — founding_taster_access preserved for ProfileProvider.
-              console.log("[auth/callback] profile not yet linked; founding flag preserved for ProfileProvider");
-            }
-            router.replace("/founding-welcome?founding_taster=1");
-          } else {
-            // No founding intent — clear any stale flag and continue normally.
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("founding_taster_access");
-            }
-            router.replace(next);
+          } catch (err) {
+            console.error("[auth/callback] founding taster apply error:", err);
           }
+          if (!appliedViaCallback) {
+            // Profile not linked yet — founding_taster_access preserved for ProfileProvider.
+            console.log("[auth/callback] profile not yet linked; founding flag preserved for ProfileProvider");
+          }
+          router.replace("/founding-welcome?founding_taster=1");
+        } else {
+          // No founding intent — clear any stale flag and continue normally.
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("founding_taster_access");
+          }
+          router.replace(next);
         }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
