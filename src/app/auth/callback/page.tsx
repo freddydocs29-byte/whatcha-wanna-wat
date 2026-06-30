@@ -50,20 +50,43 @@ export default function AuthCallbackPage() {
           // confirmation_failed is a soft Supabase signal that can fire even
           // when the OAuth round-trip succeeds and a valid session exists.
           // Check for a live session before treating the error as fatal.
-          const { data: sessionData } = await supabase.auth.getSession();
-          const hasValidSession = !!sessionData.session;
           const isConfirmationFailed =
             error.message?.includes("confirmation_failed") ||
             error.message?.toLowerCase().includes("confirmation failed");
 
-          if (!(isConfirmationFailed && hasValidSession)) {
+          if (isConfirmationFailed) {
+            let hasValidSession = false;
+
+            for (let attempt = 0; attempt < 6; attempt++) {
+              const { data: sessionData } = await supabase.auth.getSession();
+
+              if (sessionData.session) {
+                hasValidSession = true;
+                break;
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, 250));
+            }
+
+            if (!hasValidSession) {
+              console.error(
+                "[auth/callback] confirmation_failed and no session appeared after retry:",
+                error.message
+              );
+              setStatus("error");
+              router.replace(`/auth?error=${encodeURIComponent(error.message)}`);
+              return;
+            }
+
+            console.warn(
+              "[auth/callback] confirmation_failed but session exists after retry; continuing OAuth routing"
+            );
+          } else {
             console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
             setStatus("error");
             router.replace(`/auth?error=${encodeURIComponent(error.message)}`);
             return;
           }
-
-          console.warn("[auth-callback] confirmation_failed but session exists; continuing OAuth routing");
         }
 
         document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
