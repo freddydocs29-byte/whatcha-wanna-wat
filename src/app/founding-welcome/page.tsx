@@ -47,7 +47,8 @@ export default function FoundingWelcomePage() {
     // window for the Supabase stamp to land, not to grant access to data.
     const hasFoundingIntent =
       searchParams.get("founding_taster") === "1" ||
-      localStorage.getItem("founding_taster_access") === "true";
+      localStorage.getItem("founding_taster_access") === "true" ||
+      sessionStorage.getItem("founding_taster_intent") === "true";
 
     (async () => {
       // Poll for up to 5 seconds (5 × 1 s) to let ProfileProvider's
@@ -67,6 +68,7 @@ export default function FoundingWelcomePage() {
 
           if (profile?.is_founding_taster || hasFoundingIntent) {
             localStorage.setItem(FOUNDING_WELCOME_KEY, "true");
+            sessionStorage.removeItem("founding_taster_intent");
             setShow(true);
             return;
           }

@@ -65,7 +65,10 @@ export default function AuthCallbackPage() {
           const foundingLocal =
             typeof window !== "undefined" &&
             localStorage.getItem("founding_taster_access") === "true";
-          const isFoundingTaster = foundingParam || foundingLocal;
+          const foundingSession =
+            typeof window !== "undefined" &&
+            sessionStorage.getItem("founding_taster_intent") === "true";
+          const isFoundingTaster = foundingParam || foundingLocal || foundingSession;
 
           if (isFoundingTaster) {
             // Try to stamp is_founding_taster = true on the profile now if it is

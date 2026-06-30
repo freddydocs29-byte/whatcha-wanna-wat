@@ -17,6 +17,7 @@ export default function FoundingPage() {
     e.preventDefault();
     if (VALID_CODES.has(code.trim().toUpperCase())) {
       localStorage.setItem("founding_taster_access", "true");
+      sessionStorage.setItem("founding_taster_intent", "true");
       router.push("/auth?mode=signup");
     } else {
       setError(true);
