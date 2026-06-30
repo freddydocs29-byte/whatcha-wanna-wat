@@ -100,7 +100,7 @@ export default function AuthCallbackPage() {
               // Profile not linked yet — founding_taster_access preserved for ProfileProvider.
               console.log("[auth/callback] profile not yet linked; founding flag preserved for ProfileProvider");
             }
-            router.replace("/founding-welcome");
+            router.replace("/founding-welcome?founding_taster=1");
           } else {
             // No founding intent — clear any stale flag and continue normally.
             if (typeof window !== "undefined") {

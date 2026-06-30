@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useProfileReady } from "../components/ProfileProvider";
 import { getAuthUserId } from "../lib/identity";
 import { fetchProfileByAuthUserId } from "../lib/supabase-profile";
@@ -24,6 +24,7 @@ function LoadingShell() {
 
 export default function FoundingWelcomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const profileReady = useProfileReady();
   // null = still deciding; true = show screen; false = redirect
   const [show, setShow] = useState<boolean | null>(null);
@@ -39,36 +40,45 @@ export default function FoundingWelcomePage() {
       return;
     }
 
-    // Profile is stable — check is_founding_taster from Supabase.
+    // Detect First Taster intent from the URL param injected by the OAuth
+    // callback (?founding_taster=1) or from the localStorage flag that the
+    // /founding gate wrote and that ProfileProvider may not have consumed yet.
+    // This is not a security boundary — it is used only to extend the wait
+    // window for the Supabase stamp to land, not to grant access to data.
+    const hasFoundingIntent =
+      searchParams.get("founding_taster") === "1" ||
+      localStorage.getItem("founding_taster_access") === "true";
+
     (async () => {
-      const authId = await getAuthUserId();
-      if (authId) {
-        const profile = await fetchProfileByAuthUserId(authId);
-        if (!profile?.is_founding_taster) {
-          // For new Google OAuth users the profile may not yet be linked to
-          // auth_user_id at this point (linkAuthToProfile runs async in
-          // ProfileProvider's SIGNED_IN handler and can still be in flight even
-          // when profileReady is already true from the initial pre-auth boot).
-          // One short retry is sufficient to let the link + stamp complete.
-          await new Promise((r) => setTimeout(r, 1500));
-          const retryProfile = await fetchProfileByAuthUserId(authId);
-          if (!retryProfile?.is_founding_taster) {
-            router.replace("/onboarding");
+      // Poll for up to 5 seconds (5 × 1 s) to let ProfileProvider's
+      // linkAuthToProfile + applyFoundingTasterFlag complete for new Google
+      // OAuth users whose auth-linked profile may still be in flight when
+      // profileReady first turns true from the initial anonymous boot.
+      // On each attempt we accept either a stamped Supabase profile OR clear
+      // intent signals proving the user came through the legitimate founding gate.
+      const maxAttempts = 5;
+      const delayMs = 1000;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const authId = await getAuthUserId();
+
+        if (authId) {
+          const profile = await fetchProfileByAuthUserId(authId);
+
+          if (profile?.is_founding_taster || hasFoundingIntent) {
+            localStorage.setItem(FOUNDING_WELCOME_KEY, "true");
+            setShow(true);
             return;
           }
         }
-      } else {
-        // No auth session — not a founding taster path.
-        router.replace("/onboarding");
-        return;
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
 
-      // Confirmed founding taster, first visit.
-      // Mark as seen now so exiting without tapping CTA still prevents a repeat.
-      localStorage.setItem(FOUNDING_WELCOME_KEY, "true");
-      setShow(true);
+      // Timed out without confirming founding taster status.
+      router.replace("/onboarding");
     })();
-  }, [profileReady, router]);
+  }, [profileReady, router, searchParams]);
 
   // While profile is loading or we're still deciding, show a blank shell.
   if (!profileReady || show === null) return <LoadingShell />;
