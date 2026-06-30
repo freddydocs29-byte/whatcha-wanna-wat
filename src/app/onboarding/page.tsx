@@ -116,6 +116,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
 
+  const [showFirstTasterWelcome, setShowFirstTasterWelcome] = useState(false);
+
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
   const [hardNoFoods, setHardNoFoods] = useState<string[]>([]);
   const [allergens, setAllergens] = useState<Allergen[]>([]);
@@ -164,6 +166,18 @@ export default function OnboardingPage() {
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // First Taster welcome backstop — client-only check to avoid hydration mismatch.
+  useEffect(() => {
+    const hasSeenWelcome =
+      localStorage.getItem("founding_welcome_seen") === "true";
+    const isFirstTaster =
+      localStorage.getItem("founding_taster_access") === "true" ||
+      sessionStorage.getItem("founding_taster_intent") === "true";
+    if (isFirstTaster && !hasSeenWelcome) {
+      setShowFirstTasterWelcome(true);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function advance() {
@@ -304,6 +318,85 @@ export default function OnboardingPage() {
 
   // Emojis for step 3 novelty options (no emoji field on NOVELTY_OPTIONS)
   const noveltyEmojis = ["🔁", "⚖️", "🌟"];
+
+  // ── First Taster welcome backstop ────────────────────────────────────────────
+  if (showFirstTasterWelcome) {
+    return (
+      <main className="relative min-h-screen bg-[#0B0805] text-white flex flex-col">
+        {/* Ember background ambience */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 30% at 50% -6%, rgba(232,98,26,0.13) 0%, transparent 62%)",
+          }}
+        />
+
+        <div className="mx-auto w-full max-w-md flex flex-col flex-1 px-5 pt-16 pb-40 relative z-10">
+          {/* Eyebrow */}
+          <p
+            className="text-[11px] tracking-[2.4px] uppercase mb-6"
+            style={{
+              fontFamily: "var(--font-jetbrains-mono)",
+              color: "#E8621A",
+            }}
+          >
+            Welcome, First Taster
+          </p>
+
+          {/* Headline */}
+          <h1
+            className="leading-tight text-white"
+            style={{
+              fontFamily: "var(--font-quicksand)",
+              fontWeight: 700,
+              fontSize: 52,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            You&apos;re in<span style={{ color: "#E8621A" }}>.</span>
+          </h1>
+
+          {/* Body */}
+          <p
+            className="mt-5"
+            style={{
+              fontFamily: "var(--font-geist-sans), Inter, system-ui, sans-serif",
+              fontWeight: 300,
+              fontSize: 16,
+              lineHeight: 1.6,
+              color: "#C7BDAC",
+            }}
+          >
+            You&apos;re one of the first people to use Watcha. That means you&apos;re
+            helping shape what this becomes. Tell us what felt off, what confused
+            you, or what you loved.
+          </p>
+        </div>
+
+        {/* CTA — fixed at bottom */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0B0805]">
+          <div
+            className="mx-auto w-full max-w-md px-5 pt-10 relative"
+            style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 32px)" }}
+          >
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent to-[#0B0805]" />
+            <button
+              onClick={() => {
+                localStorage.setItem("founding_welcome_seen", "true");
+                sessionStorage.removeItem("founding_taster_intent");
+                setShowFirstTasterWelcome(false);
+              }}
+              className="w-full text-white font-bold text-base py-4 rounded-full transition active:scale-[0.99]"
+              style={gradientPrimaryStyle}
+            >
+              Let&apos;s go →
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-y-auto bg-[#0B0805] text-white">
