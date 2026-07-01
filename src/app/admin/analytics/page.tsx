@@ -2298,14 +2298,10 @@ function UsersTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
   const authUsers = uniq(
     ssEvents
       .filter((e) => {
-        const mode = prop(
-          e.properties,
-          "authMode",
-          "auth_mode",
-          "isAuthenticated",
-          "authenticated",
-        );
-        return mode === "authenticated" || mode === true || mode === "true";
+        const isGuest = e.properties?.isGuest;
+        const isAuthenticated =
+          isGuest === false || isGuest === null || isGuest === undefined;
+        return isAuthenticated;
       })
       .map((e) => e.user_id),
   ).length;
