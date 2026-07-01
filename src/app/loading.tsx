@@ -33,7 +33,10 @@ export default function Loading() {
         className="relative z-10 w-20 h-20 bg-[#E8621A] rounded-[22%] flex items-center justify-center mb-8"
         style={{ boxShadow: "0 0 60px rgba(232,98,26,0.4)" }}
       >
-        <span className="font-display font-black text-5xl text-white">?</span>
+        <span
+          className="font-display font-black text-5xl text-white"
+          style={{ display: "inline-block", animation: "watchaSplash 1.4s ease-in-out infinite" }}
+        >?</span>
       </div>
 
       {/* Wordmark — Quicksand + Instrument Serif italic, matching Splash */}
