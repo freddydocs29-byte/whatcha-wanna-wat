@@ -1489,7 +1489,8 @@ export default function ProfilePage() {
                       <BadgeSVG
                         badgeId={badgeId}
                         size={56}
-                        opacity={earned ? 1 : 0.25}
+                        locked={!earned}
+                        opacity={1}
                       />
                     </div>
                     <span style={{

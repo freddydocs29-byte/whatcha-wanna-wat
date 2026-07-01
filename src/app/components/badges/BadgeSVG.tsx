@@ -14,12 +14,14 @@ interface Props {
   badgeId: BadgeId;
   size?: number;
   opacity?: number;
+  locked?: boolean;
 }
 
 export default function BadgeSVG({
   badgeId,
   size = 64,
   opacity = 1,
+  locked,
 }: Props) {
   const props = { width: size, height: size };
 
@@ -52,7 +54,14 @@ export default function BadgeSVG({
   }
 
   return (
-    <div style={{ opacity, flexShrink: 0, lineHeight: 0 }}>
+    <div
+      style={{
+        opacity: locked ? 0.45 : opacity,
+        filter: locked ? "grayscale(100%) brightness(0.25)" : "none",
+        flexShrink: 0,
+        lineHeight: 0,
+      }}
+    >
       {badge}
     </div>
   );

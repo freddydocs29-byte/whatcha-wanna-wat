@@ -225,7 +225,7 @@ export default function BadgesPage() {
                         flexShrink: 0,
                       }}
                     >
-                      <BadgeSVG badgeId={badgeId} size={72} opacity={1} />
+                      <BadgeSVG badgeId={badgeId} size={72} locked={false} opacity={1} />
                     </div>
                     <div>
                       <p
@@ -298,7 +298,7 @@ export default function BadgesPage() {
                   >
                     Earned
                   </p>
-                  <BadgeSVG badgeId={badgeId} size={48} opacity={1} />
+                  <BadgeSVG badgeId={badgeId} size={48} locked={false} opacity={1} />
                   <p
                     style={{
                       fontFamily: "var(--font-quicksand), sans-serif",
@@ -362,7 +362,8 @@ export default function BadgesPage() {
                 <BadgeSVG
                   badgeId={badgeId}
                   size={64}
-                  opacity={progress > 0.4 ? 0.4 : 0.2}
+                  locked={true}
+                  opacity={1}
                 />
                 <p
                   style={{
