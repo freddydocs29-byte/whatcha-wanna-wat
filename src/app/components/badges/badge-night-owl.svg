@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Night Owl badge">
+  <defs>
+    <radialGradient id="no-glow" cx="50%" cy="46%" r="50%">
+      <stop offset="0%" stop-color="#7C5CC4" stop-opacity="0.5"></stop>
+      <stop offset="65%" stop-color="#7C5CC4" stop-opacity="0"></stop>
+    </radialGradient>
+    <radialGradient id="no-rim" cx="36%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#E0D2F7"></stop>
+      <stop offset="45%" stop-color="#8E6FD0"></stop>
+      <stop offset="80%" stop-color="#553CA0"></stop>
+      <stop offset="100%" stop-color="#2E1F63"></stop>
+    </radialGradient>
+    <linearGradient id="no-face" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#8E70CF"></stop>
+      <stop offset="55%" stop-color="#5B41A6"></stop>
+      <stop offset="100%" stop-color="#3A2778"></stop>
+    </linearGradient>
+    <linearGradient id="no-star" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF3CF"></stop>
+      <stop offset="100%" stop-color="#EBC55E"></stop>
+    </linearGradient>
+    <filter id="no-ds" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.3" flood-color="#000000" flood-opacity="0.5"></feDropShadow>
+    </filter>
+  </defs>
+  <circle cx="32" cy="33" r="30" fill="url(#no-glow)"></circle>
+  <g filter="url(#no-ds)" stroke-linejoin="round">
+    <path d="M43 11.6 A24 24 0 1 0 43 52.4 A21 21 0 0 1 43 11.6 Z" fill="url(#no-rim)" stroke="#281A57" stroke-width="0.6"></path>
+    <path d="M42 15.6 A20 20 0 1 0 42 48.4 A17.4 17.4 0 0 1 42 15.6 Z" fill="url(#no-face)" stroke="#3A2778" stroke-width="0.5"></path>
+    <g fill="url(#no-star)" stroke="#C79A3A" stroke-width="0.3">
+      <path d="M35 22 l1.1 2.5 l2.7 0.3 l-2 1.9 l0.6 2.7 l-2.4 -1.4 l-2.4 1.4 l0.6 -2.7 l-2 -1.9 l2.7 -0.3 Z"></path>
+      <circle cx="30" cy="34" r="1.4"></circle>
+      <circle cx="37.5" cy="38" r="1"></circle>
+    </g>
+    <path d="M17 12 A24 24 0 0 0 17 53" fill="none" stroke="#B79EE8" stroke-width="1" stroke-opacity="0.5"></path>
+  </g>
+</svg>
