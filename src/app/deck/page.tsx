@@ -15,7 +15,7 @@ import { getAvoidSignals, getPreferSignals, checkTriggers, checkCrossSessionNudg
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
-import { EVENT_SESSION_STARTED, EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED, EVENT_SHARED_SESSION_ABANDONED, EVENT_GUEST_LIMIT_REACHED, EVENT_MEAL_SAVED } from "../lib/analytics-events";
+import { EVENT_SESSION_STARTED, EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED, EVENT_WATCHAS_CALL_ACCEPTED, EVENT_WATCHAS_CALL_REJECTED, EVENT_SHARED_SESSION_ABANDONED, EVENT_GUEST_LIMIT_REACHED, EVENT_MEAL_SAVED } from "../lib/analytics-events";
 import { createTrackingSession, closeTrackingSession, recordDecision, recordAcceptedDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
 import SoloLockOverlay from "../components/SoloLockOverlay";
@@ -3075,6 +3075,7 @@ function DeckContent() {
         const _wcDlKey = `wwe_analytics_decision_locked_solo_${wc.id}`;
         if (!sessionStorage.getItem(_wcDlKey)) {
           trackEvent(EVENT_DECISION_LOCKED, { mealId: wc.id, sessionMode: "solo", resolutionPath: "watchas_call" });
+          trackEvent(EVENT_WATCHAS_CALL_ACCEPTED, { sessionMode: "solo", mealId: wc.id, mealName: wc.name });
           sessionStorage.setItem(_wcDlKey, "1");
         }
         setSoloWatchaCallView("locked");
@@ -3274,7 +3275,10 @@ function DeckContent() {
                 Locked in for tonight.
               </div>
               <button
-                onClick={() => setSoloWatchaCallView("exit")}
+                onClick={() => {
+                  trackEvent(EVENT_WATCHAS_CALL_REJECTED, { sessionMode: "solo", mealId: wc?.id, mealName: wc?.name });
+                  setSoloWatchaCallView("exit");
+                }}
                 style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", fontWeight: 600, fontSize: 14, color: "#C7BDAC", padding: 9, textAlign: "center" as const }}
               >
                 Not tonight
