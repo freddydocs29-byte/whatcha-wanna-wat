@@ -980,19 +980,131 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* ── Badge row ────────────────────────────────────────────────────────── */}
+        <div style={{ margin: "24px 20px 0" }}>
+
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 14,
+          }}>
+            <p style={{
+              fontFamily: "var(--font-jetbrains-mono), monospace",
+              fontSize: 10,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: "#897E73",
+              margin: 0,
+            }}>Your badges</p>
+            <span
+              onClick={() => router.push("/badges")}
+              style={{
+              fontFamily: "var(--font-jetbrains-mono), monospace",
+              fontSize: 9,
+              color: "#E8621A",
+              letterSpacing: "0.5px",
+              cursor: "pointer",
+            }}>
+              See all →
+            </span>
+          </div>
+
+          {badgesLoading ? (
+            <div style={{ display: "flex", gap: 14 }}>
+              {BADGE_ORDER.map((id) => (
+                <div key={id} style={{
+                  width: 56, height: 56,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.04)",
+                  flexShrink: 0,
+                }} />
+              ))}
+            </div>
+          ) : (
+            <div style={{
+              display: "flex",
+              gap: 14,
+              overflowX: "auto",
+              paddingBottom: 4,
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}>
+              {BADGE_ORDER.map((badgeId) => {
+                const badge = BADGES[badgeId];
+                const prog = badgeProgress.find((b) => b.badgeId === badgeId);
+                const earned = prog?.earned === true;
+                return (
+                  <div key={badgeId} style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 7,
+                    flexShrink: 0,
+                    width: 56,
+                  }}>
+                    <div
+                      style={{
+                        borderRadius: "50%",
+                        boxShadow: earned
+                          ? `0 0 14px ${badge.color.primary}50`
+                          : "none",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <BadgeSVG
+                        badgeId={badgeId}
+                        size={56}
+                        locked={!earned}
+                        opacity={1}
+                      />
+                    </div>
+                    <span style={{
+                      fontFamily:
+                        "var(--font-jetbrains-mono), monospace",
+                      fontSize: 9,
+                      letterSpacing: "0.3px",
+                      color: earned ? "#C7BDAC" : "#3A3530",
+                      textAlign: "center",
+                      lineHeight: 1.3,
+                      maxWidth: 56,
+                    }}>
+                      {badge.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <p style={{
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+            fontSize: 9,
+            color: "#3A3530",
+            letterSpacing: "0.8px",
+            marginTop: 12,
+            margin: "12px 0 0",
+          }}>
+            {badgeProgress.filter((b) => b.earned).length} of 7 unlocked
+          </p>
+
+        </div>
+
         {/* ── 1b. Auth CTA ──────────────────────────────────────────────────────── */}
         {!asyncLoading && (
           <div className="mx-5 mt-4">
             {authUserId ? (
-              <div className="flex flex-col gap-2">
-                {/* Connected row */}
+              <div
+                className="rounded-[14px]"
+                style={{
+                  background: "rgba(255,231,202,0.04)",
+                  border: "1px solid rgba(245,237,224,0.085)",
+                }}
+              >
+                {/* Row 1 — Account connected + Sign out */}
                 <div
-                  className="flex items-center justify-between rounded-[14px] px-4 py-3"
-                  style={{
-                    background: "rgba(255,231,202,0.05)",
-                    border: "1px solid rgba(245,237,224,0.08)",
-                    boxShadow: "inset 0 1px 0 rgba(245,237,224,0.04)",
-                  }}
+                  className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: "1px solid rgba(245,237,224,0.06)" }}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-[#E8621A] text-sm">✓</span>
@@ -1008,13 +1120,10 @@ export default function ProfilePage() {
                   </button>
                 </div>
 
-                {/* Account section — email */}
+                {/* Row 2 — Email */}
                 <div
-                  className="rounded-[14px] px-4 py-3"
-                  style={{
-                    background: "rgba(255,231,202,0.03)",
-                    border: "1px solid rgba(245,237,224,0.07)",
-                  }}
+                  className="px-4 py-3"
+                  style={{ borderBottom: "1px solid rgba(245,237,224,0.06)" }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -1095,100 +1204,92 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                {/* Account section — change password (email/password users only) */}
-                {isEmailPasswordUser && (
-                  <div
-                    className="rounded-[14px] px-4 py-3"
-                    style={{
-                      background: "rgba(255,231,202,0.03)",
-                      border: "1px solid rgba(245,237,224,0.07)",
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p
-                          className="font-body text-[10px] uppercase tracking-widest mb-0.5"
-                          style={{ color: "#897E73", letterSpacing: "0.18em" }}
-                        >
-                          Change password
-                        </p>
-                        <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.65)" }}>
-                          Update your account password
-                        </p>
-                      </div>
-                      {!showPasswordForm && passwordStatus !== "saved" && (
-                        <button
-                          onClick={() => { setShowPasswordForm(true); setPasswordStatus("idle"); setPasswordError(null); setNewPassword(""); setConfirmPassword(""); }}
-                          className="font-body text-xs"
-                          style={{ color: "#897E73" }}
-                        >
-                          Change
-                        </button>
-                      )}
-                    </div>
-
-                    {showPasswordForm && (
-                      <form onSubmit={(e) => void handleChangePassword(e)} className="mt-3 flex flex-col gap-2">
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="New password"
-                          required
-                          autoComplete="new-password"
-                          className="w-full rounded-[10px] px-3 py-2.5 font-body text-sm text-white placeholder:text-[#897E73]/60 focus:outline-none"
-                          style={{
-                            background: "rgba(255,231,202,0.045)",
-                            border: "1px solid rgba(245,237,224,0.12)",
-                          }}
-                        />
-                        <input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Confirm new password"
-                          required
-                          autoComplete="new-password"
-                          className="w-full rounded-[10px] px-3 py-2.5 font-body text-sm text-white placeholder:text-[#897E73]/60 focus:outline-none"
-                          style={{
-                            background: "rgba(255,231,202,0.045)",
-                            border: "1px solid rgba(245,237,224,0.12)",
-                          }}
-                        />
-                        {passwordError && (
-                          <p className="font-body text-xs text-red-400">{passwordError}</p>
-                        )}
-                        <button
-                          type="submit"
-                          disabled={passwordStatus === "saving"}
-                          className="w-full rounded-full py-2.5 font-body text-sm font-semibold disabled:opacity-50 transition-opacity"
-                          style={{
-                            background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
-                            color: "#1c0c03",
-                            fontFamily: "var(--font-quicksand)",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {passwordStatus === "saving" ? "Saving…" : "Update password"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setShowPasswordForm(false); setPasswordStatus("idle"); setPasswordError(null); setNewPassword(""); setConfirmPassword(""); }}
-                          className="font-body text-xs text-center"
-                          style={{ color: "#897E73" }}
-                        >
-                          Cancel
-                        </button>
-                      </form>
-                    )}
-
-                    {passwordStatus === "saved" && !showPasswordForm && (
-                      <p className="font-body text-sm mt-2" style={{ color: "#E8621A" }}>
-                        Password updated.
+                {/* Row 3 — Password */}
+                <div className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p
+                        className="font-body text-[10px] uppercase tracking-widest mb-0.5"
+                        style={{ color: "#897E73", letterSpacing: "0.18em" }}
+                      >
+                        Password
                       </p>
+                      <p className="font-body text-sm" style={{ color: "rgba(245,237,224,0.65)" }}>
+                        ••••••••
+                      </p>
+                    </div>
+                    {!showPasswordForm && passwordStatus !== "saved" && (
+                      <button
+                        onClick={() => { setShowPasswordForm(true); setPasswordStatus("idle"); setPasswordError(null); setNewPassword(""); setConfirmPassword(""); }}
+                        className="font-body text-xs"
+                        style={{ color: "#897E73" }}
+                      >
+                        Change password
+                      </button>
                     )}
                   </div>
-                )}
+
+                  {showPasswordForm && (
+                    <form onSubmit={(e) => void handleChangePassword(e)} className="mt-3 flex flex-col gap-2">
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="New password"
+                        required
+                        autoComplete="new-password"
+                        className="w-full rounded-[10px] px-3 py-2.5 font-body text-sm text-white placeholder:text-[#897E73]/60 focus:outline-none"
+                        style={{
+                          background: "rgba(255,231,202,0.045)",
+                          border: "1px solid rgba(245,237,224,0.12)",
+                        }}
+                      />
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        required
+                        autoComplete="new-password"
+                        className="w-full rounded-[10px] px-3 py-2.5 font-body text-sm text-white placeholder:text-[#897E73]/60 focus:outline-none"
+                        style={{
+                          background: "rgba(255,231,202,0.045)",
+                          border: "1px solid rgba(245,237,224,0.12)",
+                        }}
+                      />
+                      {passwordError && (
+                        <p className="font-body text-xs text-red-400">{passwordError}</p>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={passwordStatus === "saving"}
+                        className="w-full rounded-full py-2.5 font-body text-sm font-semibold disabled:opacity-50 transition-opacity"
+                        style={{
+                          background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 48%, #B84A12 100%)",
+                          color: "#1c0c03",
+                          fontFamily: "var(--font-quicksand)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {passwordStatus === "saving" ? "Saving…" : "Update password"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowPasswordForm(false); setPasswordStatus("idle"); setPasswordError(null); setNewPassword(""); setConfirmPassword(""); }}
+                        className="font-body text-xs text-center"
+                        style={{ color: "#897E73" }}
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  )}
+
+                  {passwordStatus === "saved" && !showPasswordForm && (
+                    <p className="font-body text-sm mt-2" style={{ color: "#E8621A" }}>
+                      Password updated.
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               <button
@@ -1219,46 +1320,29 @@ export default function ProfilePage() {
                 background: "#1C1A18",
                 border: "1px solid rgba(245,158,11,0.3)",
               } : {
-                background: "linear-gradient(180deg, #FBBF24 0%, #F59E0B 46%, #D97706 100%)",
-                boxShadow:
-                  "inset 0 1px 0 rgba(255,245,186,0.7), " +
-                  "inset 0 -2px 0 rgba(120,77,0,0.4), " +
-                  "0 18px 38px rgba(245,158,11,0.45), " +
-                  "0 0 0 1px rgba(245,158,11,0.35), " +
-                  "0 0 60px rgba(245,158,11,0.2)",
+                background: "linear-gradient(145deg, #1C1208, #2A1A08)",
+                border: "1px solid rgba(232,98,26,0.35)",
+                boxShadow: "0 0 24px rgba(232,98,26,0.12), inset 0 1px 0 rgba(255,255,255,0.04)",
               }}
               onClick={() => setFoundingGuideOpen((v) => !v)}
             >
-              {/* Shimmer — collapsed only */}
-              {!foundingGuideOpen && (
-                <div
-                  className="absolute top-0 bottom-0 pointer-events-none candlelight-animate"
-                  style={{
-                    left: "-40%",
-                    width: "32%",
-                    background: "linear-gradient(100deg, transparent, rgba(255,255,255,0.25), transparent)",
-                    transform: "skewX(-18deg)",
-                    animation: "candlelight-sheen 4.5s ease-in-out infinite",
-                  }}
-                />
-              )}
 
               <div className="p-4">
                 {/* Gold header with flanking rules */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(11,8,5,0.3)" }} />
+                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(232,98,26,0.2)" }} />
                   <span
                     className="font-body text-xs uppercase tracking-widest"
-                    style={{ color: foundingGuideOpen ? "#F59E0B" : "#0B0805" }}
+                    style={{ color: foundingGuideOpen ? "#F59E0B" : "#E8621A" }}
                   >
                     First Taster
                   </span>
-                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(11,8,5,0.3)" }} />
+                  <div className="flex-1 h-px" style={{ background: foundingGuideOpen ? "rgba(245,158,11,0.3)" : "rgba(232,98,26,0.2)" }} />
                 </div>
 
                 {/* Collapsed summary row */}
                 <div className="flex items-center justify-between">
-                  <p className="font-body text-sm" style={{ color: foundingGuideOpen ? "#897E73" : "#0B0805" }}>
+                  <p className="font-body text-sm" style={{ color: foundingGuideOpen ? "#897E73" : "#C7BDAC" }}>
                     Your guide to the next 30 days
                   </p>
                   <svg
@@ -1267,7 +1351,7 @@ export default function ProfilePage() {
                     height="16"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke={foundingGuideOpen ? "#897E73" : "#0B0805"}
+                    stroke={foundingGuideOpen ? "#897E73" : "#897E73"}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -1412,116 +1496,6 @@ export default function ProfilePage() {
               <span className="font-body text-[11.5px] text-center mt-1.5" style={{ color: "rgba(199,189,172,0.8)", fontWeight: 400 }}>{label}</span>
             </div>
           ))}
-        </div>
-
-        {/* ── Badge row ────────────────────────────────────────────────────────── */}
-        <div style={{ margin: "24px 20px 0" }}>
-
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 14,
-          }}>
-            <p style={{
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-              fontSize: 10,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "#897E73",
-              margin: 0,
-            }}>Your badges</p>
-            <span
-              onClick={() => router.push("/badges")}
-              style={{
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-              fontSize: 9,
-              color: "#E8621A",
-              letterSpacing: "0.5px",
-              cursor: "pointer",
-            }}>
-              See all →
-            </span>
-          </div>
-
-          {badgesLoading ? (
-            <div style={{ display: "flex", gap: 14 }}>
-              {BADGE_ORDER.map((id) => (
-                <div key={id} style={{
-                  width: 56, height: 56,
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.04)",
-                  flexShrink: 0,
-                }} />
-              ))}
-            </div>
-          ) : (
-            <div style={{
-              display: "flex",
-              gap: 14,
-              overflowX: "auto",
-              paddingBottom: 4,
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}>
-              {BADGE_ORDER.map((badgeId) => {
-                const badge = BADGES[badgeId];
-                const prog = badgeProgress.find((b) => b.badgeId === badgeId);
-                const earned = prog?.earned === true;
-                return (
-                  <div key={badgeId} style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 7,
-                    flexShrink: 0,
-                    width: 56,
-                  }}>
-                    <div
-                      style={{
-                        borderRadius: "50%",
-                        boxShadow: earned
-                          ? `0 0 14px ${badge.color.primary}50`
-                          : "none",
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <BadgeSVG
-                        badgeId={badgeId}
-                        size={56}
-                        locked={!earned}
-                        opacity={1}
-                      />
-                    </div>
-                    <span style={{
-                      fontFamily:
-                        "var(--font-jetbrains-mono), monospace",
-                      fontSize: 9,
-                      letterSpacing: "0.3px",
-                      color: earned ? "#C7BDAC" : "#3A3530",
-                      textAlign: "center",
-                      lineHeight: 1.3,
-                      maxWidth: 56,
-                    }}>
-                      {badge.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <p style={{
-            fontFamily: "var(--font-jetbrains-mono), monospace",
-            fontSize: 9,
-            color: "#3A3530",
-            letterSpacing: "0.8px",
-            marginTop: 12,
-            margin: "12px 0 0",
-          }}>
-            {badgeProgress.filter((b) => b.earned).length} of 7 unlocked
-          </p>
-
         </div>
 
         {/* ──────────────────────────────────────────────────────────────────────
