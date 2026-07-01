@@ -6,6 +6,8 @@ import { supabase } from "../lib/supabase";
 import { clearAllLocalState, getUserId } from "../lib/identity";
 import { linkAuthToProfile } from "../lib/supabase-profile";
 import { hasCompletedOnboarding } from "../lib/storage";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_GUEST_CONVERTED } from "../lib/analytics-events";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -262,6 +264,12 @@ export default function AuthPage() {
           // from the session setup flow — send them straight to Home so the
           // decided meal locked state is visible. Founding tasters see the welcome
           // screen before onboarding. All other signups go to onboarding.
+          if (isGuestUpgrade || fromGuestMatch) {
+            trackEvent(EVENT_GUEST_CONVERTED, {
+              authMethod: "email",
+              trigger: fromGuestMatch ? "guest-match" : searchParams.get("from") ?? "unknown",
+            });
+          }
           document.cookie = "wwe_auth=1; path=/; max-age=31536000; SameSite=Lax";
           const isFoundingTaster =
             !fromGuestMatch &&

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Meal } from "../data/meals";
 import { getSavedMealsEnriched, removeSavedMeal, toggleSavedFavorite, addToHistory, updateTasteProfile, saveDecidedMeal } from "../lib/storage";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_MEAL_FAVORITED } from "../lib/analytics-events";
 import BottomNav from "../components/BottomNav";
 import { fetchOrCreateProfile } from "../lib/supabase-profile";
 import { getUserId } from "../lib/identity";
@@ -180,7 +182,11 @@ export default function SavedPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleToggleFavorite(meal: Meal) {
+    const wasFavorited = favoriteMeals.some((m) => m.id === meal.id);
     toggleSavedFavorite(meal.id);
+    if (!wasFavorited) {
+      trackEvent(EVENT_MEAL_FAVORITED, { mealId: meal.id, mealName: meal.name, sourceScreen: "saved" });
+    }
     refresh();
   }
 

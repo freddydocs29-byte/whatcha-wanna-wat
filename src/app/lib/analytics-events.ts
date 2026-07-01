@@ -50,3 +50,10 @@ export const EVENT_COOK_CLICKED = "cook_clicked";
 export const EVENT_ORDER_CLICKED = "order_clicked";
 export const EVENT_CHANGE_MIND_CLICKED = "change_mind_clicked";
 export const EVENT_DECIDE_WITH_SOMEONE_CLICKED = "decide_with_someone_clicked";
+
+// Sprint 2 additions
+export const EVENT_ONBOARDING_COMPLETED = "onboarding_completed";
+export const EVENT_GUEST_CONVERTED = "guest_converted";
+export const EVENT_MEAL_FAVORITED = "meal_favorited";
+export const EVENT_WATCHAS_CALL_ACCEPTED = "watchas_call_accepted";
+export const EVENT_WATCHAS_CALL_REJECTED = "watchas_call_rejected";

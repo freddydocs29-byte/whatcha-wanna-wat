@@ -7,7 +7,7 @@ import { inferSessionContext } from "../lib/session-tracking";
 import { checkAndTriggerCouplesTypeReveal } from "../lib/type-reveal-trigger";
 import { addToHistory, saveDecidedMeal } from "../lib/storage";
 import { trackEvent } from "../lib/analytics";
-import { EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED } from "../lib/analytics-events";
+import { EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED, EVENT_WATCHAS_CALL_ACCEPTED, EVENT_WATCHAS_CALL_REJECTED } from "../lib/analytics-events";
 import type { SessionVibeMode } from "../lib/scoring";
 import Avatar from "./Avatar";
 import { WatchaCallDetailsDrawer } from "./WatchaCallDetailsDrawer";
@@ -352,6 +352,7 @@ export default function WatchasCall({
     const _dlKey = `wwe_analytics_decision_locked_${sessionId}_${meal.id}`;
     if (!sessionStorage.getItem(_dlKey)) {
       trackEvent(EVENT_DECISION_LOCKED, { mealId: meal.id, sessionMode: "shared", resolutionPath: "watchas_call", sessionId });
+      trackEvent(EVENT_WATCHAS_CALL_ACCEPTED, { sessionMode: "shared", mealId: meal.id, mealName: meal.name });
       sessionStorage.setItem(_dlKey, "1");
     }
 
@@ -382,6 +383,7 @@ export default function WatchasCall({
 
   function handleNotTonight() {
     clearTimers();
+    trackEvent(EVENT_WATCHAS_CALL_REJECTED, { sessionMode: "shared", mealId: result?.meal.id, mealName: result?.meal.name });
     setView("exit");
   }
 

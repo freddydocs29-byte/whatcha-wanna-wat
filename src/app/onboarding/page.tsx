@@ -9,6 +9,7 @@ import {
   EVENT_ONBOARDING_STEP_VIEWED,
   EVENT_ONBOARDING_STEP_COMPLETED,
   EVENT_ONBOARDING_ABANDONED,
+  EVENT_ONBOARDING_COMPLETED,
 } from "../lib/analytics-events";
 
 const TOTAL_STEPS = 6;
@@ -212,6 +213,7 @@ export default function OnboardingPage() {
       });
       saveNoveltyBias(vals.noveltyBias ?? 0.5);
       completedRef.current = true;
+      trackEvent(EVENT_ONBOARDING_COMPLETED, { totalSteps: TOTAL_STEPS });
       markOnboardingDone();
       router.replace(isEditMode ? '/profile/edit' : '/');
     }
