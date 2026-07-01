@@ -48,6 +48,9 @@ import {
 import { getCompatibilityPairing } from "../lib/compatibility";
 import { trackEvent } from "../lib/analytics";
 import { EVENT_PROFILE_VIEWED } from "../lib/analytics-events";
+import { BADGES, BADGE_ORDER } from "../lib/badges";
+import type { BadgeProgress } from "../lib/badges";
+import { computeBadges } from "../lib/badge-engine";
 
 // ── Candlelight film grain ─────────────────────────────────────────────────────
 
@@ -166,6 +169,10 @@ export default function ProfilePage() {
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [partnerSoloBaseType, setPartnerSoloBaseType] = useState<BaseFlavorType | null>(null);
+
+  // ── Badge state (independent from all other loading) ──────────────────────
+  const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
+  const [badgesLoading, setBadgesLoading] = useState(true);
 
   // ── Tracks whether flavorType was pre-populated from localStorage ─────────
   const flavorTypePreloadedRef = useRef(false);
@@ -405,6 +412,25 @@ export default function ProfilePage() {
         setDnaLoading(false);
       }
     })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Badge computation (independent, non-blocking) ─────────────────────────
+  useEffect(() => {
+    const userId = getUserId();
+    if (!userId) {
+      setBadgesLoading(false);
+      return;
+    }
+    computeBadges(userId)
+      .then((result) => {
+        setBadgeProgress(result.badges);
+      })
+      .catch(() => {
+        // Silent failure — badges are non-critical
+      })
+      .finally(() => {
+        setBadgesLoading(false);
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Preference update helpers ──────────────────────────────────────────────
@@ -1385,6 +1411,124 @@ export default function ProfilePage() {
               <span className="font-body text-[11.5px] text-center mt-1.5" style={{ color: "rgba(199,189,172,0.8)", fontWeight: 400 }}>{label}</span>
             </div>
           ))}
+        </div>
+
+        {/* ── Badge row ────────────────────────────────────────────────────────── */}
+        <div style={{ margin: "24px 20px 0" }}>
+
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 14,
+          }}>
+            <p style={{
+              fontFamily: "var(--font-jetbrains-mono), monospace",
+              fontSize: 10,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              color: "#897E73",
+              margin: 0,
+            }}>Your badges</p>
+            <span style={{
+              fontFamily: "var(--font-jetbrains-mono), monospace",
+              fontSize: 9,
+              color: "#E8621A",
+              letterSpacing: "0.5px",
+              cursor: "pointer",
+            }}>
+              See all →
+            </span>
+          </div>
+
+          {badgesLoading ? (
+            <div style={{ display: "flex", gap: 14 }}>
+              {BADGE_ORDER.map((id) => (
+                <div key={id} style={{
+                  width: 56, height: 56,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.04)",
+                  flexShrink: 0,
+                }} />
+              ))}
+            </div>
+          ) : (
+            <div style={{
+              display: "flex",
+              gap: 14,
+              overflowX: "auto",
+              paddingBottom: 4,
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}>
+              {BADGE_ORDER.map((badgeId) => {
+                const badge = BADGES[badgeId];
+                const prog = badgeProgress.find((b) => b.badgeId === badgeId);
+                const earned = prog?.earned === true;
+                return (
+                  <div key={badgeId} style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 7,
+                    flexShrink: 0,
+                    width: 56,
+                  }}>
+                    <div style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      background: earned
+                        ? badge.color.primary
+                        : "rgba(255,255,255,0.05)",
+                      border: earned
+                        ? `1px solid ${badge.color.highlight}40`
+                        : "1px solid rgba(255,255,255,0.07)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 22,
+                      opacity: earned ? 1 : 0.3,
+                      boxShadow: earned
+                        ? `0 0 14px ${badge.color.primary}50`
+                        : "none",
+                      transition: "all 0.2s ease",
+                    }}>
+                      {badge.color.icon}
+                    </div>
+                    <span style={{
+                      fontFamily:
+                        "var(--font-jetbrains-mono), monospace",
+                      fontSize: 9,
+                      letterSpacing: "0.3px",
+                      color: earned ? "#C7BDAC" : "#3A3530",
+                      textAlign: "center",
+                      lineHeight: 1.3,
+                      maxWidth: 56,
+                    }}>
+                      {badge.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <p style={{
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+            fontSize: 9,
+            color: "#3A3530",
+            letterSpacing: "0.8px",
+            marginTop: 12,
+            margin: "12px 0 0",
+          }}>
+            {badgeProgress.filter((b) => b.earned).length} of 7 unlocked
+            {" · "}
+            <span style={{ color: "#E8621A", cursor: "pointer" }}>
+              See all
+            </span>
+          </p>
+
         </div>
 
         {/* ──────────────────────────────────────────────────────────────────────
