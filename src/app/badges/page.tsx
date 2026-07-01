@@ -6,104 +6,7 @@ import { BADGES, BADGE_ORDER } from "../lib/badges";
 import type { BadgeProgress } from "../lib/badges";
 import { computeBadges } from "../lib/badge-engine";
 import { getUserId } from "../lib/identity";
-
-// ── Badge SVG renderer ────────────────────────────────────────────────────────
-
-function BadgeSvg({
-  badgeId,
-  size,
-  opacity = 1,
-  emberDropShadow = false,
-}: {
-  badgeId: string;
-  size: number;
-  opacity?: number;
-  emberDropShadow?: boolean;
-}) {
-  const badge = BADGES[badgeId as keyof typeof BADGES];
-  if (!badge) return null;
-  const fill = badge.color.primary;
-
-  let shapeEl: React.ReactNode;
-  switch (badge.shape) {
-    case "hexagon":
-    case "large_hexagon":
-      shapeEl = (
-        <polygon
-          points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5"
-          fill={fill}
-        />
-      );
-      break;
-    case "circle":
-      shapeEl = <circle cx="50" cy="50" r="45" fill={fill} />;
-      break;
-    case "square":
-      shapeEl = (
-        <rect x="5" y="5" width="90" height="90" rx="20" fill={fill} />
-      );
-      break;
-    case "shield":
-      shapeEl = (
-        <path
-          d="M50,5 L95,22 L95,55 Q95,80 50,95 Q5,80 5,55 L5,22 Z"
-          fill={fill}
-        />
-      );
-      break;
-    case "diamond":
-      shapeEl = <polygon points="50,5 95,50 50,95 5,50" fill={fill} />;
-      break;
-    case "rotated_square":
-      shapeEl = (
-        <rect
-          x="15"
-          y="15"
-          width="70"
-          height="70"
-          rx="6"
-          fill={fill}
-          transform="rotate(12 50 50)"
-        />
-      );
-      break;
-    default:
-      shapeEl = <circle cx="50" cy="50" r="45" fill={fill} />;
-  }
-
-  return (
-    <div
-      style={{
-        position: "relative",
-        width: size,
-        height: size,
-        flexShrink: 0,
-        opacity,
-        filter: emberDropShadow
-          ? "drop-shadow(0 4px 12px rgba(232,98,26,0.6))"
-          : undefined,
-      }}
-    >
-      <svg viewBox="0 0 100 100" width={size} height={size}>
-        {shapeEl}
-      </svg>
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: Math.round(size * 0.32),
-          lineHeight: 1,
-          userSelect: "none",
-        }}
-      >
-        {badge.color.icon}
-      </div>
-    </div>
-  );
-}
+import BadgeSVG from "../components/badges/BadgeSVG";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -316,7 +219,14 @@ export default function BadgesPage() {
                       alignItems: "center",
                     }}
                   >
-                    <BadgeSvg badgeId={badgeId} size={72} emberDropShadow />
+                    <div
+                      style={{
+                        filter: `drop-shadow(0 0 16px ${badge.color.primary}80)`,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <BadgeSVG badgeId={badgeId} size={72} opacity={1} />
+                    </div>
                     <div>
                       <p
                         style={{
@@ -388,7 +298,7 @@ export default function BadgesPage() {
                   >
                     Earned
                   </p>
-                  <BadgeSvg badgeId={badgeId} size={48} />
+                  <BadgeSVG badgeId={badgeId} size={48} opacity={1} />
                   <p
                     style={{
                       fontFamily: "var(--font-quicksand), sans-serif",
@@ -449,10 +359,10 @@ export default function BadgesPage() {
                     CLOSE
                   </div>
                 )}
-                <BadgeSvg
+                <BadgeSVG
                   badgeId={badgeId}
-                  size={44}
-                  opacity={isClose ? 0.4 : 0.2}
+                  size={64}
+                  opacity={progress > 0.4 ? 0.4 : 0.2}
                 />
                 <p
                   style={{

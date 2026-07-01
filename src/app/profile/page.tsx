@@ -51,6 +51,7 @@ import { EVENT_PROFILE_VIEWED } from "../lib/analytics-events";
 import { BADGES, BADGE_ORDER } from "../lib/badges";
 import type { BadgeProgress } from "../lib/badges";
 import { computeBadges } from "../lib/badge-engine";
+import BadgeSVG from "../components/badges/BadgeSVG";
 
 // ── Candlelight film grain ─────────────────────────────────────────────────────
 
@@ -1476,27 +1477,20 @@ export default function ProfilePage() {
                     flexShrink: 0,
                     width: 56,
                   }}>
-                    <div style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: "50%",
-                      background: earned
-                        ? badge.color.primary
-                        : "rgba(255,255,255,0.05)",
-                      border: earned
-                        ? `1px solid ${badge.color.highlight}40`
-                        : "1px solid rgba(255,255,255,0.07)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 22,
-                      opacity: earned ? 1 : 0.3,
-                      boxShadow: earned
-                        ? `0 0 14px ${badge.color.primary}50`
-                        : "none",
-                      transition: "all 0.2s ease",
-                    }}>
-                      {badge.color.icon}
+                    <div
+                      style={{
+                        borderRadius: "50%",
+                        boxShadow: earned
+                          ? `0 0 14px ${badge.color.primary}50`
+                          : "none",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <BadgeSVG
+                        badgeId={badgeId}
+                        size={56}
+                        opacity={earned ? 1 : 0.25}
+                      />
                     </div>
                     <span style={{
                       fontFamily:
