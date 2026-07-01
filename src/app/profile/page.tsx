@@ -1430,7 +1430,9 @@ export default function ProfilePage() {
               color: "#897E73",
               margin: 0,
             }}>Your badges</p>
-            <span style={{
+            <span
+              onClick={() => router.push("/badges")}
+              style={{
               fontFamily: "var(--font-jetbrains-mono), monospace",
               fontSize: 9,
               color: "#E8621A",
