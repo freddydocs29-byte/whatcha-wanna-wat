@@ -1525,10 +1525,6 @@ export default function ProfilePage() {
             margin: "12px 0 0",
           }}>
             {badgeProgress.filter((b) => b.earned).length} of 7 unlocked
-            {" · "}
-            <span style={{ color: "#E8621A", cursor: "pointer" }}>
-              See all
-            </span>
           </p>
 
         </div>

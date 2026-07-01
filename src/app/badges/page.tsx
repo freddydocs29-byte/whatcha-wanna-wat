@@ -525,7 +525,7 @@ export default function BadgesPage() {
           style={{
             fontFamily: "var(--font-jetbrains-mono), monospace",
             fontSize: 9,
-            color: "#2A2520",
+            color: "#3A3530",
             textAlign: "center",
             letterSpacing: "0.8px",
             lineHeight: 1.7,
