@@ -2840,9 +2840,6 @@ function Dashboard() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const adminId = process.env.NEXT_PUBLIC_ADMIN_USER_ID;
-      console.log("[admin-gate] auth user id:", data?.user?.id);
-      console.log("[admin-gate] env admin id:", adminId);
-      console.log("[admin-gate] match:", data?.user?.id === adminId);
       if (data?.user?.id && adminId && data.user.id === adminId) {
         setAuthState("ok");
         setLastUpdated(new Date());
