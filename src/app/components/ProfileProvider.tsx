@@ -514,15 +514,19 @@ async function initializeProfile(deviceUserId: string): Promise<void> {
 function ProfileLoadingScreen() {
   return (
     <div className="min-h-screen bg-[#1C1A18] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div
-          className="w-20 h-20 rounded-[22px] bg-[#E8621A] flex items-center justify-center shadow-lg"
-          aria-label="Loading"
-        >
-          <span className="font-display font-black text-4xl text-white select-none">?</span>
-        </div>
-        <div className="w-5 h-5 border-2 border-white/20 border-t-[#E8621A] rounded-full animate-spin" />
-      </div>
+      <span
+        style={{
+          fontFamily: 'Nunito, sans-serif',
+          fontWeight: 900,
+          fontSize: '140px',
+          color: '#E8621A',
+          lineHeight: 1,
+          animation: 'watchaBreathe 1.4s ease-in-out infinite',
+        }}
+        aria-label="Loading"
+      >
+        ?
+      </span>
     </div>
   );
 }
