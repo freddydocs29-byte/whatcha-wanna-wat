@@ -757,7 +757,7 @@ function DeckContent() {
           vibe: sessionVibeMode,
         });
         void trackingSessionPromiseRef.current.then((tsId) => {
-          if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "shared", isGuest, vibe: sessionVibeMode ?? undefined });
+          if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "shared", isGuest, vibe: sessionVibeMode ?? undefined, sessionId: tsId });
         });
       }
     };
@@ -1196,7 +1196,7 @@ function DeckContent() {
           trackingOpenedAtRef.current = new Date();
           trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false, sessionType: "solo", vibe: sessionVibeMode });
           void trackingSessionPromiseRef.current.then((tsId) => {
-            if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "solo", isGuest, vibe: sessionVibeMode ?? undefined });
+            if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "solo", isGuest, vibe: sessionVibeMode ?? undefined, sessionId: tsId });
           });
         }
         return;
@@ -1245,7 +1245,7 @@ function DeckContent() {
       trackingOpenedAtRef.current = new Date();
       trackingSessionPromiseRef.current = createTrackingSession({ isGroupSession: false, sessionType: "solo", vibe: sessionVibeMode });
       void trackingSessionPromiseRef.current.then((tsId) => {
-        if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "solo", isGuest, vibe: sessionVibeMode ?? undefined });
+        if (tsId) trackEvent(EVENT_SESSION_STARTED, { sessionMode: "solo", isGuest, vibe: sessionVibeMode ?? undefined, sessionId: tsId });
       });
     }
 

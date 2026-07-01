@@ -2,6 +2,8 @@ import { supabase } from "./supabase";
 import { getUserId } from "./identity";
 import type { Meal } from "../data/meals";
 import { checkAndTriggerTypeReveal } from "./type-reveal-trigger";
+import { trackEvent } from "./analytics";
+import { EVENT_RETURN_VISIT_DETECTED } from "./analytics-events";
 
 // ── Context inference ────────────────────────────────────────────────────────
 
@@ -119,6 +121,8 @@ export function checkAndMarkReturn(): void {
 
   const minutesElapsed = (Date.now() - new Date(entry.closedAt).getTime()) / 60_000;
   if (minutesElapsed >= 10) return;
+
+  trackEvent(EVENT_RETURN_VISIT_DETECTED, { sessionId: entry.trackingSessionId });
 
   supabase
     .from("user_sessions")

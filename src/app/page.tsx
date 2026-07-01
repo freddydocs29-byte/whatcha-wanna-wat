@@ -345,7 +345,7 @@ export default function Home() {
       // Track once per browser session so repeated navigations don't re-fire.
       if (!sessionStorage.getItem("wwe_app_opened")) {
         sessionStorage.setItem("wwe_app_opened", "1");
-        trackEvent("app_opened");
+        trackEvent("app_opened", { isGuest: !session.user.id });
       }
     }
 
