@@ -1306,6 +1306,8 @@ function OnboardingTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
 
 const SESSION_EVENTS = [
   "watchas_call_triggered",
+  "watchas_call_accepted",
+  "watchas_call_rejected",
   "session_started",
   "vibe_selected",
   "decision_locked",
@@ -1325,6 +1327,8 @@ function SessionsTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
   const [blockedAE, setBlockedAE] = useState(false);
   const [sessions, setSessions] = useState<UserSessionRow[]>([]);
   const [watchasEvs, setWatchasEvs] = useState<AEvent[]>([]);
+  const [watchasAccepted, setWatchasAccepted] = useState(0);
+  const [watchasRejected, setWatchasRejected] = useState(0);
   const [ssEvs, setSsEvs] = useState<AEvent[]>([]);
   const [vibeEvs, setVibeEvs] = useState<AEvent[]>([]);
   const [dlEvs, setDlEvs] = useState<AEvent[]>([]);
@@ -1348,6 +1352,8 @@ function SessionsTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
       } else {
         const byName = groupBy(aeRes.data ?? [], (e) => e.event_name);
         setWatchasEvs(byName["watchas_call_triggered"] ?? []);
+        setWatchasAccepted((byName["watchas_call_accepted"] ?? []).length);
+        setWatchasRejected((byName["watchas_call_rejected"] ?? []).length);
         setSsEvs(byName["session_started"] ?? []);
         setVibeEvs(byName["vibe_selected"] ?? []);
         setDlEvs(byName["decision_locked"] ?? []);
@@ -1518,6 +1524,19 @@ function SessionsTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
                 label="Resolved via direct match"
                 value={fmt(resolvedDirect)}
               />
+              <StatRow
+                label="Accepted"
+                value={fmt(watchasAccepted)}
+              />
+              <StatRow
+                label="Rejected"
+                value={fmt(watchasRejected)}
+              />
+              <StatRow
+                label="Accept Rate"
+                value={pct(watchasAccepted, watchasAccepted + watchasRejected)}
+                accent
+              />
             </div>
           </Card>
 
@@ -1551,9 +1570,11 @@ function SessionsTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
 
 const FRICTION_EVENTS = [
   "error_shown_to_user",
+  "error_shown",
   "guest_limit_reached",
   "guest_signup_prompted",
   "shared_session_abandoned",
+  "session_abandoned",
   "shared_invite_created",
   "shared_invite_joined",
 ];
@@ -1585,10 +1606,14 @@ function FrictionTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
   if (blocked) return <RlsWall table="analytics_events" />;
 
   const byName = groupBy(events, (e) => e.event_name);
-  const errors = byName["error_shown_to_user"] ?? [];
+  const errors = [
+    ...(byName["error_shown_to_user"] ?? []),
+    ...(byName["error_shown"] ?? []),
+  ];
   const guestLimit = byName["guest_limit_reached"] ?? [];
   const guestSignup = byName["guest_signup_prompted"] ?? [];
   const abandoned = byName["shared_session_abandoned"] ?? [];
+  const sessionAbandoned = (byName["session_abandoned"] ?? []).length;
   const inviteCreated = byName["shared_invite_created"] ?? [];
   const inviteJoined = byName["shared_invite_joined"] ?? [];
 
@@ -1806,6 +1831,15 @@ function FrictionTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
         </div>
       </Card>
 
+      {/* Solo session abandonment */}
+      {sessionAbandoned > 0 && (
+        <MetricCard
+          label="Solo Sessions Abandoned"
+          value={fmt(sessionAbandoned)}
+          sub="session_abandoned events (solo/unknown sessions)"
+        />
+      )}
+
       {/* Invite Funnel */}
       <Card title="Invite Funnel">
         <div
@@ -1951,6 +1985,8 @@ const MEAL_EVENTS = [
   "post_decision_action",
   "meal_saved",
   "watchas_call_triggered",
+  "meal_confirmed_eaten",
+  "meal_not_eaten",
 ];
 
 type DecisionRow = {
@@ -2067,6 +2103,10 @@ function MealsTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
   // Saved meals
   const savedEvs = byName["meal_saved"] ?? [];
 
+  // Did Tonight Hit
+  const confirmedEaten = (byName["meal_confirmed_eaten"] ?? []).length;
+  const notEaten = (byName["meal_not_eaten"] ?? []).length;
+
   // AI meals (from decisions table)
   const aiDecisions = decisions.filter((d) => d.is_ai_generated);
   const aiAccepted = aiDecisions.filter((d) => d.outcome === "accepted").length;
@@ -2177,6 +2217,24 @@ function MealsTab({ cutoff, rk }: { cutoff: string | null; rk: number }) {
               )}
             </Card>
           </div>
+
+          <Card title="Did Tonight Hit?">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <StatRow
+                label="Yes"
+                value={fmt(confirmedEaten)}
+              />
+              <StatRow
+                label="Not Quite"
+                value={fmt(notEaten)}
+              />
+              <StatRow
+                label="Hit Rate"
+                value={pct(confirmedEaten, confirmedEaten + notEaten)}
+                accent
+              />
+            </div>
+          </Card>
 
           <div
             style={{
