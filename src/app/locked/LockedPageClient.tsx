@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
+const DID_TONIGHT_HIT_DELAY_MS = 2 * 60 * 60 * 1000;
+
 import { useRouter } from "next/navigation";
 import { type Meal } from "../data/meals";
 import {
@@ -106,6 +109,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
         sessionId: sessionId ?? null,
         sessionMode: getDecidedMeal()?.mode ?? null,
         actedAt: new Date().toISOString(),
+        promptDueAt: new Date(Date.now() + DID_TONIGHT_HIT_DELAY_MS).toISOString(),
       })
     );
     setMealActionMode("cook");
@@ -122,6 +126,7 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
         sessionId: sessionId ?? null,
         sessionMode: getDecidedMeal()?.mode ?? null,
         actedAt: new Date().toISOString(),
+        promptDueAt: new Date(Date.now() + DID_TONIGHT_HIT_DELAY_MS).toISOString(),
       })
     );
     setMealActionMode("order");

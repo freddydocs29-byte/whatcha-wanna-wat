@@ -75,6 +75,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { PersonV3 } from "./components/v3/V3PeopleSelector";
 import Avatar from "./components/Avatar";
 
+const DID_TONIGHT_HIT_DELAY_MS = 2 * 60 * 60 * 1000;
+
 function deriveInsights(history: HistoryEntry[]): string[] {
   if (history.length < 3) return [];
 
@@ -191,6 +193,7 @@ export default function Home() {
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
   const [showDidTonightHit, setShowDidTonightHit] = useState(false);
   const [didTonightHitMeal, setDidTonightHitMeal] = useState<DecidedMeal | null>(null);
+  const [clearAfterDidTonightHit, setClearAfterDidTonightHit] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [resolvedAvatarUrl, setResolvedAvatarUrl] = useState<string | null>(null);
   const [lockedHeadline, setLockedHeadline] = useState<LockedMealHeadlineResult | null>(null);
@@ -370,34 +373,37 @@ export default function Home() {
   // Did tonight hit? — fires once decidedMealState is populated and ready is true.
   // Moved out of checkAndRoute() because that runs before ProfileProvider restores
   // the decided meal via the decidedMealRestored event.
+  // Requires a Cook/Order action flag with promptDueAt set; the 6-hour expiry
+  // is still enforced based on decidedAt.
   useEffect(() => {
     if (!ready) return;
     if (!decidedMeal?.decidedAt) return;
 
-    const ageMs =
-      Date.now() - new Date(decidedMeal.decidedAt).getTime();
-
-    const twoHours = 2 * 60 * 60 * 1000;
+    const ageMs = Date.now() - new Date(decidedMeal.decidedAt).getTime();
     const sixHours = 6 * 60 * 60 * 1000;
+    if (ageMs >= sixHours) return;
 
     const alreadyAnswered =
       localStorage.getItem(`wwe_did_tonight_hit_${decidedMeal.id}`) !== null;
+    if (alreadyAnswered) return;
 
     const actionRaw = localStorage.getItem(
       `wwe_post_decision_action_${decidedMeal.id}`
     );
+    if (!actionRaw) return;
 
-    const tookAction = actionRaw !== null;
-
-    if (
-      ageMs >= twoHours &&
-      ageMs < sixHours &&
-      !alreadyAnswered &&
-      tookAction
-    ) {
-      setDidTonightHitMeal(decidedMeal);
-      setShowDidTonightHit(true);
+    let action: { promptDueAt?: string } | null = null;
+    try {
+      action = JSON.parse(actionRaw);
+    } catch {
+      return;
     }
+
+    if (!action?.promptDueAt) return;
+    if (Date.now() < new Date(action.promptDueAt).getTime()) return;
+
+    setDidTonightHitMeal(decidedMeal);
+    setShowDidTonightHit(true);
   }, [decidedMeal, ready]);
 
   // Runs on every render — syncs React state with localStorage truth
@@ -1241,6 +1247,7 @@ export default function Home() {
           sessionId: _dm.sessionId ?? null,
           sessionMode: _dm.mode ?? null,
           actedAt: new Date().toISOString(),
+          promptDueAt: new Date(Date.now() + DID_TONIGHT_HIT_DELAY_MS).toISOString(),
         })
       );
     }
@@ -1260,10 +1267,28 @@ export default function Home() {
           sessionId: _dm.sessionId ?? null,
           sessionMode: _dm.mode ?? null,
           actedAt: new Date().toISOString(),
+          promptDueAt: new Date(Date.now() + DID_TONIGHT_HIT_DELAY_MS).toISOString(),
         })
       );
     }
     setMealActionMode("order");
+  }
+
+  // Intercepts the X / clear request on the home locked meal card.
+  // Shows Did Tonight Hit first if not yet answered; otherwise opens the confirm modal directly.
+  function handleClearLockedMealRequest() {
+    const meal = decidedMeal ?? getDecidedMeal();
+    if (meal?.id) {
+      const alreadyAnswered =
+        localStorage.getItem(`wwe_did_tonight_hit_${meal.id}`) !== null;
+      if (!alreadyAnswered) {
+        setDidTonightHitMeal(meal);
+        setClearAfterDidTonightHit(true);
+        setShowDidTonightHit(true);
+        return;
+      }
+    }
+    setShowDismissConfirm(true);
   }
 
   function handleDidTonightHitYes() {
@@ -1287,6 +1312,10 @@ export default function Home() {
     });
     setShowDidTonightHit(false);
     setDidTonightHitMeal(null);
+    if (clearAfterDidTonightHit) {
+      setClearAfterDidTonightHit(false);
+      setShowDismissConfirm(true);
+    }
   }
 
   function handleDidTonightHitNo() {
@@ -1307,6 +1336,10 @@ export default function Home() {
     });
     setShowDidTonightHit(false);
     setDidTonightHitMeal(null);
+    if (clearAfterDidTonightHit) {
+      setClearAfterDidTonightHit(false);
+      setShowDismissConfirm(true);
+    }
   }
 
   function handleDidTonightHitDismiss() {
@@ -1320,6 +1353,10 @@ export default function Home() {
     );
     setShowDidTonightHit(false);
     setDidTonightHitMeal(null);
+    if (clearAfterDidTonightHit) {
+      setClearAfterDidTonightHit(false);
+      setShowDismissConfirm(true);
+    }
   }
 
   function toggleSaveDecidedMeal() {
@@ -1532,7 +1569,7 @@ export default function Home() {
             cookTime={decidedMeal.tags.find((t) => /\d+\s*min/i.test(t)) ?? "—"}
             spice={decidedMeal.tags.some((t) => /spic/i.test(t)) ? "🌶️🌶️" : "Mild"}
             matchScore={decidedMeal.mode === "shared" ? "Matched!" : "Your pick"}
-            onClear={() => setShowDismissConfirm(true)}
+            onClear={handleClearLockedMealRequest}
             onSave={toggleSaveDecidedMeal}
             isSaved={decidedSaved}
             savedJustNow={savedJustNow}
