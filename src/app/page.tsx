@@ -316,22 +316,6 @@ export default function Home() {
       }).catch(() => {});
       setReady(true);
 
-      // Did tonight hit? — show if meal is 2–6 hours old and not yet answered
-      const _decided = getDecidedMeal();
-      if (_decided?.decidedAt) {
-        const ageMs = Date.now() - new Date(_decided.decidedAt).getTime();
-        const twoHours = 2 * 60 * 60 * 1000;
-        const sixHours = 6 * 60 * 60 * 1000;
-        const alreadyAnswered = localStorage.getItem(
-          `wwe_did_tonight_hit_${_decided.id}`
-        ) !== null;
-
-        if (ageMs >= twoHours && ageMs < sixHours && !alreadyAnswered) {
-          setDidTonightHitMeal(_decided);
-          setShowDidTonightHit(true);
-        }
-      }
-
       // Fire-and-forget — never blocks Home from showing
       // Use all known IDs so sessions written under either localStorage or auth UUID are found.
       const localUserId = getUserId();
@@ -382,6 +366,28 @@ export default function Home() {
 
     return () => subscription.unsubscribe();
   }, [router]);
+
+  // Did tonight hit? — fires once decidedMealState is populated and ready is true.
+  // Moved out of checkAndRoute() because that runs before ProfileProvider restores
+  // the decided meal via the decidedMealRestored event.
+  useEffect(() => {
+    if (!ready) return;
+    if (!decidedMeal?.decidedAt) return;
+
+    const ageMs =
+      Date.now() - new Date(decidedMeal.decidedAt).getTime();
+
+    const twoHours = 2 * 60 * 60 * 1000;
+    const sixHours = 6 * 60 * 60 * 1000;
+
+    const alreadyAnswered =
+      localStorage.getItem(`wwe_did_tonight_hit_${decidedMeal.id}`) !== null;
+
+    if (ageMs >= twoHours && ageMs < sixHours && !alreadyAnswered) {
+      setDidTonightHitMeal(decidedMeal);
+      setShowDidTonightHit(true);
+    }
+  }, [decidedMeal, ready]);
 
   // Runs on every render — syncs React state with localStorage truth
   useEffect(() => {
