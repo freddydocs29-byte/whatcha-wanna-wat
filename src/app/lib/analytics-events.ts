@@ -57,3 +57,8 @@ export const EVENT_GUEST_CONVERTED = "guest_converted";
 export const EVENT_MEAL_FAVORITED = "meal_favorited";
 export const EVENT_WATCHAS_CALL_ACCEPTED = "watchas_call_accepted";
 export const EVENT_WATCHAS_CALL_REJECTED = "watchas_call_rejected";
+
+// Sprint 3 additions — growth and virality
+export const EVENT_SHARE_SHEET_OPENED = "share_sheet_opened";
+export const EVENT_QR_CODE_DISPLAYED = "qr_code_displayed";
+export const EVENT_MATCH_CARD_SHARED = "match_card_shared";

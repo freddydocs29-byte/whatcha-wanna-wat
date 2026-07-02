@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
+import { trackEvent } from "../../lib/analytics";
+import {
+  EVENT_SHARE_SHEET_OPENED,
+  EVENT_QR_CODE_DISPLAYED,
+} from "../../lib/analytics-events";
 
 interface V3InviteDrawerProps {
   open: boolean;
@@ -29,12 +34,27 @@ export default function V3InviteDrawer({
   const [shared, setShared] = useState(false);
   const [copyError, setCopyError] = useState(false);
 
+  // Tracks which sessionCode we've already fired qr_code_displayed for
+  const qrDisplayedTrackedRef = useRef<string | null>(null);
+
   // Prefer the active session passed in from parent, fall back to one created in this drawer
   const sessionCode = activeSessionCode ?? createdCode;
   const joinUrl =
     sessionCode && typeof window !== "undefined"
       ? `${window.location.origin}/join/${sessionCode}`
       : null;
+
+  // Fire once per unique sessionCode when the QR code becomes visible
+  useEffect(() => {
+    console.log('[QR DEBUG]', { joinUrl, sessionCode, tracked: qrDisplayedTrackedRef.current });
+    if (!joinUrl || !sessionCode) return;
+    if (qrDisplayedTrackedRef.current === sessionCode) return;
+    qrDisplayedTrackedRef.current = sessionCode;
+    trackEvent(EVENT_QR_CODE_DISPLAYED, {
+      sourceScreen: "invite_drawer",
+      sessionCode,
+    });
+  }, [joinUrl, sessionCode]);
 
   async function handleStart() {
     setCreating(true);
@@ -66,6 +86,11 @@ export default function V3InviteDrawer({
     if (!joinUrl) return;
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
+        trackEvent(EVENT_SHARE_SHEET_OPENED, {
+          sourceScreen: "invite_drawer",
+          contentType: "session_invite",
+          sessionCode,
+        });
         await navigator.share({
           title: "Decide dinner with me",
           text: "Join me to swipe on what we're eating tonight!",

@@ -3,6 +3,11 @@
 import { useRef, useState } from "react";
 import type { CouplesFlavor } from "../lib/couples-flavor-types";
 import { COUPLES_TYPES } from "../lib/couples-flavor-types";
+import { trackEvent } from "../lib/analytics";
+import {
+  EVENT_SHARE_SHEET_OPENED,
+  EVENT_FLAVOR_CARD_SHARED,
+} from "../lib/analytics-events";
 
 interface CouplesFlavorCardProps {
   flavor: CouplesFlavor;
@@ -621,10 +626,15 @@ export default function CouplesFlavorCard({
         navigator.share &&
         navigator.canShare?.({ files: [new File([blob], fileName, { type: "image/png" })] })
       ) {
+        trackEvent(EVENT_SHARE_SHEET_OPENED, {
+          sourceScreen: "couples_flavor_card",
+          contentType: "flavor_card",
+        });
         await navigator.share({
           files: [new File([blob], fileName, { type: "image/png" })],
           title: "Our Couples Flavor Type",
         });
+        trackEvent(EVENT_FLAVOR_CARD_SHARED, { share_destination: "native_share" });
       } else {
         // Fallback: download
         const url = URL.createObjectURL(blob);
@@ -632,6 +642,7 @@ export default function CouplesFlavorCard({
         a.href = url;
         a.download = fileName;
         a.click();
+        trackEvent(EVENT_FLAVOR_CARD_SHARED, { share_destination: "copy" });
         setTimeout(() => URL.revokeObjectURL(url), 5000);
       }
     } finally {

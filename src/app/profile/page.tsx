@@ -47,7 +47,11 @@ import {
 } from "../lib/flavor-type";
 import { getCompatibilityPairing } from "../lib/compatibility";
 import { trackEvent } from "../lib/analytics";
-import { EVENT_PROFILE_VIEWED } from "../lib/analytics-events";
+import {
+  EVENT_PROFILE_VIEWED,
+  EVENT_SHARE_SHEET_OPENED,
+  EVENT_FLAVOR_CARD_SHARED,
+} from "../lib/analytics-events";
 import { BADGES, BADGE_ORDER } from "../lib/badges";
 import type { BadgeProgress } from "../lib/badges";
 import { computeBadges } from "../lib/badge-engine";
@@ -622,7 +626,12 @@ export default function ProfilePage() {
         const file = new File([blob], "watcha-flavor-card.png", { type: "image/png" });
         if (typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
           try {
+            trackEvent(EVENT_SHARE_SHEET_OPENED, {
+              sourceScreen: "profile",
+              contentType: "flavor_card",
+            });
             await navigator.share({ files: [file], title: "My Watcha? Flavor Card" });
+            trackEvent(EVENT_FLAVOR_CARD_SHARED, { share_destination: "native_share" });
           } catch (err) {
             if (err instanceof Error && err.name !== "AbortError") {
               setShareError("Couldn't share. Try saving the image.");
@@ -634,6 +643,7 @@ export default function ProfilePage() {
           a.href = url;
           a.download = "watcha-flavor-card.png";
           a.click();
+          trackEvent(EVENT_FLAVOR_CARD_SHARED, { share_destination: "copy" });
           URL.revokeObjectURL(url);
         }
         setSharing(false);
