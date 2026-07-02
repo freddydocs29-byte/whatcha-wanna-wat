@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BADGES, BADGE_ORDER } from "../lib/badges";
 import type { BadgeProgress } from "../lib/badges";
 import { computeBadges } from "../lib/badge-engine";
 import { getUserId } from "../lib/identity";
+import { trackEvent } from "../lib/analytics";
+import { EVENT_BADGE_PAGE_VIEWED } from "../lib/analytics-events";
 import BadgeSVG from "../components/badges/BadgeSVG";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -14,6 +16,7 @@ export default function BadgesPage() {
   const router = useRouter();
   const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const badgePageTrackedRef = useRef(false);
 
   useEffect(() => {
     const userId = getUserId();
@@ -24,6 +27,13 @@ export default function BadgesPage() {
     computeBadges(userId)
       .then((result) => {
         setBadgeProgress(result.badges);
+        if (!badgePageTrackedRef.current) {
+          badgePageTrackedRef.current = true;
+          trackEvent(EVENT_BADGE_PAGE_VIEWED, {
+            earnedCount: result.badges.filter((b) => b.earned).length,
+            totalBadges: BADGE_ORDER.length,
+          });
+        }
       })
       .catch(() => {
         // silent failure — page renders all locked

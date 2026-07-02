@@ -62,3 +62,8 @@ export const EVENT_WATCHAS_CALL_REJECTED = "watchas_call_rejected";
 export const EVENT_SHARE_SHEET_OPENED = "share_sheet_opened";
 export const EVENT_QR_CODE_DISPLAYED = "qr_code_displayed";
 export const EVENT_MATCH_CARD_SHARED = "match_card_shared";
+
+// Sprint 4 additions — flavor and badge reveals
+export const EVENT_FLAVOR_TYPE_REVEALED = "flavor_type_revealed";
+export const EVENT_COUPLES_FLAVOR_REVEALED = "couples_flavor_revealed";
+export const EVENT_BADGE_PAGE_VIEWED = "badge_page_viewed";

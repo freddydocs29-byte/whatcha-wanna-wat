@@ -42,6 +42,8 @@ import {
   EVENT_GUEST_SIGNUP_PROMPTED,
   EVENT_ERROR_SHOWN,
   EVENT_MEAL_SAVED,
+  EVENT_FLAVOR_TYPE_REVEALED,
+  EVENT_COUPLES_FLAVOR_REVEALED,
 } from "./lib/analytics-events";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
@@ -799,6 +801,11 @@ export default function Home() {
       }
       localStorage.setItem("wwe_type_last_revealed_at", new Date().toISOString());
       localStorage.removeItem("wwe_type_reveal_pending");
+      trackEvent(EVENT_FLAVOR_TYPE_REVEALED, {
+        flavorType: typeName,
+        baseType: baseType,
+        decisionCount: decisionCount,
+      });
       setTypeRevealData({ typeName, tagline });
     } catch {
       localStorage.removeItem("wwe_type_reveal_pending");
@@ -844,6 +851,12 @@ export default function Home() {
       // Strip the internal fields before passing to the component
       const { baseType: _bt, ...flavorData } = payload;
       void _bt; // satisfy linter
+      trackEvent(EVENT_COUPLES_FLAVOR_REVEALED, {
+        couplesType: payload.type,
+        totalMatches: payload.totalMatches,
+        topCuisine: payload.topCuisine,
+        topMeal: payload.topMeal,
+      });
       setCouplesTypeRevealData(flavorData as CouplesFlavor);
     } catch {
       localStorage.removeItem("wwe_couples_type_reveal_pending");
