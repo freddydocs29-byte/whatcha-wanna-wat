@@ -71,3 +71,7 @@ export const EVENT_BADGE_PAGE_VIEWED = "badge_page_viewed";
 // Sprint 5 additions — friction signals
 export const EVENT_SESSION_ABANDONED = "session_abandoned";
 export const EVENT_SHARED_INVITE_EXPIRED = "shared_invite_expired";
+
+// Sprint 6 additions — post-decision feedback
+export const EVENT_MEAL_CONFIRMED_EATEN = "meal_confirmed_eaten";
+export const EVENT_MEAL_NOT_EATEN = "meal_not_eaten";

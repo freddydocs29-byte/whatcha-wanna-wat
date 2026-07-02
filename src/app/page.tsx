@@ -44,6 +44,8 @@ import {
   EVENT_MEAL_SAVED,
   EVENT_FLAVOR_TYPE_REVEALED,
   EVENT_COUPLES_FLAVOR_REVEALED,
+  EVENT_MEAL_CONFIRMED_EATEN,
+  EVENT_MEAL_NOT_EATEN,
 } from "./lib/analytics-events";
 import { getLockedMealHeadline, type LockedMealHeadlineResult } from "./lib/locked-copy";
 import { generateSessionCode } from "./lib/session-code";
@@ -187,6 +189,8 @@ export default function Home() {
   const [saved, setSaved] = useState(false);
   const [showEatModal, setShowEatModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
+  const [showDidTonightHit, setShowDidTonightHit] = useState(false);
+  const [didTonightHitMeal, setDidTonightHitMeal] = useState<DecidedMeal | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [resolvedAvatarUrl, setResolvedAvatarUrl] = useState<string | null>(null);
   const [lockedHeadline, setLockedHeadline] = useState<LockedMealHeadlineResult | null>(null);
@@ -311,6 +315,22 @@ export default function Home() {
         if (p?.avatar_url) setResolvedAvatarUrl(p.avatar_url);
       }).catch(() => {});
       setReady(true);
+
+      // Did tonight hit? — show if meal is 2–6 hours old and not yet answered
+      const _decided = getDecidedMeal();
+      if (_decided?.decidedAt) {
+        const ageMs = Date.now() - new Date(_decided.decidedAt).getTime();
+        const twoHours = 2 * 60 * 60 * 1000;
+        const sixHours = 6 * 60 * 60 * 1000;
+        const alreadyAnswered = localStorage.getItem(
+          `wwe_did_tonight_hit_${_decided.id}`
+        ) !== null;
+
+        if (ageMs >= twoHours && ageMs < sixHours && !alreadyAnswered) {
+          setDidTonightHitMeal(_decided);
+          setShowDidTonightHit(true);
+        }
+      }
 
       // Fire-and-forget — never blocks Home from showing
       // Use all known IDs so sessions written under either localStorage or auth UUID are found.
@@ -1201,6 +1221,53 @@ export default function Home() {
     if (!decidedMeal) return;
     recordPickIfNew();
     setMealActionMode("order");
+  }
+
+  function handleDidTonightHitYes() {
+    if (!didTonightHitMeal) return;
+    localStorage.setItem(
+      `wwe_did_tonight_hit_${didTonightHitMeal.id}`,
+      "yes"
+    );
+    trackEvent(EVENT_MEAL_CONFIRMED_EATEN, {
+      mealId: didTonightHitMeal.id,
+      mealName: didTonightHitMeal.name,
+      sessionMode: didTonightHitMeal.mode,
+      sessionId: didTonightHitMeal.sessionId ?? undefined,
+      decidedAt: didTonightHitMeal.decidedAt,
+      hoursAfterDecision: Math.round(
+        (Date.now() - new Date(didTonightHitMeal.decidedAt).getTime()) / 3600000
+      ),
+    });
+    setShowDidTonightHit(false);
+    setDidTonightHitMeal(null);
+  }
+
+  function handleDidTonightHitNo() {
+    if (!didTonightHitMeal) return;
+    localStorage.setItem(
+      `wwe_did_tonight_hit_${didTonightHitMeal.id}`,
+      "no"
+    );
+    trackEvent(EVENT_MEAL_NOT_EATEN, {
+      mealId: didTonightHitMeal.id,
+      mealName: didTonightHitMeal.name,
+      sessionMode: didTonightHitMeal.mode,
+      sessionId: didTonightHitMeal.sessionId ?? undefined,
+      decidedAt: didTonightHitMeal.decidedAt,
+    });
+    setShowDidTonightHit(false);
+    setDidTonightHitMeal(null);
+  }
+
+  function handleDidTonightHitDismiss() {
+    if (!didTonightHitMeal) return;
+    localStorage.setItem(
+      `wwe_did_tonight_hit_${didTonightHitMeal.id}`,
+      "dismissed"
+    );
+    setShowDidTonightHit(false);
+    setDidTonightHitMeal(null);
   }
 
   function toggleSaveDecidedMeal() {
@@ -2207,6 +2274,135 @@ export default function Home() {
                 }}
               >
                 Yes, clear it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Did tonight hit? — post-decision feedback, shown 2–6 h after deciding */}
+      {showDidTonightHit && didTonightHitMeal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
+          <div
+            className="absolute inset-0"
+            style={{ background: "rgba(0,0,0,0.7)" }}
+            onClick={handleDidTonightHitDismiss}
+          />
+          <div
+            className="relative w-full mx-auto"
+            style={{
+              maxWidth: 340,
+              background: "#1C1A18",
+              border: "1px solid rgba(232,98,26,0.25)",
+              borderRadius: 24,
+              padding: 28,
+            }}
+          >
+            {/* Dismiss X */}
+            <button
+              onClick={handleDidTonightHitDismiss}
+              aria-label="Dismiss"
+              style={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                background: "none",
+                border: "none",
+                color: "#5A5248",
+                cursor: "pointer",
+                padding: 4,
+                lineHeight: 1,
+                fontSize: 18,
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Eyebrow */}
+            <p
+              style={{
+                fontFamily: "var(--font-jetbrains-mono)",
+                fontSize: 10,
+                fontWeight: 400,
+                color: "#E8621A",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                marginBottom: 10,
+              }}
+            >
+              LAST NIGHT
+            </p>
+
+            {/* Meal name */}
+            <p
+              style={{
+                fontFamily: "var(--font-quicksand)",
+                fontWeight: 700,
+                fontSize: 20,
+                color: "#F6EEE2",
+                letterSpacing: "-0.01em",
+                marginBottom: 8,
+              }}
+            >
+              {didTonightHitMeal.name}
+            </p>
+
+            {/* Question */}
+            <p
+              style={{
+                fontSize: 13,
+                color: "#C7BDAC",
+                lineHeight: 1.5,
+                marginBottom: 20,
+              }}
+            >
+              Did tonight hit?
+            </p>
+
+            {/* Yes / No buttons */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={handleDidTonightHitNo}
+                className="flex-1 rounded-full py-3 transition active:scale-[0.98]"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: "#897E73",
+                  background: "rgba(255,231,202,0.03)",
+                  border: "1px solid rgba(245,237,224,0.085)",
+                }}
+              >
+                👎 Not quite
+              </button>
+              <button
+                onClick={handleDidTonightHitYes}
+                className="flex-1 rounded-full py-3 text-white transition active:scale-[0.98]"
+                style={{
+                  fontFamily: "var(--font-quicksand)",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  background: "linear-gradient(180deg, #FF8A3D 0%, #E8621A 50%, #CF5A18 100%)",
+                  boxShadow: "0 0 20px rgba(232,98,26,0.35), inset 0 1px 0 rgba(255,224,188,0.4)",
+                }}
+              >
+                👍 Yes
+              </button>
+            </div>
+
+            {/* Ask me later */}
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              <button
+                onClick={handleDidTonightHitDismiss}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: 12,
+                  color: "#5A5248",
+                  cursor: "pointer",
+                }}
+              >
+                Ask me later
               </button>
             </div>
           </div>
