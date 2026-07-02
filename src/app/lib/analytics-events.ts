@@ -67,3 +67,7 @@ export const EVENT_MATCH_CARD_SHARED = "match_card_shared";
 export const EVENT_FLAVOR_TYPE_REVEALED = "flavor_type_revealed";
 export const EVENT_COUPLES_FLAVOR_REVEALED = "couples_flavor_revealed";
 export const EVENT_BADGE_PAGE_VIEWED = "badge_page_viewed";
+
+// Sprint 5 additions — friction signals
+export const EVENT_SESSION_ABANDONED = "session_abandoned";
+export const EVENT_SHARED_INVITE_EXPIRED = "shared_invite_expired";

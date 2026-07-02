@@ -15,7 +15,7 @@ import { getAvoidSignals, getPreferSignals, checkTriggers, checkCrossSessionNudg
 import { ProgressiveQuestion } from "../components/ProgressiveQuestion";
 import { LearningToast } from "../components/LearningToast";
 import { trackEvent, writeSessionCategoryPasses } from "../lib/analytics";
-import { EVENT_SESSION_STARTED, EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED, EVENT_WATCHAS_CALL_ACCEPTED, EVENT_WATCHAS_CALL_REJECTED, EVENT_SHARED_SESSION_ABANDONED, EVENT_GUEST_LIMIT_REACHED, EVENT_MEAL_SAVED } from "../lib/analytics-events";
+import { EVENT_SESSION_STARTED, EVENT_WATCHAS_CALL_TRIGGERED, EVENT_DECISION_LOCKED, EVENT_WATCHAS_CALL_ACCEPTED, EVENT_WATCHAS_CALL_REJECTED, EVENT_SHARED_SESSION_ABANDONED, EVENT_GUEST_LIMIT_REACHED, EVENT_MEAL_SAVED, EVENT_SESSION_ABANDONED, EVENT_ERROR_SHOWN } from "../lib/analytics-events";
 import { createTrackingSession, closeTrackingSession, recordDecision, recordAcceptedDecision, checkAndMarkReturn, inferSessionContext } from "../lib/session-tracking";
 import { RejectionReasonSheet, type RejectionReason } from "../components/RejectionReasonSheet";
 import SoloLockOverlay from "../components/SoloLockOverlay";
@@ -648,6 +648,20 @@ function DeckContent() {
     checkAndMarkReturn();
   }, []);
 
+  // Fire error_shown once when the shared deck fails to build (sharedError).
+  // Ref guard prevents double-fire if the effect re-runs.
+  const sharedErrorTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!sharedError) return;
+    if (sharedErrorTrackedRef.current) return;
+    sharedErrorTrackedRef.current = true;
+    trackEvent(EVENT_ERROR_SHOWN, {
+      errorContext: "deck_build_failed",
+      sessionMode: "shared",
+      sessionId: sessionId ?? undefined,
+    });
+  }, [sharedError, sessionId]);
+
   // Load the host-defined shared deck from the session row.
   // Both users fetch the same stored order — no local re-ranking.
   // Retries up to 10 times (every 2 s) before showing an error state.
@@ -979,6 +993,9 @@ function DeckContent() {
   // Guard — prevents the unmount cleanup from closing a session that was already
   // closed by an acceptance path.
   const trackingClosedRef = useRef(false);
+  // Guard — prevents session_abandoned from firing twice if both unmount cleanup
+  // and beforeunload run in the same navigation (e.g. tab close after SPA nav).
+  const sessionAbandonedTrackedRef = useRef(false);
 
   const afterExitRef = useRef<(() => void) | null>(null);
   // In-memory set of meal IDs that were the active card during this visit.
@@ -1331,6 +1348,18 @@ function DeckContent() {
           });
         }
       });
+      if (!sessionAbandonedTrackedRef.current) {
+        sessionAbandonedTrackedRef.current = true;
+        trackEvent(EVENT_SESSION_ABANDONED, {
+          sessionMode: sessionId ? "shared" : "solo",
+          cardsSeenCount: currentIndexRef.current ?? 0,
+          swipeCount: trackingSwipeCountRef.current ?? 0,
+          timeInSessionMs: trackingOpenedAtRef.current
+            ? Date.now() - trackingOpenedAtRef.current.getTime()
+            : undefined,
+          sessionId: sessionId ?? undefined,
+        });
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1395,6 +1424,18 @@ function DeckContent() {
           });
         }
       });
+      if (!sessionAbandonedTrackedRef.current) {
+        sessionAbandonedTrackedRef.current = true;
+        trackEvent(EVENT_SESSION_ABANDONED, {
+          sessionMode: sessionId ? "shared" : "solo",
+          cardsSeenCount: currentIndexRef.current ?? 0,
+          swipeCount: trackingSwipeCountRef.current ?? 0,
+          timeInSessionMs: trackingOpenedAtRef.current
+            ? Date.now() - trackingOpenedAtRef.current.getTime()
+            : undefined,
+          sessionId: sessionId ?? undefined,
+        });
+      }
     }
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);

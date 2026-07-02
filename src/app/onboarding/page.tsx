@@ -132,6 +132,9 @@ export default function OnboardingPage() {
   const stepEnteredAtRef = useRef<number>(Date.now());
   const onboardingStartedAtRef = useRef<number>(Date.now());
   const completedRef = useRef(false);
+  // Guard — prevents onboarding_abandoned from firing twice if both unmount
+  // cleanup and beforeunload run in the same navigation (e.g. tab close after SPA back).
+  const abandonedFiredRef = useRef(false);
   const latestStepRef = useRef(step);
   useEffect(() => { latestStepRef.current = step; }, [step]);
 
@@ -155,18 +158,36 @@ export default function OnboardingPage() {
     });
   }, [step]);
 
-  // Fire onboarding_abandoned on beforeunload only if not yet completed
+  // Fire onboarding_abandoned on beforeunload and on SPA unmount (e.g. back button).
+  // abandonedFiredRef prevents double-fire when both paths run in the same navigation.
   useEffect(() => {
     const handler = () => {
-      if (completedRef.current) return;
+      if (completedRef.current || abandonedFiredRef.current) return;
+      abandonedFiredRef.current = true;
       trackEvent(EVENT_ONBOARDING_ABANDONED, {
-        last_step_number: latestStepRef.current,
-        last_step_name: getOnboardingStepName(latestStepRef.current),
-        time_in_onboarding_ms: Date.now() - onboardingStartedAtRef.current,
+        lastStep: latestStepRef.current,
+        lastStepName: getOnboardingStepName(latestStepRef.current),
+        timeInOnboardingMs: onboardingStartedAtRef.current
+          ? Date.now() - onboardingStartedAtRef.current
+          : undefined,
       });
     };
     window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+      // SPA unmount path: catches back button and router.push() navigations away
+      // from onboarding that do not trigger beforeunload.
+      if (!completedRef.current && !abandonedFiredRef.current) {
+        abandonedFiredRef.current = true;
+        trackEvent(EVENT_ONBOARDING_ABANDONED, {
+          lastStep: latestStepRef.current,
+          lastStepName: getOnboardingStepName(latestStepRef.current),
+          timeInOnboardingMs: onboardingStartedAtRef.current
+            ? Date.now() - onboardingStartedAtRef.current
+            : undefined,
+        });
+      }
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // First Taster welcome backstop — client-only check to avoid hydration mismatch.

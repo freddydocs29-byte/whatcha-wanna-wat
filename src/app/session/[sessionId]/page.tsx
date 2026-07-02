@@ -20,6 +20,7 @@ import { trackEvent } from "../../lib/analytics";
 import {
   EVENT_SHARED_INVITE_JOINED,
   EVENT_ERROR_SHOWN,
+  EVENT_SHARED_INVITE_EXPIRED,
 } from "../../lib/analytics-events";
 import { SessionTerminalScreen } from "../../../components/SessionTerminalScreen";
 import Avatar from "../../components/Avatar";
@@ -206,6 +207,9 @@ export default function SessionPage() {
   const [guestAllergens, setGuestAllergens] = useState<string[]>([]);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Guard — prevents shared_invite_expired from firing more than once per session
+  // even though loadSession is polled every 3 s.
+  const sharedInviteExpiredTrackedRef = useRef(false);
 
   // Prefer the short code URL; fall back to UUID path if code is absent (older rows)
   const sessionUrl =
@@ -246,6 +250,19 @@ export default function SessionPage() {
     }
     if (s.status === "expired") {
       if (typeof window !== "undefined") localStorage.removeItem("wwe_active_session");
+      if (!sharedInviteExpiredTrackedRef.current) {
+        sharedInviteExpiredTrackedRef.current = true;
+        trackEvent(EVENT_SHARED_INVITE_EXPIRED, {
+          sessionId,
+          sessionCode: s.session_code ?? undefined,
+          guestJoined: !!s.guest_user_id,
+          hoursElapsed: s.created_at
+            ? Math.round(
+                (Date.now() - new Date(s.created_at).getTime()) / 3600000
+              )
+            : undefined,
+        });
+      }
       setSessionExpired(true);
       setSession(s);
       return;

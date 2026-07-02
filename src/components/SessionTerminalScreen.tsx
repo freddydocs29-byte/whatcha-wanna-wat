@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../app/lib/supabase";
+import { trackEvent } from "../app/lib/analytics";
+import { EVENT_ERROR_SHOWN } from "../app/lib/analytics-events";
 
 export type SessionTerminalVariant = "expired" | "not-found" | "matched";
 
@@ -31,6 +33,13 @@ export function SessionTerminalScreen({ variant }: { variant: SessionTerminalVar
   const [inputError, setInputError] = useState(false);
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    trackEvent(EVENT_ERROR_SHOWN, {
+      errorContext: variant,
+      sessionMode: "shared",
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { headline, subtext, primaryLabel } = CONFIG[variant];
 
