@@ -1231,12 +1231,38 @@ export default function Home() {
   function handleCookDirect() {
     if (!decidedMeal) return;
     recordPickIfNew();
+    const _dm = getDecidedMeal();
+    if (_dm?.id) {
+      localStorage.setItem(
+        `wwe_post_decision_action_${_dm.id}`,
+        JSON.stringify({
+          action: "cook",
+          mealId: _dm.id,
+          sessionId: _dm.sessionId ?? null,
+          sessionMode: _dm.mode ?? null,
+          actedAt: new Date().toISOString(),
+        })
+      );
+    }
     setMealActionMode("cook");
   }
 
   function handleOrderDirect() {
     if (!decidedMeal) return;
     recordPickIfNew();
+    const _dm = getDecidedMeal();
+    if (_dm?.id) {
+      localStorage.setItem(
+        `wwe_post_decision_action_${_dm.id}`,
+        JSON.stringify({
+          action: "order",
+          mealId: _dm.id,
+          sessionId: _dm.sessionId ?? null,
+          sessionMode: _dm.mode ?? null,
+          actedAt: new Date().toISOString(),
+        })
+      );
+    }
     setMealActionMode("order");
   }
 
