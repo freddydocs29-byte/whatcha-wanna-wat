@@ -98,12 +98,32 @@ export default function LockedPageClient({ meal, recipeQuery, pickedForYou }: Pr
   function handleCook() {
     trackEvent("cook_clicked", { mealId: meal.id });
     trackEvent(EVENT_POST_DECISION_ACTION, { mealId: meal.id, action_type: "cook" });
+    localStorage.setItem(
+      `wwe_post_decision_action_${meal.id}`,
+      JSON.stringify({
+        action: "cook",
+        mealId: meal.id,
+        sessionId: sessionId ?? null,
+        sessionMode: getDecidedMeal()?.mode ?? null,
+        actedAt: new Date().toISOString(),
+      })
+    );
     setMealActionMode("cook");
   }
 
   function handleOrder() {
     trackEvent("order_clicked", { mealId: meal.id });
     trackEvent(EVENT_POST_DECISION_ACTION, { mealId: meal.id, action_type: "order" });
+    localStorage.setItem(
+      `wwe_post_decision_action_${meal.id}`,
+      JSON.stringify({
+        action: "order",
+        mealId: meal.id,
+        sessionId: sessionId ?? null,
+        sessionMode: getDecidedMeal()?.mode ?? null,
+        actedAt: new Date().toISOString(),
+      })
+    );
     setMealActionMode("order");
   }
 

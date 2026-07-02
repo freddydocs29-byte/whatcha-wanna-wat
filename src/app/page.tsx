@@ -383,7 +383,18 @@ export default function Home() {
     const alreadyAnswered =
       localStorage.getItem(`wwe_did_tonight_hit_${decidedMeal.id}`) !== null;
 
-    if (ageMs >= twoHours && ageMs < sixHours && !alreadyAnswered) {
+    const actionRaw = localStorage.getItem(
+      `wwe_post_decision_action_${decidedMeal.id}`
+    );
+
+    const tookAction = actionRaw !== null;
+
+    if (
+      ageMs >= twoHours &&
+      ageMs < sixHours &&
+      !alreadyAnswered &&
+      tookAction
+    ) {
       setDidTonightHitMeal(decidedMeal);
       setShowDidTonightHit(true);
     }
@@ -1235,6 +1246,9 @@ export default function Home() {
       `wwe_did_tonight_hit_${didTonightHitMeal.id}`,
       "yes"
     );
+    localStorage.removeItem(
+      `wwe_post_decision_action_${didTonightHitMeal.id}`
+    );
     trackEvent(EVENT_MEAL_CONFIRMED_EATEN, {
       mealId: didTonightHitMeal.id,
       mealName: didTonightHitMeal.name,
@@ -1255,6 +1269,9 @@ export default function Home() {
       `wwe_did_tonight_hit_${didTonightHitMeal.id}`,
       "no"
     );
+    localStorage.removeItem(
+      `wwe_post_decision_action_${didTonightHitMeal.id}`
+    );
     trackEvent(EVENT_MEAL_NOT_EATEN, {
       mealId: didTonightHitMeal.id,
       mealName: didTonightHitMeal.name,
@@ -1271,6 +1288,9 @@ export default function Home() {
     localStorage.setItem(
       `wwe_did_tonight_hit_${didTonightHitMeal.id}`,
       "dismissed"
+    );
+    localStorage.removeItem(
+      `wwe_post_decision_action_${didTonightHitMeal.id}`
     );
     setShowDidTonightHit(false);
     setDidTonightHitMeal(null);
